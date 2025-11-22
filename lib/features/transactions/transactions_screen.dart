@@ -5,6 +5,7 @@ import '../../core/services/auth_service.dart';
 import '../../core/services/categorization_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
+import '../../core/services/transaction_ingest_service.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
@@ -24,10 +25,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Transactions')),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openAddForm(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Add'),
+      floatingActionButton: Tooltip(
+        message: 'Add transaction',
+        child: FloatingActionButton.extended(
+          onPressed: () => _openAddForm(context),
+          icon: const Icon(Icons.add),
+          label: const Text('Add'),
+        ),
       ),
       body: Column(
         children: [
@@ -49,19 +53,22 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'csv') {
-                      _importCsv(context);
-                    } else if (value == 'bank_demo') {
-                      _importBankDemo(context);
-                    }
-                  },
-                  itemBuilder: (ctx) => const [
-                    PopupMenuItem(value: 'csv', child: Text('Import CSV')),
-                    PopupMenuItem(value: 'bank_demo', child: Text('Import from bank (demo)')),
-                  ],
-                  icon: const Icon(Icons.upload_file),
+                Tooltip(
+                  message: 'Import options',
+                  child: PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'csv') {
+                        _importCsv(context);
+                      } else if (value == 'bank_demo') {
+                        _importBankDemo(context);
+                      }
+                    },
+                    itemBuilder: (ctx) => const [
+                      PopupMenuItem(value: 'csv', child: Text('Import CSV')),
+                      PopupMenuItem(value: 'bank_demo', child: Text('Import from bank (demo)')),
+                    ],
+                    icon: const Icon(Icons.upload_file),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 DropdownButtonHideUnderline(
@@ -99,6 +106,23 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       (_filter == 'Expense' && e.amount < 0);
                   return matchesQuery && matchesFilter;
                 }).toList();
+                if (filtered.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.receipt_long, size: 72, color: theme.colorScheme.primary),
+                        const SizedBox(height: 12),
+                        Text('No transactions', style: theme.textTheme.titleMedium),
+                        const SizedBox(height: 8),
+                        FilledButton(
+                          onPressed: () => _openAddForm(context),
+                          child: const Text('Add transaction'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
                 return ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemBuilder: (ctx, i) {
@@ -148,6 +172,35 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             style: theme.textTheme.bodyLarge?.copyWith(
                               color: isIncome ? Colors.greenAccent : Colors.redAccent,
                               fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Tooltip(
+                            message: 'Delete',
+                            child: IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () async {
+                                final messenger = ScaffoldMessenger.of(context);
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (dCtx) => AlertDialog(
+                                    title: const Text('Delete transaction'),
+                                    content: const Text('Are you sure you want to delete this transaction?'),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.of(dCtx).pop(false), child: const Text('Cancel')),
+                                      FilledButton(onPressed: () => Navigator.of(dCtx).pop(true), child: const Text('Delete')),
+                                    ],
+                                  ),
+                                );
+                                if (confirm == true) {
+                                  try {
+                                    await ref.read(transactionRepositoryProvider).delete(e.id);
+                                    messenger.showSnackBar(const SnackBar(content: Text('Deleted')));
+                                  } catch (err) {
+                                    messenger.showSnackBar(SnackBar(content: Text('Failed: $err')));
+                                  }
+                                }
+                              },
                             ),
                           ),
                         ],
@@ -258,16 +311,16 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         final user = ref.read(currentUserProvider);
                         if (user == null) return;
                         final amount = double.tryParse(amountController.text) ?? 0;
-                        final sugg = ref.read(categorizationServiceProvider).suggestCategory(titleController.text);
-                        final repo = ref.read(transactionRepositoryProvider);
+                        final ingest = ref.read(transactionIngestServiceProvider);
                         final messenger = ScaffoldMessenger.of(ctx);
                         final nav = Navigator.of(ctx);
                         try {
-                          await repo.create(
+                          await ingest.addManual(
                             userId: user.uid,
                             title: titleController.text,
-                            amount: type == 'Income' ? amount.abs() : -amount.abs(),
-                            categoryId: sugg,
+                            amount: amount,
+                            isIncome: type == 'Income',
+                            categoryId: category == 'General' ? null : category,
                             date: date,
                             notes: null,
                           );
@@ -343,12 +396,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   Future<void> _importBankDemo(BuildContext context) async {
     final user = ref.read(currentUserProvider);
     if (user == null) return;
-    final repo = ref.read(transactionRepositoryProvider);
+    final ingest = ref.read(transactionIngestServiceProvider);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await repo.create(userId: user.uid, title: 'Bank POS Grocery', amount: -52.35, categoryId: 'Food', date: DateTime.now(), notes: 'Demo import');
-      await repo.create(userId: user.uid, title: 'Bank ACH Salary', amount: 1200.00, categoryId: 'Income', date: DateTime.now().subtract(const Duration(days: 2)), notes: 'Demo import');
-      messenger.showSnackBar(const SnackBar(content: Text('Imported demo bank transactions')));
+      final count = await ingest.importBankDemo(user.uid);
+      messenger.showSnackBar(SnackBar(content: Text('Imported $count demo bank transactions')));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('Bank import failed: $e')));
     }

@@ -21,7 +21,18 @@ class InsightsScreen extends ConsumerWidget {
           children: [
             Text('Monthly Trend', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            Container(
+            if (monthly.isEmpty)
+              Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.trending_up, size: 72, color: theme.colorScheme.primary),
+                    const SizedBox(height: 8),
+                    Text('No trend data', style: theme.textTheme.titleMedium),
+                  ],
+                ),
+              )
+            else
+              Container(
               height: 220,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -71,7 +82,18 @@ class InsightsScreen extends ConsumerWidget {
             const SizedBox(height: 24),
             Text('Spending by Category', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            Container(
+            if (categories.isEmpty)
+              Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.pie_chart_outline, size: 72, color: theme.colorScheme.primary),
+                    const SizedBox(height: 8),
+                    Text('No category data', style: theme.textTheme.titleMedium),
+                  ],
+                ),
+              )
+            else
+              Container(
               height: 240,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
