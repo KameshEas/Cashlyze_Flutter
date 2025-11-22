@@ -16,7 +16,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final prefs = ref.watch(sharedPrefsServiceProvider);
-    final currency = prefs.currency;
+    final currency = ref.watch(currencyProvider);
     final kpis = ref.watch(kpisProvider);
     final txsAsync = ref.watch(recentTransactionsProvider);
     return Scaffold(

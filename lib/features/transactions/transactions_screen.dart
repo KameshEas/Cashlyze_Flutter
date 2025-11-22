@@ -30,7 +30,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final theme = Theme.of(context);
     final txsAsync = ref.watch(userTransactionsProvider);
     final prefs = ref.watch(sharedPrefsServiceProvider);
-    final currency = prefs.currency;
+    final currency = ref.watch(currencyProvider);
     final datePattern = prefs.dateFormat;
 
     return Scaffold(

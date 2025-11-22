@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/repositories/emi_repository.dart';
 import '../../core/models/emi.dart';
+import '../../core/utils/format.dart';
+import '../../core/providers/onboarding_provider.dart';
 import 'package:go_router/go_router.dart';
 
 class EMIDashboardScreen extends ConsumerWidget {
@@ -10,6 +12,7 @@ class EMIDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final plansAsync = ref.watch(userEMIPlansProvider);
+    final currency = ref.watch(currencyProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('EMI Tracker'), actions: [IconButton(onPressed: () => GoRouter.of(context).go('/emi/new'), icon: const Icon(Icons.add), tooltip: 'New EMI')]),
       body: plansAsync.when(
@@ -63,7 +66,7 @@ class _PlanCard extends ConsumerWidget {
           final nextDue = items.firstWhere((e) => !e.paid, orElse: () => items.isNotEmpty ? items.last : EMIPayment(id: 'x', planId: plan.id, dueDate: plan.startDate, installment: 0, interest: 0, principal: 0, remainingPrincipal: 0, paid: false));
           return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text('Loan: ${plan.loanAmount.toStringAsFixed(2)}'),
+              Text('Loan: ${formatAmount(plan.loanAmount, currency)}'),
               Text('Rate: ${plan.annualInterestRate.toStringAsFixed(2)}%'),
               Text('Tenure: ${plan.tenureMonths}m'),
             ]),
@@ -86,7 +89,7 @@ class _PlanCard extends ConsumerWidget {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.05))),
                   child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Due: ${e.dueDate.toLocal()}'.split(' ').first), Text('Installment: ${e.installment.toStringAsFixed(2)}')]),
+                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Due: ${e.dueDate.toLocal()}'.split(' ').first), Text('Installment: ${formatAmount(e.installment, currency)}')]),
                     e.paid
                         ? const Icon(Icons.check_circle, color: Colors.green)
                         : FilledButton(onPressed: () async {await ref.read(emiRepositoryProvider).markPaid(plan.id, e.id);}, child: const Text('Mark paid')),

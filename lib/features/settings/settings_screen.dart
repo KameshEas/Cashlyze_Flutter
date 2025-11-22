@@ -17,7 +17,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final prefs = ref.watch(sharedPrefsServiceProvider);
     bool alertsEnabled = prefs.alertsEnabled;
-    String currency = prefs.currency;
+    final currency = ref.watch(currencyProvider);
     String dateFormat = prefs.dateFormat;
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -48,8 +48,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ],
                   onChanged: (v) async {
                     if (v == null) return;
-                    await prefs.setCurrency(v);
-                    setState(() {});
+                    await ref.read(currencyProvider.notifier).set(v);
                   },
                 ),
               ],

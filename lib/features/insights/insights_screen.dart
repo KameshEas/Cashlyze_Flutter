@@ -46,8 +46,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
     final txsAsync = ref.watch(recentTransactionsProvider);
     final kpis = ref.watch(kpisProvider);
     final selectedRange = ref.watch(selectedTimeRangeProvider);
-    final prefs = ref.watch(sharedPrefsServiceProvider);
-    final currency = prefs.currency;
+    final currency = ref.watch(currencyProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Insights')),
@@ -139,7 +138,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                     children: [
                       Text('Avg/day', style: theme.textTheme.bodySmall),
                       Text(
-                        kpis.avgDailySpend.toStringAsFixed(2),
+                        formatAmount(kpis.avgDailySpend, currency),
                         style: theme.textTheme.titleMedium,
                       ),
                     ],
@@ -440,7 +439,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                                 .first,
                           ),
                           trailing: Text(
-                            '-${t.amount.abs().toStringAsFixed(2)}',
+                            formatAmount(t.amount, currency),
                           ),
                         ),
                       )

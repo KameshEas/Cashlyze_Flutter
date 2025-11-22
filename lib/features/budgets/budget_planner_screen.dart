@@ -21,7 +21,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final prefs = ref.watch(sharedPrefsServiceProvider);
-    final currency = prefs.currency;
+    final currency = ref.watch(currencyProvider);
     final budgetsAsync = ref.watch(userBudgetsProvider);
     final budgets = budgetsAsync.maybeWhen(data: (d) => d, orElse: () => const []);
     final spentMap = ref.watch(budgetsUtilizationProvider);

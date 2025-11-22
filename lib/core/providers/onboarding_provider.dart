@@ -24,3 +24,19 @@ class OnboardingNotifier extends Notifier<bool> {
 }
 
 final onboardingCompletedProvider = NotifierProvider<OnboardingNotifier, bool>(OnboardingNotifier.new);
+
+class CurrencyNotifier extends Notifier<String> {
+  @override
+  String build() {
+    final prefsService = ref.watch(sharedPrefsServiceProvider);
+    return prefsService.currency;
+  }
+
+  Future<void> set(String value) async {
+    final prefsService = ref.read(sharedPrefsServiceProvider);
+    await prefsService.setCurrency(value);
+    state = value;
+  }
+}
+
+final currencyProvider = NotifierProvider<CurrencyNotifier, String>(CurrencyNotifier.new);
