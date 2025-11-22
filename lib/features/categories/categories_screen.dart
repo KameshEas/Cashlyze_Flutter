@@ -29,7 +29,10 @@ class CategoriesScreen extends ConsumerWidget {
                   const SizedBox(height: 8),
                   const Text('No categories'),
                   const SizedBox(height: 8),
-                  FilledButton(onPressed: () => _openEdit(context, ref), child: const Text('Add category')),
+                  FilledButton(
+                    onPressed: () => _openEdit(context, ref),
+                    child: const Text('Add category'),
+                  ),
                 ],
               ),
             );
@@ -45,7 +48,9 @@ class CategoriesScreen extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: Theme.of(ctx).colorScheme.surface,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -55,7 +60,12 @@ class CategoriesScreen extends ConsumerWidget {
                     IconButton(
                       tooltip: 'Edit',
                       icon: const Icon(Icons.edit_outlined),
-                      onPressed: () => _openEdit(context, ref, categoryId: c.id, initialName: c.name),
+                      onPressed: () => _openEdit(
+                        context,
+                        ref,
+                        categoryId: c.id,
+                        initialName: c.name,
+                      ),
                     ),
                     IconButton(
                       tooltip: 'Delete',
@@ -66,19 +76,33 @@ class CategoriesScreen extends ConsumerWidget {
                           context: context,
                           builder: (dCtx) => AlertDialog(
                             title: const Text('Delete category'),
-                            content: const Text('Are you sure you want to delete this category?'),
+                            content: const Text(
+                              'Are you sure you want to delete this category?',
+                            ),
                             actions: [
-                              TextButton(onPressed: () => Navigator.of(dCtx).pop(false), child: const Text('Cancel')),
-                              FilledButton(onPressed: () => Navigator.of(dCtx).pop(true), child: const Text('Delete')),
+                              TextButton(
+                                onPressed: () => Navigator.of(dCtx).pop(false),
+                                child: const Text('Cancel'),
+                              ),
+                              FilledButton(
+                                onPressed: () => Navigator.of(dCtx).pop(true),
+                                child: const Text('Delete'),
+                              ),
                             ],
                           ),
                         );
                         if (confirm == true) {
                           try {
-                            await ref.read(categoryRepositoryProvider).delete(c.id);
-                            messenger.showSnackBar(const SnackBar(content: Text('Deleted')));
+                            await ref
+                                .read(categoryRepositoryProvider)
+                                .delete(c.id);
+                            messenger.showSnackBar(
+                              const SnackBar(content: Text('Deleted')),
+                            );
                           } catch (e) {
-                            messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                            messenger.showSnackBar(
+                              SnackBar(content: Text('Failed: $e')),
+                            );
                           }
                         }
                       },
@@ -93,7 +117,12 @@ class CategoriesScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _openEdit(BuildContext context, WidgetRef ref, {String? categoryId, String? initialName}) async {
+  Future<void> _openEdit(
+    BuildContext context,
+    WidgetRef ref, {
+    String? categoryId,
+    String? initialName,
+  }) async {
     final controller = TextEditingController(text: initialName ?? '');
     await showDialog<void>(
       context: context,
@@ -106,12 +135,17 @@ class CategoriesScreen extends ConsumerWidget {
             decoration: const InputDecoration(labelText: 'Name'),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
             FilledButton(
               onPressed: () async {
                 final name = controller.text.trim();
                 if (name.isEmpty) {
-                  messenger.showSnackBar(const SnackBar(content: Text('Name cannot be empty')));
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Name cannot be empty')),
+                  );
                   return;
                 }
                 try {
@@ -124,7 +158,9 @@ class CategoriesScreen extends ConsumerWidget {
                     await repo.update(categoryId, {'name': name});
                   }
                   Navigator.of(ctx).pop();
-                  messenger.showSnackBar(const SnackBar(content: Text('Saved')));
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Saved')),
+                  );
                 } catch (e) {
                   messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
                 }

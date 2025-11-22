@@ -17,7 +17,6 @@ import '../features/categories/categories_screen.dart';
 final _rootKey = GlobalKey<NavigatorState>();
 final _shellKey = GlobalKey<NavigatorState>();
 
-
 final appRouterProvider = Provider<GoRouter>((ref) {
   final onboardingCompleted = ref.watch(onboardingCompletedProvider);
   final authState = ref.watch(authStateChangesProvider);
@@ -46,81 +45,117 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               selectedIndex: navigationShell.currentIndex,
               onDestinationSelected: navigationShell.goBranch,
               destinations: const [
-                NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-                NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Transactions'),
-                NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), selectedIcon: Icon(Icons.account_balance_wallet), label: 'Budgets'),
-                NavigationDestination(icon: Icon(Icons.insights_outlined), selectedIcon: Icon(Icons.insights), label: 'Insights'),
-                NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'Settings'),
+                NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home),
+                  label: 'Home',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.receipt_long_outlined),
+                  selectedIcon: Icon(Icons.receipt_long),
+                  label: 'Transactions',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.account_balance_wallet_outlined),
+                  selectedIcon: Icon(Icons.account_balance_wallet),
+                  label: 'Budgets',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.insights_outlined),
+                  selectedIcon: Icon(Icons.insights),
+                  label: 'Insights',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.settings_outlined),
+                  selectedIcon: Icon(Icons.settings),
+                  label: 'Settings',
+                ),
               ],
             ),
           );
         },
         branches: [
-          StatefulShellBranch(navigatorKey: _shellKey, routes: [
-            GoRoute(
-              path: '/',
-              name: 'home',
-              pageBuilder: (context, state) => CustomTransitionPage(
-                key: state.pageKey,
-                child: const HomeScreen(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-                    FadeTransition(opacity: animation, child: child),
-                transitionDuration: kRouteFadeDuration,
+          StatefulShellBranch(
+            navigatorKey: _shellKey,
+            routes: [
+              GoRoute(
+                path: '/',
+                name: 'home',
+                pageBuilder: (context, state) => CustomTransitionPage(
+                  key: state.pageKey,
+                  child: const HomeScreen(),
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) =>
+                          FadeTransition(opacity: animation, child: child),
+                  transitionDuration: kRouteFadeDuration,
+                ),
               ),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/transactions',
-              name: 'transactions',
-              pageBuilder: (context, state) => CustomTransitionPage(
-                key: state.pageKey,
-                child: const TransactionsScreen(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-                    FadeTransition(opacity: animation, child: child),
-                transitionDuration: kRouteFadeDuration,
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/transactions',
+                name: 'transactions',
+                pageBuilder: (context, state) => CustomTransitionPage(
+                  key: state.pageKey,
+                  child: const TransactionsScreen(),
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) =>
+                          FadeTransition(opacity: animation, child: child),
+                  transitionDuration: kRouteFadeDuration,
+                ),
               ),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/budgets',
-              name: 'budgets',
-              pageBuilder: (context, state) => CustomTransitionPage(
-                key: state.pageKey,
-                child: const BudgetPlannerScreen(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-                    FadeTransition(opacity: animation, child: child),
-                transitionDuration: kRouteFadeDuration,
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/budgets',
+                name: 'budgets',
+                pageBuilder: (context, state) => CustomTransitionPage(
+                  key: state.pageKey,
+                  child: const BudgetPlannerScreen(),
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) =>
+                          FadeTransition(opacity: animation, child: child),
+                  transitionDuration: kRouteFadeDuration,
+                ),
               ),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/insights',
-              name: 'insights',
-              pageBuilder: (context, state) => CustomTransitionPage(
-                key: state.pageKey,
-                child: const InsightsScreen(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-                    FadeTransition(opacity: animation, child: child),
-                transitionDuration: kRouteFadeDuration,
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/insights',
+                name: 'insights',
+                pageBuilder: (context, state) => CustomTransitionPage(
+                  key: state.pageKey,
+                  child: const InsightsScreen(),
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) =>
+                          FadeTransition(opacity: animation, child: child),
+                  transitionDuration: kRouteFadeDuration,
+                ),
               ),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/settings',
-              name: 'settings',
-              pageBuilder: (context, state) => CustomTransitionPage(
-                key: state.pageKey,
-                child: const SettingsScreen(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-                    FadeTransition(opacity: animation, child: child),
-                transitionDuration: kRouteFadeDuration,
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/settings',
+                name: 'settings',
+                pageBuilder: (context, state) => CustomTransitionPage(
+                  key: state.pageKey,
+                  child: const SettingsScreen(),
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) =>
+                          FadeTransition(opacity: animation, child: child),
+                  transitionDuration: kRouteFadeDuration,
+                ),
               ),
-            ),
-          ]),
+            ],
+          ),
         ],
       ),
       GoRoute(
@@ -203,7 +238,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
     redirect: (context, state) {
       final isOnboarding = state.matchedLocation == '/onboarding';
-      final isAuthRoute = state.matchedLocation == '/auth' ||
+      final isAuthRoute =
+          state.matchedLocation == '/auth' ||
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/signup';
       final isSplash = state.matchedLocation == '/splash';

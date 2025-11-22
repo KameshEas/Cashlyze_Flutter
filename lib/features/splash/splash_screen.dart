@@ -33,7 +33,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   }
 
   void _maybeNavigate() {
-    if (_navigated) return;
+    if (!mounted || _navigated) return;
     final authState = ref.read(authStateChangesProvider);
     final onboardingCompleted = ref.read(onboardingCompletedProvider);
 

@@ -5,11 +5,18 @@ import '../services/auth_service.dart';
 
 enum TimeRange { last7d, last30d, last90d }
 
-final selectedTimeRangeProvider = StateProvider<TimeRange>((ref) {
-  return TimeRange.last30d;
-});
+class TimeRangeNotifier extends Notifier<TimeRange> {
+  @override
+  TimeRange build() => TimeRange.last30d;
+  void setRange(TimeRange r) => state = r;
+}
 
-final recentTransactionsProvider = StreamProvider<List<TransactionModel>>((ref) {
+final selectedTimeRangeProvider =
+    NotifierProvider<TimeRangeNotifier, TimeRange>(TimeRangeNotifier.new);
+
+final recentTransactionsProvider = StreamProvider<List<TransactionModel>>((
+  ref,
+) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return const Stream.empty();
   return ref.watch(transactionRepositoryProvider).streamForUser(user.uid);
@@ -33,9 +40,14 @@ final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {
 });
 
 final monthlyTrendProvider = Provider<List<double>>((ref) {
-  final txs = ref.watch(recentTransactionsProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+  final txs = ref
+      .watch(recentTransactionsProvider)
+      .maybeWhen(data: (d) => d, orElse: () => const []);
   final now = DateTime.now();
-  final months = List.generate(6, (i) => DateTime(now.year, now.month - (5 - i), 1));
+  final months = List.generate(
+    6,
+    (i) => DateTime(now.year, now.month - (5 - i), 1),
+  );
   final values = List<double>.filled(6, 0);
   for (final t in txs) {
     for (var i = 0; i < months.length; i++) {

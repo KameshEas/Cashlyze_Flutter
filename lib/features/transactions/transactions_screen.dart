@@ -17,7 +17,8 @@ class TransactionsScreen extends ConsumerStatefulWidget {
   ConsumerState<TransactionsScreen> createState() => _TransactionsScreenState();
 }
 
-class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with SingleTickerProviderStateMixin {
+class _TransactionsScreenState extends ConsumerState<TransactionsScreen>
+    with SingleTickerProviderStateMixin {
   String _filter = 'All';
   String _query = '';
   late final AnimationController _shimmerController;
@@ -26,8 +27,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
   @override
   void initState() {
     super.initState();
-    _shimmerController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat(reverse: true);
-    _shimmer = CurvedAnimation(parent: _shimmerController, curve: Curves.easeInOut);
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _shimmer = CurvedAnimation(
+      parent: _shimmerController,
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
@@ -54,7 +61,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1 + 0.1 * _shimmer.value),
+                  color: Colors.white.withValues(
+                    alpha: 0.1 + 0.1 * _shimmer.value,
+                  ),
                   shape: BoxShape.circle,
                 ),
               );
@@ -71,7 +80,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                     height: 14,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.1 + 0.1 * _shimmer.value),
+                      color: Colors.white.withValues(
+                        alpha: 0.1 + 0.1 * _shimmer.value,
+                      ),
                       borderRadius: BorderRadius.circular(6),
                     ),
                   ),
@@ -83,7 +94,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                     height: 12,
                     width: 160,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.08 + 0.1 * _shimmer.value),
+                      color: Colors.white.withValues(
+                        alpha: 0.08 + 0.1 * _shimmer.value,
+                      ),
                       borderRadius: BorderRadius.circular(6),
                     ),
                   ),
@@ -95,6 +108,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -145,7 +159,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                     },
                     itemBuilder: (ctx) => const [
                       PopupMenuItem(value: 'csv', child: Text('Import CSV')),
-                      PopupMenuItem(value: 'bank_demo', child: Text('Import from bank (demo)')),
+                      PopupMenuItem(
+                        value: 'bank_demo',
+                        child: Text('Import from bank (demo)'),
+                      ),
                     ],
                     icon: const Icon(Icons.upload_file),
                   ),
@@ -153,18 +170,29 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                 const SizedBox(width: 8),
                 DropdownButtonHideUnderline(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
                     ),
                     child: DropdownButton<String>(
                       value: _filter,
                       items: const [
                         DropdownMenuItem(value: 'All', child: Text('All')),
-                        DropdownMenuItem(value: 'Income', child: Text('Income')),
-                        DropdownMenuItem(value: 'Expense', child: Text('Expense')),
+                        DropdownMenuItem(
+                          value: 'Income',
+                          child: Text('Income'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Expense',
+                          child: Text('Expense'),
+                        ),
                       ],
                       onChanged: (v) => setState(() => _filter = v ?? 'All'),
                     ),
@@ -184,9 +212,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
               error: (e, _) => Center(child: Text('Failed to load: $e')),
               data: (items) {
                 final filtered = items.where((e) {
-                  final matchesQuery = _query.isEmpty ||
+                  final matchesQuery =
+                      _query.isEmpty ||
                       e.title.toLowerCase().contains(_query.toLowerCase());
-                  final matchesFilter = _filter == 'All' ||
+                  final matchesFilter =
+                      _filter == 'All' ||
                       (_filter == 'Income' && e.amount > 0) ||
                       (_filter == 'Expense' && e.amount < 0);
                   return matchesQuery && matchesFilter;
@@ -196,9 +226,16 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.receipt_long, size: 72, color: theme.colorScheme.primary),
+                        Icon(
+                          Icons.receipt_long,
+                          size: 72,
+                          color: theme.colorScheme.primary,
+                        ),
                         const SizedBox(height: 12),
-                        Text('No transactions', style: theme.textTheme.titleMedium),
+                        Text(
+                          'No transactions',
+                          style: theme.textTheme.titleMedium,
+                        ),
                         const SizedBox(height: 8),
                         FilledButton(
                           onPressed: () => _openAddForm(context),
@@ -218,7 +255,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.05),
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -231,8 +270,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              isIncome ? Icons.arrow_downward : Icons.arrow_upward,
-                              color: isIncome ? Colors.greenAccent : Colors.redAccent,
+                              isIncome
+                                  ? Icons.arrow_downward
+                                  : Icons.arrow_upward,
+                              color: isIncome
+                                  ? Colors.greenAccent
+                                  : Colors.redAccent,
                               size: 20,
                             ),
                           ),
@@ -243,11 +286,15 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                               children: [
                                 Text(
                                   e.title,
-                                  style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                                 Text(
                                   '${e.categoryId ?? 'Uncategorized'} • ${formatDate(e.date, datePattern)}',
-                                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey,
+                                  ),
                                 ),
                               ],
                             ),
@@ -255,7 +302,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                           Text(
                             formatAmount(e.amount, currency),
                             style: theme.textTheme.bodyLarge?.copyWith(
-                              color: isIncome ? Colors.greenAccent : Colors.redAccent,
+                              color: isIncome
+                                  ? Colors.greenAccent
+                                  : Colors.redAccent,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -264,7 +313,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                             message: 'Edit',
                             child: IconButton(
                               icon: const Icon(Icons.edit_outlined),
-                              onPressed: () => _openEditForm(context, e.id, e.title, e.amount, e.categoryId, e.date),
+                              onPressed: () => _openEditForm(
+                                context,
+                                e.id,
+                                e.title,
+                                e.amount,
+                                e.categoryId,
+                                e.date,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 4),
@@ -278,19 +334,35 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                                   context: context,
                                   builder: (dCtx) => AlertDialog(
                                     title: const Text('Delete transaction'),
-                                    content: const Text('Are you sure you want to delete this transaction?'),
+                                    content: const Text(
+                                      'Are you sure you want to delete this transaction?',
+                                    ),
                                     actions: [
-                                      TextButton(onPressed: () => Navigator.of(dCtx).pop(false), child: const Text('Cancel')),
-                                      FilledButton(onPressed: () => Navigator.of(dCtx).pop(true), child: const Text('Delete')),
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(dCtx).pop(false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      FilledButton(
+                                        onPressed: () =>
+                                            Navigator.of(dCtx).pop(true),
+                                        child: const Text('Delete'),
+                                      ),
                                     ],
                                   ),
                                 );
                                 if (confirm == true) {
                                   try {
-                                    await ref.read(transactionRepositoryProvider).delete(e.id);
-                                    messenger.showSnackBar(const SnackBar(content: Text('Deleted')));
+                                    await ref
+                                        .read(transactionRepositoryProvider)
+                                        .delete(e.id);
+                                    messenger.showSnackBar(
+                                      const SnackBar(content: Text('Deleted')),
+                                    );
                                   } catch (err) {
-                                    messenger.showSnackBar(SnackBar(content: Text('Failed: $err')));
+                                    messenger.showSnackBar(
+                                      SnackBar(content: Text('Failed: $err')),
+                                    );
                                   }
                                 }
                               },
@@ -323,10 +395,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
       context: context,
       isScrollControlled: true,
       backgroundColor: theme.colorScheme.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (ctx) {
         return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -347,11 +423,20 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                       child: DropdownButtonFormField<String>(
                         initialValue: type,
                         items: const [
-                          DropdownMenuItem(value: 'Expense', child: Text('Expense')),
-                          DropdownMenuItem(value: 'Income', child: Text('Income')),
+                          DropdownMenuItem(
+                            value: 'Expense',
+                            child: Text('Expense'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Income',
+                            child: Text('Income'),
+                          ),
                         ],
                         onChanged: (v) => type = v ?? 'Expense',
-                        decoration: const InputDecoration(labelText: 'Type', filled: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Type',
+                          filled: true,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -359,13 +444,25 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                       child: DropdownButtonFormField<String>(
                         initialValue: category,
                         items: const [
-                          DropdownMenuItem(value: 'General', child: Text('General')),
+                          DropdownMenuItem(
+                            value: 'General',
+                            child: Text('General'),
+                          ),
                           DropdownMenuItem(value: 'Food', child: Text('Food')),
-                          DropdownMenuItem(value: 'Entertainment', child: Text('Entertainment')),
-                          DropdownMenuItem(value: 'Transport', child: Text('Transport')),
+                          DropdownMenuItem(
+                            value: 'Entertainment',
+                            child: Text('Entertainment'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Transport',
+                            child: Text('Transport'),
+                          ),
                         ],
                         onChanged: (v) => category = v ?? 'General',
-                        decoration: const InputDecoration(labelText: 'Category', filled: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Category',
+                          filled: true,
+                        ),
                       ),
                     ),
                   ],
@@ -373,13 +470,19 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: titleController,
-                  decoration: const InputDecoration(labelText: 'Title', filled: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Title',
+                    filled: true,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: amountController,
                   keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Amount', filled: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Amount',
+                    filled: true,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -403,8 +506,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                       onPressed: () async {
                         final user = ref.read(currentUserProvider);
                         if (user == null) return;
-                        final amount = double.tryParse(amountController.text) ?? 0;
-                        final ingest = ref.read(transactionIngestServiceProvider);
+                        final amount =
+                            double.tryParse(amountController.text) ?? 0;
+                        final ingest = ref.read(
+                          transactionIngestServiceProvider,
+                        );
                         final messenger = ScaffoldMessenger.of(ctx);
                         final nav = Navigator.of(ctx);
                         try {
@@ -441,10 +547,19 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
     amountController.dispose();
   }
 
-  Future<void> _openEditForm(BuildContext context, String id, String title, double amount, String? categoryId, DateTime date) async {
+  Future<void> _openEditForm(
+    BuildContext context,
+    String id,
+    String title,
+    double amount,
+    String? categoryId,
+    DateTime date,
+  ) async {
     final theme = Theme.of(context);
     final titleController = TextEditingController(text: title);
-    final amountController = TextEditingController(text: amount.abs().toStringAsFixed(2));
+    final amountController = TextEditingController(
+      text: amount.abs().toStringAsFixed(2),
+    );
     String type = amount >= 0 ? 'Income' : 'Expense';
     String category = categoryId ?? 'General';
     DateTime pickedDate = date;
@@ -453,12 +568,16 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
       context: context,
       isScrollControlled: true,
       backgroundColor: theme.colorScheme.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (ctx) {
         final messenger = ScaffoldMessenger.of(ctx);
         final nav = Navigator.of(ctx);
         return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -479,11 +598,20 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                       child: DropdownButtonFormField<String>(
                         initialValue: type,
                         items: const [
-                          DropdownMenuItem(value: 'Expense', child: Text('Expense')),
-                          DropdownMenuItem(value: 'Income', child: Text('Income')),
+                          DropdownMenuItem(
+                            value: 'Expense',
+                            child: Text('Expense'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Income',
+                            child: Text('Income'),
+                          ),
                         ],
                         onChanged: (v) => type = v ?? 'Expense',
-                        decoration: const InputDecoration(labelText: 'Type', filled: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Type',
+                          filled: true,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -491,14 +619,29 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                       child: DropdownButtonFormField<String>(
                         initialValue: category,
                         items: const [
-                          DropdownMenuItem(value: 'General', child: Text('General')),
+                          DropdownMenuItem(
+                            value: 'General',
+                            child: Text('General'),
+                          ),
                           DropdownMenuItem(value: 'Food', child: Text('Food')),
-                          DropdownMenuItem(value: 'Entertainment', child: Text('Entertainment')),
-                          DropdownMenuItem(value: 'Transport', child: Text('Transport')),
-                          DropdownMenuItem(value: 'Income', child: Text('Income')),
+                          DropdownMenuItem(
+                            value: 'Entertainment',
+                            child: Text('Entertainment'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Transport',
+                            child: Text('Transport'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Income',
+                            child: Text('Income'),
+                          ),
                         ],
                         onChanged: (v) => category = v ?? 'General',
-                        decoration: const InputDecoration(labelText: 'Category', filled: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Category',
+                          filled: true,
+                        ),
                       ),
                     ),
                   ],
@@ -506,13 +649,21 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: titleController,
-                  decoration: const InputDecoration(labelText: 'Title', filled: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Title',
+                    filled: true,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: amountController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Amount', filled: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Amount',
+                    filled: true,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -528,7 +679,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                           );
                           if (d != null) pickedDate = d;
                         },
-                        child: Text('Date: ${pickedDate.toLocal()}'.split(' ').first),
+                        child: Text(
+                          'Date: ${pickedDate.toLocal()}'.split(' ').first,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -536,16 +689,28 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                       onPressed: () async {
                         final amt = double.tryParse(amountController.text) ?? 0;
                         try {
-                          await ref.read(transactionRepositoryProvider).update(id, {
-                            'title': titleController.text.trim(),
-                            'amount': type == 'Income' ? amt.abs() : -amt.abs(),
-                            'categoryId': category == 'General' ? null : category,
-                            'date': pickedDate,
-                          });
+                          await ref
+                              .read(transactionRepositoryProvider)
+                              .update(id, {
+                                'title': titleController.text.trim(),
+                                'amount': type == 'Income'
+                                    ? amt.abs()
+                                    : -amt.abs(),
+                                'categoryId': category == 'General'
+                                    ? null
+                                    : category,
+                                'date': pickedDate,
+                              });
                           nav.pop();
-                          messenger.showSnackBar(const SnackBar(content: Text('Transaction updated')));
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text('Transaction updated'),
+                            ),
+                          );
                         } catch (e) {
-                          messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                          messenger.showSnackBar(
+                            SnackBar(content: Text('Failed: $e')),
+                          );
                         }
                       },
                       child: const Text('Save changes'),
@@ -567,27 +732,40 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
     try {
       final user = ref.read(currentUserProvider);
       if (user == null) return;
-      final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['csv']);
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+      );
       if (result == null || result.files.isEmpty) return;
       final file = result.files.single;
       final bytes = file.bytes;
       if (bytes == null) {
-        messenger.showSnackBar(const SnackBar(content: Text('Failed to read CSV')));
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Failed to read CSV')),
+        );
         return;
       }
       final content = String.fromCharCodes(bytes);
       final rows = const CsvToListConverter(eol: '\n').convert(content);
       if (rows.isEmpty || rows.first.length < 3) {
-        messenger.showSnackBar(const SnackBar(content: Text('Invalid CSV format')));
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Invalid CSV format')),
+        );
         return;
       }
-      final header = rows.first.map((e) => e.toString().toLowerCase().trim()).toList();
+      final header = rows.first
+          .map((e) => e.toString().toLowerCase().trim())
+          .toList();
       final hTitle = header.indexOf('title');
       final hAmount = header.indexOf('amount');
       final hDate = header.indexOf('date');
       final hCategory = header.indexOf('category');
       if (hTitle == -1 || hAmount == -1 || hDate == -1) {
-        messenger.showSnackBar(const SnackBar(content: Text('CSV must contain title, amount, date columns')));
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('CSV must contain title, amount, date columns'),
+          ),
+        );
         return;
       }
       final repo = ref.read(transactionRepositoryProvider);
@@ -599,7 +777,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
         final title = row[hTitle].toString();
         final amount = double.tryParse(row[hAmount].toString());
         final date = DateTime.tryParse(row[hDate].toString());
-        final category = (hCategory != -1 && row.length > hCategory && row[hCategory] != null && row[hCategory].toString().isNotEmpty)
+        final category =
+            (hCategory != -1 &&
+                row.length > hCategory &&
+                row[hCategory] != null &&
+                row[hCategory].toString().isNotEmpty)
             ? row[hCategory].toString()
             : (categorizer.suggestCategory(title));
         if (title.trim().isEmpty || amount == null || date == null) {
@@ -620,7 +802,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
           errors++;
         }
       }
-      messenger.showSnackBar(SnackBar(content: Text('Imported $imported, errors $errors')));
+      messenger.showSnackBar(
+        SnackBar(content: Text('Imported $imported, errors $errors')),
+      );
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('Import failed: $e')));
     }
@@ -633,7 +817,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
     final messenger = ScaffoldMessenger.of(context);
     try {
       final count = await ingest.importBankDemo(user.uid);
-      messenger.showSnackBar(SnackBar(content: Text('Imported $count demo bank transactions')));
+      messenger.showSnackBar(
+        SnackBar(content: Text('Imported $count demo bank transactions')),
+      );
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('Bank import failed: $e')));
     }
