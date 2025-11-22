@@ -9,7 +9,11 @@ import 'package:cashlyze/firebase_options.dart';
 
 final realtimeDatabaseProvider = Provider<FirebaseDatabase>((ref) {
   final db = FirebaseDatabase.instance;
-  db.setPersistenceEnabled(true);
+  if (!kIsWeb) {
+    try {
+      db.setPersistenceEnabled(true);
+    } catch (_) {}
+  }
   return db;
 });
 
@@ -23,8 +27,10 @@ class RealtimeDbService {
   RealtimeDbService(this._db)
       : _dio = Dio(),
         _auth = FirebaseAuth.instance,
-        _databaseUrl = DefaultFirebaseOptions.currentPlatform.databaseURL ?? '',
-        _nativeSupported = kIsWeb || Platform.isAndroid || Platform.isIOS || Platform.isMacOS;
+        _databaseUrl = (DefaultFirebaseOptions.currentPlatform.databaseURL != null && DefaultFirebaseOptions.currentPlatform.databaseURL!.isNotEmpty)
+            ? DefaultFirebaseOptions.currentPlatform.databaseURL!
+            : 'https://cashlyze-b156c-default-rtdb.asia-southeast1.firebasedatabase.app',
+        _nativeSupported = !kIsWeb;
 
   DatabaseReference ref(String path) => _db.ref(path);
 
