@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 enum BudgetPeriod { daily, weekly, monthly }
 
 class BudgetModel {
@@ -23,10 +21,9 @@ class BudgetModel {
     this.updatedAt,
   });
 
-  factory BudgetModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  factory BudgetModel.fromRTDB(String id, Map<String, dynamic> data) {
     return BudgetModel(
-      id: doc.id,
+      id: id,
       userId: data['userId'] as String,
       name: data['name'] as String,
       allocated: (data['allocated'] as num).toDouble(),
@@ -35,20 +32,20 @@ class BudgetModel {
         orElse: () => BudgetPeriod.monthly,
       ),
       categoryIds: (data['categoryIds'] as List?)?.cast<String>() ?? const [],
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: data['updatedAt'] != null ? (data['updatedAt'] as Timestamp).toDate() : null,
+      createdAt: DateTime.fromMillisecondsSinceEpoch((data['created_at_ms'] as num).toInt()),
+      updatedAt: data['updated_at_ms'] != null ? DateTime.fromMillisecondsSinceEpoch((data['updated_at_ms'] as num).toInt()) : null,
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toRTDB() {
     return {
       'userId': userId,
       'name': name,
       'allocated': allocated,
       'period': period.name,
       'categoryIds': categoryIds,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
+      'created_at_ms': createdAt.millisecondsSinceEpoch,
+      'updated_at_ms': updatedAt?.millisecondsSinceEpoch,
     };
   }
 }

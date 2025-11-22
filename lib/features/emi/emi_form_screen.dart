@@ -102,7 +102,7 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                   startDate: plan.startDate,
                   frequency: plan.frequency,
                 );
-                await repo.addSchedule(created.id, calc.schedule);
+                await repo.addSchedule(user.uid, created.id, calc.schedule);
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('EMI plan created')));
                 Navigator.of(context).pop();

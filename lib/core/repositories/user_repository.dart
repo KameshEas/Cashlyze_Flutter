@@ -1,30 +1,28 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_database/firebase_database.dart';
 import '../models/user_model.dart';
-import '../services/firestore_service.dart';
+import '../services/realtime_db_service.dart';
 import '../services/auth_service.dart';
 
 /// User Repository for managing user data in Firestore
 class UserRepository {
-  final FirestoreService _firestoreService;
+  final RealtimeDbService _db;
   static const String _usersCollection = 'users';
 
-  UserRepository(this._firestoreService);
+  UserRepository(this._db);
 
   /// Create a new user document in Firestore
   Future<void> createUser(UserModel user) async {
-    await _firestoreService.setDocument(
-      '$_usersCollection/${user.uid}',
-      user.toFirestore(),
-    );
+    await _db.set('$_usersCollection/${user.uid}', user.toRTDB());
   }
 
   /// Get user by ID
   Future<UserModel?> getUser(String uid) async {
     try {
-      final doc = await _firestoreService.getDocument('$_usersCollection/$uid');
-      if (doc.exists) {
-        return UserModel.fromFirestore(doc);
+      final snap = await _db.get('$_usersCollection/$uid');
+      if (snap.exists && snap.value != null) {
+        final map = (snap.value as Map).cast<String, dynamic>();
+        return UserModel.fromRTDB(uid, map);
       }
       return null;
     } catch (e) {
@@ -36,26 +34,26 @@ class UserRepository {
   Future<void> updateUser(String uid, Map<String, dynamic> data) async {
     final updateData = {
       ...data,
-      'updatedAt': FieldValue.serverTimestamp(),
+      'updated_at_ms': ServerValue.timestamp,
     };
-    await _firestoreService.updateDocument('$_usersCollection/$uid', updateData);
+    await _db.update('$_usersCollection/$uid', updateData);
   }
 
   /// Delete user document
   Future<void> deleteUser(String uid) async {
-    await _firestoreService.deleteDocument('$_usersCollection/$uid');
+    await _db.remove('$_usersCollection/$uid');
   }
 
   /// Stream user data
   Stream<UserModel?> streamUser(String uid) {
-    return _firestoreService.streamDocument('$_usersCollection/$uid').map(
-      (doc) {
-        if (doc.exists) {
-          return UserModel.fromFirestore(doc);
-        }
-        return null;
-      },
-    );
+    return _db.onValue('$_usersCollection/$uid').map((event) {
+      final snap = event.snapshot;
+      if (snap.exists && snap.value != null) {
+        final map = (snap.value as Map).cast<String, dynamic>();
+        return UserModel.fromRTDB(uid, map);
+      }
+      return null;
+    });
   }
 
   /// Update user preferences
@@ -83,8 +81,8 @@ class UserRepository {
 
   /// Check if user document exists
   Future<bool> userExists(String uid) async {
-    final doc = await _firestoreService.getDocument('$_usersCollection/$uid');
-    return doc.exists;
+    final snap = await _db.get('$_usersCollection/$uid');
+    return snap.exists;
   }
 
   /// Get or create user
@@ -104,7 +102,7 @@ class UserRepository {
 
 /// Provider for UserRepository
 final userRepositoryProvider = Provider<UserRepository>((ref) {
-  return UserRepository(ref.watch(firestoreServiceProvider));
+  return UserRepository(ref.watch(realtimeDbServiceProvider));
 });
 
 /// Provider for current user data stream

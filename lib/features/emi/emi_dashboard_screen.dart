@@ -4,6 +4,7 @@ import '../../core/repositories/emi_repository.dart';
 import '../../core/models/emi.dart';
 import '../../core/utils/format.dart';
 import '../../core/providers/onboarding_provider.dart';
+import '../../core/services/auth_service.dart';
 import 'package:go_router/go_router.dart';
 
 class EMIDashboardScreen extends ConsumerWidget {
@@ -53,6 +54,7 @@ class _PlanCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheduleAsync = ref.watch(emiScheduleProvider(plan.id));
+    final currency = ref.watch(currencyProvider);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.05))),
@@ -92,7 +94,7 @@ class _PlanCard extends ConsumerWidget {
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Due: ${e.dueDate.toLocal()}'.split(' ').first), Text('Installment: ${formatAmount(e.installment, currency)}')]),
                     e.paid
                         ? const Icon(Icons.check_circle, color: Colors.green)
-                        : FilledButton(onPressed: () async {await ref.read(emiRepositoryProvider).markPaid(plan.id, e.id);}, child: const Text('Mark paid')),
+                        : FilledButton(onPressed: () async {final user = ref.read(currentUserProvider); if (user == null) return; await ref.read(emiRepositoryProvider).markPaid(user.uid, plan.id, e.id);}, child: const Text('Mark paid')),
                   ]),
                 );
               },

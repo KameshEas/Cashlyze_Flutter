@@ -1,14 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/firestore_service.dart';
+import 'package:firebase_database/firebase_database.dart';
+import '../services/realtime_db_service.dart';
 import '../services/auth_service.dart';
 import '../models/budget.dart';
 
 class BudgetRepository {
-  final FirestoreService _fs;
-  static const String _collection = 'budgets';
-
-  BudgetRepository(this._fs);
+  final RealtimeDbService _db;
+  BudgetRepository(this._db);
 
   Future<BudgetModel> create({
     required String userId,
@@ -17,54 +15,67 @@ class BudgetRepository {
     required BudgetPeriod period,
     List<String> categoryIds = const [],
   }) async {
-    final doc = await _fs.addDocument(_collection, {
+    final data = {
       'userId': userId,
       'name': name.trim(),
       'allocated': allocated,
       'period': period.name,
       'categoryIds': categoryIds,
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-    final snapshot = await doc.get();
-    return BudgetModel.fromFirestore(snapshot);
+      'created_at_ms': ServerValue.timestamp,
+      'updated_at_ms': ServerValue.timestamp,
+    };
+    final ref = await _db.push('users/$userId/budgets', data);
+    final snap = await ref.get();
+    final map = (snap.value as Map).cast<String, dynamic>();
+    return BudgetModel.fromRTDB(ref.key!, map);
   }
 
   Future<void> update(String id, Map<String, dynamic> data) async {
-    data['updatedAt'] = FieldValue.serverTimestamp();
-    await _fs.updateDocument('$_collection/$id', data);
+    data['updated_at_ms'] = ServerValue.timestamp;
+    final userId = data['userId'] as String?;
+    if (userId == null) throw ArgumentError('userId required for update');
+    await _db.update('users/$userId/budgets/$id', data);
   }
 
-  Future<void> delete(String id) async {
-    await _fs.deleteDocument('$_collection/$id');
+  Future<void> delete(String userId, String id) async {
+    await _db.remove('users/$userId/budgets/$id');
   }
 
   Stream<List<BudgetModel>> streamForUser(String userId) {
-    return _fs.collection(_collection)
-        .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snap) => snap.docs.map((d) => BudgetModel.fromFirestore(d)).toList());
+    final ref = _db.ref('users/$userId/budgets').orderByChild('created_at_ms');
+    return ref.onValue.map((event) {
+      final s = event.snapshot;
+      if (!s.exists) return <BudgetModel>[];
+      final items = s.children.map((c) {
+        final data = (c.value as Map).cast<String, dynamic>();
+        return BudgetModel.fromRTDB(c.key!, data);
+      }).toList();
+      items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return items;
+    });
   }
 
   Future<void> addAdjustment({
+    required String userId,
     required String id,
     required double newAllocated,
     String? note,
     required double oldAllocated,
   }) async {
-    await _fs.addDocument('$_collection/$id/adjustments', {
+    // Flattened adjustments under users/{uid}/budget_adjustments/{budgetId}/{adjustmentId}
+    final path = 'users/$userId/budget_adjustments/$id';
+    final ref = await _db.push(path, {
       'oldAllocated': oldAllocated,
       'newAllocated': newAllocated,
       'note': note,
-      'createdAt': FieldValue.serverTimestamp(),
+      'created_at_ms': ServerValue.timestamp,
     });
-    await update(id, {'allocated': newAllocated});
+    await _db.update('users/$userId/budgets/$id', {'allocated': newAllocated, 'updated_at_ms': ServerValue.timestamp});
   }
 }
 
 final budgetRepositoryProvider = Provider<BudgetRepository>((ref) {
-  return BudgetRepository(ref.watch(firestoreServiceProvider));
+  return BudgetRepository(ref.watch(realtimeDbServiceProvider));
 });
 
 final userBudgetsProvider = StreamProvider<List<BudgetModel>>((ref) {

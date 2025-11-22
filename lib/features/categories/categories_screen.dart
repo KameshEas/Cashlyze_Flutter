@@ -93,9 +93,11 @@ class CategoriesScreen extends ConsumerWidget {
                         );
                         if (confirm == true) {
                           try {
+                            final user = ref.read(currentUserProvider);
+                            if (user == null) return;
                             await ref
                                 .read(categoryRepositoryProvider)
-                                .delete(c.id);
+                                .delete(user.uid, c.id);
                             messenger.showSnackBar(
                               const SnackBar(content: Text('Deleted')),
                             );
@@ -156,7 +158,7 @@ class CategoriesScreen extends ConsumerWidget {
                   if (categoryId == null) {
                     await repo.create(userId: user.uid, name: name);
                   } else {
-                    await repo.update(categoryId, {'name': name});
+                    await repo.update(user.uid, categoryId, {'name': name});
                   }
                   nav.pop();
                   messenger.showSnackBar(

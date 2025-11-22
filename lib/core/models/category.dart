@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class CategoryModel {
   final String id;
   final String userId;
@@ -15,10 +13,9 @@ class CategoryModel {
     this.color,
   });
 
-  factory CategoryModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  factory CategoryModel.fromRTDB(String id, Map<String, dynamic> data) {
     return CategoryModel(
-      id: doc.id,
+      id: id,
       userId: data['userId'] as String,
       name: data['name'] as String,
       icon: data['icon'] as String?,
@@ -26,7 +23,7 @@ class CategoryModel {
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toRTDB() {
     return {
       'userId': userId,
       'name': name,

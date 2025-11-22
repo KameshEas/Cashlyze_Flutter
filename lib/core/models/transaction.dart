@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class TransactionModel {
+
+  
   final String id;
   final String userId;
   final String title;
@@ -21,30 +21,28 @@ class TransactionModel {
     this.tags,
   });
 
-  factory TransactionModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  factory TransactionModel.fromRTDB(String id, Map<String, dynamic> data) {
     return TransactionModel(
-      id: doc.id,
+      id: id,
       userId: data['userId'] as String,
       title: data['title'] as String,
       amount: (data['amount'] as num).toDouble(),
       categoryId: data['categoryId'] as String?,
-      date: (data['date'] as Timestamp).toDate(),
+      date: DateTime.fromMillisecondsSinceEpoch((data['date_ms'] as num).toInt()),
       notes: data['notes'] as String?,
       tags: (data['tags'] as List?)?.cast<String>(),
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toRTDB() {
     return {
       'userId': userId,
       'title': title,
       'amount': amount,
       'categoryId': categoryId,
-      'date': Timestamp.fromDate(date),
+      'date_ms': date.millisecondsSinceEpoch,
       'notes': notes,
       'tags': tags,
-      'updatedAt': FieldValue.serverTimestamp(),
     };
   }
 }

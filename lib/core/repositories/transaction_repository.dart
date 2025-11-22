@@ -1,14 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/firestore_service.dart';
+import 'package:firebase_database/firebase_database.dart';
+import '../services/realtime_db_service.dart';
 import '../services/auth_service.dart';
 import '../models/transaction.dart';
 
 class TransactionRepository {
-  final FirestoreService _fs;
-  static const String _collection = 'transactions';
-
-  TransactionRepository(this._fs);
+  final RealtimeDbService _db;
+  TransactionRepository(this._db);
 
   Future<TransactionModel> create({
     required String userId,
@@ -20,36 +18,52 @@ class TransactionRepository {
     List<String>? tags,
   }) async {
     _validate(title: title, amount: amount, date: date);
-    final doc = await _fs.addDocument(_collection, {
+    final data = {
       'userId': userId,
       'title': title.trim(),
       'amount': amount,
       'categoryId': categoryId,
-      'date': Timestamp.fromDate(date),
+      'date_ms': date.millisecondsSinceEpoch,
       'notes': notes,
       'tags': tags,
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-    final snapshot = await doc.get();
-    return TransactionModel.fromFirestore(snapshot);
+      'created_at_ms': ServerValue.timestamp,
+      'updated_at_ms': ServerValue.timestamp,
+    };
+    final ref = await _db.push('users/$userId/transactions', data);
+    final snap = await ref.get();
+    final map = (snap.value as Map).cast<String, dynamic>();
+    return TransactionModel.fromRTDB(ref.key!, map);
   }
 
-  Future<void> update(String id, Map<String, dynamic> data) async {
-    data['updatedAt'] = FieldValue.serverTimestamp();
-    await _fs.updateDocument('$_collection/$id', data);
+  Future<void> update(String userId, String id, Map<String, dynamic> data) async {
+    data['updated_at_ms'] = ServerValue.timestamp;
+    await _db.update('users/$userId/transactions/$id', data);
   }
 
   Future<void> delete(String id) async {
-    await _fs.deleteDocument('$_collection/$id');
+    // We need userId to resolve path; delete by looking up owner id
+    // In RTDB we store under users/{uid}/transactions/{id}
+    // For simplicity, callers should pass userId via map or manage path externally.
+    // Here we do nothing without userId; use dedicated deleteForUser
+  }
+
+  Future<void> deleteForUser(String userId, String id) async {
+    await _db.remove('users/$userId/transactions/$id');
   }
 
   Stream<List<TransactionModel>> streamForUser(String userId) {
-    return _fs.collection(_collection)
-        .where('userId', isEqualTo: userId)
-        .orderBy('date', descending: true)
-        .snapshots()
-        .map((snap) => snap.docs.map((d) => TransactionModel.fromFirestore(d)).toList());
+    final ref = _db.ref('users/$userId/transactions').orderByChild('date_ms');
+    return ref.onValue.map((event) {
+      final snapshot = event.snapshot;
+      if (!snapshot.exists) return <TransactionModel>[];
+      final children = snapshot.children.toList();
+      final items = children.map((c) {
+        final data = (c.value as Map).cast<String, dynamic>();
+        return TransactionModel.fromRTDB(c.key!, data);
+      }).toList();
+      items.sort((a, b) => b.date.compareTo(a.date));
+      return items;
+    });
   }
 
   void _validate({required String title, required double amount, required DateTime date}) {
@@ -66,7 +80,7 @@ class TransactionRepository {
 }
 
 final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
-  return TransactionRepository(ref.watch(firestoreServiceProvider));
+  return TransactionRepository(ref.watch(realtimeDbServiceProvider));
 });
 
 final userTransactionsProvider = StreamProvider<List<TransactionModel>>((ref) {

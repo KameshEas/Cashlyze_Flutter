@@ -201,7 +201,9 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                                   );
                                   if (confirm == true) {
                                     try {
-                                      await ref.read(budgetRepositoryProvider).delete(e.id);
+                                      final user = ref.read(currentUserProvider);
+                                      if (user == null) return;
+                                      await ref.read(budgetRepositoryProvider).delete(user.uid, e.id);
                                       messenger.showSnackBar(const SnackBar(content: Text('Deleted')));
                                     } catch (err) {
                                       messenger.showSnackBar(SnackBar(content: Text('Failed: $err')));
@@ -393,7 +395,10 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                         onPressed: () async {
                           final newAlloc = double.tryParse(amountController.text) ?? allocated;
                           try {
+                            final user = ref.read(currentUserProvider);
+                            if (user == null) return;
                             await ref.read(budgetRepositoryProvider).addAdjustment(
+                                  userId: user.uid,
                                   id: id,
                                   newAllocated: newAlloc,
                                   note: noteController.text.trim().isEmpty ? null : noteController.text.trim(),

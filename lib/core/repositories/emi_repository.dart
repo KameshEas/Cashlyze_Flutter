@@ -1,43 +1,63 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../services/firestore_service.dart';
+import 'package:firebase_database/firebase_database.dart';
+import '../services/realtime_db_service.dart';
 import '../services/auth_service.dart';
 import '../models/emi.dart';
 
 class EMIRepository {
-  final FirestoreService _fs;
-  static const String _collection = 'emi_plans';
-  EMIRepository(this._fs);
+  final RealtimeDbService _db;
+  EMIRepository(this._db);
 
   Future<EMIPlan> createPlan(EMIPlan plan) async {
-    final doc = await _fs.addDocument(_collection, plan.toFirestore());
-    final snap = await doc.get();
-    return EMIPlan.fromFirestore(snap);
+    final data = plan.toRTDB();
+    final ref = await _db.push('users/${plan.userId}/emi_plans', data);
+    final snap = await ref.get();
+    final map = (snap.value as Map).cast<String, dynamic>();
+    return EMIPlan.fromRTDB(ref.key!, map);
   }
 
-  Future<void> addSchedule(String planId, List<EMIPayment> schedule) async {
-    final batch = FirebaseFirestore.instance.batch();
+  Future<void> addSchedule(String userId, String planId, List<EMIPayment> schedule) async {
+    final updates = <String, dynamic>{};
     for (final p in schedule) {
-      final ref = FirebaseFirestore.instance.collection('$_collection/$planId/schedule').doc();
-      batch.set(ref, p.toFirestore());
+      final ref = _db.ref('users/$userId/emi_schedules/$planId').push();
+      updates['users/$userId/emi_schedules/$planId/${ref.key}'] = p.toRTDB();
     }
-    await batch.commit();
+    await _db.updateMulti(updates);
   }
 
   Stream<List<EMIPlan>> streamPlans(String userId) {
-    return _fs.collection(_collection).where('userId', isEqualTo: userId).orderBy('updatedAt', descending: true).snapshots().map((s) => s.docs.map((d) => EMIPlan.fromFirestore(d)).toList());
+    final ref = _db.ref('users/$userId/emi_plans');
+    return ref.onValue.map((event) {
+      final s = event.snapshot;
+      if (!s.exists) return <EMIPlan>[];
+      final items = s.children.map((c) {
+        final data = (c.value as Map).cast<String, dynamic>();
+        return EMIPlan.fromRTDB(c.key!, data);
+      }).toList();
+      return items;
+    });
   }
 
-  Stream<List<EMIPayment>> streamSchedule(String planId) {
-    return _fs.collection('$_collection/$planId/schedule').orderBy('dueDate').snapshots().map((s) => s.docs.map((d) => EMIPayment.fromFirestore(d)).toList());
+  Stream<List<EMIPayment>> streamSchedule(String userId, String planId) {
+    final ref = _db.ref('users/$userId/emi_schedules/$planId').orderByChild('dueDate_ms');
+    return ref.onValue.map((event) {
+      final s = event.snapshot;
+      if (!s.exists) return <EMIPayment>[];
+      final items = s.children.map((c) {
+        final data = (c.value as Map).cast<String, dynamic>();
+        return EMIPayment.fromRTDB(c.key!, data);
+      }).toList();
+      items.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+      return items;
+    });
   }
 
-  Future<void> markPaid(String planId, String paymentId) async {
-    await _fs.updateDocument('$_collection/$planId/schedule/$paymentId', {'paid': true, 'paidAt': FieldValue.serverTimestamp()});
+  Future<void> markPaid(String userId, String planId, String paymentId) async {
+    await _db.update('users/$userId/emi_schedules/$planId/$paymentId', {'paid': true, 'paidAt_ms': ServerValue.timestamp});
   }
 }
 
-final emiRepositoryProvider = Provider<EMIRepository>((ref) => EMIRepository(ref.watch(firestoreServiceProvider)));
+final emiRepositoryProvider = Provider<EMIRepository>((ref) => EMIRepository(ref.watch(realtimeDbServiceProvider)));
 
 final userEMIPlansProvider = StreamProvider<List<EMIPlan>>((ref) {
   final user = ref.watch(currentUserProvider);
@@ -46,5 +66,7 @@ final userEMIPlansProvider = StreamProvider<List<EMIPlan>>((ref) {
 });
 
 final emiScheduleProvider = StreamProvider.family<List<EMIPayment>, String>((ref, planId) {
-  return ref.watch(emiRepositoryProvider).streamSchedule(planId);
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return const Stream.empty();
+  return ref.watch(emiRepositoryProvider).streamSchedule(user.uid, planId);
 });

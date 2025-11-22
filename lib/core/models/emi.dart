@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 enum PaymentFrequency { weekly, monthly, quarterly }
 
 class EMIPlan {
@@ -23,30 +21,28 @@ class EMIPlan {
     required this.active,
   });
 
-  factory EMIPlan.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  factory EMIPlan.fromRTDB(String id, Map<String, dynamic> data) {
     return EMIPlan(
-      id: doc.id,
+      id: id,
       userId: data['userId'] as String,
       loanAmount: (data['loanAmount'] as num).toDouble(),
       annualInterestRate: (data['annualInterestRate'] as num).toDouble(),
       tenureMonths: data['tenureMonths'] as int,
-      startDate: (data['startDate'] as Timestamp).toDate(),
+      startDate: DateTime.fromMillisecondsSinceEpoch((data['startDate_ms'] as num).toInt()),
       frequency: PaymentFrequency.values.firstWhere((e) => e.name == data['frequency'] as String),
       active: data['active'] as bool? ?? true,
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toRTDB() {
     return {
       'userId': userId,
       'loanAmount': loanAmount,
       'annualInterestRate': annualInterestRate,
       'tenureMonths': tenureMonths,
-      'startDate': Timestamp.fromDate(startDate),
+      'startDate_ms': startDate.millisecondsSinceEpoch,
       'frequency': frequency.name,
       'active': active,
-      'updatedAt': FieldValue.serverTimestamp(),
     };
   }
 }
@@ -74,31 +70,30 @@ class EMIPayment {
     this.paidAt,
   });
 
-  factory EMIPayment.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  factory EMIPayment.fromRTDB(String id, Map<String, dynamic> data) {
     return EMIPayment(
-      id: doc.id,
+      id: id,
       planId: data['planId'] as String,
-      dueDate: (data['dueDate'] as Timestamp).toDate(),
+      dueDate: DateTime.fromMillisecondsSinceEpoch((data['dueDate_ms'] as num).toInt()),
       installment: (data['installment'] as num).toDouble(),
       interest: (data['interest'] as num).toDouble(),
       principal: (data['principal'] as num).toDouble(),
       remainingPrincipal: (data['remainingPrincipal'] as num).toDouble(),
       paid: data['paid'] as bool? ?? false,
-      paidAt: data['paidAt'] != null ? (data['paidAt'] as Timestamp).toDate() : null,
+      paidAt: data['paidAt_ms'] != null ? DateTime.fromMillisecondsSinceEpoch((data['paidAt_ms'] as num).toInt()) : null,
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toRTDB() {
     return {
       'planId': planId,
-      'dueDate': Timestamp.fromDate(dueDate),
+      'dueDate_ms': dueDate.millisecondsSinceEpoch,
       'installment': installment,
       'interest': interest,
       'principal': principal,
       'remainingPrincipal': remainingPrincipal,
       'paid': paid,
-      'paidAt': paidAt != null ? Timestamp.fromDate(paidAt!) : null,
+      'paidAt_ms': paidAt?.millisecondsSinceEpoch,
     };
   }
 }

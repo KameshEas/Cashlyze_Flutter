@@ -1,13 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/firestore_service.dart';
+import '../services/realtime_db_service.dart';
 import '../services/auth_service.dart';
 import '../models/category.dart';
 
 class CategoryRepository {
-  final FirestoreService _fs;
-  static const String _collection = 'categories';
-
-  CategoryRepository(this._fs);
+  final RealtimeDbService _db;
+  CategoryRepository(this._db);
 
   Future<CategoryModel> create({
     required String userId,
@@ -15,35 +13,43 @@ class CategoryRepository {
     String? icon,
     int? color,
   }) async {
-    final doc = await _fs.addDocument(_collection, {
+    final data = {
       'userId': userId,
       'name': name.trim(),
       'icon': icon,
       'color': color,
-    });
-    final snapshot = await doc.get();
-    return CategoryModel.fromFirestore(snapshot);
+    };
+    final ref = await _db.push('users/$userId/categories', data);
+    final snap = await ref.get();
+    final map = (snap.value as Map).cast<String, dynamic>();
+    return CategoryModel.fromRTDB(ref.key!, map);
   }
 
-  Future<void> update(String id, Map<String, dynamic> data) async {
-    await _fs.updateDocument('$_collection/$id', data);
+  Future<void> update(String userId, String id, Map<String, dynamic> data) async {
+    await _db.update('users/$userId/categories/$id', data);
   }
 
-  Future<void> delete(String id) async {
-    await _fs.deleteDocument('$_collection/$id');
+  Future<void> delete(String userId, String id) async {
+    await _db.remove('users/$userId/categories/$id');
   }
 
   Stream<List<CategoryModel>> streamForUser(String userId) {
-    return _fs.collection(_collection)
-        .where('userId', isEqualTo: userId)
-        .orderBy('name')
-        .snapshots()
-        .map((snap) => snap.docs.map((d) => CategoryModel.fromFirestore(d)).toList());
+    final ref = _db.ref('users/$userId/categories').orderByChild('name');
+    return ref.onValue.map((event) {
+      final s = event.snapshot;
+      if (!s.exists) return <CategoryModel>[];
+      final items = s.children.map((c) {
+        final data = (c.value as Map).cast<String, dynamic>();
+        return CategoryModel.fromRTDB(c.key!, data);
+      }).toList();
+      items.sort((a, b) => a.name.compareTo(b.name));
+      return items;
+    });
   }
 }
 
 final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
-  return CategoryRepository(ref.watch(firestoreServiceProvider));
+  return CategoryRepository(ref.watch(realtimeDbServiceProvider));
 });
 
 final userCategoriesProvider = StreamProvider<List<CategoryModel>>((ref) {

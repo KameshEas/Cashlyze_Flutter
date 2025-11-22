@@ -323,9 +323,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                       'categoryId': e.categoryId,
                                       'date': e.date,
                                     };
+                                    final user = ref.read(currentUserProvider);
+                                    if (user == null) return;
                                     await ref
                                         .read(transactionRepositoryProvider)
-                                        .delete(e.id);
+                                        .deleteForUser(user.uid, e.id);
                                     messenger.showSnackBar(
                                       SnackBar(
                                         content: const Text('Deleted'),
@@ -724,9 +726,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       onPressed: () async {
                         final amt = double.tryParse(amountController.text) ?? 0;
                         try {
+                          final user = ref.read(currentUserProvider);
+                          if (user == null) return;
                           await ref
                               .read(transactionRepositoryProvider)
-                              .update(id, {
+                              .update(user.uid, id, {
                                 'title': titleController.text.trim(),
                                 'amount': type == 'Income'
                                     ? amt.abs()
@@ -734,7 +738,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                 'categoryId': category == 'General'
                                     ? null
                                     : category,
-                                'date': pickedDate,
+                                'date_ms': pickedDate.millisecondsSinceEpoch,
                               });
                           if (!mounted) return;
                           nav.pop();

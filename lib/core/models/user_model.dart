@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 /// User model for Cashlyze app
 class UserModel {
   final String uid;
@@ -37,29 +35,28 @@ class UserModel {
   }
 
   /// Create UserModel from Firestore document
-  factory UserModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  factory UserModel.fromRTDB(String id, Map<String, dynamic> data) {
     return UserModel(
-      uid: doc.id,
+      uid: id,
       email: data['email'] ?? '',
       displayName: data['displayName'],
       photoURL: data['photoURL'],
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: data['updatedAt'] != null
-          ? (data['updatedAt'] as Timestamp).toDate()
+      createdAt: DateTime.fromMillisecondsSinceEpoch((data['created_at_ms'] as num).toInt()),
+      updatedAt: data['updated_at_ms'] != null
+          ? DateTime.fromMillisecondsSinceEpoch((data['updated_at_ms'] as num).toInt())
           : null,
       preferences: data['preferences'] as Map<String, dynamic>?,
     );
   }
 
   /// Convert UserModel to Firestore document
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toRTDB() {
     return {
       'email': email,
       'displayName': displayName,
       'photoURL': photoURL,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
+      'created_at_ms': createdAt.millisecondsSinceEpoch,
+      'updated_at_ms': updatedAt?.millisecondsSinceEpoch,
       'preferences': preferences,
     };
   }
