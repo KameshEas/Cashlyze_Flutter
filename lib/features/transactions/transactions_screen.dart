@@ -14,10 +14,84 @@ class TransactionsScreen extends ConsumerStatefulWidget {
   ConsumerState<TransactionsScreen> createState() => _TransactionsScreenState();
 }
 
-class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
+class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with SingleTickerProviderStateMixin {
   String _filter = 'All';
   String _query = '';
-  
+  late final AnimationController _shimmerController;
+  late final Animation<double> _shimmer;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmerController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat(reverse: true);
+    _shimmer = CurvedAnimation(parent: _shimmerController, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _shimmerController.dispose();
+    super.dispose();
+  }
+
+  Widget _skeletonItem(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Row(
+        children: [
+          AnimatedBuilder(
+            animation: _shimmer,
+            builder: (ctx, _) {
+              return Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1 + 0.1 * _shimmer.value),
+                  shape: BoxShape.circle,
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AnimatedBuilder(
+                  animation: _shimmer,
+                  builder: (ctx, _) => Container(
+                    height: 14,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1 + 0.1 * _shimmer.value),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                AnimatedBuilder(
+                  animation: _shimmer,
+                  builder: (ctx, _) => Container(
+                    height: 12,
+                    width: 160,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08 + 0.1 * _shimmer.value),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -95,7 +169,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           ),
           Expanded(
             child: txsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemBuilder: (ctx, i) => _skeletonItem(context),
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemCount: 6,
+              ),
               error: (e, _) => Center(child: Text('Failed to load: $e')),
               data: (items) {
                 final filtered = items.where((e) {
@@ -175,6 +254,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
+                          Tooltip(
+                            message: 'Edit',
+                            child: IconButton(
+                              icon: const Icon(Icons.edit_outlined),
+                              onPressed: () => _openEditForm(context, e.id, e.title, e.amount, e.categoryId, e.date),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
                           Tooltip(
                             message: 'Delete',
                             child: IconButton(
@@ -348,6 +435,127 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     amountController.dispose();
   }
 
+  Future<void> _openEditForm(BuildContext context, String id, String title, double amount, String? categoryId, DateTime date) async {
+    final theme = Theme.of(context);
+    final titleController = TextEditingController(text: title);
+    final amountController = TextEditingController(text: amount.abs().toStringAsFixed(2));
+    String type = amount >= 0 ? 'Income' : 'Expense';
+    String category = categoryId ?? 'General';
+    DateTime pickedDate = date;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: theme.colorScheme.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) {
+        final messenger = ScaffoldMessenger.of(ctx);
+        final nav = Navigator.of(ctx);
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 48,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: type,
+                        items: const [
+                          DropdownMenuItem(value: 'Expense', child: Text('Expense')),
+                          DropdownMenuItem(value: 'Income', child: Text('Income')),
+                        ],
+                        onChanged: (v) => type = v ?? 'Expense',
+                        decoration: const InputDecoration(labelText: 'Type', filled: true),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: category,
+                        items: const [
+                          DropdownMenuItem(value: 'General', child: Text('General')),
+                          DropdownMenuItem(value: 'Food', child: Text('Food')),
+                          DropdownMenuItem(value: 'Entertainment', child: Text('Entertainment')),
+                          DropdownMenuItem(value: 'Transport', child: Text('Transport')),
+                          DropdownMenuItem(value: 'Income', child: Text('Income')),
+                        ],
+                        onChanged: (v) => category = v ?? 'General',
+                        decoration: const InputDecoration(labelText: 'Category', filled: true),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: titleController,
+                  decoration: const InputDecoration(labelText: 'Title', filled: true),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: amountController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'Amount', filled: true),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () async {
+                          final d = await showDatePicker(
+                            context: ctx,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                            initialDate: pickedDate,
+                          );
+                          if (d != null) pickedDate = d;
+                        },
+                        child: Text('Date: ${pickedDate.toLocal()}'.split(' ').first),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    FilledButton(
+                      onPressed: () async {
+                        final amt = double.tryParse(amountController.text) ?? 0;
+                        try {
+                          await ref.read(transactionRepositoryProvider).update(id, {
+                            'title': titleController.text.trim(),
+                            'amount': type == 'Income' ? amt.abs() : -amt.abs(),
+                            'categoryId': category == 'General' ? null : category,
+                            'date': pickedDate,
+                          });
+                          nav.pop();
+                          messenger.showSnackBar(const SnackBar(content: Text('Transaction updated')));
+                        } catch (e) {
+                          messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                        }
+                      },
+                      child: const Text('Save changes'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    titleController.dispose();
+    amountController.dispose();
+  }
+
   Future<void> _importCsv(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
@@ -363,18 +571,35 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       }
       final content = String.fromCharCodes(bytes);
       final rows = const CsvToListConverter(eol: '\n').convert(content);
-      // Expecting columns: title, amount, date(YYYY-MM-DD), category(optional)
+      if (rows.isEmpty || rows.first.length < 3) {
+        messenger.showSnackBar(const SnackBar(content: Text('Invalid CSV format')));
+        return;
+      }
+      final header = rows.first.map((e) => e.toString().toLowerCase().trim()).toList();
+      final hTitle = header.indexOf('title');
+      final hAmount = header.indexOf('amount');
+      final hDate = header.indexOf('date');
+      final hCategory = header.indexOf('category');
+      if (hTitle == -1 || hAmount == -1 || hDate == -1) {
+        messenger.showSnackBar(const SnackBar(content: Text('CSV must contain title, amount, date columns')));
+        return;
+      }
       final repo = ref.read(transactionRepositoryProvider);
       final categorizer = ref.read(categorizationServiceProvider);
       int imported = 0;
+      int errors = 0;
       for (final row in rows.skip(1)) {
         if (row.length < 3) continue;
-        final title = row[0].toString();
-        final amount = double.tryParse(row[1].toString()) ?? 0;
-        final date = DateTime.tryParse(row[2].toString()) ?? DateTime.now();
-        final category = row.length > 3 && row[3] != null && row[3].toString().isNotEmpty
-            ? row[3].toString()
+        final title = row[hTitle].toString();
+        final amount = double.tryParse(row[hAmount].toString());
+        final date = DateTime.tryParse(row[hDate].toString());
+        final category = (hCategory != -1 && row.length > hCategory && row[hCategory] != null && row[hCategory].toString().isNotEmpty)
+            ? row[hCategory].toString()
             : (categorizer.suggestCategory(title));
+        if (title.trim().isEmpty || amount == null || date == null) {
+          errors++;
+          continue;
+        }
         try {
           await repo.create(
             userId: user.uid,
@@ -385,9 +610,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             notes: 'CSV import',
           );
           imported++;
-        } catch (_) {}
+        } catch (_) {
+          errors++;
+        }
       }
-      messenger.showSnackBar(SnackBar(content: Text('Imported $imported transactions')));
+      messenger.showSnackBar(SnackBar(content: Text('Imported $imported, errors $errors')));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('Import failed: $e')));
     }

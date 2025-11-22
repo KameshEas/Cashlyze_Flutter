@@ -3,14 +3,36 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/transaction_providers.dart';
 
-class InsightsScreen extends ConsumerWidget {
+class InsightsScreen extends ConsumerStatefulWidget {
   const InsightsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<InsightsScreen> createState() => _InsightsScreenState();
+}
+
+class _InsightsScreenState extends ConsumerState<InsightsScreen> with SingleTickerProviderStateMixin {
+  late final AnimationController _shimmerController;
+  late final Animation<double> _shimmer;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmerController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat(reverse: true);
+    _shimmer = CurvedAnimation(parent: _shimmerController, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _shimmerController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final monthly = ref.watch(monthlyTrendProvider);
     final categories = ref.watch(categoryBreakdownProvider);
+    final txsAsync = ref.watch(recentTransactionsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Insights')),
@@ -21,7 +43,26 @@ class InsightsScreen extends ConsumerWidget {
           children: [
             Text('Monthly Trend', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            if (monthly.isEmpty)
+            if (txsAsync.isLoading)
+              AnimatedBuilder(
+                animation: _shimmer,
+                builder: (ctx, _) => Container(
+                  height: 220,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                  ),
+                  padding: const EdgeInsets.all(12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08 + 0.1 * _shimmer.value),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              )
+            else if (monthly.isEmpty)
               Center(
                 child: Column(
                   children: [
@@ -82,7 +123,26 @@ class InsightsScreen extends ConsumerWidget {
             const SizedBox(height: 24),
             Text('Spending by Category', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            if (categories.isEmpty)
+            if (txsAsync.isLoading)
+              AnimatedBuilder(
+                animation: _shimmer,
+                builder: (ctx, _) => Container(
+                  height: 240,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                  ),
+                  padding: const EdgeInsets.all(12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08 + 0.1 * _shimmer.value),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              )
+            else if (categories.isEmpty)
               Center(
                 child: Column(
                   children: [

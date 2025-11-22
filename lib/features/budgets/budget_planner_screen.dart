@@ -12,7 +12,22 @@ class BudgetPlannerScreen extends ConsumerStatefulWidget {
   ConsumerState<BudgetPlannerScreen> createState() => _BudgetPlannerScreenState();
 }
 
-class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
+class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> with SingleTickerProviderStateMixin {
+  late final AnimationController _shimmerController;
+  late final Animation<double> _shimmer;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmerController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat(reverse: true);
+    _shimmer = CurvedAnimation(parent: _shimmerController, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _shimmerController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,7 +129,48 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
             ),
             const SizedBox(height: 12),
             budgetsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: 4,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (ctx, i) {
+                  return AnimatedBuilder(
+                    animation: _shimmer,
+                    builder: (ctx, _) => Container(
+                      height: 86,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                      ),
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            height: 16,
+                            width: 180,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.1 + 0.1 * _shimmer.value),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Container(
+                            height: 8,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.08 + 0.1 * _shimmer.value),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
               error: (e, _) => Center(child: Text('Failed to load budgets: $e')),
               data: (list) {
                 if (list.isEmpty) {
@@ -160,6 +216,13 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                               '${spent.toStringAsFixed(2)} / ${e.allocated.toStringAsFixed(2)}',
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Tooltip(
+                              message: 'Adjust budget',
+                              child: IconButton(
+                                icon: const Icon(Icons.tune_outlined),
+                                onPressed: () => _openAdjustBudget(context, e.id, e.allocated),
                               ),
                             ),
                             Tooltip(
@@ -295,5 +358,78 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     );
     nameController.dispose();
     allocatedController.dispose();
+  }
+
+  Future<void> _openAdjustBudget(BuildContext context, String id, double allocated) async {
+    final theme = Theme.of(context);
+    final amountController = TextEditingController(text: allocated.toStringAsFixed(2));
+    final noteController = TextEditingController();
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: theme.colorScheme.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) {
+        final messenger = ScaffoldMessenger.of(ctx);
+        final nav = Navigator.of(ctx);
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 48,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: amountController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'New allocation', filled: true),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: noteController,
+                  decoration: const InputDecoration(labelText: 'Note (optional)', filled: true),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () async {
+                          final newAlloc = double.tryParse(amountController.text) ?? allocated;
+                          try {
+                            await ref.read(budgetRepositoryProvider).addAdjustment(
+                                  id: id,
+                                  newAllocated: newAlloc,
+                                  note: noteController.text.trim().isEmpty ? null : noteController.text.trim(),
+                                  oldAllocated: allocated,
+                                );
+                            nav.pop();
+                            messenger.showSnackBar(const SnackBar(content: Text('Budget adjusted')));
+                          } catch (e) {
+                            messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                          }
+                        },
+                        child: const Text('Save'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    amountController.dispose();
+    noteController.dispose();
   }
 }

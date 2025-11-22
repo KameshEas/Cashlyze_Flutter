@@ -3,19 +3,78 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/analytics_service.dart';
+import '../../core/providers/onboarding_provider.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  @override
+  Widget build(BuildContext context) {
+    final prefs = ref.watch(sharedPrefsServiceProvider);
+    bool alertsEnabled = prefs.alertsEnabled;
+    String currency = prefs.currency;
+    String dateFormat = prefs.dateFormat;
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
-          const ListTile(
-            title: Text('Preferences'),
-            subtitle: Text('Coming soon'),
+          ListTile(
+            title: const Text('Alerts'),
+            subtitle: const Text('Notify when budgets approach thresholds'),
+            trailing: Switch(
+              value: alertsEnabled,
+              onChanged: (v) async {
+                await prefs.setAlertsEnabled(v);
+                setState(() {});
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                const Expanded(child: Text('Currency')),
+                DropdownButton<String>(
+                  value: currency,
+                  items: const [
+                    DropdownMenuItem(value: 'USD', child: Text('USD')),
+                    DropdownMenuItem(value: 'EUR', child: Text('EUR')),
+                    DropdownMenuItem(value: 'INR', child: Text('INR')),
+                  ],
+                  onChanged: (v) async {
+                    if (v == null) return;
+                    await prefs.setCurrency(v);
+                    setState(() {});
+                  },
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+            child: Row(
+              children: [
+                const Expanded(child: Text('Date format')),
+                DropdownButton<String>(
+                  value: dateFormat,
+                  items: const [
+                    DropdownMenuItem(value: 'yyyy-MM-dd', child: Text('yyyy-MM-dd')),
+                    DropdownMenuItem(value: 'dd/MM/yyyy', child: Text('dd/MM/yyyy')),
+                    DropdownMenuItem(value: 'MM/dd/yyyy', child: Text('MM/dd/yyyy')),
+                  ],
+                  onChanged: (v) async {
+                    if (v == null) return;
+                    await prefs.setDateFormat(v);
+                    setState(() {});
+                  },
+                ),
+              ],
+            ),
           ),
           const Divider(),
           ListTile(

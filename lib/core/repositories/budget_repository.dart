@@ -46,6 +46,21 @@ class BudgetRepository {
         .snapshots()
         .map((snap) => snap.docs.map((d) => BudgetModel.fromFirestore(d)).toList());
   }
+
+  Future<void> addAdjustment({
+    required String id,
+    required double newAllocated,
+    String? note,
+    required double oldAllocated,
+  }) async {
+    await _fs.addDocument('$_collection/$id/adjustments', {
+      'oldAllocated': oldAllocated,
+      'newAllocated': newAllocated,
+      'note': note,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    await update(id, {'allocated': newAllocated});
+  }
 }
 
 final budgetRepositoryProvider = Provider<BudgetRepository>((ref) {
