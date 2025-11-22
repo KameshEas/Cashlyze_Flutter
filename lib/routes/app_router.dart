@@ -13,6 +13,8 @@ import '../features/settings/settings_screen.dart';
 import '../features/splash/splash_screen.dart';
 import '../features/auth/verify_email_screen.dart';
 import '../features/categories/categories_screen.dart';
+import '../features/emi/emi_form_screen.dart';
+import '../features/emi/emi_dashboard_screen.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
 final _shellKey = GlobalKey<NavigatorState>();
@@ -221,6 +223,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: const CategoriesScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) =>
               FadeTransition(opacity: animation, child: child),
+          transitionDuration: kRouteFadeDuration,
+        ),
+      ),
+      GoRoute(
+        path: '/emi',
+        name: 'emi_dashboard',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const EMIDashboardScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) => FadeTransition(opacity: animation, child: child),
+          transitionDuration: kRouteFadeDuration,
+        ),
+      ),
+      GoRoute(
+        path: '/emi/new',
+        name: 'emi_new',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const EMIFormScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) => FadeTransition(opacity: animation, child: child),
           transitionDuration: kRouteFadeDuration,
         ),
       ),
