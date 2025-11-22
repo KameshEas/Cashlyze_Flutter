@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "655565727204",
+    "project_id": "cashlyze-b156c",
+    "storage_bucket": "cashlyze-b156c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:655565727204:android:bf39e9508535052f6013f1",
+        "android_client_info": {
+          "package_name": "com.example.cashlyze"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQGZP4F8qZBK7eB7ZN1Bh836B1WYkOJAQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
