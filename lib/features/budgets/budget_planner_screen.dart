@@ -239,10 +239,17 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     final nameController = TextEditingController();
     final allocatedController = TextEditingController();
 
-    await showModalBottomSheet<void>(
+    final prefs = ref.read(sharedPrefsServiceProvider);
+    final draft = prefs.getDraft('budget_create');
+    if (draft != null) {
+      nameController.text = (draft['name'] as String?) ?? '';
+      final amt = draft['allocated'];
+      if (amt != null) allocatedController.text = amt.toString();
+    }
+    final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      isDismissible: false,
+      isDismissible: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -298,7 +305,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                           try {
                             await repo.create(userId: user.uid, name: name, allocated: amount, period: BudgetPeriod.monthly);
                             if (!mounted) return;
-                            nav.pop();
+                            nav.pop(true);
                             messenger.showSnackBar(const SnackBar(content: Text('Budget created')));
                           } catch (e) {
                             if (!mounted) return;
@@ -316,6 +323,18 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
         );
       },
     );
+    if (result != true) {
+      final hasData = nameController.text.trim().isNotEmpty || allocatedController.text.trim().isNotEmpty;
+      if (hasData) {
+        await prefs.saveDraft('budget_create', {
+          'name': nameController.text.trim(),
+          'allocated': double.tryParse(allocatedController.text.trim()),
+        });
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Draft saved')));
+      }
+    } else {
+      await prefs.clearDraft('budget_create');
+    }
     nameController.dispose();
     allocatedController.dispose();
   }
@@ -324,10 +343,17 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     final theme = Theme.of(context);
     final amountController = TextEditingController(text: allocated.toStringAsFixed(2));
     final noteController = TextEditingController();
-    await showModalBottomSheet<void>(
+    final prefs = ref.read(sharedPrefsServiceProvider);
+    final adjustDraft = prefs.getDraft('budget_adjust');
+    if (adjustDraft != null) {
+      final amt = adjustDraft['newAllocated'];
+      if (amt != null) amountController.text = amt.toString();
+      noteController.text = (adjustDraft['note'] as String?) ?? '';
+    }
+    final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      isDismissible: false,
+      isDismissible: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) {
@@ -374,7 +400,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                                   oldAllocated: allocated,
                                 );
                             if (!mounted) return;
-                            nav.pop();
+                            nav.pop(true);
                             messenger.showSnackBar(const SnackBar(content: Text('Budget adjusted')));
                           } catch (e) {
                             if (!mounted) return;
@@ -392,6 +418,18 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
         );
       },
     );
+    if (result != true) {
+      final hasData = amountController.text.trim().isNotEmpty || noteController.text.trim().isNotEmpty;
+      if (hasData) {
+        await prefs.saveDraft('budget_adjust', {
+          'newAllocated': double.tryParse(amountController.text.trim()),
+          'note': noteController.text.trim().isEmpty ? null : noteController.text.trim(),
+        });
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Draft saved')));
+      }
+    } else {
+      await prefs.clearDraft('budget_adjust');
+    }
     amountController.dispose();
     noteController.dispose();
   }

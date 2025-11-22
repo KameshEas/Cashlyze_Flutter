@@ -173,11 +173,25 @@ class HomeScreen extends ConsumerWidget {
     String localType = type;
     String localCategory = category;
     DateTime date = DateTime.now();
-    await showModalBottomSheet<void>(
+    // Prefill from draft
+    final prefs = ref.read(sharedPrefsServiceProvider);
+    final draft = prefs.getDraft('home_quick_add');
+    if (draft != null) {
+      titleController.text = (draft['title'] as String?) ?? '';
+      final amt = draft['amount'];
+      if (amt != null) amountController.text = amt.toString();
+      localType = (draft['type'] as String?) ?? localType;
+      localCategory = (draft['category'] as String?) ?? localCategory;
+      final ds = draft['date'] as String?;
+      if (ds != null) {
+        final parsed = DateTime.tryParse(ds);
+        if (parsed != null) date = parsed;
+      }
+    }
+    final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      isDismissible: false,
-      enableDrag: false,
+      isDismissible: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) {
@@ -210,7 +224,7 @@ class HomeScreen extends ConsumerWidget {
                   final ingest = ref.read(transactionIngestServiceProvider);
                   try {
                     await ingest.addManual(userId: user.uid, title: titleController.text, amount: amount, isIncome: localType == 'Income', categoryId: localCategory == 'General' ? null : localCategory, date: date, notes: null);
-                    nav.pop();
+                    nav.pop(true);
                     messenger.showSnackBar(const SnackBar(content: Text('Transaction saved')));
                   } catch (e) {
                     messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
@@ -222,6 +236,21 @@ class HomeScreen extends ConsumerWidget {
         );
       },
     );
+    if (result != true) {
+      final hasData = titleController.text.trim().isNotEmpty || amountController.text.trim().isNotEmpty;
+      if (hasData) {
+        await prefs.saveDraft('home_quick_add', {
+          'title': titleController.text.trim(),
+          'amount': double.tryParse(amountController.text.trim()),
+          'type': localType,
+          'category': localCategory,
+          'date': date.toIso8601String(),
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Draft saved')));
+      }
+    } else {
+      await prefs.clearDraft('home_quick_add');
+    }
     titleController.dispose();
     amountController.dispose();
   }

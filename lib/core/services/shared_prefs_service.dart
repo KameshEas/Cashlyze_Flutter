@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class SharedPrefsService {
   static const String _onboardingKey = 'onboarding_completed';
@@ -28,5 +29,25 @@ class SharedPrefsService {
   String get dateFormat => _prefs.getString(_dateFormatKey) ?? 'yyyy-MM-dd';
   Future<void> setDateFormat(String value) async {
     await _prefs.setString(_dateFormatKey, value);
+  }
+
+  Map<String, dynamic>? getDraft(String key) {
+    final raw = _prefs.getString('draft_$key');
+    if (raw == null) return null;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) return decoded;
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> saveDraft(String key, Map<String, dynamic> data) async {
+    await _prefs.setString('draft_$key', jsonEncode(data));
+  }
+
+  Future<void> clearDraft(String key) async {
+    await _prefs.remove('draft_$key');
   }
 }

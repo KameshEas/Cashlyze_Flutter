@@ -382,10 +382,29 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     String category = 'General';
     DateTime date = DateTime.now();
 
-    await showModalBottomSheet<void>(
+    final prefs = ref.read(sharedPrefsServiceProvider);
+    final draft = prefs.getDraft('transaction_add');
+    if (draft != null) {
+      titleController.text = (draft['title'] as String?) ?? '';
+      final amt = draft['amount'];
+      if (amt != null) {
+        amountController.text = amt.toString();
+      }
+      type = (draft['type'] as String?) ?? type;
+      category = (draft['category'] as String?) ?? category;
+      final ds = draft['date'] as String?;
+      if (ds != null) {
+        final parsed = DateTime.tryParse(ds);
+        if (parsed != null) {
+          date = parsed;
+        }
+      }
+    }
+
+    final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      isDismissible: false,
+      isDismissible: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -516,7 +535,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             notes: null,
                           );
                           if (!mounted) return;
-                          nav.pop();
+                          nav.pop(true);
                           messenger.showSnackBar(
                             const SnackBar(content: Text('Transaction saved')),
                           );
@@ -537,6 +556,27 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         );
       },
     );
+    if (result != true) {
+      final hasData = titleController.text.trim().isNotEmpty ||
+          amountController.text.trim().isNotEmpty;
+      if (hasData) {
+        final prefs = ref.read(sharedPrefsServiceProvider);
+        await prefs.saveDraft('transaction_add', {
+          'title': titleController.text.trim(),
+          'amount': double.tryParse(amountController.text.trim()),
+          'type': type,
+          'category': category,
+          'date': date.toIso8601String(),
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('Draft saved')));
+        }
+      }
+    } else {
+      final prefs = ref.read(sharedPrefsServiceProvider);
+      await prefs.clearDraft('transaction_add');
+    }
     titleController.dispose();
     amountController.dispose();
   }
