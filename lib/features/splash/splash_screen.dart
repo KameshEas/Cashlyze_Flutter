@@ -69,6 +69,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(authStateChangesProvider, (previous, next) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeNavigate());
+    });
+    ref.listen(onboardingCompletedProvider, (previous, next) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeNavigate());
+    });
     final theme = Theme.of(context);
     return Scaffold(
       body: FadeTransition(
