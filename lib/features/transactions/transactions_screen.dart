@@ -6,6 +6,9 @@ import '../../core/services/categorization_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
 import '../../core/services/transaction_ingest_service.dart';
+import '../../core/services/shared_prefs_service.dart';
+import '../../core/utils/format.dart';
+import '../../core/providers/onboarding_provider.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
@@ -96,6 +99,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final txsAsync = ref.watch(userTransactionsProvider);
+    final prefs = ref.watch(sharedPrefsServiceProvider);
+    final currency = prefs.currency;
+    final datePattern = prefs.dateFormat;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Transactions')),
@@ -240,14 +246,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> with Si
                                   style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
                                 ),
                                 Text(
-                                  '${e.categoryId ?? 'Uncategorized'} • ${e.date.toLocal()}'.split('.').first,
+                                  '${e.categoryId ?? 'Uncategorized'} • ${formatDate(e.date, datePattern)}',
                                   style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
                                 ),
                               ],
                             ),
                           ),
                           Text(
-                            '${isIncome ? '+' : ''}${e.amount.toStringAsFixed(2)}',
+                            formatAmount(e.amount, currency),
                             style: theme.textTheme.bodyLarge?.copyWith(
                               color: isIncome ? Colors.greenAccent : Colors.redAccent,
                               fontWeight: FontWeight.bold,

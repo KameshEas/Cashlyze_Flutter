@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/repositories/budget_repository.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/providers/budget_providers.dart';
+import '../../core/services/shared_prefs_service.dart';
+import '../../core/utils/format.dart';
+import '../../core/providers/onboarding_provider.dart';
 import '../../core/models/budget.dart';
 
 class BudgetPlannerScreen extends ConsumerStatefulWidget {
@@ -32,6 +35,8 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> with 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final prefs = ref.watch(sharedPrefsServiceProvider);
+    final currency = prefs.currency;
     final budgetsAsync = ref.watch(userBudgetsProvider);
     final budgets = budgetsAsync.maybeWhen(data: (d) => d, orElse: () => const []);
     final spentMap = ref.watch(budgetsUtilizationProvider);
@@ -54,7 +59,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> with 
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (utilization > 0.9)
+            if (prefs.alertsEnabled && utilization > 0.9)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
@@ -102,7 +107,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> with 
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Allocated: ${totalAllocated.toStringAsFixed(2)}\nSpent: ${totalSpent.toStringAsFixed(2)}',
+                    'Allocated: ${formatAmount(totalAllocated, currency)}\nSpent: ${formatAmount(totalSpent, currency)}',
                     style: theme.textTheme.titleLarge?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -213,7 +218,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> with 
                           children: [
                             Text(e.name, style: theme.textTheme.titleMedium),
                             Text(
-                              '${spent.toStringAsFixed(2)} / ${e.allocated.toStringAsFixed(2)}',
+                              '${formatAmount(spent, currency)} / ${formatAmount(e.allocated, currency)}',
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),

@@ -76,6 +76,73 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
           ),
+          ListTile(
+            leading: const Icon(Icons.category_outlined),
+            title: const Text('Manage Categories'),
+            onTap: () => GoRouter.of(context).go('/categories'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.school_outlined),
+            title: const Text('Revisit Onboarding'),
+            onTap: () => GoRouter.of(context).go('/onboarding_preview'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.lock_reset),
+            title: const Text('Change Password'),
+            onTap: () async {
+              final controller = TextEditingController();
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Change Password'),
+                  content: TextField(
+                    controller: controller,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: 'New password'),
+                  ),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+                    FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Update')),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                try {
+                  await ref.read(authServiceProvider).updatePassword(controller.text.trim());
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password updated')));
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+                }
+              }
+              controller.dispose();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete_forever),
+            title: const Text('Delete Account'),
+            onTap: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Delete Account'),
+                  content: const Text('This will permanently delete your account. Are you sure?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+                    FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Delete')),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                try {
+                  await ref.read(authServiceProvider).deleteAccount();
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Account deleted')));
+                  GoRouter.of(context).go('/login');
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+                }
+              }
+            },
+          ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.logout),
