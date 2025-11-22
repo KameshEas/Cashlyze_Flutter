@@ -33,6 +33,8 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> with SingleTick
     final monthly = ref.watch(monthlyTrendProvider);
     final categories = ref.watch(categoryBreakdownProvider);
     final txsAsync = ref.watch(recentTransactionsProvider);
+    final kpis = ref.watch(kpisProvider);
+    final selectedRange = ref.watch(selectedTimeRangeProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Insights')),
@@ -41,6 +43,60 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> with SingleTick
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Insights', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                Wrap(spacing: 8, children: [
+                  ChoiceChip(
+                    label: const Text('7d'),
+                    selected: selectedRange == TimeRange.last7d,
+                    onSelected: (_) => ref.read(selectedTimeRangeProvider.notifier).state = TimeRange.last7d,
+                  ),
+                  ChoiceChip(
+                    label: const Text('30d'),
+                    selected: selectedRange == TimeRange.last30d,
+                    onSelected: (_) => ref.read(selectedTimeRangeProvider.notifier).state = TimeRange.last30d,
+                  ),
+                  ChoiceChip(
+                    label: const Text('90d'),
+                    selected: selectedRange == TimeRange.last90d,
+                    onSelected: (_) => ref.read(selectedTimeRangeProvider.notifier).state = TimeRange.last90d,
+                  ),
+                ]),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Income', style: theme.textTheme.bodySmall),
+                    Text(kpis.income.toStringAsFixed(2), style: theme.textTheme.titleMedium),
+                  ]),
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Expense', style: theme.textTheme.bodySmall),
+                    Text(kpis.expense.toStringAsFixed(2), style: theme.textTheme.titleMedium),
+                  ]),
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Net', style: theme.textTheme.bodySmall),
+                    Text(kpis.net.toStringAsFixed(2), style: theme.textTheme.titleMedium),
+                  ]),
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Avg/day', style: theme.textTheme.bodySmall),
+                    Text(kpis.avgDailySpend.toStringAsFixed(2), style: theme.textTheme.titleMedium),
+                  ]),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
             Text('Monthly Trend', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             if (txsAsync.isLoading)
@@ -183,6 +239,33 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> with SingleTick
                 ),
               ),
             ),
+            const SizedBox(height: 24),
+            Text('Recommendations', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Builder(builder: (ctx) {
+              final recos = ref.watch(recommendationsProvider);
+              if (recos.isEmpty) {
+                return Text('No suggestions for this range', style: theme.textTheme.bodySmall);
+              }
+              return Column(children: recos.map((r) => ListTile(leading: const Icon(Icons.lightbulb_outline), title: Text(r))).toList());
+            }),
+            const SizedBox(height: 24),
+            Text('Anomalies', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Builder(builder: (ctx) {
+              final anomalies = ref.watch(anomaliesProvider);
+              if (anomalies.isEmpty) {
+                return Text('No anomalies detected in this range', style: theme.textTheme.bodySmall);
+              }
+              return Column(
+                children: anomalies.take(5).map((t) => ListTile(
+                  leading: const Icon(Icons.warning_amber_outlined, color: Colors.orange),
+                  title: Text(t.title),
+                  subtitle: Text('${t.categoryId ?? 'Uncategorized'} • ${t.date.toLocal()}'.split('.').first),
+                  trailing: Text('-${t.amount.abs().toStringAsFixed(2)}'),
+                )).toList(),
+              );
+            }),
           ],
         ),
       ),
