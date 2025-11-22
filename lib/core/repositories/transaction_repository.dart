@@ -29,10 +29,8 @@ class TransactionRepository {
       'created_at_ms': ServerValue.timestamp,
       'updated_at_ms': ServerValue.timestamp,
     };
-    final ref = await _db.push('users/$userId/transactions', data);
-    final snap = await ref.get();
-    final map = (snap.value as Map).cast<String, dynamic>();
-    return TransactionModel.fromRTDB(ref.key!, map);
+    final key = await _db.pushKey('users/$userId/transactions', data);
+    return TransactionModel.fromRTDB(key, data);
   }
 
   Future<void> update(String userId, String id, Map<String, dynamic> data) async {
@@ -52,15 +50,15 @@ class TransactionRepository {
   }
 
   Stream<List<TransactionModel>> streamForUser(String userId) {
-    final ref = _db.ref('users/$userId/transactions').orderByChild('date_ms');
-    return ref.onValue.map((event) {
-      final snapshot = event.snapshot;
-      if (!snapshot.exists) return <TransactionModel>[];
-      final children = snapshot.children.toList();
-      final items = children.map((c) {
-        final data = (c.value as Map).cast<String, dynamic>();
-        return TransactionModel.fromRTDB(c.key!, data);
-      }).toList();
+    return _db.onValueMap('users/$userId/transactions').map((map) {
+      if (map == null) return <TransactionModel>[];
+      final items = <TransactionModel>[];
+      map.forEach((key, value) {
+        if (value is Map) {
+          final data = value.cast<String, dynamic>();
+          items.add(TransactionModel.fromRTDB(key, data));
+        }
+      });
       items.sort((a, b) => b.date.compareTo(a.date));
       return items;
     });

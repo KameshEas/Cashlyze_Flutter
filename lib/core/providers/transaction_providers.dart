@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 import '../repositories/transaction_repository.dart';
 import '../models/transaction.dart';
 import '../services/auth_service.dart';
@@ -14,12 +15,13 @@ class TimeRangeNotifier extends Notifier<TimeRange> {
 final selectedTimeRangeProvider =
     NotifierProvider<TimeRangeNotifier, TimeRange>(TimeRangeNotifier.new);
 
-final recentTransactionsProvider = StreamProvider<List<TransactionModel>>((
-  ref,
-) {
+final recentTransactionsProvider = StreamProvider<List<TransactionModel>>((ref) {
   final user = ref.watch(currentUserProvider);
-  if (user == null) return const Stream.empty();
-  return ref.watch(transactionRepositoryProvider).streamForUser(user.uid);
+  if (user == null) return Stream.value(<TransactionModel>[]);
+  final s = ref.watch(transactionRepositoryProvider).streamForUser(user.uid);
+  return s.timeout(const Duration(seconds: 5), onTimeout: (sink) {
+    sink.add(<TransactionModel>[]);
+  }).handleError((_, __) {});
 });
 
 final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {

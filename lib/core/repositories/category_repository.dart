@@ -19,10 +19,8 @@ class CategoryRepository {
       'icon': icon,
       'color': color,
     };
-    final ref = await _db.push('users/$userId/categories', data);
-    final snap = await ref.get();
-    final map = (snap.value as Map).cast<String, dynamic>();
-    return CategoryModel.fromRTDB(ref.key!, map);
+    final key = await _db.pushKey('users/$userId/categories', data);
+    return CategoryModel.fromRTDB(key, data);
   }
 
   Future<void> update(String userId, String id, Map<String, dynamic> data) async {
@@ -34,14 +32,15 @@ class CategoryRepository {
   }
 
   Stream<List<CategoryModel>> streamForUser(String userId) {
-    final ref = _db.ref('users/$userId/categories').orderByChild('name');
-    return ref.onValue.map((event) {
-      final s = event.snapshot;
-      if (!s.exists) return <CategoryModel>[];
-      final items = s.children.map((c) {
-        final data = (c.value as Map).cast<String, dynamic>();
-        return CategoryModel.fromRTDB(c.key!, data);
-      }).toList();
+    return _db.onValueMap('users/$userId/categories').map((map) {
+      if (map == null) return <CategoryModel>[];
+      final items = <CategoryModel>[];
+      map.forEach((key, value) {
+        if (value is Map) {
+          final data = value.cast<String, dynamic>();
+          items.add(CategoryModel.fromRTDB(key, data));
+        }
+      });
       items.sort((a, b) => a.name.compareTo(b.name));
       return items;
     });
@@ -54,6 +53,9 @@ final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
 
 final userCategoriesProvider = StreamProvider<List<CategoryModel>>((ref) {
   final user = ref.watch(currentUserProvider);
-  if (user == null) return const Stream.empty();
-  return ref.watch(categoryRepositoryProvider).streamForUser(user.uid);
+  if (user == null) return Stream.value(<CategoryModel>[]);
+  final s = ref.watch(categoryRepositoryProvider).streamForUser(user.uid);
+  return s.timeout(const Duration(seconds: 5), onTimeout: (sink) {
+    sink.add(<CategoryModel>[]);
+  }).handleError((_, __) {});
 });

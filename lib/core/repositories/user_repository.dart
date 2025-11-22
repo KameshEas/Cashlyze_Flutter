@@ -46,10 +46,8 @@ class UserRepository {
 
   /// Stream user data
   Stream<UserModel?> streamUser(String uid) {
-    return _db.onValue('$_usersCollection/$uid').map((event) {
-      final snap = event.snapshot;
-      if (snap.exists && snap.value != null) {
-        final map = (snap.value as Map).cast<String, dynamic>();
+    return _db.onValueMap('$_usersCollection/$uid').map((map) {
+      if (map != null) {
         return UserModel.fromRTDB(uid, map);
       }
       return null;
@@ -112,7 +110,10 @@ final currentUserDataProvider = StreamProvider<UserModel?>((ref) {
     return Stream.value(null);
   }
 
-  return ref.watch(userRepositoryProvider).streamUser(currentUser.uid);
+  final s = ref.watch(userRepositoryProvider).streamUser(currentUser.uid);
+  return s.timeout(const Duration(seconds: 5), onTimeout: (sink) {
+    sink.add(null);
+  }).handleError((_, __) {});
 });
 
 /// Provider to get or create current user

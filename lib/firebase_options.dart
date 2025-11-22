@@ -55,11 +55,11 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyA39XAsbcUuKhepy0Q7CIlY2NSywOWAnOo',
-    appId: '1:655565727204:ios:992b673a10e95e4d6013f1',
+    appId: '1:655565727204:ios:26b3ce595b611a676013f1',
     messagingSenderId: '655565727204',
     projectId: 'cashlyze-b156c',
     storageBucket: 'cashlyze-b156c.firebasestorage.app',
-    iosBundleId: 'com.example.cashlyze',
+    iosBundleId: 'com.cashlyze.cashlyze',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(

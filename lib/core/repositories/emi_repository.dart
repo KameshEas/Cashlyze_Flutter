@@ -10,10 +10,8 @@ class EMIRepository {
 
   Future<EMIPlan> createPlan(EMIPlan plan) async {
     final data = plan.toRTDB();
-    final ref = await _db.push('users/${plan.userId}/emi_plans', data);
-    final snap = await ref.get();
-    final map = (snap.value as Map).cast<String, dynamic>();
-    return EMIPlan.fromRTDB(ref.key!, map);
+    final key = await _db.pushKey('users/${plan.userId}/emi_plans', data);
+    return EMIPlan.fromRTDB(key, data);
   }
 
   Future<void> addSchedule(String userId, String planId, List<EMIPayment> schedule) async {
@@ -26,27 +24,29 @@ class EMIRepository {
   }
 
   Stream<List<EMIPlan>> streamPlans(String userId) {
-    final ref = _db.ref('users/$userId/emi_plans');
-    return ref.onValue.map((event) {
-      final s = event.snapshot;
-      if (!s.exists) return <EMIPlan>[];
-      final items = s.children.map((c) {
-        final data = (c.value as Map).cast<String, dynamic>();
-        return EMIPlan.fromRTDB(c.key!, data);
-      }).toList();
+    return _db.onValueMap('users/$userId/emi_plans').map((map) {
+      if (map == null) return <EMIPlan>[];
+      final items = <EMIPlan>[];
+      map.forEach((key, value) {
+        if (value is Map) {
+          final data = value.cast<String, dynamic>();
+          items.add(EMIPlan.fromRTDB(key, data));
+        }
+      });
       return items;
     });
   }
 
   Stream<List<EMIPayment>> streamSchedule(String userId, String planId) {
-    final ref = _db.ref('users/$userId/emi_schedules/$planId').orderByChild('dueDate_ms');
-    return ref.onValue.map((event) {
-      final s = event.snapshot;
-      if (!s.exists) return <EMIPayment>[];
-      final items = s.children.map((c) {
-        final data = (c.value as Map).cast<String, dynamic>();
-        return EMIPayment.fromRTDB(c.key!, data);
-      }).toList();
+    return _db.onValueMap('users/$userId/emi_schedules/$planId').map((map) {
+      if (map == null) return <EMIPayment>[];
+      final items = <EMIPayment>[];
+      map.forEach((key, value) {
+        if (value is Map) {
+          final data = value.cast<String, dynamic>();
+          items.add(EMIPayment.fromRTDB(key, data));
+        }
+      });
       items.sort((a, b) => a.dueDate.compareTo(b.dueDate));
       return items;
     });
@@ -61,12 +61,18 @@ final emiRepositoryProvider = Provider<EMIRepository>((ref) => EMIRepository(ref
 
 final userEMIPlansProvider = StreamProvider<List<EMIPlan>>((ref) {
   final user = ref.watch(currentUserProvider);
-  if (user == null) return const Stream.empty();
-  return ref.watch(emiRepositoryProvider).streamPlans(user.uid);
+  if (user == null) return Stream.value(<EMIPlan>[]);
+  final s = ref.watch(emiRepositoryProvider).streamPlans(user.uid);
+  return s.timeout(const Duration(seconds: 5), onTimeout: (sink) {
+    sink.add(<EMIPlan>[]);
+  }).handleError((_, __) {});
 });
 
 final emiScheduleProvider = StreamProvider.family<List<EMIPayment>, String>((ref, planId) {
   final user = ref.watch(currentUserProvider);
-  if (user == null) return const Stream.empty();
-  return ref.watch(emiRepositoryProvider).streamSchedule(user.uid, planId);
+  if (user == null) return Stream.value(<EMIPayment>[]);
+  final s = ref.watch(emiRepositoryProvider).streamSchedule(user.uid, planId);
+  return s.timeout(const Duration(seconds: 5), onTimeout: (sink) {
+    sink.add(<EMIPayment>[]);
+  }).handleError((_, __) {});
 });
