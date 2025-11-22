@@ -40,7 +40,7 @@ class CategoriesScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: list.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            separatorBuilder: (sepCtx, i) => const SizedBox(height: 8),
             itemBuilder: (ctx, i) {
               final c = list[i];
               return Container(
@@ -152,12 +152,13 @@ class CategoriesScreen extends ConsumerWidget {
                   final user = ref.read(currentUserProvider);
                   if (user == null) return;
                   final repo = ref.read(categoryRepositoryProvider);
+                  final nav = Navigator.of(ctx);
                   if (categoryId == null) {
                     await repo.create(userId: user.uid, name: name);
                   } else {
                     await repo.update(categoryId, {'name': name});
                   }
-                  Navigator.of(ctx).pop();
+                  nav.pop();
                   messenger.showSnackBar(
                     const SnackBar(content: Text('Saved')),
                   );

@@ -178,5 +178,7 @@ class QueryOrder {
 
 /// Provider for FirestoreService
 final firestoreServiceProvider = Provider<FirestoreService>((ref) {
-  return FirestoreService(ref.watch(firestoreProvider));
+  final firestore = ref.watch(firestoreProvider);
+  firestore.settings = const Settings(persistenceEnabled: true);
+  return FirestoreService(firestore);
 });

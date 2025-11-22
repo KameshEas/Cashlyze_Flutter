@@ -27,6 +27,7 @@ final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {
       .watch(recentTransactionsProvider)
       .maybeWhen(data: (d) => d, orElse: () => <TransactionModel>[]);
   final range = ref.watch(selectedTimeRangeProvider);
+  final selectedCats = ref.watch(selectedCategoriesProvider);
   final now = DateTime.now();
   DateTime cutoff;
   if (range == TimeRange.last7d) {
@@ -36,7 +37,10 @@ final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {
   } else {
     cutoff = now.subtract(const Duration(days: 90));
   }
-  return txs.where((t) => t.date.isAfter(cutoff)).toList();
+  return txs
+      .where((t) => t.date.isAfter(cutoff))
+      .where((t) => selectedCats.isEmpty || selectedCats.contains(t.categoryId ?? 'Other'))
+      .toList();
 });
 
 final monthlyTrendProvider = Provider<List<double>>((ref) {
@@ -70,3 +74,21 @@ final categoryBreakdownProvider = Provider<Map<String, double>>((ref) {
   }
   return map;
 });
+
+class SelectedCategoriesNotifier extends Notifier<Set<String>> {
+  @override
+  Set<String> build() => <String>{};
+  void toggle(String cat) {
+    final s = Set<String>.from(state);
+    if (s.contains(cat)) {
+      s.remove(cat);
+    } else {
+      s.add(cat);
+    }
+    state = s;
+  }
+  void clear() => state = <String>{};
+}
+
+final selectedCategoriesProvider =
+    NotifierProvider<SelectedCategoriesNotifier, Set<String>>(SelectedCategoriesNotifier.new);

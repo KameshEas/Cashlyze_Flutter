@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/repositories/budget_repository.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/providers/budget_providers.dart';
-import '../../core/services/shared_prefs_service.dart';
+import '../../core/widgets/skeleton.dart';
 import '../../core/utils/format.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/models/budget.dart';
@@ -15,22 +15,7 @@ class BudgetPlannerScreen extends ConsumerStatefulWidget {
   ConsumerState<BudgetPlannerScreen> createState() => _BudgetPlannerScreenState();
 }
 
-class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> with SingleTickerProviderStateMixin {
-  late final AnimationController _shimmerController;
-  late final Animation<double> _shimmer;
-
-  @override
-  void initState() {
-    super.initState();
-    _shimmerController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat(reverse: true);
-    _shimmer = CurvedAnimation(parent: _shimmerController, curve: Curves.easeInOut);
-  }
-
-  @override
-  void dispose() {
-    _shimmerController.dispose();
-    super.dispose();
-  }
+class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
 
   @override
   Widget build(BuildContext context) {
@@ -138,42 +123,9 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> with 
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: 4,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (sepCtx, i) => const SizedBox(height: 12),
                 itemBuilder: (ctx, i) {
-                  return AnimatedBuilder(
-                    animation: _shimmer,
-                    builder: (ctx, _) => Container(
-                      height: 86,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-                      ),
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            height: 16,
-                            width: 180,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.1 + 0.1 * _shimmer.value),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Container(
-                            height: 8,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.08 + 0.1 * _shimmer.value),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                  return const SkeletonListTile();
                 },
               ),
               error: (e, _) => Center(child: Text('Failed to load budgets: $e')),
@@ -196,7 +148,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> with 
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: list.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (sepCtx, i) => const SizedBox(height: 12),
                 itemBuilder: (ctx, i) {
                   final e = list[i];
                   final spent = spentMap[e.id] ?? 0;
@@ -290,11 +242,14 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> with 
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      isDismissible: false,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) {
+        final messenger = ScaffoldMessenger.of(context);
+        final nav = Navigator.of(context);
         return Padding(
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(ctx).viewInsets.bottom,
@@ -340,13 +295,13 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> with 
                           final repo = ref.read(budgetRepositoryProvider);
                           final name = nameController.text.trim();
                           final amount = double.tryParse(allocatedController.text) ?? 0;
-                          final messenger = ScaffoldMessenger.of(ctx);
-                          final nav = Navigator.of(ctx);
                           try {
                             await repo.create(userId: user.uid, name: name, allocated: amount, period: BudgetPeriod.monthly);
+                            if (!mounted) return;
                             nav.pop();
                             messenger.showSnackBar(const SnackBar(content: Text('Budget created')));
                           } catch (e) {
+                            if (!mounted) return;
                             messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
                           }
                         },
@@ -372,11 +327,12 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> with 
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      isDismissible: false,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) {
-        final messenger = ScaffoldMessenger.of(ctx);
-        final nav = Navigator.of(ctx);
+        final messenger = ScaffoldMessenger.of(context);
+        final nav = Navigator.of(context);
         return Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
           child: Padding(
@@ -417,9 +373,11 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> with 
                                   note: noteController.text.trim().isEmpty ? null : noteController.text.trim(),
                                   oldAllocated: allocated,
                                 );
+                            if (!mounted) return;
                             nav.pop();
                             messenger.showSnackBar(const SnackBar(content: Text('Budget adjusted')));
                           } catch (e) {
+                            if (!mounted) return;
                             messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
                           }
                         },

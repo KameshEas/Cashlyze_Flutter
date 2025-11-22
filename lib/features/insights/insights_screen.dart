@@ -3,6 +3,9 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/transaction_providers.dart';
 import '../../core/providers/insights_providers.dart';
+import '../../core/repositories/category_repository.dart';
+import '../../core/providers/onboarding_provider.dart';
+import '../../core/utils/format.dart';
 
 class InsightsScreen extends ConsumerStatefulWidget {
   const InsightsScreen({super.key});
@@ -43,6 +46,8 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
     final txsAsync = ref.watch(recentTransactionsProvider);
     final kpis = ref.watch(kpisProvider);
     final selectedRange = ref.watch(selectedTimeRangeProvider);
+    final prefs = ref.watch(sharedPrefsServiceProvider);
+    final currency = prefs.currency;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Insights')),
@@ -104,7 +109,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                     children: [
                       Text('Income', style: theme.textTheme.bodySmall),
                       Text(
-                        kpis.income.toStringAsFixed(2),
+                        formatAmount(kpis.income, currency),
                         style: theme.textTheme.titleMedium,
                       ),
                     ],
@@ -114,7 +119,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                     children: [
                       Text('Expense', style: theme.textTheme.bodySmall),
                       Text(
-                        kpis.expense.toStringAsFixed(2),
+                        formatAmount(kpis.expense, currency),
                         style: theme.textTheme.titleMedium,
                       ),
                     ],
@@ -124,7 +129,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                     children: [
                       Text('Net', style: theme.textTheme.bodySmall),
                       Text(
-                        kpis.net.toStringAsFixed(2),
+                        formatAmount(kpis.net, currency),
                         style: theme.textTheme.titleMedium,
                       ),
                     ],
@@ -188,17 +193,20 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                 ),
               )
             else
-              Container(
-                height: 220,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.05),
+              Semantics(
+                label:
+                    'Monthly trend for selected range. Income ${kpis.income.toStringAsFixed(2)}, expense ${kpis.expense.toStringAsFixed(2)}, net ${kpis.net.toStringAsFixed(2)}.',
+                child: Container(
+                  height: 220,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
                   ),
-                ),
-                child: LineChart(
+                  child: LineChart(
                   LineChartData(
                     gridData: FlGridData(show: false),
                     titlesData: FlTitlesData(
@@ -257,8 +265,36 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                     ],
                   ),
                 ),
+                ),
               ),
             const SizedBox(height: 24),
+            Consumer(builder: (chipCtx, chipRef, _) {
+              final catsAsync = chipRef.watch(userCategoriesProvider);
+              final selected = chipRef.watch(selectedCategoriesProvider);
+              return catsAsync.when(
+                loading: () => const SizedBox.shrink(),
+                error: (err, st) => const SizedBox.shrink(),
+                data: (list) => SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(children: [
+                    ChoiceChip(
+                      label: const Text('All'),
+                      selected: selected.isEmpty,
+                      onSelected: (_) => chipRef.read(selectedCategoriesProvider.notifier).clear(),
+                    ),
+                    const SizedBox(width: 8),
+                    ...list.map((c) => Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: ChoiceChip(
+                            label: Text(c.name),
+                            selected: selected.contains(c.name),
+                            onSelected: (_) => chipRef.read(selectedCategoriesProvider.notifier).toggle(c.name),
+                          ),
+                        )),
+                  ]),
+                ),
+              );
+            }),
             Text(
               'Spending by Category',
               style: theme.textTheme.titleMedium?.copyWith(
@@ -307,17 +343,19 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                 ),
               )
             else
-              Container(
-                height: 240,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.05),
+              Semantics(
+                label: 'Spending by category for selected range.',
+                child: Container(
+                  height: 240,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
                   ),
-                ),
-                child: PieChart(
+                  child: PieChart(
                   PieChartData(
                     sectionsSpace: 2,
                     centerSpaceRadius: 40,
@@ -337,6 +375,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                       );
                     }).toList(),
                   ),
+                ),
                 ),
               ),
             const SizedBox(height: 24),

@@ -91,6 +91,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: const Text('Change Password'),
             onTap: () async {
               final controller = TextEditingController();
+              final messenger = ScaffoldMessenger.of(context);
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (ctx) => AlertDialog(
@@ -109,9 +110,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               if (confirm == true) {
                 try {
                   await ref.read(authServiceProvider).updatePassword(controller.text.trim());
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password updated')));
+                  messenger.showSnackBar(const SnackBar(content: Text('Password updated')));
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+                  messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
                 }
               }
               controller.dispose();
@@ -121,6 +122,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             leading: const Icon(Icons.delete_forever),
             title: const Text('Delete Account'),
             onTap: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              final router = GoRouter.of(context);
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (ctx) => AlertDialog(
@@ -135,10 +138,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               if (confirm == true) {
                 try {
                   await ref.read(authServiceProvider).deleteAccount();
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Account deleted')));
-                  GoRouter.of(context).go('/login');
+                  messenger.showSnackBar(const SnackBar(content: Text('Account deleted')));
+                  router.go('/login');
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+                  messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
                 }
               }
             },

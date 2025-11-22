@@ -6,9 +6,11 @@ import '../../core/services/categorization_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
 import '../../core/services/transaction_ingest_service.dart';
-import '../../core/services/shared_prefs_service.dart';
-import '../../core/utils/format.dart';
 import '../../core/providers/onboarding_provider.dart';
+import '../../core/utils/format.dart';
+import '../../core/providers/transaction_providers.dart';
+import '../../core/repositories/category_repository.dart';
+import '../../core/widgets/skeleton.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
@@ -17,97 +19,11 @@ class TransactionsScreen extends ConsumerStatefulWidget {
   ConsumerState<TransactionsScreen> createState() => _TransactionsScreenState();
 }
 
-class _TransactionsScreenState extends ConsumerState<TransactionsScreen>
-    with SingleTickerProviderStateMixin {
+class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   String _filter = 'All';
   String _query = '';
-  late final AnimationController _shimmerController;
-  late final Animation<double> _shimmer;
 
-  @override
-  void initState() {
-    super.initState();
-    _shimmerController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
-    _shimmer = CurvedAnimation(
-      parent: _shimmerController,
-      curve: Curves.easeInOut,
-    );
-  }
-
-  @override
-  void dispose() {
-    _shimmerController.dispose();
-    super.dispose();
-  }
-
-  Widget _skeletonItem(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Row(
-        children: [
-          AnimatedBuilder(
-            animation: _shimmer,
-            builder: (ctx, _) {
-              return Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(
-                    alpha: 0.1 + 0.1 * _shimmer.value,
-                  ),
-                  shape: BoxShape.circle,
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AnimatedBuilder(
-                  animation: _shimmer,
-                  builder: (ctx, _) => Container(
-                    height: 14,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(
-                        alpha: 0.1 + 0.1 * _shimmer.value,
-                      ),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                AnimatedBuilder(
-                  animation: _shimmer,
-                  builder: (ctx, _) => Container(
-                    height: 12,
-                    width: 160,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(
-                        alpha: 0.08 + 0.1 * _shimmer.value,
-                      ),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -201,15 +117,63 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen>
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Consumer(builder: (chipCtx, chipRef, _) {
+              final catsAsync = chipRef.watch(userCategoriesProvider);
+              final selected = chipRef.watch(selectedCategoriesProvider);
+              return catsAsync.when(
+                loading: () => const SizedBox.shrink(),
+                error: (err, st) => const SizedBox.shrink(),
+                data: (list) => SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(children: [
+                    ChoiceChip(
+                      label: const Text('All'),
+                      selected: selected.isEmpty,
+                      onSelected: (_) => chipRef.read(selectedCategoriesProvider.notifier).clear(),
+                    ),
+                    const SizedBox(width: 8),
+                    ...list.map((c) => Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: ChoiceChip(
+                            label: Text(c.name),
+                            selected: selected.contains(c.name),
+                            onSelected: (_) => chipRef.read(selectedCategoriesProvider.notifier).toggle(c.name),
+                          ),
+                        )),
+                  ]),
+                ),
+              );
+            }),
+          ),
           Expanded(
             child: txsAsync.when(
               loading: () => ListView.separated(
                 padding: const EdgeInsets.all(16),
-                itemBuilder: (ctx, i) => _skeletonItem(context),
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (listCtx, i) => const SkeletonListTile(),
+                separatorBuilder: (sepCtx, i) => const SizedBox(height: 12),
                 itemCount: 6,
               ),
-              error: (e, _) => Center(child: Text('Failed to load: $e')),
+              error: (e, _) => Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.red),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text('Failed to load: $e')),
+                      TextButton(onPressed: () => ref.refresh(userTransactionsProvider), child: const Text('Retry')),
+                    ],
+                  ),
+                ),
+              ),
               data: (items) {
                 final filtered = items.where((e) {
                   final matchesQuery =
@@ -353,11 +317,38 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen>
                                 );
                                 if (confirm == true) {
                                   try {
+                                    final payload = {
+                                      'title': e.title,
+                                      'amount': e.amount,
+                                      'categoryId': e.categoryId,
+                                      'date': e.date,
+                                    };
                                     await ref
                                         .read(transactionRepositoryProvider)
                                         .delete(e.id);
                                     messenger.showSnackBar(
-                                      const SnackBar(content: Text('Deleted')),
+                                      SnackBar(
+                                        content: const Text('Deleted'),
+                                        action: SnackBarAction(
+                                          label: 'Undo',
+                                          onPressed: () async {
+                                            final user = ref.read(currentUserProvider);
+                                            if (user == null) return;
+                                            try {
+                                              await ref
+                                                  .read(transactionRepositoryProvider)
+                                                  .create(
+                                                    userId: user.uid,
+                                                    title: payload['title'] as String,
+                                                    amount: payload['amount'] as double,
+                                                    categoryId: payload['categoryId'] as String?,
+                                                    date: payload['date'] as DateTime,
+                                                    notes: null,
+                                                  );
+                                            } catch (_) {}
+                                          },
+                                        ),
+                                      ),
                                     );
                                   } catch (err) {
                                     messenger.showSnackBar(
@@ -372,7 +363,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen>
                       ),
                     );
                   },
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  separatorBuilder: (sepCtx, i) => const SizedBox(height: 12),
                   itemCount: filtered.length,
                 );
               },
@@ -394,6 +385,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen>
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      isDismissible: false,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -511,8 +503,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen>
                         final ingest = ref.read(
                           transactionIngestServiceProvider,
                         );
-                        final messenger = ScaffoldMessenger.of(ctx);
-                        final nav = Navigator.of(ctx);
+                        final messenger = ScaffoldMessenger.of(context);
+                        final nav = Navigator.of(context);
                         try {
                           await ingest.addManual(
                             userId: user.uid,
@@ -523,11 +515,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen>
                             date: date,
                             notes: null,
                           );
+                          if (!mounted) return;
                           nav.pop();
                           messenger.showSnackBar(
                             const SnackBar(content: Text('Transaction saved')),
                           );
                         } catch (e) {
+                          if (!mounted) return;
                           messenger.showSnackBar(
                             SnackBar(content: Text('Failed: $e')),
                           );
@@ -567,13 +561,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen>
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      isDismissible: false,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) {
-        final messenger = ScaffoldMessenger.of(ctx);
-        final nav = Navigator.of(ctx);
+        final messenger = ScaffoldMessenger.of(context);
+        final nav = Navigator.of(context);
         return Padding(
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(ctx).viewInsets.bottom,
@@ -701,6 +696,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen>
                                     : category,
                                 'date': pickedDate,
                               });
+                          if (!mounted) return;
                           nav.pop();
                           messenger.showSnackBar(
                             const SnackBar(
@@ -708,6 +704,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen>
                             ),
                           );
                         } catch (e) {
+                          if (!mounted) return;
                           messenger.showSnackBar(
                             SnackBar(content: Text('Failed: $e')),
                           );

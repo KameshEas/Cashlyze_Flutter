@@ -7,23 +7,30 @@ import '../../core/providers/onboarding_provider.dart';
 class SplashScreen extends ConsumerStatefulWidget {
   final Duration duration;
 
-  const SplashScreen({super.key, this.duration = const Duration(milliseconds: 1500)});
+  const SplashScreen({
+    super.key,
+    this.duration = const Duration(milliseconds: 600),
+  });
 
   @override
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends ConsumerState<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _fadeIn;
-  bool _timerDone = false;
+  bool _timerDone = false; // reserved for future timed animations
   bool _navigated = false;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration);
-    _fadeIn = CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic);
+    _fadeIn = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOutCubic,
+    );
     _controller.forward();
 
     Future<void>.delayed(widget.duration, () {
@@ -44,10 +51,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
         ? '/onboarding'
         : (user == null ? '/login' : '/');
 
-    if (_timerDone) {
-      _navigated = true;
-      if (mounted) context.go(target);
-    }
+    _navigated = true;
+    if (mounted) context.go(target);
   }
 
   @override
