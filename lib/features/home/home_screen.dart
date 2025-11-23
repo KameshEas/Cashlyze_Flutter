@@ -9,6 +9,8 @@ import '../../core/services/auth_service.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../core/models/transaction.dart';
+import '../../core/repositories/emi_repository.dart';
+import '../../core/repositories/transaction_repository.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -51,6 +53,10 @@ class HomeScreen extends ConsumerWidget {
             Text('Quick Actions', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             _buildQuickActions(context, ref),
+            const SizedBox(height: 24),
+            Text('EMI Tracker', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            _buildUpcomingEmi(context, ref, currency),
             const SizedBox(height: 24),
             Text('Recent Transactions', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
@@ -267,5 +273,56 @@ class HomeScreen extends ConsumerWidget {
     }
     titleController.dispose();
     amountController.dispose();
+  }
+
+  Widget _buildUpcomingEmi(BuildContext context, WidgetRef ref, String currency) {
+    final upcomingAsync = ref.watch(emiUpcomingProvider);
+    final theme = Theme.of(context);
+    return upcomingAsync.when(
+      loading: () => const SkeletonListTile(),
+      error: (e, _) => Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.red.withValues(alpha: 0.3))), child: Row(children: [const Icon(Icons.error_outline, color: Colors.red), const SizedBox(width: 8), Expanded(child: Text('Failed to load: $e'))])),
+      data: (items) {
+        if (items.isEmpty) {
+          return Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: theme.colorScheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.05))), child: Row(children: [const Icon(Icons.payments_outlined), const SizedBox(width: 12), Expanded(child: Text('No upcoming EMI this month', style: theme.textTheme.bodyMedium))]));
+        }
+        final list = items.take(3).toList();
+        return Column(children: [
+          for (var i = 0; i < list.length; i++) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: theme.colorScheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.05))),
+              child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Due: ${list[i].dueDate.toLocal()}'.split(' ').first, style: theme.textTheme.bodyMedium),
+                  Text(formatAmount(list[i].installment, currency), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                ]),
+                FilledButton(
+                  onPressed: () async {
+                    final user = ref.read(currentUserProvider);
+                    if (user == null) return;
+                    try {
+                      await ref.read(emiRepositoryProvider).markPaid(user.uid, list[i].planId, list[i].id);
+                      await ref.read(transactionRepositoryProvider).create(
+                        userId: user.uid,
+                        title: 'EMI installment',
+                        amount: -list[i].installment.abs(),
+                        categoryId: 'EMI',
+                        date: list[i].dueDate,
+                        notes: 'EMI payment recorded from Home',
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('EMI marked paid and transaction added')));
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+                    }
+                  },
+                  child: const Text('Mark paid'),
+                )
+              ]),
+            ),
+            if (i < list.length - 1) const SizedBox(height: 12),
+          ]
+        ]);
+      },
+    );
   }
 }

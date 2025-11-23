@@ -55,6 +55,32 @@ class EMIRepository {
   Future<void> markPaid(String userId, String planId, String paymentId) async {
     await _db.update('users/$userId/emi_schedules/$planId/$paymentId', {'paid': true, 'paidAt_ms': ServerValue.timestamp});
   }
+
+  Stream<List<EMIPayment>> streamUpcomingThisMonth(String userId) {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, 1);
+    final end = DateTime(now.year, now.month + 1, 1);
+    return _db.onValueMap('users/$userId/emi_schedules').map((root) {
+      if (root == null) return <EMIPayment>[];
+      final items = <EMIPayment>[];
+      root.forEach((planId, planMap) {
+        if (planMap is Map) {
+          final scheduleMap = planMap.cast<String, dynamic>();
+          scheduleMap.forEach((paymentId, paymentData) {
+            if (paymentData is Map) {
+              final data = paymentData.cast<String, dynamic>();
+              final p = EMIPayment.fromRTDB(paymentId, data);
+              if (!p.paid && p.dueDate.isAfter(start) && p.dueDate.isBefore(end)) {
+                items.add(p);
+              }
+            }
+          });
+        }
+      });
+      items.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+      return items;
+    });
+  }
 }
 
 final emiRepositoryProvider = Provider<EMIRepository>((ref) => EMIRepository(ref.watch(realtimeDbServiceProvider)));
@@ -72,6 +98,15 @@ final emiScheduleProvider = StreamProvider.family<List<EMIPayment>, String>((ref
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(<EMIPayment>[]);
   final s = ref.watch(emiRepositoryProvider).streamSchedule(user.uid, planId);
+  return s.timeout(const Duration(seconds: 5), onTimeout: (sink) {
+    sink.add(<EMIPayment>[]);
+  }).handleError((_, __) {});
+});
+
+final emiUpcomingProvider = StreamProvider<List<EMIPayment>>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return Stream.value(<EMIPayment>[]);
+  final s = ref.watch(emiRepositoryProvider).streamUpcomingThisMonth(user.uid);
   return s.timeout(const Duration(seconds: 5), onTimeout: (sink) {
     sink.add(<EMIPayment>[]);
   }).handleError((_, __) {});
