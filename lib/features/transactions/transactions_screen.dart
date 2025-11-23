@@ -245,9 +245,88 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   child: ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemBuilder: (ctx, i) {
-                      final e = filtered[i];
-                      final isIncome = e.amount > 0;
-                      return Container(
+                    final e = filtered[i];
+                    final isIncome = e.amount > 0;
+                    return Dismissible(
+                      key: ValueKey('tx_${e.id}'),
+                      direction: DismissDirection.horizontal,
+                      background: Container(
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(children: const [Icon(Icons.edit, color: Colors.green), SizedBox(width: 8), Text('Edit')]),
+                      ),
+                      secondaryBackground: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(mainAxisAlignment: MainAxisAlignment.end, children: const [Text('Delete'), SizedBox(width: 8), Icon(Icons.delete, color: Colors.red)]),
+                      ),
+                      confirmDismiss: (dir) async {
+                        if (dir == DismissDirection.startToEnd) {
+                          await _openEditForm(context, e.id, e.title, e.amount, e.categoryId, e.date);
+                          return false;
+                        }
+                        final messenger = ScaffoldMessenger.of(context);
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (dCtx) => AlertDialog(
+                            title: const Text('Delete transaction'),
+                            content: const Text('Are you sure you want to delete this transaction?'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.of(dCtx).pop(false), child: const Text('Cancel')),
+                              FilledButton(onPressed: () => Navigator.of(dCtx).pop(true), child: const Text('Delete')),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) {
+                          try {
+                            final payload = {
+                              'title': e.title,
+                              'amount': e.amount,
+                              'categoryId': e.categoryId,
+                              'date': e.date,
+                            };
+                            final user = ref.read(currentUserProvider);
+                            if (user == null) return false;
+                            await ref.read(transactionRepositoryProvider).deleteForUser(user.uid, e.id);
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: const Text('Deleted'),
+                                action: SnackBarAction(
+                                  label: 'Undo',
+                                  onPressed: () async {
+                                    final user = ref.read(currentUserProvider);
+                                    if (user == null) return;
+                                    try {
+                                      await ref.read(transactionRepositoryProvider).create(
+                                            userId: user.uid,
+                                            title: payload['title'] as String,
+                                            amount: payload['amount'] as double,
+                                            categoryId: payload['categoryId'] as String?,
+                                            date: payload['date'] as DateTime,
+                                            notes: null,
+                                          );
+                                    } catch (_) {}
+                                  },
+                                ),
+                              ),
+                            );
+                            return true;
+                          } catch (err) {
+                            messenger.showSnackBar(SnackBar(content: Text('Failed: $err')));
+                            return false;
+                          }
+                        }
+                        return false;
+                      },
+                      child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.surface,
@@ -309,115 +388,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Tooltip(
-                              message: 'Edit',
-                              child: IconButton(
-                                icon: const Icon(Icons.edit_outlined),
-                                onPressed: () => _openEditForm(
-                                  context,
-                                  e.id,
-                                  e.title,
-                                  e.amount,
-                                  e.categoryId,
-                                  e.date,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Tooltip(
-                              message: 'Delete',
-                              child: IconButton(
-                                icon: const Icon(Icons.delete_outline),
-                                onPressed: () async {
-                                  final messenger = ScaffoldMessenger.of(
-                                    context,
-                                  );
-                                  final confirm = await showDialog<bool>(
-                                    context: context,
-                                    builder: (dCtx) => AlertDialog(
-                                      title: const Text('Delete transaction'),
-                                      content: const Text(
-                                        'Are you sure you want to delete this transaction?',
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.of(dCtx).pop(false),
-                                          child: const Text('Cancel'),
-                                        ),
-                                        FilledButton(
-                                          onPressed: () =>
-                                              Navigator.of(dCtx).pop(true),
-                                          child: const Text('Delete'),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                  if (confirm == true) {
-                                    try {
-                                      final payload = {
-                                        'title': e.title,
-                                        'amount': e.amount,
-                                        'categoryId': e.categoryId,
-                                        'date': e.date,
-                                      };
-                                      final user = ref.read(
-                                        currentUserProvider,
-                                      );
-                                      if (user == null) return;
-                                      await ref
-                                          .read(transactionRepositoryProvider)
-                                          .deleteForUser(user.uid, e.id);
-                                      messenger.showSnackBar(
-                                        SnackBar(
-                                          content: const Text('Deleted'),
-                                          action: SnackBarAction(
-                                            label: 'Undo',
-                                            onPressed: () async {
-                                              final user = ref.read(
-                                                currentUserProvider,
-                                              );
-                                              if (user == null) return;
-                                              try {
-                                                await ref
-                                                    .read(
-                                                      transactionRepositoryProvider,
-                                                    )
-                                                    .create(
-                                                      userId: user.uid,
-                                                      title:
-                                                          payload['title']
-                                                              as String,
-                                                      amount:
-                                                          payload['amount']
-                                                              as double,
-                                                      categoryId:
-                                                          payload['categoryId']
-                                                              as String?,
-                                                      date:
-                                                          payload['date']
-                                                              as DateTime,
-                                                      notes: null,
-                                                    );
-                                              } catch (_) {}
-                                            },
-                                          ),
-                                        ),
-                                      );
-                                    } catch (err) {
-                                      messenger.showSnackBar(
-                                        SnackBar(content: Text('Failed: $err')),
-                                      );
-                                    }
-                                  }
-                                },
-                              ),
-                            ),
                           ],
                         ),
-                      );
-                    },
+                      ),
+                    );
+                  },
                     separatorBuilder: (sepCtx, i) => const SizedBox(height: 12),
                     itemCount: filtered.length,
                   ),
