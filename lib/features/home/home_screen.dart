@@ -365,16 +365,30 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(width: 12),
                   Text('Upcoming EMI', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                 ]),
-                TextButton(onPressed: () => GoRouter.of(context).go('/emi'), child: const Text('View EMI Details')),
+                FilledButton.tonal(
+                  onPressed: () => GoRouter.of(context).go('/emi'),
+                  style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                  child: const Text('View Details'),
+                ),
               ],
             ),
+            const SizedBox(height: 8),
+            Container(height: 1, color: theme.colorScheme.onSurface.withValues(alpha: 0.06)),
             const SizedBox(height: 12),
             if (items.isEmpty)
               Row(children: [
-                const Icon(Icons.credit_card, size: 20),
-                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.08), shape: BoxShape.circle),
+                  child: const Icon(Icons.credit_card, size: 18),
+                ),
+                const SizedBox(width: 12),
                 Expanded(child: Text('No upcoming EMI this month', style: theme.textTheme.bodyMedium)),
-                TextButton(onPressed: () => GoRouter.of(context).go('/emi/new'), child: const Text('Set EMI Reminder')),
+                FilledButton.tonal(
+                  onPressed: () => GoRouter.of(context).go('/emi/new'),
+                  style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                  child: const Text('Set Reminder'),
+                ),
               ])
             else ...[
               for (var i = 0; i < items.take(3).length; i++) ...[
@@ -394,7 +408,7 @@ class HomeScreen extends ConsumerWidget {
                         Text(formatAmount(items[i].installment, currency), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                       ]),
                     ]),
-                    FilledButton(
+                    FilledButton.tonal(
                       onPressed: () async {
                         final user = ref.read(currentUserProvider);
                         if (user == null) return;
@@ -413,7 +427,8 @@ class HomeScreen extends ConsumerWidget {
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
                         }
                       },
-                      child: const Text('Mark paid'),
+                      style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                      child: const Text('Pay'),
                     )
                   ]),
                 ),
