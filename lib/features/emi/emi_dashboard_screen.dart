@@ -87,16 +87,18 @@ class _PlanCard extends ConsumerWidget {
           final nextLabel = days >= 0 ? 'in $days days' : 'overdue by ${days.abs()} days';
           final estCompletion = items.isNotEmpty ? items.last.dueDate : plan.startDate;
           return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              const Icon(Icons.calendar_today, size: 18),
-              const SizedBox(width: 8),
-              Text('Next: ${nextDue.dueDate.toLocal()}'.split(' ').first, style: Theme.of(context).textTheme.bodyMedium),
-              const SizedBox(width: 8),
-              Text(nextLabel, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.orange)),
-            ]),
-            const SizedBox(height: 8),
-            Container(height: 1, color: Colors.white.withValues(alpha: 0.06)),
-            const SizedBox(height: 8),
+            (pending > 0)
+                ? Row(children: [
+                    const Icon(Icons.calendar_today, size: 18),
+                    const SizedBox(width: 8),
+                    Text('Next: ${nextDue.dueDate.toLocal()}'.split(' ').first, style: Theme.of(context).textTheme.bodyMedium),
+                    const SizedBox(width: 8),
+                    Text(nextLabel, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.orange)),
+                  ])
+                : const SizedBox.shrink(),
+            if (pending > 0) const SizedBox(height: 8),
+            if (pending > 0) Container(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+            if (pending > 0) const SizedBox(height: 8),
             Row(children: [
               Text('Remaining: $pending EMIs', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
               const Spacer(),

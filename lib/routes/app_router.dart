@@ -45,7 +45,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             body: navigationShell,
             bottomNavigationBar: NavigationBar(
               selectedIndex: navigationShell.currentIndex,
-              onDestinationSelected: navigationShell.goBranch,
+              onDestinationSelected: (index) {
+                if (index == 4) {
+                  navigationShell.goBranch(index, initialLocation: true);
+                } else {
+                  navigationShell.goBranch(index);
+                }
+              },
               destinations: const [
                 NavigationDestination(
                   icon: Icon(Icons.home_outlined),
