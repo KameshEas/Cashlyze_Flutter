@@ -77,9 +77,18 @@ class HomeScreen extends ConsumerWidget {
         boxShadow: [BoxShadow(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10))],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Total Balance', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.8))),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Total Balance', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+            Text('This Month', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.8)))
+          ],
+        ),
         const SizedBox(height: 8),
-        Text(formatAmount(kpis.net, currency), style: Theme.of(context).textTheme.displaySmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+        Text(
+          formatAmount(kpis.net, currency),
+          style: Theme.of(context).textTheme.displayMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
+        ),
         const SizedBox(height: 24),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           _buildBalanceDetail(context, 'Income', formatAmount(kpis.income, currency), Icons.arrow_downward, Colors.greenAccent),
@@ -94,8 +103,8 @@ class HomeScreen extends ConsumerWidget {
       Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle), child: Icon(icon, color: color, size: 20)),
       const SizedBox(width: 12),
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.8))),
-        Text(amount, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+        Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.6))),
+        Text(amount, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.9))),
       ]),
     ]);
   }
