@@ -439,26 +439,22 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                   );
                 }
                 return Column(
-                  children: anomalies
-                      .take(5)
-                      .map(
-                        (t) => ListTile(
-                          leading: Icon(
-                            Icons.warning_amber_outlined,
-                            color: theme.colorScheme.error,
-                          ),
-                          title: Text(t.title),
-                          subtitle: Text(
-                            '${t.categoryId ?? 'Uncategorized'} • ${t.date.toLocal()}'
-                                .split('.')
-                                .first,
-                          ),
-                          trailing: Text(
-                            formatAmount(t.amount, currency),
-                          ),
-                        ),
-                      )
-                      .toList(),
+                  children: anomalies.take(5).map((t) {
+                    final isIncome = t.amount >= 0;
+                    return ListTile(
+                      leading: Icon(Icons.warning_amber_outlined, color: theme.colorScheme.error),
+                      title: Text(t.title),
+                      subtitle: Row(children: [
+                        Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)), child: Text(t.categoryId ?? 'Uncategorized', style: theme.textTheme.bodySmall)),
+                        const SizedBox(width: 8),
+                        Text('${t.date.toLocal()}'.split('.').first, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.7))),
+                      ]),
+                      trailing: Text(
+                        formatAmount(t.amount, currency),
+                        style: theme.textTheme.bodyMedium?.copyWith(color: isIncome ? Colors.green : Colors.red, fontWeight: FontWeight.w600),
+                      ),
+                    );
+                  }).toList(),
                 );
               },
             ),

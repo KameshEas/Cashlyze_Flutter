@@ -245,155 +245,187 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   child: ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemBuilder: (ctx, i) {
-                    final e = filtered[i];
-                    final isIncome = e.amount > 0;
-                    return Dismissible(
-                      key: ValueKey('tx_${e.id}'),
-                      direction: DismissDirection.horizontal,
-                      background: Container(
-                        alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(children: const [Icon(Icons.edit, color: Colors.green), SizedBox(width: 8), Text('Edit')]),
-                      ),
-                      secondaryBackground: Container(
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(mainAxisAlignment: MainAxisAlignment.end, children: const [Text('Delete'), SizedBox(width: 8), Icon(Icons.delete, color: Colors.red)]),
-                      ),
-                      confirmDismiss: (dir) async {
-                        if (dir == DismissDirection.startToEnd) {
-                          await _openEditForm(context, e.id, e.title, e.amount, e.categoryId, e.date);
-                          return false;
-                        }
-                        final messenger = ScaffoldMessenger.of(context);
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (dCtx) => AlertDialog(
-                            title: const Text('Delete transaction'),
-                            content: const Text('Are you sure you want to delete this transaction?'),
-                            actions: [
-                              TextButton(onPressed: () => Navigator.of(dCtx).pop(false), child: const Text('Cancel')),
-                              FilledButton(onPressed: () => Navigator.of(dCtx).pop(true), child: const Text('Delete')),
+                      final e = filtered[i];
+                      final isIncome = e.amount > 0;
+                      return Dismissible(
+                        key: ValueKey('tx_${e.id}'),
+                        direction: DismissDirection.horizontal,
+                        background: Container(
+                          alignment: Alignment.centerLeft,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            children: const [
+                              Icon(Icons.edit, color: Colors.green),
+                              SizedBox(width: 8),
+                              Text('Edit'),
                             ],
                           ),
-                        );
-                        if (confirm == true) {
-                          try {
-                            final payload = {
-                              'title': e.title,
-                              'amount': e.amount,
-                              'categoryId': e.categoryId,
-                              'date': e.date,
-                            };
-                            final user = ref.read(currentUserProvider);
-                            if (user == null) return false;
-                            await ref.read(transactionRepositoryProvider).deleteForUser(user.uid, e.id);
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: const Text('Deleted'),
-                                action: SnackBarAction(
-                                  label: 'Undo',
-                                  onPressed: () async {
-                                    final user = ref.read(currentUserProvider);
-                                    if (user == null) return;
-                                    try {
-                                      await ref.read(transactionRepositoryProvider).create(
-                                            userId: user.uid,
-                                            title: payload['title'] as String,
-                                            amount: payload['amount'] as double,
-                                            categoryId: payload['categoryId'] as String?,
-                                            date: payload['date'] as DateTime,
-                                            notes: null,
-                                          );
-                                    } catch (_) {}
-                                  },
-                                ),
-                              ),
-                            );
-                            return true;
-                          } catch (err) {
-                            messenger.showSnackBar(SnackBar(content: Text('Failed: $err')));
-                            return false;
-                          }
-                        }
-                        return false;
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.05,
-                            ),
+                        ),
+                        secondaryBackground: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: const [
+                              Text('Delete'),
+                              SizedBox(width: 8),
+                              Icon(Icons.delete, color: Colors.red),
+                            ],
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: isIncome
-                                    ? theme.colorScheme.secondary.withValues(
-                                        alpha: 0.1,
-                                      )
-                                    : theme.colorScheme.error.withValues(
-                                        alpha: 0.1,
-                                      ),
-                                shape: BoxShape.circle,
+                        confirmDismiss: (dir) async {
+                          if (dir == DismissDirection.startToEnd) {
+                            await _openEditForm(
+                              context,
+                              e.id,
+                              e.title,
+                              e.amount,
+                              e.categoryId,
+                              e.date,
+                            );
+                            return false;
+                          }
+                          final messenger = ScaffoldMessenger.of(context);
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (dCtx) => AlertDialog(
+                              title: const Text('Delete transaction'),
+                              content: const Text(
+                                'Are you sure you want to delete this transaction?',
                               ),
-                              child: Icon(
-                                isIncome
-                                    ? Icons.arrow_downward
-                                    : Icons.arrow_upward,
-                                color: isIncome
-                                    ? theme.colorScheme.secondary
-                                    : theme.colorScheme.error,
-                                size: 20,
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(dCtx).pop(false),
+                                  child: const Text('Cancel'),
+                                ),
+                                FilledButton(
+                                  onPressed: () => Navigator.of(dCtx).pop(true),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm == true) {
+                            try {
+                              final payload = {
+                                'title': e.title,
+                                'amount': e.amount,
+                                'categoryId': e.categoryId,
+                                'date': e.date,
+                              };
+                              final user = ref.read(currentUserProvider);
+                              if (user == null) return false;
+                              await ref
+                                  .read(transactionRepositoryProvider)
+                                  .deleteForUser(user.uid, e.id);
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: const Text('Deleted'),
+                                  action: SnackBarAction(
+                                    label: 'Undo',
+                                    onPressed: () async {
+                                      final user = ref.read(
+                                        currentUserProvider,
+                                      );
+                                      if (user == null) return;
+                                      try {
+                                        await ref
+                                            .read(transactionRepositoryProvider)
+                                            .create(
+                                              userId: user.uid,
+                                              title: payload['title'] as String,
+                                              amount:
+                                                  payload['amount'] as double,
+                                              categoryId:
+                                                  payload['categoryId']
+                                                      as String?,
+                                              date: payload['date'] as DateTime,
+                                              notes: null,
+                                            );
+                                      } catch (_) {}
+                                    },
+                                  ),
+                                ),
+                              );
+                              return true;
+                            } catch (err) {
+                              messenger.showSnackBar(
+                                SnackBar(content: Text('Failed: $err')),
+                              );
+                              return false;
+                            }
+                          }
+                          return false;
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.05,
                               ),
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    e.title,
-                                    style: theme.textTheme.bodyLarge?.copyWith(
-                                      fontWeight: FontWeight.w600,
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  isIncome ? Icons.arrow_downward : Icons.arrow_upward,
+                                  color: isIncome ? Colors.green : Colors.red,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      e.title,
+                                      style: theme.textTheme.bodyLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                     ),
-                                  ),
-                                  Text(
-                                    '${e.categoryId ?? 'Uncategorized'} • ${formatDate(e.date, datePattern)}',
-                                    style: theme.textTheme.bodySmall,
-                                  ),
-                                ],
+                                    const SizedBox(height: 6),
+                                    Row(children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
+                                        child: Text(e.categoryId ?? 'Uncategorized', style: theme.textTheme.bodySmall),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(formatDate(e.date, datePattern), style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.7))),
+                                    ]),
+                                  ],
+                                ),
                               ),
-                            ),
-                            Text(
-                              formatAmount(e.amount, currency),
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: isIncome
-                                    ? theme.colorScheme.secondary
-                                    : theme.colorScheme.error,
-                                fontWeight: FontWeight.bold,
+                              Text(
+                                formatAmount(e.amount, currency),
+                                style: theme.textTheme.bodyLarge?.copyWith(color: isIncome ? Colors.green : Colors.red, fontWeight: FontWeight.bold),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                    separatorBuilder: (sepCtx, i) => const SizedBox(height: 12),
+                      );
+                    },
+                    separatorBuilder: (sepCtx, i) => const SizedBox(height: 16),
                     itemCount: filtered.length,
                   ),
                 );

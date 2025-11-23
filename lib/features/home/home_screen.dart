@@ -160,7 +160,7 @@ class HomeScreen extends ConsumerWidget {
                 focusColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                 hoverColor: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.08),
                 child: Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
@@ -168,9 +168,19 @@ class HomeScreen extends ConsumerWidget {
                       color: Colors.white.withValues(alpha: 0.05),
                     ),
                   ),
-                  child: Icon(
-                    action['icon'] as IconData,
-                    color: Theme.of(context).colorScheme.secondary,
+                  child: IconTheme(
+                    data: const IconThemeData(size: 20),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        action['icon'] as IconData,
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -197,21 +207,30 @@ class HomeScreen extends ConsumerWidget {
         final list = items.take(3).toList();
         return Column(children: [
           for (var i = 0; i < list.length; i++) ...[
-            _buildTransactionItem(context, list[i].title, list[i].categoryId ?? 'Uncategorized', formatAmount(list[i].amount, currency), list[i].amount < 0 ? Colors.white : Theme.of(context).colorScheme.secondary),
-            if (i < list.length - 1) const SizedBox(height: 12),
+            _buildTransactionItem(context, list[i].title, list[i].categoryId ?? 'Uncategorized', formatAmount(list[i].amount, currency), list[i].amount >= 0),
+            if (i < list.length - 1) const SizedBox(height: 16),
           ]
         ]);
       },
     );
   }
 
-  Widget _buildTransactionItem(BuildContext context, String title, String category, String amount, Color amountColor) {
-    return Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.05))), child: Row(children: [
-      Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1), shape: BoxShape.circle), child: Icon(Icons.shopping_bag_outlined, color: Theme.of(context).colorScheme.primary, size: 20)),
-      const SizedBox(width: 16),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600)), Text(category, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey))])),
-      Text(amount, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: amountColor, fontWeight: FontWeight.bold)),
-    ]));
+  Widget _buildTransactionItem(BuildContext context, String title, String category, String amount, bool isIncome) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: theme.colorScheme.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.05))),
+      child: Row(children: [
+        Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.06), shape: BoxShape.circle), child: Icon(Icons.shopping_bag_outlined, color: theme.colorScheme.primary, size: 20)),
+        const SizedBox(width: 16),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)), child: Text(category, style: theme.textTheme.bodySmall)),
+        ])),
+        Text(amount, style: theme.textTheme.bodyLarge?.copyWith(color: isIncome ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
+      ]),
+    );
   }
 
   Future<void> _openQuickAdd(BuildContext context, WidgetRef ref, {required String type, required String category}) async {
@@ -308,48 +327,94 @@ class HomeScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     return upcomingAsync.when(
       loading: () => const SkeletonListTile(),
-      error: (e, _) => Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.red.withValues(alpha: 0.3))), child: Row(children: [const Icon(Icons.error_outline, color: Colors.red), const SizedBox(width: 8), Expanded(child: Text('Failed to load: $e'))])),
+      error: (e, _) => Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.red.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+        ),
+        child: Row(children: [const Icon(Icons.error_outline, color: Colors.red), const SizedBox(width: 8), Expanded(child: Text('Failed to load: $e'))]),
+      ),
       data: (items) {
-        if (items.isEmpty) {
-          return Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: theme.colorScheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.05))), child: Row(children: [const Icon(Icons.payments_outlined), const SizedBox(width: 12), Expanded(child: Text('No upcoming EMI this month', style: theme.textTheme.bodyMedium))]));
-        }
-        final list = items.take(3).toList();
-        return Column(children: [
-          for (var i = 0; i < list.length; i++) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: theme.colorScheme.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.05))),
-              child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Due: ${list[i].dueDate.toLocal()}'.split(' ').first, style: theme.textTheme.bodyMedium),
-                  Text(formatAmount(list[i].installment, currency), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.06)),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.08), shape: BoxShape.circle),
+                    child: const Icon(Icons.calendar_today, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Text('Upcoming EMI', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                 ]),
-                FilledButton(
-                  onPressed: () async {
-                    final user = ref.read(currentUserProvider);
-                    if (user == null) return;
-                    try {
-                      await ref.read(emiRepositoryProvider).markPaid(user.uid, list[i].planId, list[i].id);
-                      await ref.read(transactionRepositoryProvider).create(
-                        userId: user.uid,
-                        title: 'EMI installment',
-                        amount: -list[i].installment.abs(),
-                        categoryId: 'EMI',
-                        date: list[i].dueDate,
-                        notes: 'EMI payment recorded from Home',
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('EMI marked paid and transaction added')));
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
-                    }
-                  },
-                  child: const Text('Mark paid'),
-                )
-              ]),
+                TextButton(onPressed: () => GoRouter.of(context).go('/emi'), child: const Text('View EMI Details')),
+              ],
             ),
-            if (i < list.length - 1) const SizedBox(height: 12),
-          ]
-        ]);
+            const SizedBox(height: 12),
+            if (items.isEmpty)
+              Row(children: [
+                const Icon(Icons.credit_card, size: 20),
+                const SizedBox(width: 8),
+                Expanded(child: Text('No upcoming EMI this month', style: theme.textTheme.bodyMedium)),
+                TextButton(onPressed: () => GoRouter.of(context).go('/emi/new'), child: const Text('Set EMI Reminder')),
+              ])
+            else ...[
+              for (var i = 0; i < items.take(3).length; i++) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.05)),
+                  ),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                    Row(children: [
+                      const Icon(Icons.credit_card, size: 18),
+                      const SizedBox(width: 8),
+                      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('Due: ${items[i].dueDate.toLocal()}'.split(' ').first, style: theme.textTheme.bodyMedium),
+                        Text(formatAmount(items[i].installment, currency), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                      ]),
+                    ]),
+                    FilledButton(
+                      onPressed: () async {
+                        final user = ref.read(currentUserProvider);
+                        if (user == null) return;
+                        try {
+                          await ref.read(emiRepositoryProvider).markPaid(user.uid, items[i].planId, items[i].id);
+                          await ref.read(transactionRepositoryProvider).create(
+                            userId: user.uid,
+                            title: 'EMI installment',
+                            amount: -items[i].installment.abs(),
+                            categoryId: 'EMI',
+                            date: items[i].dueDate,
+                            notes: 'EMI payment recorded from Home',
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('EMI marked paid and transaction added')));
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+                        }
+                      },
+                      child: const Text('Mark paid'),
+                    )
+                  ]),
+                ),
+                if (i < items.take(3).length - 1) const SizedBox(height: 12),
+              ],
+            ],
+          ]),
+        );
       },
     );
   }
