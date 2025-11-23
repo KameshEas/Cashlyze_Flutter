@@ -19,9 +19,11 @@ class TransactionsScreen extends ConsumerStatefulWidget {
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   String _filter = 'All';
   String _query = '';
-  DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
-
-  
+  DateTime _selectedMonth = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    1,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -63,36 +65,51 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 const SizedBox(width: 12),
                 const SizedBox(width: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
                   ),
-                  child: Row(children: [
-                    IconButton(
-                      tooltip: 'Previous month',
-                      icon: const Icon(Icons.chevron_left),
-                      onPressed: () {
-                        setState(() {
-                          _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1, 1);
-                        });
-                      },
-                    ),
-                    Text(
-                      '${_selectedMonth.year}-${_selectedMonth.month.toString().padLeft(2, '0')}',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    IconButton(
-                      tooltip: 'Next month',
-                      icon: const Icon(Icons.chevron_right),
-                      onPressed: () {
-                        setState(() {
-                          _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1);
-                        });
-                      },
-                    ),
-                  ]),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        tooltip: 'Previous month',
+                        icon: const Icon(Icons.chevron_left),
+                        onPressed: () {
+                          setState(() {
+                            _selectedMonth = DateTime(
+                              _selectedMonth.year,
+                              _selectedMonth.month - 1,
+                              1,
+                            );
+                          });
+                        },
+                      ),
+                      Text(
+                        '${_selectedMonth.year}-${_selectedMonth.month.toString().padLeft(2, '0')}',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      IconButton(
+                        tooltip: 'Next month',
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed: () {
+                          setState(() {
+                            _selectedMonth = DateTime(
+                              _selectedMonth.year,
+                              _selectedMonth.month + 1,
+                              1,
+                            );
+                          });
+                        },
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(width: 12),
                 DropdownButtonHideUnderline(
@@ -131,34 +148,53 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           const SizedBox(height: 4),
           Expanded(
             child: txsAsync.when(
-              loading: () => ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemBuilder: (listCtx, i) => const SkeletonListTile(),
-                separatorBuilder: (sepCtx, i) => const SizedBox(height: 12),
-                itemCount: 6,
+              loading: () => RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(userTransactionsProvider);
+                  await Future.delayed(const Duration(milliseconds: 150));
+                },
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemBuilder: (listCtx, i) => const SkeletonListTile(),
+                  separatorBuilder: (sepCtx, i) => const SizedBox(height: 12),
+                  itemCount: 6,
+                ),
               ),
               error: (e, _) => Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.08),
+                    color: theme.colorScheme.error.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: theme.colorScheme.error.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Row(
                     children: [
                       const Icon(Icons.error_outline, color: Colors.red),
                       const SizedBox(width: 8),
                       Expanded(child: Text('Failed to load: $e')),
-                      TextButton(onPressed: () => ref.refresh(userTransactionsProvider), child: const Text('Retry')),
+                      TextButton(
+                        onPressed: () => ref.refresh(userTransactionsProvider),
+                        child: const Text('Retry'),
+                      ),
                     ],
                   ),
                 ),
               ),
               data: (items) {
-                final monthStart = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
-                final monthEnd = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1);
+                final monthStart = DateTime(
+                  _selectedMonth.year,
+                  _selectedMonth.month,
+                  1,
+                );
+                final monthEnd = DateTime(
+                  _selectedMonth.year,
+                  _selectedMonth.month + 1,
+                  1,
+                );
                 final filtered = items.where((e) {
                   final matchesQuery =
                       _query.isEmpty ||
@@ -167,7 +203,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       _filter == 'All' ||
                       (_filter == 'Income' && e.amount > 0) ||
                       (_filter == 'Expense' && e.amount < 0);
-                  final inMonth = e.date.isAfter(monthStart.subtract(const Duration(seconds: 1))) && e.date.isBefore(monthEnd);
+                  final inMonth =
+                      e.date.isAfter(
+                        monthStart.subtract(const Duration(seconds: 1)),
+                      ) &&
+                      e.date.isBefore(monthEnd);
                   return matchesQuery && matchesFilter && inMonth;
                 }).toList();
                 if (filtered.isEmpty) {
@@ -175,10 +215,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.receipt_long,
-                          size: 72,
-                          color: theme.colorScheme.primary,
+                        Semantics(
+                          label: 'No transactions illustration',
+                          child: Icon(
+                            Icons.receipt_long,
+                            size: 72,
+                            color: theme.colorScheme.primary,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Text(
@@ -194,164 +237,190 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     ),
                   );
                 }
-                return ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemBuilder: (ctx, i) {
-                    final e = filtered[i];
-                    final isIncome = e.amount > 0;
-                    return Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.05),
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(userTransactionsProvider);
+                    await Future.delayed(const Duration(milliseconds: 150));
+                  },
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemBuilder: (ctx, i) {
+                      final e = filtered[i];
+                      final isIncome = e.amount > 0;
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.05,
+                            ),
+                          ),
                         ),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: isIncome
-                                  ? Colors.green.withValues(alpha: 0.1)
-                                  : Colors.red.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              isIncome
-                                  ? Icons.arrow_downward
-                                  : Icons.arrow_upward,
-                              color: isIncome
-                                  ? Colors.greenAccent
-                                  : Colors.redAccent,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  e.title,
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                Text(
-                                  '${e.categoryId ?? 'Uncategorized'} • ${formatDate(e.date, datePattern)}',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Text(
-                            formatAmount(e.amount, currency),
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: isIncome
-                                  ? Colors.greenAccent
-                                  : Colors.redAccent,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Tooltip(
-                            message: 'Edit',
-                            child: IconButton(
-                              icon: const Icon(Icons.edit_outlined),
-                              onPressed: () => _openEditForm(
-                                context,
-                                e.id,
-                                e.title,
-                                e.amount,
-                                e.categoryId,
-                                e.date,
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: isIncome
+                                    ? theme.colorScheme.secondary.withValues(
+                                        alpha: 0.1,
+                                      )
+                                    : theme.colorScheme.error.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                isIncome
+                                    ? Icons.arrow_downward
+                                    : Icons.arrow_upward,
+                                color: isIncome
+                                    ? theme.colorScheme.secondary
+                                    : theme.colorScheme.error,
+                                size: 20,
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          Tooltip(
-                            message: 'Delete',
-                            child: IconButton(
-                              icon: const Icon(Icons.delete_outline),
-                              onPressed: () async {
-                                final messenger = ScaffoldMessenger.of(context);
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (dCtx) => AlertDialog(
-                                    title: const Text('Delete transaction'),
-                                    content: const Text(
-                                      'Are you sure you want to delete this transaction?',
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    e.title,
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.w600,
                                     ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.of(dCtx).pop(false),
-                                        child: const Text('Cancel'),
-                                      ),
-                                      FilledButton(
-                                        onPressed: () =>
-                                            Navigator.of(dCtx).pop(true),
-                                        child: const Text('Delete'),
-                                      ),
-                                    ],
                                   ),
-                                );
-                                if (confirm == true) {
-                                  try {
-                                    final payload = {
-                                      'title': e.title,
-                                      'amount': e.amount,
-                                      'categoryId': e.categoryId,
-                                      'date': e.date,
-                                    };
-                                    final user = ref.read(currentUserProvider);
-                                    if (user == null) return;
-                                    await ref
-                                        .read(transactionRepositoryProvider)
-                                        .deleteForUser(user.uid, e.id);
-                                    messenger.showSnackBar(
-                                      SnackBar(
-                                        content: const Text('Deleted'),
-                                        action: SnackBarAction(
-                                          label: 'Undo',
-                                          onPressed: () async {
-                                            final user = ref.read(currentUserProvider);
-                                            if (user == null) return;
-                                            try {
-                                              await ref
-                                                  .read(transactionRepositoryProvider)
-                                                  .create(
-                                                    userId: user.uid,
-                                                    title: payload['title'] as String,
-                                                    amount: payload['amount'] as double,
-                                                    categoryId: payload['categoryId'] as String?,
-                                                    date: payload['date'] as DateTime,
-                                                    notes: null,
-                                                  );
-                                            } catch (_) {}
-                                          },
-                                        ),
-                                      ),
-                                    );
-                                  } catch (err) {
-                                    messenger.showSnackBar(
-                                      SnackBar(content: Text('Failed: $err')),
-                                    );
-                                  }
-                                }
-                              },
+                                  Text(
+                                    '${e.categoryId ?? 'Uncategorized'} • ${formatDate(e.date, datePattern)}',
+                                    style: theme.textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  separatorBuilder: (sepCtx, i) => const SizedBox(height: 12),
-                  itemCount: filtered.length,
+                            Text(
+                              formatAmount(e.amount, currency),
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                color: isIncome
+                                    ? theme.colorScheme.secondary
+                                    : theme.colorScheme.error,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Tooltip(
+                              message: 'Edit',
+                              child: IconButton(
+                                icon: const Icon(Icons.edit_outlined),
+                                onPressed: () => _openEditForm(
+                                  context,
+                                  e.id,
+                                  e.title,
+                                  e.amount,
+                                  e.categoryId,
+                                  e.date,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Tooltip(
+                              message: 'Delete',
+                              child: IconButton(
+                                icon: const Icon(Icons.delete_outline),
+                                onPressed: () async {
+                                  final messenger = ScaffoldMessenger.of(
+                                    context,
+                                  );
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (dCtx) => AlertDialog(
+                                      title: const Text('Delete transaction'),
+                                      content: const Text(
+                                        'Are you sure you want to delete this transaction?',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.of(dCtx).pop(false),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        FilledButton(
+                                          onPressed: () =>
+                                              Navigator.of(dCtx).pop(true),
+                                          child: const Text('Delete'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirm == true) {
+                                    try {
+                                      final payload = {
+                                        'title': e.title,
+                                        'amount': e.amount,
+                                        'categoryId': e.categoryId,
+                                        'date': e.date,
+                                      };
+                                      final user = ref.read(
+                                        currentUserProvider,
+                                      );
+                                      if (user == null) return;
+                                      await ref
+                                          .read(transactionRepositoryProvider)
+                                          .deleteForUser(user.uid, e.id);
+                                      messenger.showSnackBar(
+                                        SnackBar(
+                                          content: const Text('Deleted'),
+                                          action: SnackBarAction(
+                                            label: 'Undo',
+                                            onPressed: () async {
+                                              final user = ref.read(
+                                                currentUserProvider,
+                                              );
+                                              if (user == null) return;
+                                              try {
+                                                await ref
+                                                    .read(
+                                                      transactionRepositoryProvider,
+                                                    )
+                                                    .create(
+                                                      userId: user.uid,
+                                                      title:
+                                                          payload['title']
+                                                              as String,
+                                                      amount:
+                                                          payload['amount']
+                                                              as double,
+                                                      categoryId:
+                                                          payload['categoryId']
+                                                              as String?,
+                                                      date:
+                                                          payload['date']
+                                                              as DateTime,
+                                                      notes: null,
+                                                    );
+                                              } catch (_) {}
+                                            },
+                                          ),
+                                        ),
+                                      );
+                                    } catch (err) {
+                                      messenger.showSnackBar(
+                                        SnackBar(content: Text('Failed: $err')),
+                                      );
+                                    }
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    separatorBuilder: (sepCtx, i) => const SizedBox(height: 12),
+                    itemCount: filtered.length,
+                  ),
                 );
               },
             ),
@@ -533,23 +602,31 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               context: context,
                               builder: (ctx) => AlertDialog(
                                 title: const Text('Budget Not Found'),
-                                content: Text('No budget exists for "${e.categoryName}" category. Would you like to create a budget for this category?'),
+                                content: Text(
+                                  'No budget exists for "${e.categoryName}" category. Would you like to create a budget for this category?',
+                                ),
                                 actions: [
                                   TextButton(
-                                    onPressed: () => Navigator.of(ctx).pop(false),
+                                    onPressed: () =>
+                                        Navigator.of(ctx).pop(false),
                                     child: const Text('Cancel'),
                                   ),
                                   FilledButton(
-                                    onPressed: () => Navigator.of(ctx).pop(true),
+                                    onPressed: () =>
+                                        Navigator.of(ctx).pop(true),
                                     child: const Text('Create Budget'),
                                   ),
                                 ],
                               ),
                             );
-                            
+
                             if (shouldCreateBudget == true && mounted) {
                               // Open budget creation dialog
-                              await _openCreateBudgetForCategory(context, e.categoryName, e.transactionData);
+                              await _openCreateBudgetForCategory(
+                                context,
+                                e.categoryName,
+                                e.transactionData,
+                              );
                             }
                           } else {
                             if (!mounted) return;
@@ -570,7 +647,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       },
     );
     if (result != true) {
-      final hasData = titleController.text.trim().isNotEmpty ||
+      final hasData =
+          titleController.text.trim().isNotEmpty ||
           amountController.text.trim().isNotEmpty;
       if (hasData) {
         final prefs = ref.read(sharedPrefsServiceProvider);
@@ -582,8 +660,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           'date': date.toIso8601String(),
         });
         if (mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('Draft saved')));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Draft saved')));
         }
       }
     } else {
@@ -765,20 +844,24 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               context: context,
                               builder: (ctx) => AlertDialog(
                                 title: const Text('Budget Not Found'),
-                                content: Text('No budget exists for "${e.categoryName}" category. Would you like to create a budget for this category?'),
+                                content: Text(
+                                  'No budget exists for "${e.categoryName}" category. Would you like to create a budget for this category?',
+                                ),
                                 actions: [
                                   TextButton(
-                                    onPressed: () => Navigator.of(ctx).pop(false),
+                                    onPressed: () =>
+                                        Navigator.of(ctx).pop(false),
                                     child: const Text('Cancel'),
                                   ),
                                   FilledButton(
-                                    onPressed: () => Navigator.of(ctx).pop(true),
+                                    onPressed: () =>
+                                        Navigator.of(ctx).pop(true),
                                     child: const Text('Create Budget'),
                                   ),
                                 ],
                               ),
                             );
-                            
+
                             if (shouldCreateBudget == true && mounted) {
                               // Create a simplified transaction data for edit case
                               final currentUser = ref.read(currentUserProvider);
@@ -786,13 +869,21 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               final editTransactionData = {
                                 'userId': currentUser.uid,
                                 'title': titleController.text.trim(),
-                                'amount': type == 'Income' ? amt.abs() : -amt.abs(),
-                                'categoryId': category == 'General' ? null : category,
+                                'amount': type == 'Income'
+                                    ? amt.abs()
+                                    : -amt.abs(),
+                                'categoryId': category == 'General'
+                                    ? null
+                                    : category,
                                 'date': pickedDate,
                                 'notes': null,
                                 'isIncome': type == 'Income',
                               };
-                              await _openCreateBudgetForCategory(context, e.categoryName, editTransactionData);
+                              await _openCreateBudgetForCategory(
+                                context,
+                                e.categoryName,
+                                editTransactionData,
+                              );
                             }
                           } else {
                             if (!mounted) return;
@@ -816,7 +907,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     amountController.dispose();
   }
 
-  Future<void> _openCreateBudgetForCategory(BuildContext context, String categoryName, Map<String, dynamic> transactionData) async {
+  Future<void> _openCreateBudgetForCategory(
+    BuildContext context,
+    String categoryName,
+    Map<String, dynamic> transactionData,
+  ) async {
     final theme = Theme.of(context);
     final allocatedController = TextEditingController();
     final pageMessenger = ScaffoldMessenger.of(context);
@@ -851,12 +946,16 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 const SizedBox(height: 12),
                 Text(
                   'Create Budget for "$categoryName"',
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Set a monthly budget amount for this category',
-                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.grey,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -884,7 +983,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           final user = ref.read(currentUserProvider);
                           if (user == null) return;
                           final repo = ref.read(budgetRepositoryProvider);
-                          final amount = double.tryParse(allocatedController.text) ?? 0;
+                          final amount =
+                              double.tryParse(allocatedController.text) ?? 0;
                           try {
                             // Create budget
                             await repo.create(
@@ -893,34 +993,50 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               allocated: amount,
                               period: BudgetPeriod.monthly,
                             );
-                            
+
                             nav.pop(true);
                             pageMessenger.showSnackBar(
-                              SnackBar(content: Text('Budget for "$categoryName" created successfully!')),
+                              SnackBar(
+                                content: Text(
+                                  'Budget for "$categoryName" created successfully!',
+                                ),
+                              ),
                             );
-                            
+
                             // Now save the original transaction
-                            final ingest = ref.read(transactionIngestServiceProvider);
+                            final ingest = ref.read(
+                              transactionIngestServiceProvider,
+                            );
                             await ingest.addManual(
                               userId: transactionData['userId'] as String,
                               title: transactionData['title'] as String,
-                              amount: (transactionData['amount'] as double).abs(),
+                              amount: (transactionData['amount'] as double)
+                                  .abs(),
                               isIncome: transactionData['isIncome'] as bool,
-                              categoryId: transactionData['categoryId'] as String?,
+                              categoryId:
+                                  transactionData['categoryId'] as String?,
                               date: transactionData['date'] as DateTime,
                               notes: transactionData['notes'] as String?,
                             );
-                            
+
                             if (mounted) {
-                              Navigator.of(context).pop(true); // Close the add transaction dialog
+                              Navigator.of(
+                                context,
+                              ).pop(true); // Close the add transaction dialog
                               pageMessenger.showSnackBar(
-                                const SnackBar(content: Text('Transaction saved successfully!')),
+                                const SnackBar(
+                                  content: Text(
+                                    'Transaction saved successfully!',
+                                  ),
+                                ),
                               );
                             }
                           } catch (e) {
                             nav.pop(false);
                             pageMessenger.showSnackBar(
-                              SnackBar(content: Text('Failed to create budget: $e')),
+                              SnackBar(
+                                content: Text('Failed to create budget: $e'),
+                              ),
                             );
                           }
                         },
@@ -935,8 +1051,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         );
       },
     );
-    
+
     allocatedController.dispose();
   }
-
 }

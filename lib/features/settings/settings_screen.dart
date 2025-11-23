@@ -33,10 +33,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          border: Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.05)),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [Icon(icon, size: 20), const SizedBox(width: 8), Text(title, style: theme.textTheme.titleMedium)]),
+          Row(children: [
+            Icon(icon, size: 20),
+            const SizedBox(width: 8),
+            Expanded(child: Text(title, style: theme.textTheme.titleMedium, overflow: TextOverflow.ellipsis))
+          ]),
           const SizedBox(height: 12),
           ...children
         ]),

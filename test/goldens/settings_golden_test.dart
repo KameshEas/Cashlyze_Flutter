@@ -1,0 +1,49 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:cashlyze/core/theme/app_theme.dart';
+import 'package:cashlyze/features/settings/settings_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cashlyze/core/providers/onboarding_provider.dart';
+import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+void main() {
+  testWidgets('Settings screen dark theme golden', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final router = GoRouter(routes: [GoRoute(path: '/', builder: (_, __) => const SettingsScreen())]);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
+      child: MaterialApp.router(theme: ThemeData(brightness: Brightness.dark, useMaterial3: true), routerConfig: router),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), matchesGoldenFile('goldens/settings_dark.png'));
+  });
+
+  testWidgets('Settings screen light theme golden', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final router = GoRouter(routes: [GoRoute(path: '/', builder: (_, __) => const SettingsScreen())]);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
+      child: MaterialApp.router(theme: ThemeData(brightness: Brightness.light, useMaterial3: true), routerConfig: router),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), matchesGoldenFile('goldens/settings_light.png'));
+  });
+
+  testWidgets('Settings screen 200% text scale golden', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final router = GoRouter(routes: [GoRoute(path: '/', builder: (_, __) => const SettingsScreen())]);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
+      child: MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
+        child: MaterialApp.router(theme: ThemeData(brightness: Brightness.dark, useMaterial3: true), routerConfig: router),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), matchesGoldenFile('goldens/settings_dark_200pct.png'));
+  });
+}

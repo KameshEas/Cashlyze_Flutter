@@ -93,13 +93,13 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
               ],
             ),
             const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-              ),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.05)),
+                ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -155,7 +155,18 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
             ),
             const SizedBox(height: 12),
             if (txsAsync.isLoading)
-              AnimatedBuilder(
+              (MediaQuery.of(context).disableAnimations
+                  ? Container(
+                      height: 220,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                        ),
+                      ),
+                    )
+                  : AnimatedBuilder(
                 animation: _shimmer,
                 builder: (ctx, _) => Container(
                   height: 220,
@@ -163,28 +174,29 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                     color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.05),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
                     ),
                   ),
                   padding: const EdgeInsets.all(12),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(
-                        alpha: 0.08 + 0.1 * _shimmer.value,
-                      ),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.08 + 0.1 * _shimmer.value),
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
-              )
+              ))
             else if (monthly.isEmpty)
               Center(
                 child: Column(
                   children: [
-                    Icon(
-                      Icons.trending_up,
-                      size: 72,
-                      color: theme.colorScheme.primary,
+                    Semantics(
+                      label: 'No trend data illustration',
+                      child: Icon(
+                        Icons.trending_up,
+                        size: 72,
+                        color: theme.colorScheme.primary,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text('No trend data', style: theme.textTheme.titleMedium),
@@ -202,7 +214,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                     color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.05),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
                     ),
                   ),
                   child: LineChart(
@@ -310,15 +322,13 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                     color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.05),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
                     ),
                   ),
                   padding: const EdgeInsets.all(12),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(
-                        alpha: 0.08 + 0.1 * _shimmer.value,
-                      ),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.08 + 0.1 * _shimmer.value),
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
@@ -328,10 +338,13 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
               Center(
                 child: Column(
                   children: [
-                    Icon(
-                      Icons.pie_chart_outline,
-                      size: 72,
-                      color: theme.colorScheme.primary,
+                    Semantics(
+                      label: 'No category data illustration',
+                      child: Icon(
+                        Icons.pie_chart_outline,
+                        size: 72,
+                        color: theme.colorScheme.primary,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -351,7 +364,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                     color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.05),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
                     ),
                   ),
                   child: PieChart(
@@ -359,13 +372,15 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                     sectionsSpace: 2,
                     centerSpaceRadius: 40,
                     sections: categories.entries.map((e) {
-                      final color = e.key == 'Food'
-                          ? Colors.tealAccent
-                          : e.key == 'Transport'
-                          ? Colors.orangeAccent
-                          : e.key == 'Entertainment'
-                          ? Colors.purpleAccent
-                          : Colors.blueAccent;
+                      final palette = [
+                        theme.colorScheme.secondary,
+                        theme.colorScheme.primary,
+                        theme.colorScheme.error,
+                        theme.colorScheme.secondaryContainer,
+                        theme.colorScheme.primaryContainer,
+                      ];
+                      final idx = e.key.hashCode % palette.length;
+                      final color = palette[idx];
                       return PieChartSectionData(
                         title: e.key,
                         value: e.value,
@@ -428,9 +443,9 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                       .take(5)
                       .map(
                         (t) => ListTile(
-                          leading: const Icon(
+                          leading: Icon(
                             Icons.warning_amber_outlined,
-                            color: Colors.orange,
+                            color: theme.colorScheme.error,
                           ),
                           title: Text(t.title),
                           subtitle: Text(

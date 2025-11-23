@@ -85,16 +85,28 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           // Using a container placeholder if Lottie fails or for preview
           SizedBox(
             height: 300,
-            child: Lottie.network(
-              animationUrl,
-              errorBuilder: (context, error, stackTrace) {
-              return Icon(
-                Icons.image_not_supported,
-                size: 100,
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
-              );
-            },
-          ),
+            child: MediaQuery.of(context).disableAnimations
+                ? Semantics(
+                    label: 'Onboarding illustration',
+                    child: Icon(
+                      Icons.image,
+                      size: 100,
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                    ),
+                  )
+                : Semantics(
+                    label: 'Onboarding animation',
+                    child: Lottie.network(
+                      animationUrl,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Icon(
+                          Icons.image_not_supported,
+                          size: 100,
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                        );
+                      },
+                    ),
+                  ),
           ),
           const SizedBox(height: 32),
           Text(
@@ -102,16 +114,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Colors.white,
             ),
           ),
           const SizedBox(height: 16),
           Text(
             description,
             textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: Colors.grey[400]),
+            style: Theme.of(context).textTheme.bodyLarge,
           ),
         ],
       ),
@@ -136,7 +145,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 decoration: BoxDecoration(
                   color: _currentPage == index
                       ? Theme.of(context).colorScheme.primary
-                      : Colors.grey[800],
+                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
