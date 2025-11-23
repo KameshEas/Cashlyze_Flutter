@@ -3,13 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/categorization_service.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:csv/csv.dart';
 import '../../core/services/transaction_ingest_service.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/utils/format.dart';
 import '../../core/providers/transaction_providers.dart';
-import '../../core/repositories/category_repository.dart';
 import '../../core/widgets/skeleton.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
@@ -22,6 +19,7 @@ class TransactionsScreen extends ConsumerStatefulWidget {
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   String _filter = 'All';
   String _query = '';
+  DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
 
   
 
@@ -63,27 +61,40 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Tooltip(
-                  message: 'Import options',
-                  child: PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'csv') {
-                        _importCsv(context);
-                      } else if (value == 'bank_demo') {
-                        _importBankDemo(context);
-                      }
-                    },
-                    itemBuilder: (ctx) => const [
-                      PopupMenuItem(value: 'csv', child: Text('Import CSV')),
-                      PopupMenuItem(
-                        value: 'bank_demo',
-                        child: Text('Import from bank (demo)'),
-                      ),
-                    ],
-                    icon: const Icon(Icons.upload_file),
+                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                   ),
+                  child: Row(children: [
+                    IconButton(
+                      tooltip: 'Previous month',
+                      icon: const Icon(Icons.chevron_left),
+                      onPressed: () {
+                        setState(() {
+                          _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1, 1);
+                        });
+                      },
+                    ),
+                    Text(
+                      '${_selectedMonth.year}-${_selectedMonth.month.toString().padLeft(2, '0')}',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    IconButton(
+                      tooltip: 'Next month',
+                      icon: const Icon(Icons.chevron_right),
+                      onPressed: () {
+                        setState(() {
+                          _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1);
+                        });
+                      },
+                    ),
+                  ]),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 DropdownButtonHideUnderline(
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -117,36 +128,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Consumer(builder: (chipCtx, chipRef, _) {
-              final catsAsync = chipRef.watch(userCategoriesProvider);
-              final selected = chipRef.watch(selectedCategoriesProvider);
-              return catsAsync.when(
-                loading: () => const SizedBox.shrink(),
-                error: (err, st) => const SizedBox.shrink(),
-                data: (list) => SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(children: [
-                    ChoiceChip(
-                      label: const Text('All'),
-                      selected: selected.isEmpty,
-                      onSelected: (_) => chipRef.read(selectedCategoriesProvider.notifier).clear(),
-                    ),
-                    const SizedBox(width: 8),
-                    ...list.map((c) => Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
-                          child: ChoiceChip(
-                            label: Text(c.name),
-                            selected: selected.contains(c.name),
-                            onSelected: (_) => chipRef.read(selectedCategoriesProvider.notifier).toggle(c.name),
-                          ),
-                        )),
-                  ]),
-                ),
-              );
-            }),
-          ),
+          const SizedBox(height: 4),
           Expanded(
             child: txsAsync.when(
               loading: () => ListView.separated(
@@ -175,6 +157,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 ),
               ),
               data: (items) {
+                final monthStart = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
+                final monthEnd = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1);
                 final filtered = items.where((e) {
                   final matchesQuery =
                       _query.isEmpty ||
@@ -183,7 +167,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       _filter == 'All' ||
                       (_filter == 'Income' && e.amount > 0) ||
                       (_filter == 'Expense' && e.amount < 0);
-                  return matchesQuery && matchesFilter;
+                  final inMonth = e.date.isAfter(monthStart.subtract(const Duration(seconds: 1))) && e.date.isBefore(monthEnd);
+                  return matchesQuery && matchesFilter && inMonth;
                 }).toList();
                 if (filtered.isEmpty) {
                   return Center(
@@ -768,101 +753,4 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     amountController.dispose();
   }
 
-  Future<void> _importCsv(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      final user = ref.read(currentUserProvider);
-      if (user == null) return;
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
-      );
-      if (result == null || result.files.isEmpty) return;
-      final file = result.files.single;
-      final bytes = file.bytes;
-      if (bytes == null) {
-        messenger.showSnackBar(
-          const SnackBar(content: Text('Failed to read CSV')),
-        );
-        return;
-      }
-      final content = String.fromCharCodes(bytes);
-      final rows = const CsvToListConverter(eol: '\n').convert(content);
-      if (rows.isEmpty || rows.first.length < 3) {
-        messenger.showSnackBar(
-          const SnackBar(content: Text('Invalid CSV format')),
-        );
-        return;
-      }
-      final header = rows.first
-          .map((e) => e.toString().toLowerCase().trim())
-          .toList();
-      final hTitle = header.indexOf('title');
-      final hAmount = header.indexOf('amount');
-      final hDate = header.indexOf('date');
-      final hCategory = header.indexOf('category');
-      if (hTitle == -1 || hAmount == -1 || hDate == -1) {
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('CSV must contain title, amount, date columns'),
-          ),
-        );
-        return;
-      }
-      final repo = ref.read(transactionRepositoryProvider);
-      final categorizer = ref.read(categorizationServiceProvider);
-      int imported = 0;
-      int errors = 0;
-      for (final row in rows.skip(1)) {
-        if (row.length < 3) continue;
-        final title = row[hTitle].toString();
-        final amount = double.tryParse(row[hAmount].toString());
-        final date = DateTime.tryParse(row[hDate].toString());
-        final category =
-            (hCategory != -1 &&
-                row.length > hCategory &&
-                row[hCategory] != null &&
-                row[hCategory].toString().isNotEmpty)
-            ? row[hCategory].toString()
-            : (categorizer.suggestCategory(title));
-        if (title.trim().isEmpty || amount == null || date == null) {
-          errors++;
-          continue;
-        }
-        try {
-          await repo.create(
-            userId: user.uid,
-            title: title,
-            amount: amount,
-            categoryId: category,
-            date: date,
-            notes: 'CSV import',
-          );
-          imported++;
-        } catch (_) {
-          errors++;
-        }
-      }
-      messenger.showSnackBar(
-        SnackBar(content: Text('Imported $imported, errors $errors')),
-      );
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Import failed: $e')));
-    }
-  }
-
-  Future<void> _importBankDemo(BuildContext context) async {
-    final user = ref.read(currentUserProvider);
-    if (user == null) return;
-    final ingest = ref.read(transactionIngestServiceProvider);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      final count = await ingest.importBankDemo(user.uid);
-      messenger.showSnackBar(
-        SnackBar(content: Text('Imported $count demo bank transactions')),
-      );
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Bank import failed: $e')));
-    }
-  }
 }
