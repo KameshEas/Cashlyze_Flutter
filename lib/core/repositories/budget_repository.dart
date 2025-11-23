@@ -25,7 +25,13 @@ class BudgetRepository {
       'updated_at_ms': ServerValue.timestamp,
     };
     final key = await _db.pushKey('users/$userId/budgets', data);
-    return BudgetModel.fromRTDB(key, data);
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final local = {
+      ...data,
+      'created_at_ms': nowMs,
+      'updated_at_ms': nowMs,
+    };
+    return BudgetModel.fromRTDB(key, local);
   }
 
   Future<void> update(String id, Map<String, dynamic> data) async {
