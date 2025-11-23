@@ -19,6 +19,7 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
   final _tenureController = TextEditingController();
   DateTime _startDate = DateTime.now();
   PaymentFrequency _frequency = PaymentFrequency.monthly;
+  bool _isZeroCostEMI = false;
 
   @override
   void dispose() {
@@ -56,6 +57,21 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                 },
               ),
               const SizedBox(height: 12),
+              CheckboxListTile(
+                title: const Text('Zero Cost EMI'),
+                subtitle: const Text('No interest will be charged on this EMI'),
+                value: _isZeroCostEMI,
+                onChanged: (value) {
+                  setState(() {
+                    _isZeroCostEMI = value ?? false;
+                    if (_isZeroCostEMI) {
+                      _rateController.text = '0';
+                    }
+                  });
+                },
+                contentPadding: EdgeInsets.zero,
+              ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _rateController,
                 keyboardType: const TextInputType.numberWithOptions(
@@ -65,9 +81,10 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                   labelText: 'Interest rate (%)',
                   filled: true,
                 ),
+                enabled: !_isZeroCostEMI,
                 validator: (v) {
                   final d = double.tryParse(v ?? '');
-                  if (d == null || d <= 0) return 'Enter valid rate';
+                  if (d == null || d < 0) return 'Enter valid rate';
                   return null;
                 },
               ),
@@ -139,11 +156,14 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                   if (!_formKey.currentState!.validate()) return;
                   final user = ref.read(currentUserProvider);
                   if (user == null) return;
+                  
+                  final interestRate = _isZeroCostEMI ? 0.0 : double.parse(_rateController.text);
+                  
                   final plan = EMIPlan(
                     id: 'new',
                     userId: user.uid,
                     loanAmount: double.parse(_amountController.text),
-                    annualInterestRate: double.parse(_rateController.text),
+                    annualInterestRate: interestRate,
                     tenureMonths: int.parse(_tenureController.text),
                     startDate: _startDate,
                     frequency: _frequency,
@@ -162,7 +182,13 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                   await repo.addSchedule(user.uid, created.id, calc.schedule);
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('EMI plan created')),
+                    SnackBar(
+                      content: Text(
+                        _isZeroCostEMI 
+                          ? 'Zero cost EMI plan created' 
+                          : 'EMI plan created'
+                      ),
+                    ),
                   );
                   Navigator.of(context).pop();
                 },

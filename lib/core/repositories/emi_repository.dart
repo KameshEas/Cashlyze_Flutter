@@ -81,6 +81,27 @@ class EMIRepository {
       return items;
     });
   }
+
+  Future<void> deletePlan(String userId, String planId) async {
+    // Delete the plan
+    await _db.remove('users/$userId/emi_plans/$planId');
+    // Delete associated schedules
+    await _db.remove('users/$userId/emi_schedules/$planId');
+  }
+
+  Future<List<EMIPlan>> getAllPlansForUser(String userId) async {
+    final snapshot = await _db.get('users/$userId/emi_plans');
+    if (snapshot.value == null) return <EMIPlan>[];
+    final map = snapshot.value as Map<dynamic, dynamic>;
+    final items = <EMIPlan>[];
+    map.forEach((key, value) {
+      if (value is Map) {
+        final data = value.cast<String, dynamic>();
+        items.add(EMIPlan.fromRTDB(key.toString(), data));
+      }
+    });
+    return items;
+  }
 }
 
 final emiRepositoryProvider = Provider<EMIRepository>((ref) => EMIRepository(ref.watch(realtimeDbServiceProvider)));

@@ -64,6 +64,21 @@ class TransactionRepository {
     });
   }
 
+  Future<List<TransactionModel>> getAllForUser(String userId) async {
+    final snapshot = await _db.get('users/$userId/transactions');
+    if (snapshot.value == null) return <TransactionModel>[];
+    final map = snapshot.value as Map<dynamic, dynamic>;
+    final items = <TransactionModel>[];
+    map.forEach((key, value) {
+      if (value is Map) {
+        final data = value.cast<String, dynamic>();
+        items.add(TransactionModel.fromRTDB(key.toString(), data));
+      }
+    });
+    items.sort((a, b) => b.date.compareTo(a.date));
+    return items;
+  }
+
   void _validate({required String title, required double amount, required DateTime date}) {
     if (title.trim().isEmpty) {
       throw ArgumentError('Title is required');

@@ -45,6 +45,21 @@ class CategoryRepository {
       return items;
     });
   }
+
+  Future<List<CategoryModel>> getAllForUser(String userId) async {
+    final snapshot = await _db.get('users/$userId/categories');
+    if (snapshot.value == null) return <CategoryModel>[];
+    final map = snapshot.value as Map<dynamic, dynamic>;
+    final items = <CategoryModel>[];
+    map.forEach((key, value) {
+      if (value is Map) {
+        final data = value.cast<String, dynamic>();
+        items.add(CategoryModel.fromRTDB(key.toString(), data));
+      }
+    });
+    items.sort((a, b) => a.name.compareTo(b.name));
+    return items;
+  }
 }
 
 final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
