@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/services/auth_service.dart';
-import '../../core/services/categorization_service.dart';
 import '../../core/services/transaction_ingest_service.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/utils/format.dart';
-import '../../core/providers/transaction_providers.dart';
 import '../../core/widgets/skeleton.dart';
+import '../../core/repositories/budget_repository.dart';
+import '../../core/models/budget.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
@@ -527,10 +527,36 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             const SnackBar(content: Text('Transaction saved')),
                           );
                         } catch (e) {
-                          if (!mounted) return;
-                          messenger.showSnackBar(
-                            SnackBar(content: Text('Failed: $e')),
-                          );
+                          if (e is BudgetMissingException) {
+                            // Show budget creation dialog
+                            final shouldCreateBudget = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Budget Not Found'),
+                                content: Text('No budget exists for "${e.categoryName}" category. Would you like to create a budget for this category?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(ctx).pop(false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  FilledButton(
+                                    onPressed: () => Navigator.of(ctx).pop(true),
+                                    child: const Text('Create Budget'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            
+                            if (shouldCreateBudget == true && mounted) {
+                              // Open budget creation dialog
+                              await _openCreateBudgetForCategory(context, e.categoryName, e.transactionData);
+                            }
+                          } else {
+                            if (!mounted) return;
+                            messenger.showSnackBar(
+                              SnackBar(content: Text('Failed: $e')),
+                            );
+                          }
                         }
                       },
                       child: const Text('Save'),
@@ -733,10 +759,47 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             ),
                           );
                         } catch (e) {
-                          if (!mounted) return;
-                          messenger.showSnackBar(
-                            SnackBar(content: Text('Failed: $e')),
-                          );
+                          if (e is BudgetMissingException) {
+                            // Show budget creation dialog for edit
+                            final shouldCreateBudget = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Budget Not Found'),
+                                content: Text('No budget exists for "${e.categoryName}" category. Would you like to create a budget for this category?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(ctx).pop(false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  FilledButton(
+                                    onPressed: () => Navigator.of(ctx).pop(true),
+                                    child: const Text('Create Budget'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            
+                            if (shouldCreateBudget == true && mounted) {
+                              // Create a simplified transaction data for edit case
+                              final currentUser = ref.read(currentUserProvider);
+                              if (currentUser == null) return;
+                              final editTransactionData = {
+                                'userId': currentUser.uid,
+                                'title': titleController.text.trim(),
+                                'amount': type == 'Income' ? amt.abs() : -amt.abs(),
+                                'categoryId': category == 'General' ? null : category,
+                                'date': pickedDate,
+                                'notes': null,
+                                'isIncome': type == 'Income',
+                              };
+                              await _openCreateBudgetForCategory(context, e.categoryName, editTransactionData);
+                            }
+                          } else {
+                            if (!mounted) return;
+                            messenger.showSnackBar(
+                              SnackBar(content: Text('Failed: $e')),
+                            );
+                          }
                         }
                       },
                       child: const Text('Save changes'),
@@ -751,6 +814,129 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
     titleController.dispose();
     amountController.dispose();
+  }
+
+  Future<void> _openCreateBudgetForCategory(BuildContext context, String categoryName, Map<String, dynamic> transactionData) async {
+    final theme = Theme.of(context);
+    final allocatedController = TextEditingController();
+    final pageMessenger = ScaffoldMessenger.of(context);
+
+    await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: true,
+      backgroundColor: theme.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        final nav = Navigator.of(context);
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 48,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Create Budget for "$categoryName"',
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Set a monthly budget amount for this category',
+                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: allocatedController,
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Monthly Budget Amount',
+                    filled: true,
+                    prefixText: '₹ ',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => nav.pop(false),
+                        child: const Text('Skip'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () async {
+                          final user = ref.read(currentUserProvider);
+                          if (user == null) return;
+                          final repo = ref.read(budgetRepositoryProvider);
+                          final amount = double.tryParse(allocatedController.text) ?? 0;
+                          try {
+                            // Create budget
+                            await repo.create(
+                              userId: user.uid,
+                              name: categoryName,
+                              allocated: amount,
+                              period: BudgetPeriod.monthly,
+                            );
+                            
+                            nav.pop(true);
+                            pageMessenger.showSnackBar(
+                              SnackBar(content: Text('Budget for "$categoryName" created successfully!')),
+                            );
+                            
+                            // Now save the original transaction
+                            final ingest = ref.read(transactionIngestServiceProvider);
+                            await ingest.addManual(
+                              userId: transactionData['userId'] as String,
+                              title: transactionData['title'] as String,
+                              amount: (transactionData['amount'] as double).abs(),
+                              isIncome: transactionData['isIncome'] as bool,
+                              categoryId: transactionData['categoryId'] as String?,
+                              date: transactionData['date'] as DateTime,
+                              notes: transactionData['notes'] as String?,
+                            );
+                            
+                            if (mounted) {
+                              Navigator.of(context).pop(true); // Close the add transaction dialog
+                              pageMessenger.showSnackBar(
+                                const SnackBar(content: Text('Transaction saved successfully!')),
+                              );
+                            }
+                          } catch (e) {
+                            nav.pop(false);
+                            pageMessenger.showSnackBar(
+                              SnackBar(content: Text('Failed to create budget: $e')),
+                            );
+                          }
+                        },
+                        child: const Text('Create & Save'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    
+    allocatedController.dispose();
   }
 
 }

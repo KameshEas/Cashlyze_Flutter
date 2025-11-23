@@ -3,14 +3,16 @@ import '../repositories/transaction_repository.dart';
 import '../services/categorization_service.dart';
 import 'bank_import_service.dart';
 import 'analytics_service.dart';
+import '../repositories/budget_repository.dart';
 
 class TransactionIngestService {
   final TransactionRepository _repo;
   final CategorizationService _categorizer;
   final BankImportService _bank;
   final AnalyticsService _analytics;
+  final BudgetRepository? _budgetRepo;
 
-  TransactionIngestService(this._repo, this._categorizer, this._bank, this._analytics);
+  TransactionIngestService(this._repo, this._categorizer, this._bank, this._analytics, [this._budgetRepo]);
 
   Future<void> addManual({
     required String userId,
@@ -22,6 +24,27 @@ class TransactionIngestService {
     String? notes,
   }) async {
     final cat = categoryId ?? _categorizer.suggestCategory(title);
+    
+    // Check if budget exists for this category
+    if (_budgetRepo != null && cat != null && !isIncome) {
+      final budgets = await _budgetRepo!.streamForUser(userId).first;
+      final hasBudgetForCategory = budgets.any((budget) => budget.name.toLowerCase() == cat.toLowerCase());
+      
+      if (!hasBudgetForCategory) {
+        // Store the transaction data for later processing
+        // The UI will need to handle the budget creation prompt
+        throw BudgetMissingException(cat, {
+          'userId': userId,
+          'title': title,
+          'amount': isIncome ? amount.abs() : -amount.abs(),
+          'categoryId': cat,
+          'date': date,
+          'notes': notes,
+          'isIncome': isIncome,
+        });
+      }
+    }
+    
     await _repo.create(
       userId: userId,
       title: title,
@@ -64,5 +87,16 @@ final transactionIngestServiceProvider = Provider<TransactionIngestService>((ref
     ref.watch(categorizationServiceProvider),
     ref.watch(bankImportServiceProvider),
     ref.watch(analyticsServiceProvider),
+    ref.watch(budgetRepositoryProvider),
   );
 });
+
+class BudgetMissingException implements Exception {
+  final String categoryName;
+  final Map<String, dynamic> transactionData;
+  
+  BudgetMissingException(this.categoryName, this.transactionData);
+  
+  @override
+  String toString() => 'No budget found for category: $categoryName';
+}

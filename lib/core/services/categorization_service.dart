@@ -9,6 +9,11 @@ class CategorizationService {
     'bus': 'Transport',
     'salary': 'Income',
     'freelance': 'Income',
+    'emi': 'EMI',
+    'loan': 'EMI',
+    'mortgage': 'EMI',
+    'installment': 'EMI',
+    'payment': 'EMI',
   };
 
   String? suggestCategory(String title) {
