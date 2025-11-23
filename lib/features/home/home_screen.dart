@@ -91,22 +91,41 @@ class HomeScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 24),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          _buildBalanceDetail(context, 'Income', formatAmount(kpis.income, currency), Icons.arrow_downward, Colors.greenAccent),
-          _buildBalanceDetail(context, 'Expense', formatAmount(kpis.expense, currency), Icons.arrow_upward, Colors.redAccent),
+          _buildBalanceDetail(context, 'Income', formatAmount(kpis.income, currency), Icons.arrow_downward, Theme.of(context).colorScheme.secondary),
+          _buildBalanceDetail(context, 'Expense', formatAmount(kpis.expense, currency), Icons.arrow_upward, Theme.of(context).colorScheme.error),
         ]),
       ]),
     );
   }
 
   Widget _buildBalanceDetail(BuildContext context, String label, String amount, IconData icon, Color color) {
-    return Row(children: [
-      Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle), child: Icon(icon, color: color, size: 20)),
-      const SizedBox(width: 12),
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.6))),
-        Text(amount, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.9))),
-      ]),
-    ]);
+    final scheme = Theme.of(context).colorScheme;
+    final isExpense = label.toLowerCase().contains('expense');
+    final bg = isExpense ? scheme.error.withValues(alpha: 0.2) : color.withValues(alpha: 0.15);
+    final border = isExpense ? Border.all(color: scheme.error.withValues(alpha: 0.35)) : null;
+    final ic = isExpense ? Icons.trending_up : icon;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(24),
+        border: border,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(ic, color: Colors.white, size: 18),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.9))),
+              Text(amount, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildQuickActions(BuildContext context, WidgetRef ref) {
