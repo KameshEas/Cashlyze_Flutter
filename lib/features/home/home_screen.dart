@@ -85,9 +85,16 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 8),
-        Text(
-          formatAmount(kpis.net, currency),
-          style: Theme.of(context).textTheme.displayMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          switchInCurve: Curves.easeOut,
+          switchOutCurve: Curves.easeIn,
+          transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
+          child: Text(
+            formatAmount(kpis.net, currency),
+            key: ValueKey(kpis.net),
+            style: Theme.of(context).textTheme.displayMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
+          ),
         ),
         const SizedBox(height: 24),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [

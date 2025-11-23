@@ -73,6 +73,7 @@ class AppTheme {
         }),
       ),
       inputDecorationTheme: inputTheme(isLight: false),
+      splashFactory: InkRipple.splashFactory,
     );
   }
 
@@ -136,6 +137,7 @@ class AppTheme {
         iconTheme: WidgetStatePropertyAll(IconThemeData(color: Colors.grey)),
       ),
       inputDecorationTheme: inputTheme(isLight: true),
+      splashFactory: InkRipple.splashFactory,
     );
   }
   static InputDecorationTheme inputTheme({required bool isLight}) {
