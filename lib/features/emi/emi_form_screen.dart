@@ -41,8 +41,14 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
             children: [
               TextFormField(
                 controller: _amountController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Loan amount', filled: true, helperText: 'Enter principal amount'),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Loan amount',
+                  filled: true,
+                  helperText: 'Enter principal amount',
+                ),
                 validator: (v) {
                   final d = double.tryParse(v ?? '');
                   if (d == null || d <= 0) return 'Enter valid amount';
@@ -52,8 +58,13 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _rateController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Interest rate (%)', filled: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Interest rate (%)',
+                  filled: true,
+                ),
                 validator: (v) {
                   final d = double.tryParse(v ?? '');
                   if (d == null || d <= 0) return 'Enter valid rate';
@@ -64,7 +75,10 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
               TextFormField(
                 controller: _tenureController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Tenure (months)', filled: true),
+                decoration: const InputDecoration(
+                  labelText: 'Tenure (months)',
+                  filled: true,
+                ),
                 validator: (v) {
                   final d = int.tryParse(v ?? '');
                   if (d == null || d <= 0) return 'Enter valid months';
@@ -72,41 +86,88 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                 },
               ),
               const SizedBox(height: 12),
-              Row(children: [
-                Expanded(child: OutlinedButton(onPressed: () async {final picked = await showDatePicker(context: context, initialDate: _startDate, firstDate: DateTime(2000), lastDate: DateTime(2100)); if (picked != null) setState(() => _startDate = picked);}, child: Text('Start: ${_startDate.toLocal()}'.split(' ').first))),
-                const SizedBox(width: 12),
-                Expanded(child: DropdownButtonFormField<PaymentFrequency>(value: _frequency, items: const [DropdownMenuItem(value: PaymentFrequency.weekly, child: Text('Weekly')), DropdownMenuItem(value: PaymentFrequency.monthly, child: Text('Monthly')), DropdownMenuItem(value: PaymentFrequency.quarterly, child: Text('Quarterly'))], onChanged: (v) => setState(() => _frequency = v ?? PaymentFrequency.monthly), decoration: const InputDecoration(labelText: 'Frequency', filled: true))),
-              ]),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: _startDate,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null) setState(() => _startDate = picked);
+                      },
+                      child: Text(
+                        'Start: ${_startDate.toLocal()}'.split(' ').first,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<PaymentFrequency>(
+                      initialValue: _frequency,
+                      items: const [
+                        DropdownMenuItem(
+                          value: PaymentFrequency.weekly,
+                          child: Text('Weekly'),
+                        ),
+                        DropdownMenuItem(
+                          value: PaymentFrequency.monthly,
+                          child: Text('Monthly'),
+                        ),
+                        DropdownMenuItem(
+                          value: PaymentFrequency.quarterly,
+                          child: Text('Quarterly'),
+                        ),
+                      ],
+                      onChanged: (v) => setState(
+                        () => _frequency = v ?? PaymentFrequency.monthly,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Frequency',
+                        filled: true,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 24),
-              FilledButton(onPressed: () async {
-                if (!_formKey.currentState!.validate()) return;
-                final user = ref.read(currentUserProvider);
-                if (user == null) return;
-                final plan = EMIPlan(
-                  id: 'new',
-                  userId: user.uid,
-                  loanAmount: double.parse(_amountController.text),
-                  annualInterestRate: double.parse(_rateController.text),
-                  tenureMonths: int.parse(_tenureController.text),
-                  startDate: _startDate,
-                  frequency: _frequency,
-                  active: true,
-                );
-                final repo = ref.read(emiRepositoryProvider);
-                final created = await repo.createPlan(plan);
-                final calc = EMICalculator.compute(
-                  planId: created.id,
-                  loanAmount: plan.loanAmount,
-                  annualRate: plan.annualInterestRate,
-                  tenureMonths: plan.tenureMonths,
-                  startDate: plan.startDate,
-                  frequency: plan.frequency,
-                );
-                await repo.addSchedule(user.uid, created.id, calc.schedule);
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('EMI plan created')));
-                Navigator.of(context).pop();
-              }, child: const Text('Create Plan')),
+              FilledButton(
+                onPressed: () async {
+                  if (!_formKey.currentState!.validate()) return;
+                  final user = ref.read(currentUserProvider);
+                  if (user == null) return;
+                  final plan = EMIPlan(
+                    id: 'new',
+                    userId: user.uid,
+                    loanAmount: double.parse(_amountController.text),
+                    annualInterestRate: double.parse(_rateController.text),
+                    tenureMonths: int.parse(_tenureController.text),
+                    startDate: _startDate,
+                    frequency: _frequency,
+                    active: true,
+                  );
+                  final repo = ref.read(emiRepositoryProvider);
+                  final created = await repo.createPlan(plan);
+                  final calc = EMICalculator.compute(
+                    planId: created.id,
+                    loanAmount: plan.loanAmount,
+                    annualRate: plan.annualInterestRate,
+                    tenureMonths: plan.tenureMonths,
+                    startDate: plan.startDate,
+                    frequency: plan.frequency,
+                  );
+                  await repo.addSchedule(user.uid, created.id, calc.schedule);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('EMI plan created')),
+                  );
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Create Plan'),
+              ),
             ],
           ),
         ),

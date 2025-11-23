@@ -1,19 +1,24 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
-import 'dart:io' show Platform;
 import 'dart:async';
 import 'package:cashlyze/firebase_options.dart';
 
 final realtimeDatabaseProvider = Provider<FirebaseDatabase>((ref) {
-  final db = FirebaseDatabase.instance;
-  if (!kIsWeb) {
-    try {
-      db.setPersistenceEnabled(true);
-    } catch (_) {}
+  final configuredUrl = (DefaultFirebaseOptions.currentPlatform.databaseURL != null && DefaultFirebaseOptions.currentPlatform.databaseURL!.isNotEmpty)
+      ? DefaultFirebaseOptions.currentPlatform.databaseURL!
+      : 'https://cashlyze-b156c-default-rtdb.asia-southeast1.firebasedatabase.app';
+  if (kIsWeb) {
+    final app = Firebase.app();
+    return FirebaseDatabase.instanceFor(app: app, databaseURL: configuredUrl);
   }
+  final db = FirebaseDatabase.instance;
+  try {
+    db.setPersistenceEnabled(true);
+  } catch (_) {}
   return db;
 });
 
@@ -131,7 +136,7 @@ class RealtimeDbService {
     if (_nativeSupported) {
       return _db.ref(path).onValue.map((e) {
         final v = e.snapshot.value;
-        return (v is Map) ? (v as Map).cast<String, dynamic>() : null;
+        return (v is Map) ? (v).cast<String, dynamic>() : null;
       }).handleError((_) {});
     }
     if (_databaseUrl.isEmpty) {

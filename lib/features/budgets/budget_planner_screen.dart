@@ -240,6 +240,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     final theme = Theme.of(context);
     final nameController = TextEditingController();
     final allocatedController = TextEditingController();
+    final pageMessenger = ScaffoldMessenger.of(context);
 
     final prefs = ref.read(sharedPrefsServiceProvider);
     final draft = prefs.getDraft('budget_create');
@@ -257,7 +258,6 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) {
-        final messenger = ScaffoldMessenger.of(context);
         final nav = Navigator.of(context);
         return Padding(
           padding: EdgeInsets.only(
@@ -306,12 +306,10 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                           final amount = double.tryParse(allocatedController.text) ?? 0;
                           try {
                             await repo.create(userId: user.uid, name: name, allocated: amount, period: BudgetPeriod.monthly);
-                            if (!mounted) return;
                             nav.pop(true);
-                            messenger.showSnackBar(const SnackBar(content: Text('Budget created')));
+                            pageMessenger.showSnackBar(const SnackBar(content: Text('Budget created')));
                           } catch (e) {
-                            if (!mounted) return;
-                            messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                            pageMessenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
                           }
                         },
                         child: const Text('Save'),
@@ -347,6 +345,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     final noteController = TextEditingController();
     final prefs = ref.read(sharedPrefsServiceProvider);
     final adjustDraft = prefs.getDraft('budget_adjust');
+    final pageMessenger = ScaffoldMessenger.of(context);
     if (adjustDraft != null) {
       final amt = adjustDraft['newAllocated'];
       if (amt != null) amountController.text = amt.toString();
@@ -359,7 +358,6 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) {
-        final messenger = ScaffoldMessenger.of(context);
         final nav = Navigator.of(context);
         return Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
@@ -398,18 +396,16 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                             final user = ref.read(currentUserProvider);
                             if (user == null) return;
                             await ref.read(budgetRepositoryProvider).addAdjustment(
-                                  userId: user.uid,
-                                  id: id,
-                                  newAllocated: newAlloc,
-                                  note: noteController.text.trim().isEmpty ? null : noteController.text.trim(),
-                                  oldAllocated: allocated,
-                                );
-                            if (!mounted) return;
+                              userId: user.uid,
+                              id: id,
+                              newAllocated: newAlloc,
+                              note: noteController.text.trim().isEmpty ? null : noteController.text.trim(),
+                              oldAllocated: allocated,
+                            );
                             nav.pop(true);
-                            messenger.showSnackBar(const SnackBar(content: Text('Budget adjusted')));
+                            pageMessenger.showSnackBar(const SnackBar(content: Text('Budget adjusted')));
                           } catch (e) {
-                            if (!mounted) return;
-                            messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                            pageMessenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
                           }
                         },
                         child: const Text('Save'),

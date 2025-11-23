@@ -32,7 +32,7 @@ class TransactionIngestService {
     );
     await _analytics.logEvent('transaction_add', params: {
       'amount': amount,
-      'income': isIncome,
+      'is_income': isIncome ? 1 : 0,
       'category': cat ?? 'Uncategorized',
     });
   }

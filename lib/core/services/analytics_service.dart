@@ -19,8 +19,22 @@ class AnalyticsService {
     return _analytics.logScreenView(screenName: screenName);
   }
 
-  Future<void> logEvent(String name, {Map<String, Object>? params}) {
-    return _analytics.logEvent(name: name, parameters: params);
+  Future<void> logEvent(String name, {Map<String, Object?>? params}) {
+    Map<String, Object> sanitized = {};
+    if (params != null) {
+      params.forEach((k, v) {
+        if (v is bool) {
+          sanitized[k] = v ? 1 : 0;
+        } else if (v is num || v is String) {
+          sanitized[k] = v as Object;
+        } else if (v is DateTime) {
+          sanitized[k] = v.millisecondsSinceEpoch;
+        } else {
+          sanitized[k] = v.toString();
+        }
+      });
+    }
+    return _analytics.logEvent(name: name, parameters: sanitized);
   }
 }
 

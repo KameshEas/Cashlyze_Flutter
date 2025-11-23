@@ -25,6 +25,20 @@ class HomeScreen extends ConsumerWidget {
         actions: [
           IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () {}, tooltip: 'Notifications'),
           const SizedBox(width: 8),
+          PopupMenuButton<String>(
+            tooltip: 'Menu',
+            itemBuilder: (ctx) => const [
+              PopupMenuItem(value: 'emi', child: Text('EMI Tracker')),
+              PopupMenuItem(value: 'emi_new', child: Text('Add EMI Plan')),
+            ],
+            onSelected: (value) {
+              if (value == 'emi') {
+                GoRouter.of(context).go('/emi');
+              } else if (value == 'emi_new') {
+                GoRouter.of(context).go('/emi/new');
+              }
+            },
+          ),
         ],
       ),
       body: SingleChildScrollView(
