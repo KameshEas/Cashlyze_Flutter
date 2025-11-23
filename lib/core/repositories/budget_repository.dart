@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_database/firebase_database.dart';
 import '../services/realtime_db_service.dart';
 import '../services/auth_service.dart';
 import '../models/budget.dart';
@@ -15,27 +14,22 @@ class BudgetRepository {
     required BudgetPeriod period,
     List<String> categoryIds = const [],
   }) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     final data = {
       'userId': userId,
       'name': name.trim(),
       'allocated': allocated,
       'period': period.name,
       'categoryIds': categoryIds,
-      'created_at_ms': ServerValue.timestamp,
-      'updated_at_ms': ServerValue.timestamp,
-    };
-    final key = await _db.pushKey('users/$userId/budgets', data);
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final local = {
-      ...data,
       'created_at_ms': nowMs,
       'updated_at_ms': nowMs,
     };
-    return BudgetModel.fromRTDB(key, local);
+    final key = await _db.pushKey('users/$userId/budgets', data);
+    return BudgetModel.fromRTDB(key, data);
   }
 
   Future<void> update(String id, Map<String, dynamic> data) async {
-    data['updated_at_ms'] = ServerValue.timestamp;
+    data['updated_at_ms'] = DateTime.now().millisecondsSinceEpoch;
     final userId = data['userId'] as String?;
     if (userId == null) throw ArgumentError('userId required for update');
     await _db.update('users/$userId/budgets/$id', data);
@@ -69,13 +63,16 @@ class BudgetRepository {
   }) async {
     // Flattened adjustments under users/{uid}/budget_adjustments/{budgetId}/{adjustmentId}
     final path = 'users/$userId/budget_adjustments/$id';
-    final ref = await _db.push(path, {
+    await _db.push(path, {
       'oldAllocated': oldAllocated,
       'newAllocated': newAllocated,
       'note': note,
-      'created_at_ms': ServerValue.timestamp,
+      'created_at_ms': DateTime.now().millisecondsSinceEpoch,
     });
-    await _db.update('users/$userId/budgets/$id', {'allocated': newAllocated, 'updated_at_ms': ServerValue.timestamp});
+    await _db.update('users/$userId/budgets/$id', {
+      'allocated': newAllocated,
+      'updated_at_ms': DateTime.now().millisecondsSinceEpoch,
+    });
   }
 }
 

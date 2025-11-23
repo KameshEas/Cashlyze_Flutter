@@ -145,89 +145,105 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                   );
                 }
                 return ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: list.length,
-                separatorBuilder: (sepCtx, i) => const SizedBox(height: 12),
-                itemBuilder: (ctx, i) {
-                  final e = list[i];
-                  final spent = spentMap[e.id] ?? 0;
-                  final progress = e.allocated == 0 ? 0 : spent / e.allocated;
-                  return Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.05),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: list.length,
+                  separatorBuilder: (sepCtx, i) => const SizedBox(height: 12),
+                  itemBuilder: (ctx, i) {
+                    final e = list[i];
+                    final spent = spentMap[e.id] ?? 0;
+                    final progress = e.allocated == 0 ? 0 : spent / e.allocated;
+                    return Dismissible(
+                      key: ValueKey('budget_${e.id}'),
+                      direction: DismissDirection.horizontal,
+                      background: Container(
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(children: const [Icon(Icons.edit, color: Colors.green), SizedBox(width: 8), Text('Adjust')]),
                       ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      secondaryBackground: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(mainAxisAlignment: MainAxisAlignment.end, children: const [Text('Delete'), SizedBox(width: 8), Icon(Icons.delete, color: Colors.red)]),
+                      ),
+                      confirmDismiss: (dir) async {
+                        if (dir == DismissDirection.startToEnd) {
+                          await _openAdjustBudget(context, e.id, e.allocated);
+                          return false;
+                        }
+                        final messenger = ScaffoldMessenger.of(context);
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (dCtx) => AlertDialog(
+                            title: const Text('Delete budget'),
+                            content: const Text('Are you sure you want to delete this budget?'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.of(dCtx).pop(false), child: const Text('Cancel')),
+                              FilledButton(onPressed: () => Navigator.of(dCtx).pop(true), child: const Text('Delete')),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) {
+                          try {
+                            final user = ref.read(currentUserProvider);
+                            if (user == null) return false;
+                            await ref.read(budgetRepositoryProvider).delete(user.uid, e.id);
+                            messenger.showSnackBar(const SnackBar(content: Text('Deleted')));
+                            return true;
+                          } catch (err) {
+                            messenger.showSnackBar(SnackBar(content: Text('Failed: $err')));
+                            return false;
+                          }
+                        }
+                        return false;
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(e.name, style: theme.textTheme.titleMedium),
-                            Text(
-                              '${formatAmount(spent, currency)} / ${formatAmount(e.allocated, currency)}',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(e.name, style: theme.textTheme.titleMedium),
+                                Text(
+                                  '${formatAmount(spent, currency)} / ${formatAmount(e.allocated, currency)}',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
-                            Tooltip(
-                              message: 'Adjust budget',
-                              child: IconButton(
-                                icon: const Icon(Icons.tune_outlined),
-                                onPressed: () => _openAdjustBudget(context, e.id, e.allocated),
-                              ),
-                            ),
-                            Tooltip(
-                              message: 'Delete budget',
-                              child: IconButton(
-                                icon: const Icon(Icons.delete_outline),
-                                onPressed: () async {
-                                  final messenger = ScaffoldMessenger.of(context);
-                                  final confirm = await showDialog<bool>(
-                                    context: context,
-                                    builder: (dCtx) => AlertDialog(
-                                      title: const Text('Delete budget'),
-                                      content: const Text('Are you sure you want to delete this budget?'),
-                                      actions: [
-                                        TextButton(onPressed: () => Navigator.of(dCtx).pop(false), child: const Text('Cancel')),
-                                        FilledButton(onPressed: () => Navigator.of(dCtx).pop(true), child: const Text('Delete')),
-                                      ],
-                                    ),
-                                  );
-                                  if (confirm == true) {
-                                    try {
-                                      final user = ref.read(currentUserProvider);
-                                      if (user == null) return;
-                                      await ref.read(budgetRepositoryProvider).delete(user.uid, e.id);
-                                      messenger.showSnackBar(const SnackBar(content: Text('Deleted')));
-                                    } catch (err) {
-                                      messenger.showSnackBar(SnackBar(content: Text('Failed: $err')));
-                                    }
-                                  }
-                                },
+                            const SizedBox(height: 8),
+                            LinearProgressIndicator(
+                              value: progress.clamp(0.0, 1.0).toDouble(),
+                              minHeight: 8,
+                              backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                progress > 1 ? theme.colorScheme.error : theme.colorScheme.secondary,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        LinearProgressIndicator(
-                          value: progress.clamp(0.0, 1.0).toDouble(),
-                          minHeight: 8,
-                          backgroundColor: Colors.white.withValues(alpha: 0.1),
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            progress > 1 ? Colors.redAccent : Colors.greenAccent,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
+                      ),
+                    );
+                  },
+                );
               },
             ),
           ],
