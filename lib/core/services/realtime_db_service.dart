@@ -5,10 +5,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dio/dio.dart';
 import 'dart:async';
-import 'package:cashlyze/firebase_options.dart';
+import '../../firebase_options.dart';
 
 final realtimeDatabaseProvider = Provider<FirebaseDatabase>((ref) {
-  final configuredUrl = (DefaultFirebaseOptions.currentPlatform.databaseURL != null && DefaultFirebaseOptions.currentPlatform.databaseURL!.isNotEmpty)
+  final configuredUrl =
+      (DefaultFirebaseOptions.currentPlatform.databaseURL != null &&
+          DefaultFirebaseOptions.currentPlatform.databaseURL!.isNotEmpty)
       ? DefaultFirebaseOptions.currentPlatform.databaseURL!
       : 'https://cashlyze-b156c-default-rtdb.asia-southeast1.firebasedatabase.app';
   final app = Firebase.app();
@@ -27,12 +29,14 @@ class RealtimeDbService {
   final bool _nativeSupported;
 
   RealtimeDbService(this._db)
-      : _dio = Dio(),
-        _auth = FirebaseAuth.instance,
-        _databaseUrl = (DefaultFirebaseOptions.currentPlatform.databaseURL != null && DefaultFirebaseOptions.currentPlatform.databaseURL!.isNotEmpty)
-            ? DefaultFirebaseOptions.currentPlatform.databaseURL!
-            : 'https://cashlyze-b156c-default-rtdb.asia-southeast1.firebasedatabase.app',
-        _nativeSupported = !kIsWeb;
+    : _dio = Dio(),
+      _auth = FirebaseAuth.instance,
+      _databaseUrl =
+          (DefaultFirebaseOptions.currentPlatform.databaseURL != null &&
+              DefaultFirebaseOptions.currentPlatform.databaseURL!.isNotEmpty)
+          ? DefaultFirebaseOptions.currentPlatform.databaseURL!
+          : 'https://cashlyze-b156c-default-rtdb.asia-southeast1.firebasedatabase.app',
+      _nativeSupported = !kIsWeb;
 
   DatabaseReference ref(String path) => _db.ref(path);
 
@@ -58,7 +62,11 @@ class RealtimeDbService {
       return ref;
     }
     final token = await _idToken();
-    final res = await _dio.post(_url(path), data: data, queryParameters: token != null ? {'auth': token} : null);
+    final res = await _dio.post(
+      _url(path),
+      data: data,
+      queryParameters: token != null ? {'auth': token} : null,
+    );
     final name = (res.data as Map)['name'] as String;
     return _db.ref(path).child(name);
   }
@@ -70,7 +78,11 @@ class RealtimeDbService {
       return ref.key!;
     }
     final token = await _idToken();
-    final res = await _dio.post(_url(path), data: data, queryParameters: token != null ? {'auth': token} : null);
+    final res = await _dio.post(
+      _url(path),
+      data: data,
+      queryParameters: token != null ? {'auth': token} : null,
+    );
     final name = (res.data as Map)['name'] as String;
     return name;
   }
@@ -81,7 +93,11 @@ class RealtimeDbService {
       return;
     }
     final token = await _idToken();
-    await _dio.put(_url(path), data: data, queryParameters: token != null ? {'auth': token} : null);
+    await _dio.put(
+      _url(path),
+      data: data,
+      queryParameters: token != null ? {'auth': token} : null,
+    );
   }
 
   Future<void> update(String path, Map<String, dynamic> data) async {
@@ -90,7 +106,11 @@ class RealtimeDbService {
       return;
     }
     final token = await _idToken();
-    await _dio.patch(_url(path), data: data, queryParameters: token != null ? {'auth': token} : null);
+    await _dio.patch(
+      _url(path),
+      data: data,
+      queryParameters: token != null ? {'auth': token} : null,
+    );
   }
 
   Future<void> updateMulti(Map<String, dynamic> dataTree) async {
@@ -99,7 +119,11 @@ class RealtimeDbService {
       return;
     }
     final token = await _idToken();
-    await _dio.patch(_url(''), data: dataTree, queryParameters: token != null ? {'auth': token} : null);
+    await _dio.patch(
+      _url(''),
+      data: dataTree,
+      queryParameters: token != null ? {'auth': token} : null,
+    );
   }
 
   Future<void> remove(String path) async {
@@ -108,7 +132,10 @@ class RealtimeDbService {
       return;
     }
     final token = await _idToken();
-    await _dio.delete(_url(path), queryParameters: token != null ? {'auth': token} : null);
+    await _dio.delete(
+      _url(path),
+      queryParameters: token != null ? {'auth': token} : null,
+    );
   }
 
   Future<DataSnapshot> get(String path) async {
@@ -116,7 +143,10 @@ class RealtimeDbService {
       return await _db.ref(path).get();
     }
     final token = await _idToken();
-    final res = await _dio.get(_url(path), queryParameters: token != null ? {'auth': token} : null);
+    final res = await _dio.get(
+      _url(path),
+      queryParameters: token != null ? {'auth': token} : null,
+    );
     final ref = _db.ref(path);
     // Populate a local DataSnapshot via native ref.get() when possible; otherwise emulate minimal snapshot
     // For callers using value directly, prefer using onValueMap/getMap
@@ -131,19 +161,31 @@ class RealtimeDbService {
 
   Stream<Map<String, dynamic>?> onValueMap(String path) {
     if (_nativeSupported) {
-      return _db.ref(path).onValue.map((e) {
-        final v = e.snapshot.value;
-        return (v is Map) ? (v).cast<String, dynamic>() : null;
-      }).handleError((_) {});
+      return _db
+          .ref(path)
+          .onValue
+          .map((e) {
+            final v = e.snapshot.value;
+            return (v is Map) ? (v).cast<String, dynamic>() : null;
+          })
+          .handleError((_) {});
     }
     if (_databaseUrl.isEmpty) {
       return const Stream<Map<String, dynamic>?>.empty();
     }
-    return Stream.periodic(const Duration(seconds: 3)).asyncMap((_) async {
-      final token = await _idToken();
-      final res = await _dio.get(_url(path), queryParameters: token != null ? {'auth': token} : null);
-      return (res.data is Map) ? (res.data as Map).cast<String, dynamic>() : null;
-    }).distinct((a, b) => a == b).handleError((_) {});
+    return Stream.periodic(const Duration(seconds: 3))
+        .asyncMap((_) async {
+          final token = await _idToken();
+          final res = await _dio.get(
+            _url(path),
+            queryParameters: token != null ? {'auth': token} : null,
+          );
+          return (res.data is Map)
+              ? (res.data as Map).cast<String, dynamic>()
+              : null;
+        })
+        .distinct((a, b) => a == b)
+        .handleError((_) {});
   }
 }
 

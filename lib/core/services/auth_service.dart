@@ -92,7 +92,7 @@ class AuthService {
         url: 'https://$authDomain',
         handleCodeInApp: true,
         iOSBundleId: options.iosBundleId,
-        androidPackageName: 'com.example.cashlyze',
+        androidPackageName: 'com.aspiredesignovation.cashlyze',
         androidInstallApp: true,
         androidMinimumVersion: '21',
       );

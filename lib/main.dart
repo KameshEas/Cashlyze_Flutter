@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'firebase_options_placeholder.dart';
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'core/theme/app_theme.dart';
 import 'routes/app_router.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -11,9 +14,14 @@ import 'core/providers/onboarding_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final usePlaceholder = const bool.fromEnvironment('FIREBASE_PLACEHOLDER');
   try {
     await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
+      options: usePlaceholder
+          ? (defaultTargetPlatform == TargetPlatform.iOS
+                ? DefaultFirebaseOptionsPlaceholder.ios
+                : DefaultFirebaseOptionsPlaceholder.android)
+          : DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e) {}
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;

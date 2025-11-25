@@ -51,7 +51,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '655565727204',
     projectId: 'cashlyze-b156c',
     storageBucket: 'cashlyze-b156c.firebasestorage.app',
-    databaseURL: 'https://cashlyze-b156c-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://cashlyze-b156c-default-rtdb.asia-southeast1.firebasedatabase.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
@@ -69,7 +70,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
     projectId: 'YOUR_PROJECT_ID',
     storageBucket: 'YOUR_PROJECT_ID.appspot.com',
-    iosBundleId: 'com.example.cashlyze',
+    iosBundleId: 'com.aspiredesignovation.cashlyze',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
@@ -81,5 +82,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'cashlyze-b156c.firebasestorage.app',
     measurementId: 'G-RF25GMVHVE',
   );
-
 }

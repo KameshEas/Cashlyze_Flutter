@@ -37,22 +37,26 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       _timerDone = true;
       _maybeNavigate();
     });
+    Future<void>.delayed(const Duration(seconds: 2), () {
+      _maybeNavigate();
+    });
   }
 
   void _maybeNavigate() {
     if (!mounted || _navigated) return;
     final authState = ref.read(authStateChangesProvider);
+    final currentUser = ref.read(currentUserProvider);
     final onboardingCompleted = ref.read(onboardingCompletedProvider);
 
-    if (authState.isLoading) return;
-
-    final user = authState.value;
+    final user = currentUser ?? authState.value;
     final target = !onboardingCompleted
         ? '/onboarding'
         : (user == null ? '/login' : '/');
 
     _navigated = true;
-    if (mounted) context.go(target);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.go(target);
+    });
   }
 
   @override

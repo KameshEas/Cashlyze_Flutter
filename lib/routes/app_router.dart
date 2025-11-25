@@ -22,6 +22,7 @@ final _shellKey = GlobalKey<NavigatorState>();
 final appRouterProvider = Provider<GoRouter>((ref) {
   final onboardingCompleted = ref.watch(onboardingCompletedProvider);
   final authState = ref.watch(authStateChangesProvider);
+  final currentUser = ref.watch(currentUserProvider);
   const kRouteFadeDuration = Duration(milliseconds: 300);
 
   return GoRouter(
@@ -36,7 +37,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: const SplashScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) =>
               FadeTransition(opacity: animation, child: child),
-          transitionDuration: MediaQuery.of(context).disableAnimations ? Duration.zero : kRouteFadeDuration,
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
         ),
       ),
       StatefulShellRoute.indexedStack(
@@ -95,7 +98,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   transitionsBuilder:
                       (context, animation, secondaryAnimation, child) =>
                           FadeTransition(opacity: animation, child: child),
-                  transitionDuration: MediaQuery.of(context).disableAnimations ? Duration.zero : kRouteFadeDuration,
+                  transitionDuration: MediaQuery.of(context).disableAnimations
+                      ? Duration.zero
+                      : kRouteFadeDuration,
                 ),
               ),
             ],
@@ -111,7 +116,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   transitionsBuilder:
                       (context, animation, secondaryAnimation, child) =>
                           FadeTransition(opacity: animation, child: child),
-                  transitionDuration: MediaQuery.of(context).disableAnimations ? Duration.zero : kRouteFadeDuration,
+                  transitionDuration: MediaQuery.of(context).disableAnimations
+                      ? Duration.zero
+                      : kRouteFadeDuration,
                 ),
               ),
             ],
@@ -127,7 +134,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   transitionsBuilder:
                       (context, animation, secondaryAnimation, child) =>
                           FadeTransition(opacity: animation, child: child),
-                  transitionDuration: MediaQuery.of(context).disableAnimations ? Duration.zero : kRouteFadeDuration,
+                  transitionDuration: MediaQuery.of(context).disableAnimations
+                      ? Duration.zero
+                      : kRouteFadeDuration,
                 ),
               ),
             ],
@@ -143,7 +152,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   transitionsBuilder:
                       (context, animation, secondaryAnimation, child) =>
                           FadeTransition(opacity: animation, child: child),
-                  transitionDuration: MediaQuery.of(context).disableAnimations ? Duration.zero : kRouteFadeDuration,
+                  transitionDuration: MediaQuery.of(context).disableAnimations
+                      ? Duration.zero
+                      : kRouteFadeDuration,
                 ),
               ),
             ],
@@ -159,7 +170,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   transitionsBuilder:
                       (context, animation, secondaryAnimation, child) =>
                           FadeTransition(opacity: animation, child: child),
-                  transitionDuration: MediaQuery.of(context).disableAnimations ? Duration.zero : kRouteFadeDuration,
+                  transitionDuration: MediaQuery.of(context).disableAnimations
+                      ? Duration.zero
+                      : kRouteFadeDuration,
                 ),
               ),
               GoRoute(
@@ -168,8 +181,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 pageBuilder: (context, state) => CustomTransitionPage(
                   key: state.pageKey,
                   child: const EMIDashboardScreen(),
-                  transitionsBuilder: (context, animation, secondaryAnimation, child) => FadeTransition(opacity: animation, child: child),
-                  transitionDuration: MediaQuery.of(context).disableAnimations ? Duration.zero : kRouteFadeDuration,
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) =>
+                          FadeTransition(opacity: animation, child: child),
+                  transitionDuration: MediaQuery.of(context).disableAnimations
+                      ? Duration.zero
+                      : kRouteFadeDuration,
                 ),
               ),
               GoRoute(
@@ -178,8 +195,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 pageBuilder: (context, state) => CustomTransitionPage(
                   key: state.pageKey,
                   child: const EMIFormScreen(),
-                  transitionsBuilder: (context, animation, secondaryAnimation, child) => FadeTransition(opacity: animation, child: child),
-                  transitionDuration: MediaQuery.of(context).disableAnimations ? Duration.zero : kRouteFadeDuration,
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) =>
+                          FadeTransition(opacity: animation, child: child),
+                  transitionDuration: MediaQuery.of(context).disableAnimations
+                      ? Duration.zero
+                      : kRouteFadeDuration,
                 ),
               ),
             ],
@@ -194,7 +215,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: const AuthScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) =>
               FadeTransition(opacity: animation, child: child),
-          transitionDuration: MediaQuery.of(context).disableAnimations ? Duration.zero : kRouteFadeDuration,
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
         ),
       ),
       GoRoute(
@@ -205,7 +228,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: const AuthScreen(initialIsLogin: true),
           transitionsBuilder: (context, animation, secondaryAnimation, child) =>
               FadeTransition(opacity: animation, child: child),
-          transitionDuration: MediaQuery.of(context).disableAnimations ? Duration.zero : kRouteFadeDuration,
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
         ),
       ),
       GoRoute(
@@ -216,7 +241,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: const AuthScreen(initialIsLogin: false),
           transitionsBuilder: (context, animation, secondaryAnimation, child) =>
               FadeTransition(opacity: animation, child: child),
-          transitionDuration: MediaQuery.of(context).disableAnimations ? Duration.zero : kRouteFadeDuration,
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
         ),
       ),
       GoRoute(
@@ -227,7 +254,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: const OnboardingScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) =>
               FadeTransition(opacity: animation, child: child),
-          transitionDuration: MediaQuery.of(context).disableAnimations ? Duration.zero : kRouteFadeDuration,
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
         ),
       ),
       GoRoute(
@@ -238,7 +267,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: const VerifyEmailScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) =>
               FadeTransition(opacity: animation, child: child),
-          transitionDuration: MediaQuery.of(context).disableAnimations ? Duration.zero : kRouteFadeDuration,
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
         ),
       ),
       GoRoute(
@@ -249,7 +280,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: const CategoriesScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) =>
               FadeTransition(opacity: animation, child: child),
-          transitionDuration: MediaQuery.of(context).disableAnimations ? Duration.zero : kRouteFadeDuration,
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
         ),
       ),
       GoRoute(
@@ -260,7 +293,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: const OnboardingScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) =>
               FadeTransition(opacity: animation, child: child),
-          transitionDuration: MediaQuery.of(context).disableAnimations ? Duration.zero : kRouteFadeDuration,
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
         ),
       ),
     ],
@@ -274,11 +309,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isVerifyEmail = state.matchedLocation == '/verify-email';
 
       final user = authState.value;
-      final isAuthLoading = authState.isLoading;
-
-      if (isAuthLoading && !isSplash) {
-        return '/splash';
-      }
+      // Do not force splash during auth loading; rely on SplashScreen for app start only
 
       if (isSplash) {
         return null;
@@ -299,16 +330,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
-      if (!onboardingCompleted && !isOnboarding) {
-        return '/onboarding';
+      if (!onboardingCompleted) {
+        // Ensure onboarding route is allowed until completed
+        if (!isOnboarding) return '/onboarding';
+        return null;
       }
-      if (onboardingCompleted && isOnboarding) {
-        return '/login';
-      }
-
-      if (!isAuthRoute) {
-        return '/login';
-      }
+      if (onboardingCompleted && isOnboarding) return '/login';
+      if (!isAuthRoute) return '/login';
       return null;
     },
   );
