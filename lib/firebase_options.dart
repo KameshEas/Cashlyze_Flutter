@@ -51,6 +51,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '655565727204',
     projectId: 'cashlyze-b156c',
     storageBucket: 'cashlyze-b156c.firebasestorage.app',
+    databaseURL: 'https://cashlyze-b156c-default-rtdb.asia-southeast1.firebasedatabase.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

@@ -11,11 +11,8 @@ final realtimeDatabaseProvider = Provider<FirebaseDatabase>((ref) {
   final configuredUrl = (DefaultFirebaseOptions.currentPlatform.databaseURL != null && DefaultFirebaseOptions.currentPlatform.databaseURL!.isNotEmpty)
       ? DefaultFirebaseOptions.currentPlatform.databaseURL!
       : 'https://cashlyze-b156c-default-rtdb.asia-southeast1.firebasedatabase.app';
-  if (kIsWeb) {
-    final app = Firebase.app();
-    return FirebaseDatabase.instanceFor(app: app, databaseURL: configuredUrl);
-  }
-  final db = FirebaseDatabase.instance;
+  final app = Firebase.app();
+  final db = FirebaseDatabase.instanceFor(app: app, databaseURL: configuredUrl);
   try {
     db.setPersistenceEnabled(true);
   } catch (_) {}

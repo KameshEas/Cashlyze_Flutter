@@ -11,9 +11,11 @@ import 'core/providers/onboarding_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Firebase
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {}
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
 
   final prefs = await SharedPreferences.getInstance();
