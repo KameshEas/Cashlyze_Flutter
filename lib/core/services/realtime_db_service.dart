@@ -16,9 +16,28 @@ final realtimeDatabaseProvider = Provider<FirebaseDatabase>((ref) {
   final app = Firebase.app();
   final db = FirebaseDatabase.instanceFor(app: app, databaseURL: configuredUrl);
   try {
-    db.setPersistenceEnabled(true);
+    if (kReleaseMode) {
+      db.setPersistenceEnabled(false);
+    } else {
+      db.setPersistenceEnabled(true);
+    }
+    db.goOnline();
   } catch (_) {}
   return db;
+});
+
+final databaseUrlProvider = Provider<String>((ref) {
+  final url =
+      (DefaultFirebaseOptions.currentPlatform.databaseURL != null &&
+          DefaultFirebaseOptions.currentPlatform.databaseURL!.isNotEmpty)
+      ? DefaultFirebaseOptions.currentPlatform.databaseURL!
+      : 'https://cashlyze-b156c-default-rtdb.asia-southeast1.firebasedatabase.app';
+  return url;
+});
+
+final databaseUrlMismatchProvider = Provider<bool>((ref) {
+  final url = ref.watch(databaseUrlProvider);
+  return !url.contains('asia-southeast1.firebasedatabase.app');
 });
 
 class RealtimeDbService {

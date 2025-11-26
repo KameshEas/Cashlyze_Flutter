@@ -21,7 +21,7 @@ class SharedPrefsService {
     await _prefs.setBool(_alertsEnabledKey, value);
   }
 
-  String get currency => _prefs.getString(_currencyKey) ?? 'USD';
+  String get currency => _prefs.getString(_currencyKey) ?? 'INR';
   Future<void> setCurrency(String value) async {
     await _prefs.setString(_currencyKey, value);
   }

@@ -327,9 +327,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               await ref
                                   .read(transactionRepositoryProvider)
                                   .deleteForUser(user.uid, e.id);
+                              messenger.clearSnackBars();
                               messenger.showSnackBar(
                                 SnackBar(
                                   content: const Text('Deleted'),
+                                  duration: const Duration(seconds: 3),
+                                  behavior: SnackBarBehavior.floating,
                                   action: SnackBarAction(
                                     label: 'Undo',
                                     onPressed: () async {
@@ -358,8 +361,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               );
                               return true;
                             } catch (err) {
+                              messenger.clearSnackBars();
                               messenger.showSnackBar(
-                                SnackBar(content: Text('Failed: $err')),
+                                SnackBar(
+                                  content: Text('Failed: $err'),
+                                  duration: const Duration(seconds: 4),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
                               );
                               return false;
                             }

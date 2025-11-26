@@ -4,7 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'firebase_options_placeholder.dart';
 import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, TargetPlatform;
+    show defaultTargetPlatform, TargetPlatform, kReleaseMode;
 import 'core/theme/app_theme.dart';
 import 'routes/app_router.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -14,7 +14,8 @@ import 'core/providers/onboarding_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final usePlaceholder = const bool.fromEnvironment('FIREBASE_PLACEHOLDER');
+  final usePlaceholder =
+      const bool.fromEnvironment('FIREBASE_PLACEHOLDER') && !kReleaseMode;
   try {
     await Firebase.initializeApp(
       options: usePlaceholder
@@ -24,7 +25,9 @@ void main() async {
           : DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e) {}
-  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
+  try {
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
+  } catch (_) {}
 
   final prefs = await SharedPreferences.getInstance();
 
