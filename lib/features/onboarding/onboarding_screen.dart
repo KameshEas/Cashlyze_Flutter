@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/onboarding_provider.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/services/analytics_service.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {

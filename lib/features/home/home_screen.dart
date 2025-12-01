@@ -13,6 +13,7 @@ import '../../core/repositories/emi_repository.dart';
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/services/realtime_db_service.dart';
 import '../../l10n/app_localizations.dart';
+import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/providers/recurring_providers.dart';
 
 class HomeScreen extends ConsumerWidget {

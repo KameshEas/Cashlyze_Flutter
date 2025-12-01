@@ -16,17 +16,16 @@ import '../features/categories/categories_screen.dart';
 import '../features/emi/emi_form_screen.dart';
 import '../features/emi/emi_dashboard_screen.dart';
 
-final _rootKey = GlobalKey<NavigatorState>();
-final _shellKey = GlobalKey<NavigatorState>();
-
 final appRouterProvider = Provider<GoRouter>((ref) {
   final onboardingCompleted = ref.watch(onboardingCompletedProvider);
   final authState = ref.watch(authStateChangesProvider);
   final currentUser = ref.watch(currentUserProvider);
   const kRouteFadeDuration = Duration(milliseconds: 300);
+  final rootKey = GlobalKey<NavigatorState>();
+  final shellKey = GlobalKey<NavigatorState>();
 
   return GoRouter(
-    navigatorKey: _rootKey,
+    navigatorKey: rootKey,
     initialLocation: '/splash',
     routes: [
       GoRoute(
@@ -87,7 +86,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
         branches: [
           StatefulShellBranch(
-            navigatorKey: _shellKey,
+            navigatorKey: shellKey,
             routes: [
               GoRoute(
                 path: '/',
@@ -308,7 +307,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isSplash = state.matchedLocation == '/splash';
       final isVerifyEmail = state.matchedLocation == '/verify-email';
 
-      final user = authState.value;
+      final user = currentUser ?? authState.value;
       // Do not force splash during auth loading; rely on SplashScreen for app start only
 
       if (isSplash) {

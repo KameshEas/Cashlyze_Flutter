@@ -10,6 +10,7 @@ import '../../core/repositories/budget_repository.dart';
 import '../../core/models/budget.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/utils/validation.dart';
+import '../../core/providers/shared_prefs_provider.dart';
 import 'package:flutter/services.dart';
 import '../../core/repositories/recurring_repository.dart';
 import '../../core/models/recurring.dart';
@@ -762,8 +763,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       onPressed: () async {
                         final user = ref.read(currentUserProvider);
                         if (user == null) return;
-                        final messenger = ScaffoldMessenger.of(context);
-                        final nav = Navigator.of(context);
+                        final messenger = ScaffoldMessenger.of(ctx);
+                        final nav = Navigator.of(ctx);
                         if (!validateTitle(titleController.text.trim())) {
                           messenger.showSnackBar(
                             const SnackBar(content: Text('Enter a title')),
@@ -807,10 +808,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                 'notes': null,
                               };
                               await _openCreateBudgetForCategory(
-                                context,
+                                ctx,
                                 localCategory,
                                 transactionData,
                               );
+                              return;
                             }
                           }
 
@@ -868,7 +870,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 if (repeatEnabled) const SizedBox(height: 8),
                 if (repeatEnabled)
                   DropdownButtonFormField<String>(
-                    value: repeatFreq,
+                    initialValue: repeatFreq,
                     items: const [
                       DropdownMenuItem(
                         value: 'Monthly',
@@ -901,11 +903,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           'category': category,
           'date': date.toIso8601String(),
         });
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Draft saved')));
-        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Draft saved')));
       }
     } else {
       final prefs = ref.read(sharedPrefsServiceProvider);
@@ -941,8 +942,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) {
-        final messenger = ScaffoldMessenger.of(context);
-        final nav = Navigator.of(context);
+        final messenger = ScaffoldMessenger.of(ctx);
+        final nav = Navigator.of(ctx);
         return Padding(
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(ctx).viewInsets.bottom,
@@ -1106,10 +1107,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                 'isIncome': isIncome,
                               };
                               await _openCreateBudgetForCategory(
-                                context,
+                                ctx,
                                 localCategory,
                                 editTransactionData,
                               );
+                              return;
                             }
                           }
 
@@ -1150,16 +1152,16 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   }
 
   Future<void> _openCreateBudgetForCategory(
-    BuildContext context,
+    BuildContext parentCtx,
     String categoryName,
     Map<String, dynamic> transactionData,
   ) async {
-    final theme = Theme.of(context);
+    final theme = Theme.of(parentCtx);
     final allocatedController = TextEditingController();
-    final pageMessenger = ScaffoldMessenger.of(context);
+    final pageMessenger = ScaffoldMessenger.of(parentCtx);
 
     await showModalBottomSheet<bool>(
-      context: context,
+      context: parentCtx,
       isScrollControlled: true,
       isDismissible: true,
       backgroundColor: theme.colorScheme.surface,
@@ -1167,7 +1169,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) {
-        final nav = Navigator.of(context);
+        final nav = Navigator.of(ctx);
         return Padding(
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(ctx).viewInsets.bottom,
@@ -1263,7 +1265,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
                             if (mounted) {
                               Navigator.of(
-                                context,
+                                parentCtx,
                               ).pop(true); // Close the add transaction dialog
                               pageMessenger.showSnackBar(
                                 const SnackBar(

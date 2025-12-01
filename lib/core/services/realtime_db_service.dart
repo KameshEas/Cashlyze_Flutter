@@ -162,7 +162,7 @@ class RealtimeDbService {
       return await _db.ref(path).get();
     }
     final token = await _idToken();
-    final res = await _dio.get(
+    await _dio.get(
       _url(path),
       queryParameters: token != null ? {'auth': token} : null,
     );

@@ -20,6 +20,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _shimmerController;
   late final Animation<double> _shimmer;
+  bool _breakdownIncome = false;
 
   @override
   void initState() {
@@ -44,7 +45,17 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final monthly = ref.watch(monthlyTrendProvider);
-    final categories = ref.watch(categoryBreakdownProvider);
+    final filtered = ref.watch(filteredTransactionsProvider);
+    final categories = _breakdownIncome
+        ? (() {
+            final map = <String, double>{};
+            for (final t in filtered.where((t) => t.amount > 0)) {
+              final cat = t.categoryId ?? 'Other';
+              map[cat] = (map[cat] ?? 0) + t.amount.abs();
+            }
+            return map;
+          })()
+        : ref.watch(categoryBreakdownProvider);
     final txsAsync = ref.watch(recentTransactionsProvider);
     final kpis = ref.watch(kpisProvider);
     final selectedRange = ref.watch(selectedTimeRangeProvider);
@@ -238,8 +249,9 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                             showTitles: true,
                             getTitlesWidget: (value, meta) {
                               final idx = value.toInt();
-                              if (idx < 0 || idx > 5)
+                              if (idx < 0 || idx > 5) {
                                 return const SizedBox.shrink();
+                              }
                               final now = DateTime.now();
                               final m = DateTime(
                                 now.year,
@@ -326,11 +338,32 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                 );
               },
             ),
-            Text(
-              'Spending by Category',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Breakdown by Category',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                ToggleButtons(
+                  isSelected: [!_breakdownIncome, _breakdownIncome],
+                  onPressed: (i) {
+                    setState(() => _breakdownIncome = i == 1);
+                  },
+                  children: const [
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('Expense'),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('Income'),
+                    ),
+                  ],
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             if (txsAsync.isLoading)
@@ -480,6 +513,43 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                     );
                   }).toList(),
                 ),
+              ),
+              const SizedBox(height: 12),
+              Builder(
+                builder: (ctx) {
+                  final sorted = categories.entries.toList()
+                    ..sort((a, b) => b.value.compareTo(a.value));
+                  final top = sorted.take(5).toList();
+                  final maxVal = sorted.isEmpty ? 0 : sorted.first.value;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: top.map((e) {
+                      final pct = maxVal == 0
+                          ? 0.0
+                          : (e.value / maxVal).clamp(0.0, 1.0);
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(e.key, style: theme.textTheme.bodyMedium),
+                                Text(
+                                  formatAmount(e.value, currency),
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            LinearProgressIndicator(value: pct, minHeight: 6),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
               ),
             ],
             const SizedBox(height: 24),

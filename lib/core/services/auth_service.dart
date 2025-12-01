@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
-import '../../firebase_options.dart';
+// Removed unused imports
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -82,21 +81,7 @@ class AuthService {
     final user = _auth.currentUser;
     if (user != null && !user.emailVerified) {
       await user.reload();
-      final options = DefaultFirebaseOptions.currentPlatform;
-      final fallbackDomain = '${options.projectId}.firebaseapp.com';
-      final authDomain =
-          (kIsWeb || defaultTargetPlatform == TargetPlatform.windows)
-          ? (options.authDomain ?? fallbackDomain)
-          : fallbackDomain;
-      final acs = ActionCodeSettings(
-        url: 'https://$authDomain',
-        handleCodeInApp: true,
-        iOSBundleId: options.iosBundleId,
-        androidPackageName: 'com.aspiredesignovation.cashlyze',
-        androidInstallApp: true,
-        androidMinimumVersion: '21',
-      );
-      await user.sendEmailVerification(acs);
+      await user.sendEmailVerification();
     }
   }
 

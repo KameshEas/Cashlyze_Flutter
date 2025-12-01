@@ -4,6 +4,7 @@ import '../../core/services/auth_service.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/repositories/user_repository.dart';
 import '../../core/services/analytics_service.dart';
+import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/services/auth_service.dart' as cfg;
 import '../../core/services/biometric_service.dart';
 import '../../core/providers/onboarding_provider.dart';
