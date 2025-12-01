@@ -367,30 +367,43 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
             ),
             const SizedBox(height: 12),
             if (txsAsync.isLoading)
-              AnimatedBuilder(
-                animation: _shimmer,
-                builder: (ctx, _) => Container(
-                  height: 240,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: theme.colorScheme.onSurface.withValues(
-                        alpha: 0.05,
+              (MediaQuery.of(context).disableAnimations
+                  ? Container(
+                      height: 240,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.05,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  padding: const EdgeInsets.all(12),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.onSurface.withValues(
-                        alpha: 0.08 + 0.1 * _shimmer.value,
+                    )
+                  : AnimatedBuilder(
+                      animation: _shimmer,
+                      builder: (ctx, _) => Container(
+                        height: 240,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.05,
+                            ),
+                          ),
+                        ),
+                        padding: const EdgeInsets.all(12),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.08 + 0.1 * _shimmer.value,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              )
+                    ))
             else if (categories.isEmpty)
               Center(
                 child: Column(
@@ -573,7 +586,10 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                   children: recos
                       .map(
                         (r) => ListTile(
-                          leading: const Icon(Icons.lightbulb_outline),
+                          leading: Semantics(
+                            label: 'Recommendation',
+                            child: Icon(Icons.lightbulb_outline),
+                          ),
                           title: Text(r),
                         ),
                       )
@@ -602,9 +618,12 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                   children: anomalies.take(5).map((t) {
                     final isIncome = t.amount >= 0;
                     return ListTile(
-                      leading: Icon(
-                        Icons.warning_amber_outlined,
-                        color: theme.colorScheme.error,
+                      leading: Semantics(
+                        label: 'Anomaly warning',
+                        child: Icon(
+                          Icons.warning_amber_outlined,
+                          color: theme.colorScheme.error,
+                        ),
                       ),
                       title: Text(t.title),
                       subtitle: Row(

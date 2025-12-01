@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/onboarding_provider.dart';
 import 'package:go_router/go_router.dart';
@@ -100,7 +99,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     child: Icon(
                       _iconForTitle(title),
                       size: 100,
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.5),
                     ),
                   )
                 : Semantics(
@@ -109,11 +110,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       duration: const Duration(milliseconds: 600),
                       tween: Tween(begin: 0.95, end: 1.0),
                       curve: Curves.easeInOut,
-                      builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+                      builder: (context, scale, child) =>
+                          Transform.scale(scale: scale, child: child),
                       child: Icon(
                         _iconForTitle(title),
                         size: 100,
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.7),
                       ),
                     ),
                   ),
@@ -122,9 +126,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Text(
@@ -148,14 +152,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             children: List.generate(
               _onboardingData.length,
               (index) => AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
+                duration: MediaQuery.of(context).disableAnimations
+                    ? Duration.zero
+                    : const Duration(milliseconds: 300),
                 margin: const EdgeInsets.only(right: 8),
                 height: 8,
                 width: _currentPage == index ? 24 : 8,
                 decoration: BoxDecoration(
                   color: _currentPage == index
                       ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                      : Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -165,16 +173,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           ElevatedButton(
             onPressed: () async {
               if (_currentPage < _onboardingData.length - 1) {
-                _pageController.nextPage(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
+                if (MediaQuery.of(context).disableAnimations) {
+                  _pageController.jumpToPage(_currentPage + 1);
+                } else {
+                  _pageController.nextPage(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
+                }
               } else {
                 // Complete onboarding
                 await ref.read(sharedPrefsServiceProvider).completeOnboarding();
                 // Update state to trigger redirect
                 ref.read(onboardingCompletedProvider.notifier).complete();
-                await ref.read(analyticsServiceProvider).logEvent('onboarding_complete');
+                await ref
+                    .read(analyticsServiceProvider)
+                    .logEvent('onboarding_complete');
                 if (mounted) {
                   context.go('/login');
                 }
