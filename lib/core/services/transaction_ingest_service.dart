@@ -67,6 +67,14 @@ class TransactionIngestService {
       },
     );
   }
+
+  Future<void> delete({
+    required String userId,
+    required String transactionId,
+  }) async {
+    await _repo.deleteForUser(userId, transactionId);
+    await _analytics.logEvent('transaction_delete');
+  }
 }
 
 final transactionIngestServiceProvider = Provider<TransactionIngestService>((

@@ -76,4 +76,98 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get transactionUpdated => 'लेनदेन अपडेट किया गया';
+
+  @override
+  String get typeLabel => 'प्रकार';
+
+  @override
+  String get categoryLabel => 'श्रेणी';
+
+  @override
+  String get titleLabel => 'शीर्षक';
+
+  @override
+  String get amountLabel => 'राशि';
+
+  @override
+  String get amountHelperEg => 'उदाहरण: 123.45';
+
+  @override
+  String get income => 'आय';
+
+  @override
+  String get expense => 'व्यय';
+
+  @override
+  String get repeatLabel => 'पुनरावृत्ति';
+
+  @override
+  String get monthlyLabel => 'मासिक';
+
+  @override
+  String get weeklyLabel => 'साप्ताहिक';
+
+  @override
+  String get frequencyLabel => 'आवृत्ति';
+
+  @override
+  String get draftSaved => 'ड्राफ्ट सहेजा गया';
+
+  @override
+  String get enterTitleError => 'शीर्षक दर्ज करें';
+
+  @override
+  String get enterValidAmountError => 'सही राशि दर्ज करें';
+
+  @override
+  String get enterValidDateError => 'सही तिथि दर्ज करें';
+
+  @override
+  String get manageCategoriesTitle => 'श्रेणियाँ प्रबंधित करें';
+
+  @override
+  String get noCategories => 'कोई श्रेणियाँ नहीं';
+
+  @override
+  String get addCategory => 'श्रेणी जोड़ें';
+
+  @override
+  String get edit => 'संपादित करें';
+
+  @override
+  String get deleteCategoryTitle => 'श्रेणी हटाएँ';
+
+  @override
+  String get deleteCategoryConfirm =>
+      'क्या आप वाकई इस श्रेणी को हटाना चाहते हैं?';
+
+  @override
+  String get deleted => 'हटाया गया';
+
+  @override
+  String get addCategoryTitle => 'श्रेणी जोड़ें';
+
+  @override
+  String get editCategoryTitle => 'श्रेणी संपादित करें';
+
+  @override
+  String get nameLabel => 'नाम';
+
+  @override
+  String get nameEmptyError => 'नाम खाली नहीं हो सकता';
+
+  @override
+  String get saved => 'सहेजा गया';
+
+  @override
+  String get quickTransfer => 'ट्रांसफ़र';
+
+  @override
+  String get quickTopUp => 'टॉप-अप';
+
+  @override
+  String get quickBill => 'बिल';
+
+  @override
+  String get quickMore => 'अधिक';
 }

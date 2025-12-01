@@ -76,4 +76,98 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transactionUpdated => 'Transaction updated';
+
+  @override
+  String get typeLabel => 'Type';
+
+  @override
+  String get categoryLabel => 'Category';
+
+  @override
+  String get titleLabel => 'Title';
+
+  @override
+  String get amountLabel => 'Amount';
+
+  @override
+  String get amountHelperEg => 'e.g., 123.45';
+
+  @override
+  String get income => 'Income';
+
+  @override
+  String get expense => 'Expense';
+
+  @override
+  String get repeatLabel => 'Repeat';
+
+  @override
+  String get monthlyLabel => 'Monthly';
+
+  @override
+  String get weeklyLabel => 'Weekly';
+
+  @override
+  String get frequencyLabel => 'Frequency';
+
+  @override
+  String get draftSaved => 'Draft saved';
+
+  @override
+  String get enterTitleError => 'Enter a title';
+
+  @override
+  String get enterValidAmountError => 'Enter a valid amount';
+
+  @override
+  String get enterValidDateError => 'Enter a valid date';
+
+  @override
+  String get manageCategoriesTitle => 'Manage Categories';
+
+  @override
+  String get noCategories => 'No categories';
+
+  @override
+  String get addCategory => 'Add category';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get deleteCategoryTitle => 'Delete category';
+
+  @override
+  String get deleteCategoryConfirm =>
+      'Are you sure you want to delete this category?';
+
+  @override
+  String get deleted => 'Deleted';
+
+  @override
+  String get addCategoryTitle => 'Add Category';
+
+  @override
+  String get editCategoryTitle => 'Edit Category';
+
+  @override
+  String get nameLabel => 'Name';
+
+  @override
+  String get nameEmptyError => 'Name cannot be empty';
+
+  @override
+  String get saved => 'Saved';
+
+  @override
+  String get quickTransfer => 'Transfer';
+
+  @override
+  String get quickTopUp => 'Top-up';
+
+  @override
+  String get quickBill => 'Bill';
+
+  @override
+  String get quickMore => 'More';
 }

@@ -4,7 +4,6 @@ import 'package:cashlyze/core/theme/app_theme.dart';
 import 'package:cashlyze/core/providers/shared_prefs_provider.dart';
 import 'package:cashlyze/features/settings/settings_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cashlyze/core/providers/onboarding_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -19,7 +18,7 @@ void main() {
       ProviderScope(
         overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
         child: MaterialApp.router(
-          theme: ThemeData(brightness: Brightness.dark, useMaterial3: true),
+          theme: AppTheme.darkTheme,
           routerConfig: router,
         ),
       ),
@@ -43,7 +42,7 @@ void main() {
       ProviderScope(
         overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
         child: MaterialApp.router(
-          theme: ThemeData(brightness: Brightness.light, useMaterial3: true),
+          theme: AppTheme.lightTheme,
           routerConfig: router,
         ),
       ),

@@ -383,10 +383,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(
-                            children: const [
-                              Icon(Icons.edit, color: Colors.green),
-                              SizedBox(width: 8),
-                              Text('Edit'),
+                            children: [
+                              const Icon(Icons.edit, color: Colors.green),
+                              const SizedBox(width: 8),
+                              Text(t?.edit ?? 'Edit'),
                             ],
                           ),
                         ),
@@ -399,10 +399,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.end,
-                            children: const [
-                              Text('Delete'),
-                              SizedBox(width: 8),
-                              Icon(Icons.delete, color: Colors.red),
+                            children: [
+                              Text(t?.delete ?? 'Delete'),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.delete, color: Colors.red),
                             ],
                           ),
                         ),
@@ -451,7 +451,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               messenger.clearSnackBars();
                               messenger.showSnackBar(
                                 SnackBar(
-                                  content: const Text('Deleted'),
+                                  content: Text(t?.deleted ?? 'Deleted'),
                                   duration: const Duration(seconds: 3),
                                   behavior: SnackBarBehavior.floating,
                                   action: SnackBarAction(
@@ -552,7 +552,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                             ),
                                           ),
                                           child: Text(
-                                            e.categoryId ?? 'Uncategorized',
+                                            e.categoryId ??
+                                                (t?.uncategorized ??
+                                                    'Uncategorized'),
                                             style: theme.textTheme.bodySmall,
                                           ),
                                         ),
@@ -677,16 +679,22 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             items: [
                               DropdownMenuItem(
                                 value: 'Expense',
-                                child: Text('Expense'),
+                                child: Text(
+                                  AppLocalizations.of(ctx)?.expense ??
+                                      'Expense',
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: 'Income',
-                                child: Text('Income'),
+                                child: Text(
+                                  AppLocalizations.of(ctx)?.income ?? 'Income',
+                                ),
                               ),
                             ],
                             onChanged: (v) => type = v ?? 'Expense',
-                            decoration: const InputDecoration(
-                              labelText: 'Type',
+                            decoration: InputDecoration(
+                              labelText:
+                                  AppLocalizations.of(ctx)?.typeLabel ?? 'Type',
                               filled: true,
                             ),
                           ),
@@ -697,8 +705,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             initialValue: category,
                             items: categoryItems,
                             onChanged: (v) => category = v ?? 'General',
-                            decoration: const InputDecoration(
-                              labelText: 'Category',
+                            decoration: InputDecoration(
+                              labelText:
+                                  AppLocalizations.of(ctx)?.categoryLabel ??
+                                  'Category',
                               filled: true,
                             ),
                           ),
@@ -708,8 +718,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Title',
+                      decoration: InputDecoration(
+                        labelText:
+                            AppLocalizations.of(ctx)?.titleLabel ?? 'Title',
                         filled: true,
                       ),
                     ),
@@ -724,9 +735,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           RegExp(r'^\d*\.?\d{0,2}'),
                         ),
                       ],
-                      decoration: const InputDecoration(
-                        labelText: 'Amount',
-                        helperText: 'e.g., 123.45',
+                      decoration: InputDecoration(
+                        labelText:
+                            AppLocalizations.of(ctx)?.amountLabel ?? 'Amount',
+                        helperText:
+                            AppLocalizations.of(ctx)?.amountHelperEg ??
+                            'e.g., 123.45',
                         filled: true,
                       ),
                     ),
@@ -747,7 +761,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               }
                             },
                             child: Text(
-                              'Date: ${date.toLocal()}'.split(' ').first,
+                              '${AppLocalizations.of(ctx)?.dateLabel ?? 'Date:'} ${date.toLocal()}'
+                                  .split(' ')
+                                  .first,
                             ),
                           ),
                         ),
@@ -760,22 +776,37 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             final nav = Navigator.of(ctx);
                             if (!validateTitle(titleController.text.trim())) {
                               messenger.showSnackBar(
-                                const SnackBar(content: Text('Enter a title')),
+                                SnackBar(
+                                  content: Text(
+                                    AppLocalizations.of(ctx)?.enterTitleError ??
+                                        'Enter a title',
+                                  ),
+                                ),
                               );
                               return;
                             }
                             if (!validateAmount(amountController.text.trim())) {
                               messenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text('Enter a valid amount'),
+                                SnackBar(
+                                  content: Text(
+                                    AppLocalizations.of(
+                                          ctx,
+                                        )?.enterValidAmountError ??
+                                        'Enter a valid amount',
+                                  ),
                                 ),
                               );
                               return;
                             }
                             if (!validateDate(date)) {
                               messenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text('Enter a valid date'),
+                                SnackBar(
+                                  content: Text(
+                                    AppLocalizations.of(
+                                          ctx,
+                                        )?.enterValidDateError ??
+                                        'Enter a valid date',
+                                  ),
                                 ),
                               );
                               return;
@@ -854,8 +885,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               if (!mounted) return;
                               nav.pop(true);
                               messenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text('Transaction saved'),
+                                SnackBar(
+                                  content: Text(
+                                    AppLocalizations.of(
+                                          ctx,
+                                        )?.transactionSaved ??
+                                        'Transaction saved',
+                                  ),
                                 ),
                               );
                             } catch (e) {
@@ -865,7 +901,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               );
                             }
                           },
-                          child: const Text('Save'),
+                          child: Text(AppLocalizations.of(ctx)?.save ?? 'Save'),
                         ),
                       ],
                     ),
@@ -874,27 +910,36 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       value: repeatEnabled,
                       onChanged: (v) =>
                           setModalState(() => repeatEnabled = v ?? false),
-                      title: const Text('Repeat'),
+                      title: Text(
+                        AppLocalizations.of(ctx)?.repeatLabel ?? 'Repeat',
+                      ),
                       contentPadding: EdgeInsets.zero,
                     ),
                     if (repeatEnabled) const SizedBox(height: 8),
                     if (repeatEnabled)
                       DropdownButtonFormField<String>(
                         initialValue: repeatFreq,
-                        items: const [
+                        items: [
                           DropdownMenuItem(
                             value: 'Monthly',
-                            child: Text('Monthly'),
+                            child: Text(
+                              AppLocalizations.of(ctx)?.monthlyLabel ??
+                                  'Monthly',
+                            ),
                           ),
                           DropdownMenuItem(
                             value: 'Weekly',
-                            child: Text('Weekly'),
+                            child: Text(
+                              AppLocalizations.of(ctx)?.weeklyLabel ?? 'Weekly',
+                            ),
                           ),
                         ],
                         onChanged: (v) =>
                             setModalState(() => repeatFreq = v ?? 'Monthly'),
-                        decoration: const InputDecoration(
-                          labelText: 'Frequency',
+                        decoration: InputDecoration(
+                          labelText:
+                              AppLocalizations.of(ctx)?.frequencyLabel ??
+                              'Frequency',
                           filled: true,
                         ),
                       ),
@@ -920,9 +965,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           'date': date.toIso8601String(),
         });
         if (!context.mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Draft saved')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)?.draftSaved ?? 'Draft saved',
+            ),
+          ),
+        );
       }
     } else {
       final prefs = ref.read(sharedPrefsServiceProvider);
@@ -1000,19 +1049,25 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         Expanded(
                           child: DropdownButtonFormField<String>(
                             initialValue: type,
-                            items: const [
+                            items: [
                               DropdownMenuItem(
                                 value: 'Expense',
-                                child: Text('Expense'),
+                                child: Text(
+                                  AppLocalizations.of(ctx)?.expense ??
+                                      'Expense',
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: 'Income',
-                                child: Text('Income'),
+                                child: Text(
+                                  AppLocalizations.of(ctx)?.income ?? 'Income',
+                                ),
                               ),
                             ],
                             onChanged: (v) => type = v ?? 'Expense',
-                            decoration: const InputDecoration(
-                              labelText: 'Type',
+                            decoration: InputDecoration(
+                              labelText:
+                                  AppLocalizations.of(ctx)?.typeLabel ?? 'Type',
                               filled: true,
                             ),
                           ),
@@ -1023,8 +1078,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             initialValue: category,
                             items: categoryItems,
                             onChanged: (v) => category = v ?? 'General',
-                            decoration: const InputDecoration(
-                              labelText: 'Category',
+                            decoration: InputDecoration(
+                              labelText:
+                                  AppLocalizations.of(ctx)?.categoryLabel ??
+                                  'Category',
                               filled: true,
                             ),
                           ),
@@ -1034,8 +1091,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Title',
+                      decoration: InputDecoration(
+                        labelText:
+                            AppLocalizations.of(ctx)?.titleLabel ?? 'Title',
                         filled: true,
                       ),
                     ),
@@ -1050,9 +1108,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           RegExp(r'^\d*\.?\d{0,2}'),
                         ),
                       ],
-                      decoration: const InputDecoration(
-                        labelText: 'Amount',
-                        helperText: 'e.g., 123.45',
+                      decoration: InputDecoration(
+                        labelText:
+                            AppLocalizations.of(ctx)?.amountLabel ?? 'Amount',
+                        helperText:
+                            AppLocalizations.of(ctx)?.amountHelperEg ??
+                            'e.g., 123.45',
                         filled: true,
                       ),
                     ),
@@ -1073,7 +1134,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               }
                             },
                             child: Text(
-                              'Date: ${pickedDate.toLocal()}'.split(' ').first,
+                              '${AppLocalizations.of(ctx)?.dateLabel ?? 'Date:'} ${pickedDate.toLocal()}'
+                                  .split(' ')
+                                  .first,
                             ),
                           ),
                         ),
@@ -1082,22 +1145,37 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           onPressed: () async {
                             if (!validateTitle(titleController.text.trim())) {
                               messenger.showSnackBar(
-                                const SnackBar(content: Text('Enter a title')),
+                                SnackBar(
+                                  content: Text(
+                                    AppLocalizations.of(ctx)?.enterTitleError ??
+                                        'Enter a title',
+                                  ),
+                                ),
                               );
                               return;
                             }
                             if (!validateAmount(amountController.text.trim())) {
                               messenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text('Enter a valid amount'),
+                                SnackBar(
+                                  content: Text(
+                                    AppLocalizations.of(
+                                          ctx,
+                                        )?.enterValidAmountError ??
+                                        'Enter a valid amount',
+                                  ),
                                 ),
                               );
                               return;
                             }
                             if (!validateDate(pickedDate)) {
                               messenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text('Enter a valid date'),
+                                SnackBar(
+                                  content: Text(
+                                    AppLocalizations.of(
+                                          ctx,
+                                        )?.enterValidDateError ??
+                                        'Enter a valid date',
+                                  ),
                                 ),
                               );
                               return;
@@ -1159,8 +1237,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               if (!mounted) return;
                               nav.pop();
                               messenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text('Transaction updated'),
+                                SnackBar(
+                                  content: Text(
+                                    AppLocalizations.of(
+                                          ctx,
+                                        )?.transactionUpdated ??
+                                        'Transaction updated',
+                                  ),
                                 ),
                               );
                             } catch (e) {
@@ -1170,7 +1253,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               );
                             }
                           },
-                          child: const Text('Save changes'),
+                          child: Text(
+                            AppLocalizations.of(ctx)?.saveChanges ??
+                                'Save changes',
+                          ),
                         ),
                       ],
                     ),

@@ -40,9 +40,15 @@ class HomeScreen extends ConsumerWidget {
           const SizedBox(width: 8),
           PopupMenuButton<String>(
             tooltip: 'Menu',
-            itemBuilder: (ctx) => const [
-              PopupMenuItem(value: 'emi', child: Text('EMI Tracker')),
-              PopupMenuItem(value: 'emi_new', child: Text('Add EMI Plan')),
+            itemBuilder: (ctx) => [
+              PopupMenuItem(
+                value: 'emi',
+                child: Text(t?.emiTracker ?? 'EMI Tracker'),
+              ),
+              const PopupMenuItem(
+                value: 'emi_new',
+                child: Text('Add EMI Plan'),
+              ),
             ],
             onSelected: (value) {
               if (value == 'emi') {
@@ -175,14 +181,14 @@ class HomeScreen extends ConsumerWidget {
             children: [
               _buildBalanceDetail(
                 context,
-                'Income',
+                AppLocalizations.of(context)?.income ?? 'Income',
                 formatAmount(kpis.income, currency),
                 Icons.arrow_downward,
                 Theme.of(context).colorScheme.secondary,
               ),
               _buildBalanceDetail(
                 context,
-                'Expense',
+                AppLocalizations.of(context)?.expense ?? 'Expense',
                 formatAmount(kpis.expense, currency),
                 Icons.arrow_upward,
                 Theme.of(context).colorScheme.error,
@@ -246,26 +252,31 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildQuickActions(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context);
     final actions = [
       {
         'icon': Icons.send,
-        'label': 'Transfer',
+        'label': t?.quickTransfer ?? 'Transfer',
         'type': 'Expense',
         'category': 'Transport',
       },
       {
         'icon': Icons.add_card,
-        'label': 'Top-up',
+        'label': t?.quickTopUp ?? 'Top-up',
         'type': 'Income',
         'category': 'Income',
       },
       {
         'icon': Icons.receipt,
-        'label': 'Bill',
+        'label': t?.quickBill ?? 'Bill',
         'type': 'Expense',
         'category': 'General',
       },
-      {'icon': Icons.more_horiz, 'label': 'More', 'route': '/transactions'},
+      {
+        'icon': Icons.more_horiz,
+        'label': t?.quickMore ?? 'More',
+        'route': '/transactions',
+      },
     ];
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -11,12 +11,13 @@ class CategoriesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final catsAsync = ref.watch(userCategoriesProvider);
+    final t = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Manage Categories')),
+      appBar: AppBar(title: Text(t?.manageCategoriesTitle ?? 'Manage Categories')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openEdit(context, ref),
         icon: const Icon(Icons.add),
-        label: const Text('Add'),
+        label: Text(t?.add ?? 'Add'),
       ),
       body: catsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -29,11 +30,11 @@ class CategoriesScreen extends ConsumerWidget {
                 children: [
                   const Icon(Icons.category_outlined, size: 72),
                   const SizedBox(height: 8),
-                  const Text('No categories'),
+                  Text(t?.noCategories ?? 'No categories'),
                   const SizedBox(height: 8),
                   FilledButton(
                     onPressed: () => _openEdit(context, ref),
-                    child: const Text('Add category'),
+                    child: Text(t?.addCategory ?? 'Add category'),
                   ),
                 ],
               ),
@@ -60,7 +61,7 @@ class CategoriesScreen extends ConsumerWidget {
                     const SizedBox(width: 12),
                     Expanded(child: Text(c.name)),
                     IconButton(
-                      tooltip: 'Edit',
+                      tooltip: t?.edit ?? 'Edit',
                       icon: const Icon(Icons.edit_outlined),
                       onPressed: () => _openEdit(
                         context,
@@ -70,17 +71,16 @@ class CategoriesScreen extends ConsumerWidget {
                       ),
                     ),
                     IconButton(
-                      tooltip: 'Delete',
+                      tooltip: t?.delete ?? 'Delete',
                       icon: const Icon(Icons.delete_outline),
                       onPressed: () async {
                         final messenger = ScaffoldMessenger.of(context);
                         final confirm = await showConfirmDialog(
                           context,
-                          title: 'Delete category',
-                          content:
-                              'Are you sure you want to delete this category?',
-                          confirmLabel: 'Delete',
-                          cancelLabel: 'Cancel',
+                          title: t?.deleteCategoryTitle ?? 'Delete category',
+                          content: t?.deleteCategoryConfirm ?? 'Are you sure you want to delete this category?',
+                          confirmLabel: t?.delete ?? 'Delete',
+                          cancelLabel: t?.cancel ?? 'Cancel',
                         );
                         if (confirm == true) {
                           try {
@@ -90,7 +90,7 @@ class CategoriesScreen extends ConsumerWidget {
                                 .read(categoryRepositoryProvider)
                                 .delete(user.uid, c.id);
                             messenger.showSnackBar(
-                              const SnackBar(content: Text('Deleted')),
+                              SnackBar(content: Text(t?.deleted ?? 'Deleted')),
                             );
                           } catch (e) {
                             messenger.showSnackBar(
@@ -119,14 +119,16 @@ class CategoriesScreen extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     final name = await showInputDialog(
       context,
-      title: categoryId == null ? 'Add Category' : 'Edit Category',
-      label: 'Name',
+      title: categoryId == null
+          ? (AppLocalizations.of(context)?.addCategoryTitle ?? 'Add Category')
+          : (AppLocalizations.of(context)?.editCategoryTitle ?? 'Edit Category'),
+      label: AppLocalizations.of(context)?.nameLabel ?? 'Name',
       initial: initialName ?? '',
     );
     if (name == null) return;
     if (name.trim().isEmpty) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Name cannot be empty')),
+        SnackBar(content: Text(AppLocalizations.of(context)?.nameEmptyError ?? 'Name cannot be empty')),
       );
       return;
     }
@@ -139,7 +141,7 @@ class CategoriesScreen extends ConsumerWidget {
       } else {
         await repo.update(user.uid, categoryId, {'name': name.trim()});
       }
-      messenger.showSnackBar(const SnackBar(content: Text('Saved')));
+      messenger.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)?.saved ?? 'Saved')));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
     }
