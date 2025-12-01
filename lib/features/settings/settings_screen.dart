@@ -311,12 +311,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         onTap: () async => _restoreTransactionsFromDrive(context, ref),
       ),
       ListTile(
-        leading: const Icon(Icons.upload_file, color: Colors.blue),
-        title: const Text('Import from CSV'),
-        subtitle: const Text('date,title,amount,category'),
-        onTap: () async => _importTransactionsFromCSV(context, ref),
-      ),
-      ListTile(
         leading: const Icon(Icons.download_outlined, color: Colors.blue),
         title: const Text('Export Data'),
         subtitle: const Text('Copy JSON of your data to clipboard'),
