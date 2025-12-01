@@ -15,7 +15,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../core/services/drive_backup_service.dart';
-import 'package:intl/intl.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -80,6 +79,63 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             setState(() {});
           },
         ),
+      ),
+      const SizedBox(height: 12),
+      Row(
+        children: [
+          Expanded(
+            child: Semantics(
+              label: 'Budget alert threshold',
+              value: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
+              child: Slider(
+                value: (prefs.alertThreshold.clamp(0.5, 1.0)),
+                min: 0.5,
+                max: 1.0,
+                divisions: 10,
+                label:
+                    '${(prefs.alertThreshold * 100).toStringAsFixed(0)}% threshold',
+                onChanged: (v) {
+                  prefs.setAlertThreshold(v);
+                  setState(() {});
+                },
+                onChangeEnd: (v) async {
+                  await ref
+                      .read(analyticsServiceProvider)
+                      .logEvent(
+                        'alert_threshold_change',
+                        params: {'threshold_percent': (v * 100).round()},
+                      );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text('${(prefs.alertThreshold * 100).toStringAsFixed(0)}%'),
+        ],
+      ),
+      const SizedBox(height: 12),
+      Row(
+        children: [
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              initialValue: prefs.alertFrequency,
+              items: const [
+                DropdownMenuItem(value: 'daily', child: Text('Daily')),
+                DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
+                DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
+              ],
+              onChanged: (v) async {
+                if (v == null) return;
+                await prefs.setAlertFrequency(v);
+                setState(() {});
+              },
+              decoration: const InputDecoration(
+                labelText: 'Alert frequency',
+                filled: true,
+              ),
+            ),
+          ),
+        ],
       ),
       const SizedBox(height: 12),
       Row(

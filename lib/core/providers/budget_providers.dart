@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../repositories/budget_repository.dart';
 import '../repositories/transaction_repository.dart';
 import '../models/budget.dart';
+import '../providers/shared_prefs_provider.dart';
 
 DateTime _periodStart(BudgetPeriod p) {
   final now = DateTime.now();
@@ -34,12 +35,14 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
 final budgetAlertsProvider = Provider<List<String>>((ref) {
   final budgets = ref.watch(userBudgetsProvider).maybeWhen(data: (d) => d, orElse: () => const []);
   final spent = ref.watch(budgetsUtilizationProvider);
+  final prefs = ref.watch(sharedPrefsServiceProvider);
+  final threshold = prefs.alertThreshold;
   final alerts = <String>[];
   for (final b in budgets) {
     final s = spent[b.id] ?? 0;
     final util = b.allocated == 0 ? 0 : s / b.allocated;
-    if (util > 0.9) {
-      alerts.add('High utilization for ${b.name}: ${(util * 100).toStringAsFixed(0)}%');
+    if (util >= threshold) {
+      alerts.add('High utilization for ${b.name}: ${(util * 100).toStringAsFixed(0)}% (threshold ${(threshold * 100).toStringAsFixed(0)}%)');
     }
   }
   return alerts;

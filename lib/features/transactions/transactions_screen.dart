@@ -61,16 +61,21 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             child: Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.search),
-                      hintText: t?.search ?? 'Search',
-                      filled: true,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  child: Semantics(
+                    label: 'Search transactions',
+                    hint: 'Type to filter by title',
+                    textField: true,
+                    child: TextField(
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.search),
+                        hintText: t?.search ?? 'Search',
+                        filled: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
+                      onChanged: (v) => setState(() => _query = v),
                     ),
-                    onChanged: (v) => setState(() => _query = v),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -102,91 +107,97 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 ),
                 const SizedBox(width: 12),
                 DropdownButtonHideUnderline(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.05),
+                  child: Semantics(
+                    label: 'Filter by type',
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
                       ),
-                    ),
-                    child: DropdownButton<String>(
-                      value: _filter,
-                      items: [
-                        DropdownMenuItem(
-                          value: 'All',
-                          child: Text(t?.filterAll ?? 'All'),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.05),
                         ),
-                        DropdownMenuItem(
-                          value: 'Income',
-                          child: Text(t?.filterIncome ?? 'Income'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Expense',
-                          child: Text(t?.filterExpense ?? 'Expense'),
-                        ),
-                      ],
-                      onChanged: (v) => setState(() => _filter = v ?? 'All'),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                DropdownButtonHideUnderline(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.05),
                       ),
-                    ),
-                    child: catsAsync.when(
-                      loading: () => DropdownButton<String>(
-                        value: _categoryFilter,
-                        items: const [
-                          DropdownMenuItem(value: 'All', child: Text('All')),
-                        ],
-                        onChanged: (v) =>
-                            setState(() => _categoryFilter = v ?? 'All'),
-                      ),
-                      error: (e, _) => DropdownButton<String>(
-                        value: _categoryFilter,
-                        items: const [
-                          DropdownMenuItem(value: 'All', child: Text('All')),
-                        ],
-                        onChanged: (v) =>
-                            setState(() => _categoryFilter = v ?? 'All'),
-                      ),
-                      data: (list) => DropdownButton<String>(
-                        value: _categoryFilter,
+                      child: DropdownButton<String>(
+                        value: _filter,
                         items: [
                           DropdownMenuItem(
                             value: 'All',
                             child: Text(t?.filterAll ?? 'All'),
                           ),
                           DropdownMenuItem(
-                            value: 'Uncategorized',
-                            child: Text(t?.uncategorized ?? 'Uncategorized'),
+                            value: 'Income',
+                            child: Text(t?.filterIncome ?? 'Income'),
                           ),
-                          ...list
-                              .map(
-                                (c) => DropdownMenuItem(
-                                  value: c.name,
-                                  child: Text(c.name),
-                                ),
-                              )
-                              .toList(),
+                          DropdownMenuItem(
+                            value: 'Expense',
+                            child: Text(t?.filterExpense ?? 'Expense'),
+                          ),
                         ],
-                        onChanged: (v) =>
-                            setState(() => _categoryFilter = v ?? 'All'),
+                        onChanged: (v) => setState(() => _filter = v ?? 'All'),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                DropdownButtonHideUnderline(
+                  child: Semantics(
+                    label: 'Filter by category',
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.05),
+                        ),
+                      ),
+                      child: catsAsync.when(
+                        loading: () => DropdownButton<String>(
+                          value: _categoryFilter,
+                          items: const [
+                            DropdownMenuItem(value: 'All', child: Text('All')),
+                          ],
+                          onChanged: (v) =>
+                              setState(() => _categoryFilter = v ?? 'All'),
+                        ),
+                        error: (e, _) => DropdownButton<String>(
+                          value: _categoryFilter,
+                          items: const [
+                            DropdownMenuItem(value: 'All', child: Text('All')),
+                          ],
+                          onChanged: (v) =>
+                              setState(() => _categoryFilter = v ?? 'All'),
+                        ),
+                        data: (list) => DropdownButton<String>(
+                          value: _categoryFilter,
+                          items: [
+                            DropdownMenuItem(
+                              value: 'All',
+                              child: Text(t?.filterAll ?? 'All'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Uncategorized',
+                              child: Text(t?.uncategorized ?? 'Uncategorized'),
+                            ),
+                            ...list
+                                .map(
+                                  (c) => DropdownMenuItem(
+                                    value: c.name,
+                                    child: Text(c.name),
+                                  ),
+                                )
+                                .toList(),
+                          ],
+                          onChanged: (v) =>
+                              setState(() => _categoryFilter = v ?? 'All'),
+                        ),
                       ),
                     ),
                   ),
@@ -194,39 +205,49 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 const SizedBox(width: 12),
                 SizedBox(
                   width: 110,
-                  child: TextField(
-                    decoration: const InputDecoration(
-                      labelText: 'Min',
-                      filled: true,
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                        RegExp(r'^\d*\.?\d{0,2}'),
+                  child: Semantics(
+                    label: 'Minimum amount filter',
+                    hint: 'Set lowest amount to show',
+                    textField: true,
+                    child: TextField(
+                      decoration: const InputDecoration(
+                        labelText: 'Min',
+                        filled: true,
                       ),
-                    ],
-                    onChanged: (v) => setState(() => _minAmountText = v),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d{0,2}'),
+                        ),
+                      ],
+                      onChanged: (v) => setState(() => _minAmountText = v),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 SizedBox(
                   width: 110,
-                  child: TextField(
-                    decoration: const InputDecoration(
-                      labelText: 'Max',
-                      filled: true,
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                        RegExp(r'^\d*\.?\d{0,2}'),
+                  child: Semantics(
+                    label: 'Maximum amount filter',
+                    hint: 'Set highest amount to show',
+                    textField: true,
+                    child: TextField(
+                      decoration: const InputDecoration(
+                        labelText: 'Max',
+                        filled: true,
                       ),
-                    ],
-                    onChanged: (v) => setState(() => _maxAmountText = v),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d{0,2}'),
+                        ),
+                      ],
+                      onChanged: (v) => setState(() => _maxAmountText = v),
+                    ),
                   ),
                 ),
               ],

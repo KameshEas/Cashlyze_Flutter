@@ -4,6 +4,8 @@ import 'dart:convert';
 class SharedPrefsService {
   static const String _onboardingKey = 'onboarding_completed';
   static const String _alertsEnabledKey = 'alerts_enabled';
+  static const String _alertThresholdKey = 'alert_threshold';
+  static const String _alertFrequencyKey = 'alert_frequency';
   static const String _currencyKey = 'currency';
   static const String _dateFormatKey = 'date_format';
   static const String _biometricKey = 'biometric_enabled';
@@ -20,6 +22,17 @@ class SharedPrefsService {
   bool get alertsEnabled => _prefs.getBool(_alertsEnabledKey) ?? true;
   Future<void> setAlertsEnabled(bool value) async {
     await _prefs.setBool(_alertsEnabledKey, value);
+  }
+
+  double get alertThreshold => _prefs.getDouble(_alertThresholdKey) ?? 0.9;
+  Future<void> setAlertThreshold(double value) async {
+    await _prefs.setDouble(_alertThresholdKey, value);
+  }
+
+  String get alertFrequency =>
+      _prefs.getString(_alertFrequencyKey) ?? 'monthly';
+  Future<void> setAlertFrequency(String value) async {
+    await _prefs.setString(_alertFrequencyKey, value);
   }
 
   String get currency => _prefs.getString(_currencyKey) ?? 'INR';
