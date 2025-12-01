@@ -44,3 +44,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 test/goldens/failures/
+Findings.md
+.trae/documents/
+docs/

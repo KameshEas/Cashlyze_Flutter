@@ -54,4 +54,11 @@
   "quickTopUp": "Top-up",
   "quickBill": "Bill",
   "quickMore": "More"
+  ,
+  "emiUpcoming": "Upcoming EMI",
+  "viewDetails": "View Details",
+  "noUpcomingEmi": "No upcoming EMI this month",
+  "setReminder": "Set Reminder",
+  "pay": "Pay",
+  "emiMarkedPaidAdded": "EMI marked paid and transaction added"
 }

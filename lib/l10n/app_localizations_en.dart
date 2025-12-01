@@ -170,4 +170,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get quickMore => 'More';
+
+  @override
+  String get emiUpcoming => 'Upcoming EMI';
+
+  @override
+  String get viewDetails => 'View Details';
+
+  @override
+  String get noUpcomingEmi => 'No upcoming EMI this month';
+
+  @override
+  String get setReminder => 'Set Reminder';
+
+  @override
+  String get pay => 'Pay';
+
+  @override
+  String get emiMarkedPaidAdded => 'EMI marked paid and transaction added';
 }

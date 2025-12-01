@@ -170,4 +170,22 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get quickMore => 'अधिक';
+
+  @override
+  String get emiUpcoming => 'आगामी ईएमआई';
+
+  @override
+  String get viewDetails => 'विवरण देखें';
+
+  @override
+  String get noUpcomingEmi => 'इस माह कोई आगामी ईएमआई नहीं';
+
+  @override
+  String get setReminder => 'रिमाइंडर सेट करें';
+
+  @override
+  String get pay => 'भुगतान करें';
+
+  @override
+  String get emiMarkedPaidAdded => 'ईएमआई भुगतान चिह्नित और लेनदेन जोड़ा गया';
 }

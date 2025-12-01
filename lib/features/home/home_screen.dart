@@ -751,7 +751,8 @@ class HomeScreen extends ConsumerWidget {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'Upcoming EMI',
+                        AppLocalizations.of(context)?.emiUpcoming ??
+                            'Upcoming EMI',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -766,7 +767,10 @@ class HomeScreen extends ConsumerWidget {
                         vertical: 8,
                       ),
                     ),
-                    child: const Text('View Details'),
+                    child: Text(
+                      AppLocalizations.of(context)?.viewDetails ??
+                          'View Details',
+                    ),
                   ),
                 ],
               ),
@@ -792,7 +796,8 @@ class HomeScreen extends ConsumerWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'No upcoming EMI this month',
+                        AppLocalizations.of(context)?.noUpcomingEmi ??
+                            'No upcoming EMI this month',
                         style: theme.textTheme.bodyMedium,
                       ),
                     ),
@@ -804,7 +809,10 @@ class HomeScreen extends ConsumerWidget {
                           vertical: 8,
                         ),
                       ),
-                      child: const Text('Set Reminder'),
+                      child: Text(
+                        AppLocalizations.of(context)?.setReminder ??
+                            'Set Reminder',
+                      ),
                     ),
                   ],
                 )
@@ -871,9 +879,12 @@ class HomeScreen extends ConsumerWidget {
                                     notes: 'EMI payment recorded from Home',
                                   );
                               messenger.showSnackBar(
-                                const SnackBar(
+                                SnackBar(
                                   content: Text(
-                                    'EMI marked paid and transaction added',
+                                    AppLocalizations.of(
+                                          context,
+                                        )?.emiMarkedPaidAdded ??
+                                        'EMI marked paid and transaction added',
                                   ),
                                 ),
                               );
@@ -889,7 +900,9 @@ class HomeScreen extends ConsumerWidget {
                               vertical: 8,
                             ),
                           ),
-                          child: const Text('Pay'),
+                          child: Text(
+                            AppLocalizations.of(context)?.pay ?? 'Pay',
+                          ),
                         ),
                       ],
                     ),

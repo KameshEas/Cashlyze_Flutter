@@ -421,6 +421,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'More'**
   String get quickMore;
+
+  /// No description provided for @emiUpcoming.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming EMI'**
+  String get emiUpcoming;
+
+  /// No description provided for @viewDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'View Details'**
+  String get viewDetails;
+
+  /// No description provided for @noUpcomingEmi.
+  ///
+  /// In en, this message translates to:
+  /// **'No upcoming EMI this month'**
+  String get noUpcomingEmi;
+
+  /// No description provided for @setReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Set Reminder'**
+  String get setReminder;
+
+  /// No description provided for @pay.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay'**
+  String get pay;
+
+  /// No description provided for @emiMarkedPaidAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'EMI marked paid and transaction added'**
+  String get emiMarkedPaidAdded;
 }
 
 class _AppLocalizationsDelegate

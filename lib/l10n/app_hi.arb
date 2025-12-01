@@ -54,4 +54,11 @@
   "quickTopUp": "टॉप-अप",
   "quickBill": "बिल",
   "quickMore": "अधिक"
+  ,
+  "emiUpcoming": "आगामी ईएमआई",
+  "viewDetails": "विवरण देखें",
+  "noUpcomingEmi": "इस माह कोई आगामी ईएमआई नहीं",
+  "setReminder": "रिमाइंडर सेट करें",
+  "pay": "भुगतान करें",
+  "emiMarkedPaidAdded": "ईएमआई भुगतान चिह्नित और लेनदेन जोड़ा गया"
 }
