@@ -4,7 +4,7 @@ import '../../firebase_options.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-const kRequireEmailVerification = false;
+const kRequireEmailVerification = true;
 
 /// Provider for FirebaseAuth instance
 final firebaseAuthProvider = Provider<FirebaseAuth>((ref) {

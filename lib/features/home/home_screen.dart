@@ -12,7 +12,7 @@ import '../../core/models/transaction.dart';
 import '../../core/repositories/emi_repository.dart';
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/services/realtime_db_service.dart';
-import 'package:Cashlyze/l10n/app_localizations.dart';
+import '../../l10n/app_localizations.dart';
 import '../../core/providers/recurring_providers.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -21,7 +21,6 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(recurringProcessorProvider);
-    final prefs = ref.watch(sharedPrefsServiceProvider);
     final currency = ref.watch(currencyProvider);
     final kpis = ref.watch(kpisProvider);
     final txsAsync = ref.watch(recentTransactionsProvider);

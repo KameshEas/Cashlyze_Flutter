@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 enum RecurringFrequency { weekly, monthly }
 
 class RecurringRule {
@@ -33,10 +31,14 @@ class RecurringRule {
       amount: (data['amount'] as num).toDouble(),
       isIncome: (data['isIncome'] as bool?) ?? false,
       categoryId: data['categoryId'] as String?,
-      startDate: DateTime.fromMillisecondsSinceEpoch((data['start_ms'] as num).toInt()),
+      startDate: DateTime.fromMillisecondsSinceEpoch(
+        (data['start_ms'] as num).toInt(),
+      ),
       lastPostedDate: data['last_ms'] == null
           ? null
-          : DateTime.fromMillisecondsSinceEpoch((data['last_ms'] as num).toInt()),
+          : DateTime.fromMillisecondsSinceEpoch(
+              (data['last_ms'] as num).toInt(),
+            ),
       frequency: (data['frequency'] as String) == 'weekly'
           ? RecurringFrequency.weekly
           : RecurringFrequency.monthly,
@@ -52,7 +54,9 @@ class RecurringRule {
       'categoryId': categoryId,
       'start_ms': startDate.millisecondsSinceEpoch,
       'last_ms': lastPostedDate?.millisecondsSinceEpoch,
-      'frequency': frequency == RecurringFrequency.weekly ? 'weekly' : 'monthly',
+      'frequency': frequency == RecurringFrequency.weekly
+          ? 'weekly'
+          : 'monthly',
     };
   }
 }

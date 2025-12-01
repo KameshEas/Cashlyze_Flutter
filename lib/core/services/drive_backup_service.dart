@@ -21,11 +21,7 @@ class DriveBackupService {
   final GoogleSignIn _signIn;
 
   DriveBackupService()
-      : _signIn = GoogleSignIn(
-          scopes: <String>[
-            drive.DriveApi.driveFileScope,
-          ],
-        );
+    : _signIn = GoogleSignIn(scopes: <String>[drive.DriveApi.driveFileScope]);
 
   Future<drive.DriveApi> _api() async {
     var account = await _signIn.signInSilently();
@@ -38,31 +34,51 @@ class DriveBackupService {
     return drive.DriveApi(client);
   }
 
-  Future<String> uploadJson({required String filename, required String json}) async {
+  Future<String> uploadJson({
+    required String filename,
+    required String json,
+  }) async {
     final api = await _api();
-    final q = "name='" + filename + "' and trashed=false";
+    final q = "name='$filename' and trashed=false";
     final list = await api.files.list(q: q, spaces: 'drive');
-    final media = drive.Media(Stream.value(Uint8List.fromList(utf8.encode(json))), json.length);
+    final media = drive.Media(
+      Stream.value(Uint8List.fromList(utf8.encode(json))),
+      json.length,
+    );
     if (list.files != null && list.files!.isNotEmpty) {
       final fileId = list.files!.first.id!;
-      await api.files.update(drive.File(name: filename, mimeType: 'application/json'), fileId, uploadMedia: media);
+      await api.files.update(
+        drive.File(name: filename, mimeType: 'application/json'),
+        fileId,
+        uploadMedia: media,
+      );
       return fileId;
     } else {
-      final created = await api.files.create(drive.File(name: filename, mimeType: 'application/json'), uploadMedia: media);
+      final created = await api.files.create(
+        drive.File(name: filename, mimeType: 'application/json'),
+        uploadMedia: media,
+      );
       return created.id!;
     }
   }
 
   Future<String?> downloadJson({required String filename}) async {
     final api = await _api();
-    final q = "name='" + filename + "' and trashed=false";
+    final q = "name='$filename' and trashed=false";
     final list = await api.files.list(q: q, spaces: 'drive');
     if (list.files == null || list.files!.isEmpty) return null;
     final fileId = list.files!.first.id!;
-    final media = await api.files.get(fileId, downloadOptions: drive.DownloadOptions.fullMedia) as drive.Media;
+    final media =
+        await api.files.get(
+              fileId,
+              downloadOptions: drive.DownloadOptions.fullMedia,
+            )
+            as drive.Media;
     final bytes = await media.stream.expand((x) => x).toList();
     return utf8.decode(bytes);
   }
 }
 
-final driveBackupServiceProvider = Provider<DriveBackupService>((ref) => DriveBackupService());
+final driveBackupServiceProvider = Provider<DriveBackupService>(
+  (ref) => DriveBackupService(),
+);

@@ -6,7 +6,7 @@ import '../../core/repositories/user_repository.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/services/auth_service.dart' as cfg;
 import '../../core/services/biometric_service.dart';
-import '../../core/services/shared_prefs_service.dart';
+import '../../core/providers/onboarding_provider.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   final bool initialIsLogin;
@@ -307,10 +307,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           value: _biometricEnabled,
                           onChanged: (v) async {
                             setState(() => _biometricEnabled = v);
-                            await ref.read(sharedPrefsServiceProvider).setBiometricEnabled(v);
+                            await ref
+                                .read(sharedPrefsServiceProvider)
+                                .setBiometricEnabled(v);
                           },
                           title: const Text('Require biometric to unlock'),
-                          subtitle: const Text('Use fingerprint/FaceID on app open'),
+                          subtitle: const Text(
+                            'Use fingerprint/FaceID on app open',
+                          ),
                         ),
 
                       // Forgot Password
@@ -354,12 +358,18 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           padding: const EdgeInsets.only(top: 8.0),
                           child: OutlinedButton.icon(
                             onPressed: () async {
-                              final ok = await ref.read(biometricServiceProvider).authenticate(reason: 'Unlock Cashlyze');
+                              final ok = await ref
+                                  .read(biometricServiceProvider)
+                                  .authenticate(reason: 'Unlock Cashlyze');
                               if (ok) {
                                 if (mounted) GoRouter.of(context).go('/');
                               } else {
                                 if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Biometric failed')));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Biometric failed'),
+                                    ),
+                                  );
                                 }
                               }
                             },

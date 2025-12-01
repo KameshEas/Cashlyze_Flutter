@@ -3,6 +3,7 @@ import '../repositories/recurring_repository.dart';
 import '../repositories/transaction_repository.dart';
 import '../services/auth_service.dart';
 import '../models/recurring.dart';
+import '../services/analytics_service.dart';
 
 DateTime _nextDue(DateTime from, RecurringFrequency f) {
   if (f == RecurringFrequency.weekly) {
@@ -39,6 +40,11 @@ final recurringProcessorProvider = FutureProvider<int>((ref) async {
       next = _nextDue(next, r.frequency);
       await repo.updateLastPosted(user.uid, r.id, next);
     }
+  }
+  if (posted > 0) {
+    await ref
+        .read(analyticsServiceProvider)
+        .logEvent('recurring_post', params: {'count': posted});
   }
   return posted;
 });

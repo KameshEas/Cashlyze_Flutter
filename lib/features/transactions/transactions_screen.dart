@@ -13,6 +13,7 @@ import '../../core/utils/validation.dart';
 import 'package:flutter/services.dart';
 import '../../core/repositories/recurring_repository.dart';
 import '../../core/models/recurring.dart';
+import '../../l10n/app_localizations.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
@@ -25,6 +26,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   String _filter = 'All';
   String _categoryFilter = 'All';
   String _query = '';
+  String _minAmountText = '';
+  String _maxAmountText = '';
   DateTime _selectedMonth = DateTime(
     DateTime.now().year,
     DateTime.now().month,
@@ -73,38 +76,59 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 const SizedBox(width: 12),
                 const SizedBox(width: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
                   ),
                   child: DropdownButton<DateTime>(
                     value: _selectedMonth,
                     items: List.generate(12, (i) {
                       final now = DateTime.now();
                       final m = DateTime(now.year, now.month - i, 1);
-                      final label = '${m.year}-${m.month.toString().padLeft(2, '0')}';
+                      final label =
+                          '${m.year}-${m.month.toString().padLeft(2, '0')}';
                       return DropdownMenuItem(value: m, child: Text(label));
                     }),
-                    onChanged: (v) => setState(() => _selectedMonth = v ?? _selectedMonth),
+                    onChanged: (v) =>
+                        setState(() => _selectedMonth = v ?? _selectedMonth),
                   ),
                 ),
                 const SizedBox(width: 12),
                 DropdownButtonHideUnderline(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
                     ),
                     child: DropdownButton<String>(
                       value: _filter,
                       items: [
-                        DropdownMenuItem(value: 'All', child: Text(t?.filterAll ?? 'All')),
-                        DropdownMenuItem(value: 'Income', child: Text(t?.filterIncome ?? 'Income')),
-                        DropdownMenuItem(value: 'Expense', child: Text(t?.filterExpense ?? 'Expense')),
+                        DropdownMenuItem(
+                          value: 'All',
+                          child: Text(t?.filterAll ?? 'All'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Income',
+                          child: Text(t?.filterIncome ?? 'Income'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Expense',
+                          child: Text(t?.filterExpense ?? 'Expense'),
+                        ),
                       ],
                       onChanged: (v) => setState(() => _filter = v ?? 'All'),
                     ),
@@ -113,33 +137,96 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 const SizedBox(width: 12),
                 DropdownButtonHideUnderline(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
                     ),
                     child: catsAsync.when(
                       loading: () => DropdownButton<String>(
                         value: _categoryFilter,
-                        items: const [DropdownMenuItem(value: 'All', child: Text('All'))],
-                        onChanged: (v) => setState(() => _categoryFilter = v ?? 'All'),
+                        items: const [
+                          DropdownMenuItem(value: 'All', child: Text('All')),
+                        ],
+                        onChanged: (v) =>
+                            setState(() => _categoryFilter = v ?? 'All'),
                       ),
                       error: (e, _) => DropdownButton<String>(
                         value: _categoryFilter,
-                        items: const [DropdownMenuItem(value: 'All', child: Text('All'))],
-                        onChanged: (v) => setState(() => _categoryFilter = v ?? 'All'),
+                        items: const [
+                          DropdownMenuItem(value: 'All', child: Text('All')),
+                        ],
+                        onChanged: (v) =>
+                            setState(() => _categoryFilter = v ?? 'All'),
                       ),
                       data: (list) => DropdownButton<String>(
                         value: _categoryFilter,
                         items: [
-                          DropdownMenuItem(value: 'All', child: Text(t?.filterAll ?? 'All')),
-                          DropdownMenuItem(value: 'Uncategorized', child: Text(t?.uncategorized ?? 'Uncategorized')),
-                          ...list.map((c) => DropdownMenuItem(value: c.name, child: Text(c.name))).toList(),
+                          DropdownMenuItem(
+                            value: 'All',
+                            child: Text(t?.filterAll ?? 'All'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Uncategorized',
+                            child: Text(t?.uncategorized ?? 'Uncategorized'),
+                          ),
+                          ...list
+                              .map(
+                                (c) => DropdownMenuItem(
+                                  value: c.name,
+                                  child: Text(c.name),
+                                ),
+                              )
+                              .toList(),
                         ],
-                        onChanged: (v) => setState(() => _categoryFilter = v ?? 'All'),
+                        onChanged: (v) =>
+                            setState(() => _categoryFilter = v ?? 'All'),
                       ),
                     ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 110,
+                  child: TextField(
+                    decoration: const InputDecoration(
+                      labelText: 'Min',
+                      filled: true,
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d*\.?\d{0,2}'),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _minAmountText = v),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 110,
+                  child: TextField(
+                    decoration: const InputDecoration(
+                      labelText: 'Max',
+                      filled: true,
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d*\.?\d{0,2}'),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _maxAmountText = v),
                   ),
                 ),
               ],
@@ -178,7 +265,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       Expanded(child: Text('Failed to load: $e')),
                       TextButton(
                         onPressed: () => ref.refresh(userTransactionsProvider),
-                        child: Text(AppLocalizations.of(context)?.retry ?? 'Retry'),
+                        child: Text(
+                          AppLocalizations.of(context)?.retry ?? 'Retry',
+                        ),
                       ),
                     ],
                   ),
@@ -196,12 +285,32 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   1,
                 );
                 final filtered = items.where((e) {
-                  final matchesQuery = _query.isEmpty || e.title.toLowerCase().contains(_query.toLowerCase());
-                  final matchesType = _filter == 'All' || (_filter == 'Income' && e.amount > 0) || (_filter == 'Expense' && e.amount < 0);
+                  final matchesQuery =
+                      _query.isEmpty ||
+                      e.title.toLowerCase().contains(_query.toLowerCase());
+                  final matchesType =
+                      _filter == 'All' ||
+                      (_filter == 'Income' && e.amount > 0) ||
+                      (_filter == 'Expense' && e.amount < 0);
                   final catLabel = e.categoryId ?? 'Uncategorized';
-                  final matchesCategory = _categoryFilter == 'All' || _categoryFilter == catLabel;
-                  final inMonth = e.date.isAfter(monthStart.subtract(const Duration(seconds: 1))) && e.date.isBefore(monthEnd);
-                  return matchesQuery && matchesType && matchesCategory && inMonth;
+                  final matchesCategory =
+                      _categoryFilter == 'All' || _categoryFilter == catLabel;
+                  final minAmt = double.tryParse(_minAmountText);
+                  final maxAmt = double.tryParse(_maxAmountText);
+                  final absAmount = e.amount.abs();
+                  final matchesAmount =
+                      (minAmt == null || absAmount >= minAmt) &&
+                      (maxAmt == null || absAmount <= maxAmt);
+                  final inMonth =
+                      e.date.isAfter(
+                        monthStart.subtract(const Duration(seconds: 1)),
+                      ) &&
+                      e.date.isBefore(monthEnd);
+                  return matchesQuery &&
+                      matchesType &&
+                      matchesCategory &&
+                      matchesAmount &&
+                      inMonth;
                 }).toList();
                 if (filtered.isEmpty) {
                   return Center(
@@ -290,7 +399,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           final confirm = await showDialog<bool>(
                             context: context,
                             builder: (dCtx) => AlertDialog(
-                              title: Text(AppLocalizations.of(context)?.deleteTransactionTitle ?? 'Delete transaction'),
+                              title: Text(
+                                AppLocalizations.of(
+                                      context,
+                                    )?.deleteTransactionTitle ??
+                                    'Delete transaction',
+                              ),
                               content: const Text(
                                 'Are you sure you want to delete this transaction?',
                               ),
@@ -298,11 +412,17 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                 TextButton(
                                   onPressed: () =>
                                       Navigator.of(dCtx).pop(false),
-                                  child: Text(AppLocalizations.of(context)?.cancel ?? 'Cancel'),
+                                  child: Text(
+                                    AppLocalizations.of(context)?.cancel ??
+                                        'Cancel',
+                                  ),
                                 ),
                                 FilledButton(
                                   onPressed: () => Navigator.of(dCtx).pop(true),
-                                  child: Text(AppLocalizations.of(context)?.delete ?? 'Delete'),
+                                  child: Text(
+                                    AppLocalizations.of(context)?.delete ??
+                                        'Delete',
+                                  ),
                                 ),
                               ],
                             ),
@@ -383,11 +503,15 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.06,
+                                  ),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
-                                  isIncome ? Icons.arrow_downward : Icons.arrow_upward,
+                                  isIncome
+                                      ? Icons.arrow_downward
+                                      : Icons.arrow_upward,
                                   color: isIncome ? Colors.green : Colors.red,
                                   size: 20,
                                 ),
@@ -405,21 +529,47 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                           ),
                                     ),
                                     const SizedBox(height: 6),
-                                    Row(children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
-                                        child: Text(e.categoryId ?? 'Uncategorized', style: theme.textTheme.bodySmall),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(formatDate(e.date, datePattern), style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.7))),
-                                    ]),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: theme.colorScheme.onSurface
+                                                .withValues(alpha: 0.08),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            e.categoryId ?? 'Uncategorized',
+                                            style: theme.textTheme.bodySmall,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          formatDate(e.date, datePattern),
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: theme
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withValues(alpha: 0.7),
+                                              ),
+                                        ),
+                                      ],
+                                    ),
                                   ],
                                 ),
                               ),
                               Text(
                                 formatAmount(e.amount, currency),
-                                style: theme.textTheme.bodyLarge?.copyWith(color: isIncome ? Colors.green : Colors.red, fontWeight: FontWeight.bold),
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: isIncome ? Colors.green : Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ],
                           ),
@@ -555,8 +705,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: amountController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'^\d*\.?\d{0,2}'),
+                    ),
+                  ],
                   decoration: const InputDecoration(
                     labelText: 'Amount',
                     helperText: 'e.g., 123.45',
@@ -588,21 +744,37 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         final messenger = ScaffoldMessenger.of(context);
                         final nav = Navigator.of(context);
                         if (!validateTitle(titleController.text.trim())) {
-                          messenger.showSnackBar(const SnackBar(content: Text('Enter a title')));
+                          messenger.showSnackBar(
+                            const SnackBar(content: Text('Enter a title')),
+                          );
                           return;
                         }
                         if (!validateAmount(amountController.text.trim())) {
-                          messenger.showSnackBar(const SnackBar(content: Text('Enter a valid amount')));
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text('Enter a valid amount'),
+                            ),
+                          );
                           return;
                         }
-                        final amount = double.tryParse(amountController.text) ?? 0;
+                        final amount =
+                            double.tryParse(amountController.text) ?? 0;
                         final isIncome = type == 'Income';
-                        final localCategory = category == 'General' ? null : category;
+                        final localCategory = category == 'General'
+                            ? null
+                            : category;
 
                         try {
                           if (!isIncome && localCategory != null) {
-                            final budgets = await ref.read(budgetRepositoryProvider).streamForUser(user.uid).first;
-                            final hasBudget = budgets.any((b) => b.name.toLowerCase() == localCategory.toLowerCase());
+                            final budgets = await ref
+                                .read(budgetRepositoryProvider)
+                                .streamForUser(user.uid)
+                                .first;
+                            final hasBudget = budgets.any(
+                              (b) =>
+                                  b.name.toLowerCase() ==
+                                  localCategory.toLowerCase(),
+                            );
                             if (!hasBudget) {
                               final transactionData = {
                                 'userId': user.uid,
@@ -613,11 +785,17 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                 'date': date,
                                 'notes': null,
                               };
-                              await _openCreateBudgetForCategory(context, localCategory, transactionData);
+                              await _openCreateBudgetForCategory(
+                                context,
+                                localCategory,
+                                transactionData,
+                              );
                             }
                           }
 
-                          final ingest = ref.read(transactionIngestServiceProvider);
+                          final ingest = ref.read(
+                            transactionIngestServiceProvider,
+                          );
                           await ingest.addManual(
                             userId: user.uid,
                             title: titleController.text,
@@ -628,23 +806,31 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             notes: null,
                           );
                           if (repeatEnabled) {
-                            final freq = repeatFreq == 'Weekly' ? RecurringFrequency.weekly : RecurringFrequency.monthly;
-                            await ref.read(recurringRepositoryProvider).createRule(
-                              userId: user.uid,
-                              title: titleController.text,
-                              amount: amount,
-                              isIncome: isIncome,
-                              categoryId: localCategory,
-                              startDate: date,
-                              frequency: freq,
-                            );
+                            final freq = repeatFreq == 'Weekly'
+                                ? RecurringFrequency.weekly
+                                : RecurringFrequency.monthly;
+                            await ref
+                                .read(recurringRepositoryProvider)
+                                .createRule(
+                                  userId: user.uid,
+                                  title: titleController.text,
+                                  amount: amount,
+                                  isIncome: isIncome,
+                                  categoryId: localCategory,
+                                  startDate: date,
+                                  frequency: freq,
+                                );
                           }
                           if (!mounted) return;
                           nav.pop(true);
-                          messenger.showSnackBar(const SnackBar(content: Text('Transaction saved')));
+                          messenger.showSnackBar(
+                            const SnackBar(content: Text('Transaction saved')),
+                          );
                         } catch (e) {
                           if (!mounted) return;
-                          messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                          messenger.showSnackBar(
+                            SnackBar(content: Text('Failed: $e')),
+                          );
                         }
                       },
                       child: const Text('Save'),
@@ -663,11 +849,17 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   DropdownButtonFormField<String>(
                     value: repeatFreq,
                     items: const [
-                      DropdownMenuItem(value: 'Monthly', child: Text('Monthly')),
+                      DropdownMenuItem(
+                        value: 'Monthly',
+                        child: Text('Monthly'),
+                      ),
                       DropdownMenuItem(value: 'Weekly', child: Text('Weekly')),
                     ],
                     onChanged: (v) => repeatFreq = v ?? 'Monthly',
-                    decoration: const InputDecoration(labelText: 'Frequency', filled: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Frequency',
+                      filled: true,
+                    ),
                   ),
               ],
             ),
@@ -813,8 +1005,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: amountController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'^\d*\.?\d{0,2}'),
+                    ),
+                  ],
                   decoration: const InputDecoration(
                     labelText: 'Amount',
                     helperText: 'e.g., 123.45',
@@ -844,23 +1042,38 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     FilledButton(
                       onPressed: () async {
                         if (!validateTitle(titleController.text.trim())) {
-                          messenger.showSnackBar(const SnackBar(content: Text('Enter a title')));
+                          messenger.showSnackBar(
+                            const SnackBar(content: Text('Enter a title')),
+                          );
                           return;
                         }
                         if (!validateAmount(amountController.text.trim())) {
-                          messenger.showSnackBar(const SnackBar(content: Text('Enter a valid amount')));
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text('Enter a valid amount'),
+                            ),
+                          );
                           return;
                         }
                         final amt = double.tryParse(amountController.text) ?? 0;
                         final isIncome = type == 'Income';
-                        final localCategory = category == 'General' ? null : category;
+                        final localCategory = category == 'General'
+                            ? null
+                            : category;
                         try {
                           final user = ref.read(currentUserProvider);
                           if (user == null) return;
 
                           if (!isIncome && localCategory != null) {
-                            final budgets = await ref.read(budgetRepositoryProvider).streamForUser(user.uid).first;
-                            final hasBudget = budgets.any((b) => b.name.toLowerCase() == localCategory.toLowerCase());
+                            final budgets = await ref
+                                .read(budgetRepositoryProvider)
+                                .streamForUser(user.uid)
+                                .first;
+                            final hasBudget = budgets.any(
+                              (b) =>
+                                  b.name.toLowerCase() ==
+                                  localCategory.toLowerCase(),
+                            );
                             if (!hasBudget) {
                               final editTransactionData = {
                                 'userId': user.uid,
@@ -871,50 +1084,34 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                 'notes': null,
                                 'isIncome': isIncome,
                               };
-                              await _openCreateBudgetForCategory(context, localCategory, editTransactionData);
-                            }
-                          }
-
-                          await ref.read(transactionRepositoryProvider).update(user.uid, id, {
-                            'title': titleController.text.trim(),
-                            'amount': isIncome ? amt.abs() : -amt.abs(),
-                            'categoryId': localCategory,
-                            'date_ms': pickedDate.millisecondsSinceEpoch,
-                          });
-                          if (!mounted) return;
-                          nav.pop();
-                          messenger.showSnackBar(const SnackBar(content: Text('Transaction updated')));
-                        } catch (e) {
-                          if (!mounted) return;
-                          messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
-                        }
-                      },
-                      child: const Text('Save changes'),
-                    ), {
-                                'userId': currentUser.uid,
-                                'title': titleController.text.trim(),
-                                'amount': type == 'Income'
-                                    ? amt.abs()
-                                    : -amt.abs(),
-                                'categoryId': category == 'General'
-                                    ? null
-                                    : category,
-                                'date': pickedDate,
-                                'notes': null,
-                                'isIncome': type == 'Income',
-                              };
                               await _openCreateBudgetForCategory(
                                 context,
-                                e.categoryName,
+                                localCategory,
                                 editTransactionData,
                               );
                             }
-                          } else {
-                            if (!mounted) return;
-                            messenger.showSnackBar(
-                              SnackBar(content: Text('Failed: $e')),
-                            );
                           }
+
+                          await ref
+                              .read(transactionRepositoryProvider)
+                              .update(user.uid, id, {
+                                'title': titleController.text.trim(),
+                                'amount': isIncome ? amt.abs() : -amt.abs(),
+                                'categoryId': localCategory,
+                                'date_ms': pickedDate.millisecondsSinceEpoch,
+                              });
+                          if (!mounted) return;
+                          nav.pop();
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text('Transaction updated'),
+                            ),
+                          );
+                        } catch (e) {
+                          if (!mounted) return;
+                          messenger.showSnackBar(
+                            SnackBar(content: Text('Failed: $e')),
+                          );
                         }
                       },
                       child: const Text('Save changes'),

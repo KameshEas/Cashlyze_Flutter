@@ -15,6 +15,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../core/services/drive_backup_service.dart';
+import 'package:intl/intl.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -310,6 +311,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         onTap: () async => _restoreTransactionsFromDrive(context, ref),
       ),
       ListTile(
+        leading: const Icon(Icons.upload_file, color: Colors.blue),
+        title: const Text('Import from CSV'),
+        subtitle: const Text('date,title,amount,category'),
+        onTap: () async => _importTransactionsFromCSV(context, ref),
+      ),
+      ListTile(
         leading: const Icon(Icons.download_outlined, color: Colors.blue),
         title: const Text('Export Data'),
         subtitle: const Text('Copy JSON of your data to clipboard'),
@@ -452,6 +459,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await ref
           .read(driveBackupServiceProvider)
           .uploadJson(filename: filename, json: jsonStr);
+      await ref
+          .read(analyticsServiceProvider)
+          .logEvent('backup_drive', params: {'items': transactions.length});
       messenger.showSnackBar(
         const SnackBar(content: Text('Uploaded to Google Drive')),
       );
@@ -502,6 +512,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           count++;
         }
       }
+      await ref
+          .read(analyticsServiceProvider)
+          .logEvent('restore_drive', params: {'items': count});
       messenger.showSnackBar(
         SnackBar(content: Text('Restored $count transactions from Drive')),
       );
