@@ -10,6 +10,7 @@ import '../../core/providers/onboarding_provider.dart';
 import '../../core/models/budget.dart';
 import 'package:flutter/services.dart';
 import '../../core/utils/validation.dart';
+import '../../core/widgets/dialogs.dart';
 
 class BudgetPlannerScreen extends ConsumerStatefulWidget {
   const BudgetPlannerScreen({super.key});
@@ -215,24 +216,13 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                           return false;
                         }
                         final messenger = ScaffoldMessenger.of(context);
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (dCtx) => AlertDialog(
-                            title: const Text('Delete budget'),
-                            content: const Text(
+                        final confirm = await showConfirmDialog(
+                          context,
+                          title: 'Delete budget',
+                          content:
                               'Are you sure you want to delete this budget?',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(dCtx).pop(false),
-                                child: const Text('Cancel'),
-                              ),
-                              FilledButton(
-                                onPressed: () => Navigator.of(dCtx).pop(true),
-                                child: const Text('Delete'),
-                              ),
-                            ],
-                          ),
+                          confirmLabel: 'Delete',
+                          cancelLabel: 'Cancel',
                         );
                         if (confirm == true) {
                           try {
@@ -311,6 +301,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
 
   Future<void> _openCreateBudget(BuildContext context) async {
     final theme = Theme.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     final nameController = TextEditingController();
     final allocatedController = TextEditingController();
     final pageMessenger = ScaffoldMessenger.of(context);
@@ -440,9 +431,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           'allocated': double.tryParse(allocatedController.text.trim()),
         });
         if (mounted)
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Draft saved')));
+          messenger.showSnackBar(const SnackBar(content: Text('Draft saved')));
       }
     } else {
       await prefs.clearDraft('budget_create');
@@ -457,6 +446,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     double allocated,
   ) async {
     final theme = Theme.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     final amountController = TextEditingController(
       text: allocated.toStringAsFixed(2),
     );
@@ -585,9 +575,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
               : noteController.text.trim(),
         });
         if (mounted)
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Draft saved')));
+          messenger.showSnackBar(const SnackBar(content: Text('Draft saved')));
       }
     } else {
       await prefs.clearDraft('budget_adjust');

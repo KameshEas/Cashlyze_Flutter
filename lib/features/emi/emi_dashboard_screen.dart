@@ -319,6 +319,9 @@ class _PlanCard extends ConsumerWidget {
                                 if (!e.paid)
                                   FilledButton(
                                     onPressed: () async {
+                                      final messenger = ScaffoldMessenger.of(
+                                        context,
+                                      );
                                       final user = ref.read(
                                         currentUserProvider,
                                       );
@@ -326,9 +329,7 @@ class _PlanCard extends ConsumerWidget {
                                       await ref
                                           .read(emiRepositoryProvider)
                                           .markPaid(user.uid, plan.id, e.id);
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
+                                      messenger.showSnackBar(
                                         const SnackBar(
                                           content: Text('EMI marked as paid'),
                                         ),

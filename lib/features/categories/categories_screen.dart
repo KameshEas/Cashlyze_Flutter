@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/services/auth_service.dart';
+import '../../l10n/app_localizations.dart';
+import '../../core/widgets/dialogs.dart';
 
 class CategoriesScreen extends ConsumerWidget {
   const CategoriesScreen({super.key});
@@ -72,24 +74,13 @@ class CategoriesScreen extends ConsumerWidget {
                       icon: const Icon(Icons.delete_outline),
                       onPressed: () async {
                         final messenger = ScaffoldMessenger.of(context);
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (dCtx) => AlertDialog(
-                            title: const Text('Delete category'),
-                            content: const Text(
+                        final confirm = await showConfirmDialog(
+                          context,
+                          title: 'Delete category',
+                          content:
                               'Are you sure you want to delete this category?',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(dCtx).pop(false),
-                                child: const Text('Cancel'),
-                              ),
-                              FilledButton(
-                                onPressed: () => Navigator.of(dCtx).pop(true),
-                                child: const Text('Delete'),
-                              ),
-                            ],
-                          ),
+                          confirmLabel: 'Delete',
+                          cancelLabel: 'Cancel',
                         );
                         if (confirm == true) {
                           try {
@@ -125,55 +116,32 @@ class CategoriesScreen extends ConsumerWidget {
     String? categoryId,
     String? initialName,
   }) async {
-    final controller = TextEditingController(text: initialName ?? '');
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) {
-        final messenger = ScaffoldMessenger.of(ctx);
-        return AlertDialog(
-          title: Text(categoryId == null ? 'Add Category' : 'Edit Category'),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(labelText: 'Name'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                final name = controller.text.trim();
-                if (name.isEmpty) {
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('Name cannot be empty')),
-                  );
-                  return;
-                }
-                try {
-                  final user = ref.read(currentUserProvider);
-                  if (user == null) return;
-                  final repo = ref.read(categoryRepositoryProvider);
-                  final nav = Navigator.of(ctx);
-                  if (categoryId == null) {
-                    await repo.create(userId: user.uid, name: name);
-                  } else {
-                    await repo.update(user.uid, categoryId, {'name': name});
-                  }
-                  nav.pop();
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text('Saved')),
-                  );
-                } catch (e) {
-                  messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
+    final messenger = ScaffoldMessenger.of(context);
+    final name = await showInputDialog(
+      context,
+      title: categoryId == null ? 'Add Category' : 'Edit Category',
+      label: 'Name',
+      initial: initialName ?? '',
     );
-    controller.dispose();
+    if (name == null) return;
+    if (name.trim().isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Name cannot be empty')),
+      );
+      return;
+    }
+    try {
+      final user = ref.read(currentUserProvider);
+      if (user == null) return;
+      final repo = ref.read(categoryRepositoryProvider);
+      if (categoryId == null) {
+        await repo.create(userId: user.uid, name: name.trim());
+      } else {
+        await repo.update(user.uid, categoryId, {'name': name.trim()});
+      }
+      messenger.showSnackBar(const SnackBar(content: Text('Saved')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+    }
   }
 }

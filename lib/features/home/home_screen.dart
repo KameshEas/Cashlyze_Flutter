@@ -663,6 +663,7 @@ class HomeScreen extends ConsumerWidget {
         );
       },
     );
+    final messenger = ScaffoldMessenger.of(context);
     if (result != true) {
       final hasData =
           titleController.text.trim().isNotEmpty ||
@@ -675,9 +676,7 @@ class HomeScreen extends ConsumerWidget {
           'category': localCategory,
           'date': date.toIso8601String(),
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Draft saved')));
+        messenger.showSnackBar(const SnackBar(content: Text('Draft saved')));
       }
     } else {
       await prefs.clearDraft('home_quick_add');
@@ -839,6 +838,7 @@ class HomeScreen extends ConsumerWidget {
                         ),
                         FilledButton.tonal(
                           onPressed: () async {
+                            final messenger = ScaffoldMessenger.of(context);
                             final user = ref.read(currentUserProvider);
                             if (user == null) return;
                             try {
@@ -859,7 +859,7 @@ class HomeScreen extends ConsumerWidget {
                                     date: items[i].dueDate,
                                     notes: 'EMI payment recorded from Home',
                                   );
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 const SnackBar(
                                   content: Text(
                                     'EMI marked paid and transaction added',
@@ -867,7 +867,7 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                               );
                             } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 SnackBar(content: Text('Failed: $e')),
                               );
                             }

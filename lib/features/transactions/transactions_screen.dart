@@ -15,6 +15,7 @@ import 'package:flutter/services.dart';
 import '../../core/repositories/recurring_repository.dart';
 import '../../core/models/recurring.dart';
 import '../../l10n/app_localizations.dart';
+import '../../core/widgets/dialogs.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
@@ -418,36 +419,21 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             return false;
                           }
                           final messenger = ScaffoldMessenger.of(context);
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (dCtx) => AlertDialog(
-                              title: Text(
+                          final confirm = await showConfirmDialog(
+                            context,
+                            title:
                                 AppLocalizations.of(
-                                      context,
-                                    )?.deleteTransactionTitle ??
-                                    'Delete transaction',
-                              ),
-                              content: const Text(
+                                  context,
+                                )?.deleteTransactionTitle ??
+                                'Delete transaction',
+                            content:
                                 'Are you sure you want to delete this transaction?',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.of(dCtx).pop(false),
-                                  child: Text(
-                                    AppLocalizations.of(context)?.cancel ??
-                                        'Cancel',
-                                  ),
-                                ),
-                                FilledButton(
-                                  onPressed: () => Navigator.of(dCtx).pop(true),
-                                  child: Text(
-                                    AppLocalizations.of(context)?.delete ??
-                                        'Delete',
-                                  ),
-                                ),
-                              ],
-                            ),
+                            confirmLabel:
+                                AppLocalizations.of(context)?.delete ??
+                                'Delete',
+                            cancelLabel:
+                                AppLocalizations.of(context)?.cancel ??
+                                'Cancel',
                           );
                           if (confirm == true) {
                             try {
@@ -648,245 +634,275 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 48,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
+        final catsAsync = ref.watch(userCategoriesProvider);
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            final categoryItems = <DropdownMenuItem<String>>[
+              const DropdownMenuItem(value: 'General', child: Text('General')),
+            ];
+            catsAsync.when(
+              loading: () {},
+              error: (_, __) {},
+              data: (list) {
+                for (final c in list) {
+                  categoryItems.add(
+                    DropdownMenuItem(value: c.name, child: Text(c.name)),
+                  );
+                }
+              },
+            );
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: type,
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'Expense',
-                            child: Text('Expense'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Income',
-                            child: Text('Income'),
-                          ),
-                        ],
-                        onChanged: (v) => type = v ?? 'Expense',
-                        decoration: const InputDecoration(
-                          labelText: 'Type',
-                          filled: true,
-                        ),
+                    Container(
+                      width: 48,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: category,
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'General',
-                            child: Text('General'),
-                          ),
-                          DropdownMenuItem(value: 'Food', child: Text('Food')),
-                          DropdownMenuItem(
-                            value: 'Entertainment',
-                            child: Text('Entertainment'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Transport',
-                            child: Text('Transport'),
-                          ),
-                        ],
-                        onChanged: (v) => category = v ?? 'General',
-                        decoration: const InputDecoration(
-                          labelText: 'Category',
-                          filled: true,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Title',
-                    filled: true,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: amountController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                      RegExp(r'^\d*\.?\d{0,2}'),
-                    ),
-                  ],
-                  decoration: const InputDecoration(
-                    labelText: 'Amount',
-                    helperText: 'e.g., 123.45',
-                    filled: true,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: ctx,
-                            firstDate: DateTime(2000),
-                            lastDate: DateTime(2100),
-                            initialDate: date,
-                          );
-                          if (picked != null) date = picked;
-                        },
-                        child: Text('Date: ${date.toLocal()}'.split(' ').first),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    FilledButton(
-                      onPressed: () async {
-                        final user = ref.read(currentUserProvider);
-                        if (user == null) return;
-                        final messenger = ScaffoldMessenger.of(ctx);
-                        final nav = Navigator.of(ctx);
-                        if (!validateTitle(titleController.text.trim())) {
-                          messenger.showSnackBar(
-                            const SnackBar(content: Text('Enter a title')),
-                          );
-                          return;
-                        }
-                        if (!validateAmount(amountController.text.trim())) {
-                          messenger.showSnackBar(
-                            const SnackBar(
-                              content: Text('Enter a valid amount'),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            initialValue: type,
+                            items: [
+                              DropdownMenuItem(
+                                value: 'Expense',
+                                child: Text('Expense'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Income',
+                                child: Text('Income'),
+                              ),
+                            ],
+                            onChanged: (v) => type = v ?? 'Expense',
+                            decoration: const InputDecoration(
+                              labelText: 'Type',
+                              filled: true,
                             ),
-                          );
-                          return;
-                        }
-                        final amount =
-                            double.tryParse(amountController.text) ?? 0;
-                        final isIncome = type == 'Income';
-                        final localCategory = category == 'General'
-                            ? null
-                            : category;
-
-                        try {
-                          if (!isIncome && localCategory != null) {
-                            final budgets = await ref
-                                .read(budgetRepositoryProvider)
-                                .streamForUser(user.uid)
-                                .first;
-                            final hasBudget = budgets.any(
-                              (b) =>
-                                  b.name.toLowerCase() ==
-                                  localCategory.toLowerCase(),
-                            );
-                            if (!hasBudget) {
-                              final transactionData = {
-                                'userId': user.uid,
-                                'title': titleController.text,
-                                'amount': amount,
-                                'isIncome': isIncome,
-                                'categoryId': localCategory,
-                                'date': date,
-                                'notes': null,
-                              };
-                              await _openCreateBudgetForCategory(
-                                ctx,
-                                localCategory,
-                                transactionData,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            initialValue: category,
+                            items: categoryItems,
+                            onChanged: (v) => category = v ?? 'General',
+                            decoration: const InputDecoration(
+                              labelText: 'Category',
+                              filled: true,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: titleController,
+                      decoration: const InputDecoration(
+                        labelText: 'Title',
+                        filled: true,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: amountController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d{0,2}'),
+                        ),
+                      ],
+                      decoration: const InputDecoration(
+                        labelText: 'Amount',
+                        helperText: 'e.g., 123.45',
+                        filled: true,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: ctx,
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime(2100),
+                                initialDate: date,
+                              );
+                              if (picked != null) {
+                                setModalState(() => date = picked);
+                              }
+                            },
+                            child: Text(
+                              'Date: ${date.toLocal()}'.split(' ').first,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        FilledButton(
+                          onPressed: () async {
+                            final user = ref.read(currentUserProvider);
+                            if (user == null) return;
+                            final messenger = ScaffoldMessenger.of(ctx);
+                            final nav = Navigator.of(ctx);
+                            if (!validateTitle(titleController.text.trim())) {
+                              messenger.showSnackBar(
+                                const SnackBar(content: Text('Enter a title')),
                               );
                               return;
                             }
-                          }
+                            if (!validateAmount(amountController.text.trim())) {
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Enter a valid amount'),
+                                ),
+                              );
+                              return;
+                            }
+                            if (!validateDate(date)) {
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Enter a valid date'),
+                                ),
+                              );
+                              return;
+                            }
+                            final amount =
+                                double.tryParse(amountController.text) ?? 0;
+                            final isIncome = type == 'Income';
+                            final localCategory = category == 'General'
+                                ? null
+                                : category;
 
-                          final ingest = ref.read(
-                            transactionIngestServiceProvider,
-                          );
-                          await ingest.addManual(
-                            userId: user.uid,
-                            title: titleController.text,
-                            amount: amount,
-                            isIncome: isIncome,
-                            categoryId: localCategory,
-                            date: date,
-                            notes: null,
-                          );
-                          if (repeatEnabled) {
-                            final freq = repeatFreq == 'Weekly'
-                                ? RecurringFrequency.weekly
-                                : RecurringFrequency.monthly;
-                            await ref
-                                .read(recurringRepositoryProvider)
-                                .createRule(
-                                  userId: user.uid,
-                                  title: titleController.text,
-                                  amount: amount,
-                                  isIncome: isIncome,
-                                  categoryId: localCategory,
-                                  startDate: date,
-                                  frequency: freq,
+                            try {
+                              if (!isIncome && localCategory != null) {
+                                final budgets = await ref
+                                    .read(budgetRepositoryProvider)
+                                    .streamForUser(user.uid)
+                                    .first;
+                                final hasBudget = budgets.any(
+                                  (b) =>
+                                      b.name.toLowerCase() ==
+                                      localCategory.toLowerCase(),
                                 );
-                          }
-                          if (!mounted) return;
-                          nav.pop(true);
-                          messenger.showSnackBar(
-                            const SnackBar(content: Text('Transaction saved')),
-                          );
-                        } catch (e) {
-                          if (!mounted) return;
-                          messenger.showSnackBar(
-                            SnackBar(content: Text('Failed: $e')),
-                          );
-                        }
-                      },
-                      child: const Text('Save'),
+                                if (!hasBudget) {
+                                  final transactionData = {
+                                    'userId': user.uid,
+                                    'title': titleController.text,
+                                    'amount': amount,
+                                    'isIncome': isIncome,
+                                    'categoryId': localCategory,
+                                    'date': date,
+                                    'notes': null,
+                                  };
+                                  final res =
+                                      await _openCreateBudgetForCategory(
+                                        ctx,
+                                        localCategory,
+                                        transactionData,
+                                      );
+                                  if (!context.mounted || !mounted) return;
+                                  if (res == true) {
+                                    FocusScope.of(context).unfocus();
+                                    Navigator.of(context).pop(true);
+                                  }
+                                  return;
+                                }
+                              }
+
+                              final ingest = ref.read(
+                                transactionIngestServiceProvider,
+                              );
+                              await ingest.addManual(
+                                userId: user.uid,
+                                title: titleController.text,
+                                amount: amount,
+                                isIncome: isIncome,
+                                categoryId: localCategory,
+                                date: date,
+                                notes: null,
+                              );
+                              if (repeatEnabled) {
+                                final freq = repeatFreq == 'Weekly'
+                                    ? RecurringFrequency.weekly
+                                    : RecurringFrequency.monthly;
+                                await ref
+                                    .read(recurringRepositoryProvider)
+                                    .createRule(
+                                      userId: user.uid,
+                                      title: titleController.text,
+                                      amount: amount,
+                                      isIncome: isIncome,
+                                      categoryId: localCategory,
+                                      startDate: date,
+                                      frequency: freq,
+                                    );
+                              }
+                              if (!mounted) return;
+                              nav.pop(true);
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Transaction saved'),
+                                ),
+                              );
+                            } catch (e) {
+                              if (!mounted) return;
+                              messenger.showSnackBar(
+                                SnackBar(content: Text('Failed: $e')),
+                              );
+                            }
+                          },
+                          child: const Text('Save'),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 12),
+                    CheckboxListTile(
+                      value: repeatEnabled,
+                      onChanged: (v) =>
+                          setModalState(() => repeatEnabled = v ?? false),
+                      title: const Text('Repeat'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    if (repeatEnabled) const SizedBox(height: 8),
+                    if (repeatEnabled)
+                      DropdownButtonFormField<String>(
+                        initialValue: repeatFreq,
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'Monthly',
+                            child: Text('Monthly'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Weekly',
+                            child: Text('Weekly'),
+                          ),
+                        ],
+                        onChanged: (v) =>
+                            setModalState(() => repeatFreq = v ?? 'Monthly'),
+                        decoration: const InputDecoration(
+                          labelText: 'Frequency',
+                          filled: true,
+                        ),
+                      ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                CheckboxListTile(
-                  value: repeatEnabled,
-                  onChanged: (v) => repeatEnabled = v ?? false,
-                  title: const Text('Repeat'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-                if (repeatEnabled) const SizedBox(height: 8),
-                if (repeatEnabled)
-                  DropdownButtonFormField<String>(
-                    initialValue: repeatFreq,
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'Monthly',
-                        child: Text('Monthly'),
-                      ),
-                      DropdownMenuItem(value: 'Weekly', child: Text('Weekly')),
-                    ],
-                    onChanged: (v) => repeatFreq = v ?? 'Monthly',
-                    decoration: const InputDecoration(
-                      labelText: 'Frequency',
-                      filled: true,
-                    ),
-                  ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -903,7 +919,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           'category': category,
           'date': date.toIso8601String(),
         });
-        if (!mounted) return;
+        if (!context.mounted) return;
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Draft saved')));
@@ -944,206 +960,225 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       builder: (ctx) {
         final messenger = ScaffoldMessenger.of(ctx);
         final nav = Navigator.of(ctx);
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 48,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
+        final catsAsync = ref.watch(userCategoriesProvider);
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            final categoryItems = <DropdownMenuItem<String>>[
+              const DropdownMenuItem(value: 'General', child: Text('General')),
+            ];
+            catsAsync.when(
+              loading: () {},
+              error: (_, __) {},
+              data: (list) {
+                for (final c in list) {
+                  categoryItems.add(
+                    DropdownMenuItem(value: c.name, child: Text(c.name)),
+                  );
+                }
+              },
+            );
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: type,
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'Expense',
-                            child: Text('Expense'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Income',
-                            child: Text('Income'),
-                          ),
-                        ],
-                        onChanged: (v) => type = v ?? 'Expense',
-                        decoration: const InputDecoration(
-                          labelText: 'Type',
-                          filled: true,
-                        ),
+                    Container(
+                      width: 48,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: category,
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'General',
-                            child: Text('General'),
-                          ),
-                          DropdownMenuItem(value: 'Food', child: Text('Food')),
-                          DropdownMenuItem(
-                            value: 'Entertainment',
-                            child: Text('Entertainment'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Transport',
-                            child: Text('Transport'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Income',
-                            child: Text('Income'),
-                          ),
-                        ],
-                        onChanged: (v) => category = v ?? 'General',
-                        decoration: const InputDecoration(
-                          labelText: 'Category',
-                          filled: true,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Title',
-                    filled: true,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: amountController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                      RegExp(r'^\d*\.?\d{0,2}'),
-                    ),
-                  ],
-                  decoration: const InputDecoration(
-                    labelText: 'Amount',
-                    helperText: 'e.g., 123.45',
-                    filled: true,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () async {
-                          final d = await showDatePicker(
-                            context: ctx,
-                            firstDate: DateTime(2000),
-                            lastDate: DateTime(2100),
-                            initialDate: pickedDate,
-                          );
-                          if (d != null) pickedDate = d;
-                        },
-                        child: Text(
-                          'Date: ${pickedDate.toLocal()}'.split(' ').first,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    FilledButton(
-                      onPressed: () async {
-                        if (!validateTitle(titleController.text.trim())) {
-                          messenger.showSnackBar(
-                            const SnackBar(content: Text('Enter a title')),
-                          );
-                          return;
-                        }
-                        if (!validateAmount(amountController.text.trim())) {
-                          messenger.showSnackBar(
-                            const SnackBar(
-                              content: Text('Enter a valid amount'),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            initialValue: type,
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'Expense',
+                                child: Text('Expense'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Income',
+                                child: Text('Income'),
+                              ),
+                            ],
+                            onChanged: (v) => type = v ?? 'Expense',
+                            decoration: const InputDecoration(
+                              labelText: 'Type',
+                              filled: true,
                             ),
-                          );
-                          return;
-                        }
-                        final amt = double.tryParse(amountController.text) ?? 0;
-                        final isIncome = type == 'Income';
-                        final localCategory = category == 'General'
-                            ? null
-                            : category;
-                        try {
-                          final user = ref.read(currentUserProvider);
-                          if (user == null) return;
-
-                          if (!isIncome && localCategory != null) {
-                            final budgets = await ref
-                                .read(budgetRepositoryProvider)
-                                .streamForUser(user.uid)
-                                .first;
-                            final hasBudget = budgets.any(
-                              (b) =>
-                                  b.name.toLowerCase() ==
-                                  localCategory.toLowerCase(),
-                            );
-                            if (!hasBudget) {
-                              final editTransactionData = {
-                                'userId': user.uid,
-                                'title': titleController.text.trim(),
-                                'amount': isIncome ? amt.abs() : -amt.abs(),
-                                'categoryId': localCategory,
-                                'date': pickedDate,
-                                'notes': null,
-                                'isIncome': isIncome,
-                              };
-                              await _openCreateBudgetForCategory(
-                                ctx,
-                                localCategory,
-                                editTransactionData,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            initialValue: category,
+                            items: categoryItems,
+                            onChanged: (v) => category = v ?? 'General',
+                            decoration: const InputDecoration(
+                              labelText: 'Category',
+                              filled: true,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: titleController,
+                      decoration: const InputDecoration(
+                        labelText: 'Title',
+                        filled: true,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: amountController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d{0,2}'),
+                        ),
+                      ],
+                      decoration: const InputDecoration(
+                        labelText: 'Amount',
+                        helperText: 'e.g., 123.45',
+                        filled: true,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              final d = await showDatePicker(
+                                context: ctx,
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime(2100),
+                                initialDate: pickedDate,
+                              );
+                              if (d != null) {
+                                setModalState(() => pickedDate = d);
+                              }
+                            },
+                            child: Text(
+                              'Date: ${pickedDate.toLocal()}'.split(' ').first,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        FilledButton(
+                          onPressed: () async {
+                            if (!validateTitle(titleController.text.trim())) {
+                              messenger.showSnackBar(
+                                const SnackBar(content: Text('Enter a title')),
                               );
                               return;
                             }
-                          }
+                            if (!validateAmount(amountController.text.trim())) {
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Enter a valid amount'),
+                                ),
+                              );
+                              return;
+                            }
+                            if (!validateDate(pickedDate)) {
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Enter a valid date'),
+                                ),
+                              );
+                              return;
+                            }
+                            final amt =
+                                double.tryParse(amountController.text) ?? 0;
+                            final isIncome = type == 'Income';
+                            final localCategory = category == 'General'
+                                ? null
+                                : category;
+                            try {
+                              final user = ref.read(currentUserProvider);
+                              if (user == null) return;
 
-                          await ref
-                              .read(transactionRepositoryProvider)
-                              .update(user.uid, id, {
-                                'title': titleController.text.trim(),
-                                'amount': isIncome ? amt.abs() : -amt.abs(),
-                                'categoryId': localCategory,
-                                'date_ms': pickedDate.millisecondsSinceEpoch,
-                              });
-                          if (!mounted) return;
-                          nav.pop();
-                          messenger.showSnackBar(
-                            const SnackBar(
-                              content: Text('Transaction updated'),
-                            ),
-                          );
-                        } catch (e) {
-                          if (!mounted) return;
-                          messenger.showSnackBar(
-                            SnackBar(content: Text('Failed: $e')),
-                          );
-                        }
-                      },
-                      child: const Text('Save changes'),
+                              if (!isIncome && localCategory != null) {
+                                final budgets = await ref
+                                    .read(budgetRepositoryProvider)
+                                    .streamForUser(user.uid)
+                                    .first;
+                                final hasBudget = budgets.any(
+                                  (b) =>
+                                      b.name.toLowerCase() ==
+                                      localCategory.toLowerCase(),
+                                );
+                                if (!hasBudget) {
+                                  final editTransactionData = {
+                                    'userId': user.uid,
+                                    'title': titleController.text.trim(),
+                                    'amount': isIncome ? amt.abs() : -amt.abs(),
+                                    'categoryId': localCategory,
+                                    'date': pickedDate,
+                                    'notes': null,
+                                    'isIncome': isIncome,
+                                  };
+                                  final res =
+                                      await _openCreateBudgetForCategory(
+                                        ctx,
+                                        localCategory,
+                                        editTransactionData,
+                                      );
+                                  if (!context.mounted || !mounted) return;
+                                  if (res == true) {
+                                    FocusScope.of(context).unfocus();
+                                    Navigator.of(context).pop(true);
+                                  }
+                                  return;
+                                }
+                              }
+
+                              await ref
+                                  .read(transactionRepositoryProvider)
+                                  .update(user.uid, id, {
+                                    'title': titleController.text.trim(),
+                                    'amount': isIncome ? amt.abs() : -amt.abs(),
+                                    'categoryId': localCategory,
+                                    'date_ms':
+                                        pickedDate.millisecondsSinceEpoch,
+                                  });
+                              if (!mounted) return;
+                              nav.pop();
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Transaction updated'),
+                                ),
+                              );
+                            } catch (e) {
+                              if (!mounted) return;
+                              messenger.showSnackBar(
+                                SnackBar(content: Text('Failed: $e')),
+                              );
+                            }
+                          },
+                          child: const Text('Save changes'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -1151,7 +1186,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     amountController.dispose();
   }
 
-  Future<void> _openCreateBudgetForCategory(
+  Future<bool?> _openCreateBudgetForCategory(
     BuildContext parentCtx,
     String categoryName,
     Map<String, dynamic> transactionData,
@@ -1160,7 +1195,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final allocatedController = TextEditingController();
     final pageMessenger = ScaffoldMessenger.of(parentCtx);
 
-    await showModalBottomSheet<bool>(
+    final result = await showModalBottomSheet<bool>(
       context: parentCtx,
       isScrollControlled: true,
       isDismissible: true,
@@ -1205,10 +1240,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 TextFormField(
                   controller: allocatedController,
                   keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Monthly Budget Amount',
                     filled: true,
-                    prefixText: '₹ ',
+                    prefixText: '${ref.read(currencyProvider)} ',
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1216,7 +1251,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => nav.pop(false),
+                        onPressed: () {
+                          FocusScope.of(ctx).unfocus();
+                          nav.pop(false);
+                        },
                         child: const Text('Skip'),
                       ),
                     ),
@@ -1237,7 +1275,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               allocated: amount,
                               period: BudgetPeriod.monthly,
                             );
-
+                            if (!ctx.mounted) return;
+                            FocusScope.of(ctx).unfocus();
                             nav.pop(true);
                             pageMessenger.showSnackBar(
                               SnackBar(
@@ -1263,18 +1302,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               notes: transactionData['notes'] as String?,
                             );
 
-                            if (mounted) {
-                              Navigator.of(
-                                parentCtx,
-                              ).pop(true); // Close the add transaction dialog
-                              pageMessenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Transaction saved successfully!',
-                                  ),
-                                ),
-                              );
-                            }
+                            // Do not pop parent sheet here; caller will close based on returned result
                           } catch (e) {
                             nav.pop(false);
                             pageMessenger.showSnackBar(
@@ -1295,7 +1323,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         );
       },
     );
-
     allocatedController.dispose();
+    return result;
   }
 }

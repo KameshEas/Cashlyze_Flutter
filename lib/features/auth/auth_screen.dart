@@ -7,7 +7,6 @@ import '../../core/services/analytics_service.dart';
 import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/services/auth_service.dart' as cfg;
 import '../../core/services/biometric_service.dart';
-import '../../core/providers/onboarding_provider.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   final bool initialIsLogin;
@@ -359,14 +358,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           padding: const EdgeInsets.only(top: 8.0),
                           child: OutlinedButton.icon(
                             onPressed: () async {
+                              final router = GoRouter.of(context);
+                              final messenger = ScaffoldMessenger.of(context);
                               final ok = await ref
                                   .read(biometricServiceProvider)
                                   .authenticate(reason: 'Unlock Cashlyze');
                               if (ok) {
-                                if (mounted) GoRouter.of(context).go('/');
+                                if (mounted) router.go('/');
                               } else {
                                 if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
+                                  messenger.showSnackBar(
                                     const SnackBar(
                                       content: Text('Biometric failed'),
                                     ),

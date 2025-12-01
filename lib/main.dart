@@ -11,7 +11,6 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'core/providers/onboarding_provider.dart';
 import 'core/providers/shared_prefs_provider.dart';
 
 void main() async {
@@ -26,10 +25,14 @@ void main() async {
                 : DefaultFirebaseOptionsPlaceholder.android)
           : DefaultFirebaseOptions.currentPlatform,
     );
-  } catch (e) {}
+  } catch (e) {
+    debugPrint('Firebase init failed: $e');
+  }
   try {
     FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('Crashlytics init failed: $e');
+  }
 
   final prefs = await SharedPreferences.getInstance();
 

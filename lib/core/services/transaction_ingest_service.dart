@@ -10,7 +10,12 @@ class TransactionIngestService {
   final AnalyticsService _analytics;
   final BudgetRepository? _budgetRepo;
 
-  TransactionIngestService(this._repo, this._categorizer, this._analytics, [this._budgetRepo]);
+  TransactionIngestService(
+    this._repo,
+    this._categorizer,
+    this._analytics, [
+    this._budgetRepo,
+  ]);
 
   Future<void> addManual({
     required String userId,
@@ -22,12 +27,14 @@ class TransactionIngestService {
     String? notes,
   }) async {
     final cat = categoryId ?? _categorizer.suggestCategory(title);
-    
+
     // Check if budget exists for this category
     if (_budgetRepo != null && cat != null && !isIncome) {
-      final budgets = await _budgetRepo!.streamForUser(userId).first;
-      final hasBudgetForCategory = budgets.any((budget) => budget.name.toLowerCase() == cat.toLowerCase());
-      
+      final budgets = await _budgetRepo.streamForUser(userId).first;
+      final hasBudgetForCategory = budgets.any(
+        (budget) => budget.name.toLowerCase() == cat.toLowerCase(),
+      );
+
       if (!hasBudgetForCategory) {
         // Store the transaction data for later processing
         // The UI will need to handle the budget creation prompt
@@ -42,7 +49,7 @@ class TransactionIngestService {
         });
       }
     }
-    
+
     await _repo.create(
       userId: userId,
       title: title,
@@ -51,16 +58,20 @@ class TransactionIngestService {
       date: date,
       notes: notes,
     );
-    await _analytics.logEvent('transaction_add', params: {
-      'amount': amount,
-      'is_income': isIncome ? 1 : 0,
-      'category': cat ?? 'Uncategorized',
-    });
+    await _analytics.logEvent(
+      'transaction_add',
+      params: {
+        'amount': amount,
+        'is_income': isIncome ? 1 : 0,
+        'category': cat ?? 'Uncategorized',
+      },
+    );
   }
-
 }
 
-final transactionIngestServiceProvider = Provider<TransactionIngestService>((ref) {
+final transactionIngestServiceProvider = Provider<TransactionIngestService>((
+  ref,
+) {
   return TransactionIngestService(
     ref.watch(transactionRepositoryProvider),
     ref.watch(categorizationServiceProvider),
@@ -72,9 +83,9 @@ final transactionIngestServiceProvider = Provider<TransactionIngestService>((ref
 class BudgetMissingException implements Exception {
   final String categoryName;
   final Map<String, dynamic> transactionData;
-  
+
   BudgetMissingException(this.categoryName, this.transactionData);
-  
+
   @override
   String toString() => 'No budget found for category: $categoryName';
 }
