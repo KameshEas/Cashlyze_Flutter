@@ -27,7 +27,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: _rootKey,
-    initialLocation: '/login',
+    initialLocation: '/splash',
     routes: [
       GoRoute(
         path: '/splash',

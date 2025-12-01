@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../core/providers/transaction_providers.dart';
 import '../../core/providers/insights_providers.dart';
 import '../../core/repositories/category_repository.dart';
@@ -226,21 +227,11 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                           showTitles: true,
                           getTitlesWidget: (value, meta) {
                             final idx = value.toInt();
-                            const labels = [
-                              'M-5',
-                              'M-4',
-                              'M-3',
-                              'M-2',
-                              'M-1',
-                              'Now',
-                            ];
-                            if (idx >= 0 && idx < labels.length) {
-                              return Text(
-                                labels[idx],
-                                style: theme.textTheme.bodySmall,
-                              );
-                            }
-                            return const SizedBox.shrink();
+                            if (idx < 0 || idx > 5) return const SizedBox.shrink();
+                            final now = DateTime.now();
+                            final m = DateTime(now.year, now.month - (5 - idx), 1);
+                            final label = DateFormat('MMM').format(m);
+                            return Text(label, style: theme.textTheme.bodySmall);
                           },
                           interval: 1,
                         ),
@@ -451,7 +442,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                       ]),
                       trailing: Text(
                         formatAmount(t.amount, currency),
-                        style: theme.textTheme.bodyMedium?.copyWith(color: isIncome ? Colors.green : Colors.red, fontWeight: FontWeight.w600),
+                        style: theme.textTheme.bodyMedium?.copyWith(color: isIncome ? theme.colorScheme.secondary : theme.colorScheme.error, fontWeight: FontWeight.w600),
                       ),
                     );
                   }).toList(),

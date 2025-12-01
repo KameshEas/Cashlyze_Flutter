@@ -50,8 +50,15 @@ dependencies:
   firebase_crashlytics: ^5.0.0
   flutter_localizations:
     sdk: flutter
+  
+  google_sign_in: ^6.2.1
+  googleapis: ^13.2.0
+  http: ^1.2.2
+  path_provider: ^2.1.4
+  share_plus: ^10.1.0
   file_picker: ^8.0.0
-  csv: ^6.0.0
+  
+  local_auth: ^2.2.0
 
 dev_dependencies:
   flutter_test:

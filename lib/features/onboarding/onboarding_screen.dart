@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
+
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/onboarding_provider.dart';
@@ -16,6 +16,14 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+
+  IconData _iconForTitle(String t) {
+    final s = t.toLowerCase();
+    if (s.contains('track')) return Icons.receipt_long;
+    if (s.contains('budget')) return Icons.account_balance_wallet;
+    if (s.contains('insight')) return Icons.insights;
+    return Icons.image;
+  }
 
   final List<Map<String, String>> _onboardingData = [
     {
@@ -89,22 +97,23 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 ? Semantics(
                     label: 'Onboarding illustration',
                     child: Icon(
-                      Icons.image,
+                      _iconForTitle(title),
                       size: 100,
                       color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
                     ),
                   )
                 : Semantics(
-                    label: 'Onboarding animation',
-                    child: Lottie.network(
-                      animationUrl,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Icon(
-                          Icons.image_not_supported,
-                          size: 100,
-                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
-                        );
-                      },
+                    label: 'Onboarding illustration',
+                    child: TweenAnimationBuilder<double>(
+                      duration: const Duration(milliseconds: 600),
+                      tween: Tween(begin: 0.95, end: 1.0),
+                      curve: Curves.easeInOut,
+                      builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+                      child: Icon(
+                        _iconForTitle(title),
+                        size: 100,
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+                      ),
                     ),
                   ),
           ),

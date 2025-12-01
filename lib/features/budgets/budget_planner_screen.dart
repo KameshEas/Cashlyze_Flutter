@@ -7,6 +7,8 @@ import '../../core/widgets/skeleton.dart';
 import '../../core/utils/format.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/models/budget.dart';
+import 'package:flutter/services.dart';
+import '../../core/utils/validation.dart';
 
 class BudgetPlannerScreen extends ConsumerStatefulWidget {
   const BudgetPlannerScreen({super.key});
@@ -211,7 +213,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                           color: theme.colorScheme.surface,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.14),
                           ),
                         ),
                         child: Column(
@@ -303,9 +305,11 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: allocatedController,
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
                   decoration: const InputDecoration(
                     labelText: 'Allocated',
+                    helperText: 'e.g., 500.00',
                     filled: true,
                   ),
                 ),
@@ -319,6 +323,14 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                           if (user == null) return;
                           final repo = ref.read(budgetRepositoryProvider);
                           final name = nameController.text.trim();
+                          if (name.isEmpty) {
+                            pageMessenger.showSnackBar(const SnackBar(content: Text('Enter a name')));
+                            return;
+                          }
+                          if (!validateAmount(allocatedController.text.trim())) {
+                            pageMessenger.showSnackBar(const SnackBar(content: Text('Enter a valid amount')));
+                            return;
+                          }
                           final amount = double.tryParse(allocatedController.text) ?? 0;
                           try {
                             await repo.create(userId: user.uid, name: name, allocated: amount, period: BudgetPeriod.monthly);
@@ -394,7 +406,8 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                 TextFormField(
                   controller: amountController,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'New allocation', filled: true),
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+                  decoration: const InputDecoration(labelText: 'New allocation', helperText: 'e.g., 500.00', filled: true),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -407,6 +420,10 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                     Expanded(
                       child: FilledButton(
                         onPressed: () async {
+                          if (!validateAmount(amountController.text.trim())) {
+                            pageMessenger.showSnackBar(const SnackBar(content: Text('Enter a valid amount')));
+                            return;
+                          }
                           final newAlloc = double.tryParse(amountController.text) ?? allocated;
                           try {
                             final user = ref.read(currentUserProvider);

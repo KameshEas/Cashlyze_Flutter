@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/repositories/user_repository.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/services/auth_service.dart' as cfg;
+import '../../core/services/biometric_service.dart';
+import '../../core/services/shared_prefs_service.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   final bool initialIsLogin;
@@ -22,6 +24,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   bool _isLogin = true;
   bool _isLoading = false;
   String? _errorMessage;
+  bool _canUseBiometrics = false;
+  bool _biometricEnabled = false;
 
   @override
   void dispose() {
@@ -34,6 +38,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   void initState() {
     super.initState();
     _isLogin = widget.initialIsLogin;
+    Future(() async {
+      final bio = await ref.read(biometricServiceProvider).isAvailable();
+      final prefs = ref.read(sharedPrefsServiceProvider);
+      if (mounted) {
+        setState(() {
+          _canUseBiometrics = bio;
+          _biometricEnabled = prefs.biometricEnabled;
+        });
+      }
+    });
   }
 
   Future<void> _submit() async {
@@ -287,6 +301,18 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         ),
                       ),
 
+                      const SizedBox(height: 12),
+                      if (_canUseBiometrics)
+                        SwitchListTile(
+                          value: _biometricEnabled,
+                          onChanged: (v) async {
+                            setState(() => _biometricEnabled = v);
+                            await ref.read(sharedPrefsServiceProvider).setBiometricEnabled(v);
+                          },
+                          title: const Text('Require biometric to unlock'),
+                          subtitle: const Text('Use fingerprint/FaceID on app open'),
+                        ),
+
                       // Forgot Password
                       if (_isLogin)
                         TextButton(
@@ -322,6 +348,24 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             }
                           },
                           child: const Text('Forgot Password?'),
+                        ),
+                      if (_isLogin && _canUseBiometrics && _biometricEnabled)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final ok = await ref.read(biometricServiceProvider).authenticate(reason: 'Unlock Cashlyze');
+                              if (ok) {
+                                if (mounted) GoRouter.of(context).go('/');
+                              } else {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Biometric failed')));
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.fingerprint),
+                            label: const Text('Use biometrics'),
+                          ),
                         ),
                     ],
                   ),

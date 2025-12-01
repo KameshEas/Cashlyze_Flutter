@@ -6,6 +6,7 @@ class SharedPrefsService {
   static const String _alertsEnabledKey = 'alerts_enabled';
   static const String _currencyKey = 'currency';
   static const String _dateFormatKey = 'date_format';
+  static const String _biometricKey = 'biometric_enabled';
   final SharedPreferences _prefs;
 
   SharedPrefsService(this._prefs);
@@ -29,6 +30,11 @@ class SharedPrefsService {
   String get dateFormat => _prefs.getString(_dateFormatKey) ?? 'yyyy-MM-dd';
   Future<void> setDateFormat(String value) async {
     await _prefs.setString(_dateFormatKey, value);
+  }
+
+  bool get biometricEnabled => _prefs.getBool(_biometricKey) ?? false;
+  Future<void> setBiometricEnabled(bool value) async {
+    await _prefs.setBool(_biometricKey, value);
   }
 
   Map<String, dynamic>? getDraft(String key) {

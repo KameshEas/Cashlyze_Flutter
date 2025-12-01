@@ -12,21 +12,25 @@ import '../../core/models/transaction.dart';
 import '../../core/repositories/emi_repository.dart';
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/services/realtime_db_service.dart';
+import 'package:Cashlyze/l10n/app_localizations.dart';
+import '../../core/providers/recurring_providers.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(recurringProcessorProvider);
     final prefs = ref.watch(sharedPrefsServiceProvider);
     final currency = ref.watch(currencyProvider);
     final kpis = ref.watch(kpisProvider);
     final txsAsync = ref.watch(recentTransactionsProvider);
     final mismatch = ref.watch(databaseUrlMismatchProvider);
     final dbUrl = ref.watch(databaseUrlProvider);
+    final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        title: Text(t?.dashboard ?? 'Dashboard'),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
@@ -75,7 +79,7 @@ class HomeScreen extends ConsumerWidget {
             _buildBalanceCard(context, currency, kpis),
             const SizedBox(height: 24),
             Text(
-              'Quick Actions',
+              t?.quickActions ?? 'Quick Actions',
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -84,7 +88,7 @@ class HomeScreen extends ConsumerWidget {
             _buildQuickActions(context, ref),
             const SizedBox(height: 24),
             Text(
-              'EMI Tracker',
+              t?.emiTracker ?? 'EMI Tracker',
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -93,7 +97,7 @@ class HomeScreen extends ConsumerWidget {
             _buildUpcomingEmi(context, ref, currency),
             const SizedBox(height: 24),
             Text(
-              'Recent Transactions',
+              t?.recentTransactions ?? 'Recent Transactions',
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -460,7 +464,9 @@ class HomeScreen extends ConsumerWidget {
           Text(
             amount,
             style: theme.textTheme.bodyLarge?.copyWith(
-              color: isIncome ? Colors.green : Colors.red,
+              color: isIncome
+                  ? theme.colorScheme.secondary
+                  : theme.colorScheme.error,
               fontWeight: FontWeight.bold,
             ),
           ),
