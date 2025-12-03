@@ -1,22 +1,73 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can read/write only their own profile document
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isResourceOwner(userId) {
+      return isAuthenticated() && (
+        // For create/update: check incoming data
+        (request.resource.data.userId == request.auth.uid) ||
+        // For read/delete: check existing data
+        (resource.data.userId == request.auth.uid)
+      );
     }
 
-    // Example: transactions scoped to the user
+    // Users collection
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+      
+      // Subcollections for user-specific data (if structured this way)
+      match /transactions/{transactionId} {
+        allow read, write: if isOwner(userId);
+      }
+      match /budgets/{budgetId} {
+        allow read, write: if isOwner(userId);
+      }
+      match /categories/{categoryId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Root-level collections (if using root collections with userId field)
+    
     match /transactions/{transactionId} {
-      allow read, write: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() 
+                   && request.resource.data.userId == request.auth.uid;
+      
+      allow read, update, delete: if isAuthenticated() 
+                                 && resource.data.userId == request.auth.uid;
     }
 
     match /budgets/{budgetId} {
-      allow read, write: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() 
+                   && request.resource.data.userId == request.auth.uid;
+      
+      allow read, update, delete: if isAuthenticated() 
+                                 && resource.data.userId == request.auth.uid;
     }
 
     match /categories/{categoryId} {
-      allow read, write: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() 
+                   && request.resource.data.userId == request.auth.uid;
+      
+      allow read, update, delete: if isAuthenticated() 
+                                 && resource.data.userId == request.auth.uid;
+    }
+    
+    match /emis/{emiId} {
+      allow create: if isAuthenticated() 
+                   && request.resource.data.userId == request.auth.uid;
+      
+      allow read, update, delete: if isAuthenticated() 
+                                 && resource.data.userId == request.auth.uid;
     }
 
     // Deny all other access by default

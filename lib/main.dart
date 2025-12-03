@@ -11,10 +11,17 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'core/providers/shared_prefs_provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint('Failed to load .env file: $e');
+  }
+
   final usePlaceholder =
       const bool.fromEnvironment('FIREBASE_PLACEHOLDER') && !kReleaseMode;
   try {
