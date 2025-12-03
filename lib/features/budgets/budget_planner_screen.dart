@@ -11,6 +11,7 @@ import '../../core/models/budget.dart';
 import 'package:flutter/services.dart';
 import '../../core/utils/validation.dart';
 import '../../core/widgets/dialogs.dart';
+import '../../core/repositories/category_repository.dart';
 
 class BudgetPlannerScreen extends ConsumerStatefulWidget {
   const BudgetPlannerScreen({super.key});
@@ -305,6 +306,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     final nameController = TextEditingController();
     final allocatedController = TextEditingController();
     final pageMessenger = ScaffoldMessenger.of(context);
+    List<String> selectedCategoryIds = <String>[];
 
     final prefs = ref.read(sharedPrefsServiceProvider);
     final draft = prefs.getDraft('budget_create');
@@ -312,6 +314,10 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       nameController.text = (draft['name'] as String?) ?? '';
       final amt = draft['allocated'];
       if (amt != null) allocatedController.text = amt.toString();
+      final cats = draft['categoryIds'];
+      if (cats is List) {
+        selectedCategoryIds = cats.cast<String>();
+      }
     }
     final result = await showModalBottomSheet<bool>(
       context: context,
@@ -323,6 +329,9 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       ),
       builder: (ctx) {
         final nav = Navigator.of(ctx);
+        final categories = ref
+            .watch(userCategoriesProvider)
+            .maybeWhen(data: (d) => d, orElse: () => const []);
         return Padding(
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(ctx).viewInsets.bottom,
@@ -366,6 +375,42 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
+                if (categories.isNotEmpty) ...[
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Categories (optional)',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final c in categories)
+                        FilterChip(
+                          label: Text(c.name),
+                          selected: selectedCategoryIds.contains(c.id),
+                          onSelected: (sel) {
+                            setState(() {
+                              if (sel) {
+                                selectedCategoryIds = [
+                                  ...selectedCategoryIds,
+                                  c.id,
+                                ];
+                              } else {
+                                selectedCategoryIds = selectedCategoryIds
+                                    .where((id) => id != c.id)
+                                    .toList();
+                              }
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 Row(
                   children: [
                     Expanded(
@@ -399,6 +444,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                               name: name,
                               allocated: amount,
                               period: BudgetPeriod.monthly,
+                              categoryIds: selectedCategoryIds,
                             );
                             nav.pop(true);
                             pageMessenger.showSnackBar(
@@ -429,6 +475,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
         await prefs.saveDraft('budget_create', {
           'name': nameController.text.trim(),
           'allocated': double.tryParse(allocatedController.text.trim()),
+          'categoryIds': selectedCategoryIds,
         });
         if (mounted)
           messenger.showSnackBar(const SnackBar(content: Text('Draft saved')));

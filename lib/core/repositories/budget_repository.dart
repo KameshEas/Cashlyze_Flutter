@@ -84,12 +84,5 @@ final userBudgetsProvider = StreamProvider<List<BudgetModel>>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(<BudgetModel>[]);
   final s = ref.watch(budgetRepositoryProvider).streamForUser(user.uid);
-  return s
-      .timeout(
-        const Duration(seconds: 5),
-        onTimeout: (sink) {
-          sink.add(<BudgetModel>[]);
-        },
-      )
-      .handleError((_, __) {});
+  return s;
 });
