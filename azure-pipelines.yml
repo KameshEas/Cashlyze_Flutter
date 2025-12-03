@@ -1,5 +1,26 @@
 trigger:
-- main
+  branches:
+    include:
+      - main
+      - master
+      - develop
+      - feature/*
+      - bugfix/*
+  paths:
+    include:
+      - lib/**
+      - android/**
+      - pubspec.yaml
+      - azure-pipelines.yml
+
+pr:
+  branches:
+    include:
+      - main
+      - master
+      - develop
+      - feature/*
+      - bugfix/*
 
 stages:
 - stage: analyze_test
