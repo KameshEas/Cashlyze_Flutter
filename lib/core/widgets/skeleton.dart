@@ -29,16 +29,30 @@ class _SkeletonLineState extends State<SkeletonLine> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _anim,
-      builder: (ctx, _) => Container(
-        height: widget.height,
-        width: widget.width,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08 + 0.12 * _anim.value),
-          borderRadius: widget.borderRadius,
-        ),
-      ),
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
+    return TickerMode(
+      enabled: !reduceMotion,
+      child: reduceMotion
+          ? Container(
+              height: widget.height,
+              width: widget.width,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.12),
+                borderRadius: widget.borderRadius,
+              ),
+            )
+          : AnimatedBuilder(
+              animation: _anim,
+              builder: (ctx, _) => Container(
+                height: widget.height,
+                width: widget.width,
+                decoration: BoxDecoration(
+                  color:
+                      Colors.white.withValues(alpha: 0.08 + 0.12 * _anim.value),
+                  borderRadius: widget.borderRadius,
+                ),
+              ),
+            ),
     );
   }
 }

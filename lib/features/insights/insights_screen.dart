@@ -169,10 +169,82 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
               ),
             ),
             const SizedBox(height: 12),
-            if (txsAsync.isLoading)
-              (MediaQuery.of(context).disableAnimations
-                  ? Container(
+            Builder(
+              builder: (ctx) {
+                final reduceMotion = MediaQuery.of(ctx).disableAnimations;
+                final duration = reduceMotion
+                    ? Duration.zero
+                    : const Duration(milliseconds: 180);
+                Widget child;
+                if (txsAsync.isLoading) {
+                  child = MediaQuery.of(context).disableAnimations
+                      ? Container(
+                          key: const ValueKey('trend_static'),
+                          height: 220,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.05,
+                              ),
+                            ),
+                          ),
+                        )
+                      : AnimatedBuilder(
+                          key: const ValueKey('trend_shimmer'),
+                          animation: _shimmer,
+                          builder: (ctx, _) => Container(
+                            height: 220,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surface,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.05,
+                                ),
+                              ),
+                            ),
+                            padding: const EdgeInsets.all(12),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.08 + 0.1 * _shimmer.value,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        );
+                } else if (monthly.isEmpty) {
+                  child = Center(
+                    key: const ValueKey('trend_empty'),
+                    child: Column(
+                      children: [
+                        Semantics(
+                          label: 'No trend data illustration',
+                          child: Icon(
+                            Icons.trending_up,
+                            size: 72,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'No trend data',
+                          style: theme.textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                  );
+                } else {
+                  child = Semantics(
+                    key: const ValueKey('trend_chart'),
+                    label:
+                        'Monthly trend for selected range. Income ${kpis.income.toStringAsFixed(2)}, expense ${kpis.expense.toStringAsFixed(2)}, net ${kpis.net.toStringAsFixed(2)}.',
+                    child: Container(
                       height: 220,
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(16),
@@ -182,124 +254,70 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                           ),
                         ),
                       ),
-                    )
-                  : AnimatedBuilder(
-                      animation: _shimmer,
-                      builder: (ctx, _) => Container(
-                        height: 220,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.05,
+                      child: LineChart(
+                        LineChartData(
+                          gridData: FlGridData(show: false),
+                          titlesData: FlTitlesData(
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                getTitlesWidget: (value, meta) {
+                                  final idx = value.toInt();
+                                  if (idx < 0 || idx > 5) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  final now = DateTime.now();
+                                  final m = DateTime(
+                                    now.year,
+                                    now.month - (5 - idx),
+                                    1,
+                                  );
+                                  final label = DateFormat('MMM').format(m);
+                                  return Text(
+                                    label,
+                                    style: theme.textTheme.bodySmall,
+                                  );
+                                },
+                                interval: 1,
+                              ),
+                            ),
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            rightTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            topTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
                             ),
                           ),
-                        ),
-                        padding: const EdgeInsets.all(12),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.08 + 0.1 * _shimmer.value,
+                          borderData: FlBorderData(show: false),
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: List.generate(
+                                monthly.length,
+                                (i) => FlSpot(i.toDouble(), monthly[i]),
+                              ),
+                              isCurved: true,
+                              barWidth: 3,
+                              color: theme.colorScheme.secondary,
+                              dotData: FlDotData(show: false),
+                              belowBarData: BarAreaData(
+                                show: true,
+                                color: theme.colorScheme.secondary.withValues(
+                                  alpha: 0.2,
+                                ),
+                              ),
                             ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          ],
                         ),
-                      ),
-                    ))
-            else if (monthly.isEmpty)
-              Center(
-                child: Column(
-                  children: [
-                    Semantics(
-                      label: 'No trend data illustration',
-                      child: Icon(
-                        Icons.trending_up,
-                        size: 72,
-                        color: theme.colorScheme.primary,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text('No trend data', style: theme.textTheme.titleMedium),
-                  ],
-                ),
-              )
-            else
-              Semantics(
-                label:
-                    'Monthly trend for selected range. Income ${kpis.income.toStringAsFixed(2)}, expense ${kpis.expense.toStringAsFixed(2)}, net ${kpis.net.toStringAsFixed(2)}.',
-                child: Container(
-                  height: 220,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: theme.colorScheme.onSurface.withValues(
-                        alpha: 0.05,
-                      ),
-                    ),
-                  ),
-                  child: LineChart(
-                    LineChartData(
-                      gridData: FlGridData(show: false),
-                      titlesData: FlTitlesData(
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            getTitlesWidget: (value, meta) {
-                              final idx = value.toInt();
-                              if (idx < 0 || idx > 5) {
-                                return const SizedBox.shrink();
-                              }
-                              final now = DateTime.now();
-                              final m = DateTime(
-                                now.year,
-                                now.month - (5 - idx),
-                                1,
-                              );
-                              final label = DateFormat('MMM').format(m);
-                              return Text(
-                                label,
-                                style: theme.textTheme.bodySmall,
-                              );
-                            },
-                            interval: 1,
-                          ),
-                        ),
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        rightTitles: AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        topTitles: AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                      ),
-                      borderData: FlBorderData(show: false),
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: List.generate(
-                            monthly.length,
-                            (i) => FlSpot(i.toDouble(), monthly[i]),
-                          ),
-                          isCurved: true,
-                          barWidth: 3,
-                          color: theme.colorScheme.secondary,
-                          dotData: FlDotData(show: false),
-                          belowBarData: BarAreaData(
-                            show: true,
-                            color: theme.colorScheme.secondary.withValues(
-                              alpha: 0.2,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+                  );
+                }
+                return AnimatedSwitcher(duration: duration, child: child);
+              },
+            ),
             const SizedBox(height: 24),
             Consumer(
               builder: (chipCtx, chipRef, _) {
@@ -366,10 +384,94 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
               ],
             ),
             const SizedBox(height: 12),
-            if (txsAsync.isLoading)
-              (MediaQuery.of(context).disableAnimations
-                  ? Container(
+            Builder(
+              builder: (ctx) {
+                final reduceMotion = MediaQuery.of(ctx).disableAnimations;
+                final duration = reduceMotion
+                    ? Duration.zero
+                    : const Duration(milliseconds: 180);
+                Widget child;
+                if (txsAsync.isLoading) {
+                  child = MediaQuery.of(context).disableAnimations
+                      ? Container(
+                          key: const ValueKey('cat_static'),
+                          height: 240,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.05,
+                              ),
+                            ),
+                          ),
+                        )
+                      : AnimatedBuilder(
+                          key: const ValueKey('cat_shimmer'),
+                          animation: _shimmer,
+                          builder: (ctx, _) => Container(
+                            height: 240,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surface,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.05,
+                                ),
+                              ),
+                            ),
+                            padding: const EdgeInsets.all(12),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.08 + 0.1 * _shimmer.value,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        );
+                } else if (categories.isEmpty) {
+                  child = Center(
+                    key: const ValueKey('cat_empty'),
+                    child: Column(
+                      children: [
+                        Semantics(
+                          label: 'No category data illustration',
+                          child: Icon(
+                            Icons.pie_chart_outline,
+                            size: 72,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'No category data',
+                          style: theme.textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Add transactions to see insights',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 8),
+                        FilledButton.icon(
+                          onPressed: () {
+                            GoRouter.of(context).go('/transactions');
+                          },
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add transaction'),
+                        ),
+                      ],
+                    ),
+                  );
+                } else {
+                  child = Semantics(
+                    key: const ValueKey('cat_chart'),
+                    label: 'Spending by category for selected range.',
+                    child: Container(
                       height: 240,
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(16),
@@ -379,104 +481,35 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                           ),
                         ),
                       ),
-                    )
-                  : AnimatedBuilder(
-                      animation: _shimmer,
-                      builder: (ctx, _) => Container(
-                        height: 240,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.05,
-                            ),
-                          ),
+                      child: PieChart(
+                        PieChartData(
+                          sectionsSpace: 2,
+                          centerSpaceRadius: 40,
+                          sections: categories.entries.map((e) {
+                            final palette = [
+                              theme.colorScheme.secondary,
+                              theme.colorScheme.primary,
+                              theme.colorScheme.error,
+                              theme.colorScheme.secondaryContainer,
+                              theme.colorScheme.primaryContainer,
+                            ];
+                            final idx = e.key.hashCode % palette.length;
+                            final color = palette[idx];
+                            return PieChartSectionData(
+                              title: e.key,
+                              value: e.value,
+                              color: color,
+                              titleStyle: theme.textTheme.bodySmall,
+                            );
+                          }).toList(),
                         ),
-                        padding: const EdgeInsets.all(12),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.08 + 0.1 * _shimmer.value,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ))
-            else if (categories.isEmpty)
-              Center(
-                child: Column(
-                  children: [
-                    Semantics(
-                      label: 'No category data illustration',
-                      child: Icon(
-                        Icons.pie_chart_outline,
-                        size: 72,
-                        color: theme.colorScheme.primary,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'No category data',
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Add transactions to see insights',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 8),
-                    FilledButton.icon(
-                      onPressed: () {
-                        GoRouter.of(context).go('/transactions');
-                      },
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add transaction'),
-                    ),
-                  ],
-                ),
-              )
-            else
-              Semantics(
-                label: 'Spending by category for selected range.',
-                child: Container(
-                  height: 240,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: theme.colorScheme.onSurface.withValues(
-                        alpha: 0.05,
-                      ),
-                    ),
-                  ),
-                  child: PieChart(
-                    PieChartData(
-                      sectionsSpace: 2,
-                      centerSpaceRadius: 40,
-                      sections: categories.entries.map((e) {
-                        final palette = [
-                          theme.colorScheme.secondary,
-                          theme.colorScheme.primary,
-                          theme.colorScheme.error,
-                          theme.colorScheme.secondaryContainer,
-                          theme.colorScheme.primaryContainer,
-                        ];
-                        final idx = e.key.hashCode % palette.length;
-                        final color = palette[idx];
-                        return PieChartSectionData(
-                          title: e.key,
-                          value: e.value,
-                          color: color,
-                          titleStyle: theme.textTheme.bodySmall,
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-              ),
+                  );
+                }
+                return AnimatedSwitcher(duration: duration, child: child);
+              },
+            ),
             if (categories.isNotEmpty) ...[
               const SizedBox(height: 8),
               Semantics(

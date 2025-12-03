@@ -335,8 +335,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       matchesAmount &&
                       inMonth;
                 }).toList();
+                final reduceMotion = MediaQuery.of(context).disableAnimations;
+                final duration = reduceMotion
+                    ? Duration.zero
+                    : const Duration(milliseconds: 180);
+                Widget listChild;
                 if (filtered.isEmpty) {
-                  return Center(
+                  listChild = Center(
+                    key: const ValueKey('tx_empty'),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -361,19 +367,20 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       ],
                     ),
                   );
-                }
-                return RefreshIndicator(
-                  onRefresh: () async {
-                    ref.invalidate(userTransactionsProvider);
-                    await Future.delayed(const Duration(milliseconds: 150));
-                  },
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemBuilder: (ctx, i) {
-                      final e = filtered[i];
-                      final isIncome = e.amount > 0;
-                      return Dismissible(
-                        key: ValueKey('tx_${e.id}'),
+                } else {
+                  listChild = RefreshIndicator(
+                    key: const ValueKey('tx_list'),
+                    onRefresh: () async {
+                      ref.invalidate(userTransactionsProvider);
+                      await Future.delayed(const Duration(milliseconds: 150));
+                    },
+                    child: ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemBuilder: (ctx, i) {
+                        final e = filtered[i];
+                        final isIncome = e.amount > 0;
+                        return Dismissible(
+                          key: ValueKey('tx_${e.id}'),
                         direction: DismissDirection.horizontal,
                         background: Container(
                           alignment: Alignment.centerLeft,
@@ -588,7 +595,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     },
                     separatorBuilder: (sepCtx, i) => const SizedBox(height: 16),
                     itemCount: filtered.length,
-                  ),
+                    ),
+                  );
+                }
+                return AnimatedSwitcher(
+                  duration: duration,
+                  child: listChild,
                 );
               },
             ),
