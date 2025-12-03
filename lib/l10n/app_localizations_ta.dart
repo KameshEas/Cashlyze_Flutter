@@ -1,0 +1,277 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for Tamil (`ta`).
+class AppLocalizationsTa extends AppLocalizations {
+  AppLocalizationsTa([String locale = 'ta']) : super(locale);
+
+  @override
+  String get appTitle => 'Cashlyze';
+
+  @override
+  String get dashboard => 'கண்ணோட்டம்';
+
+  @override
+  String get quickActions => 'விரைவு செயல்கள்';
+
+  @override
+  String get emiTracker => 'EMI கண்காணிப்பி';
+
+  @override
+  String get recentTransactions => 'அண்மைய பரிவர்த்தனைகள்';
+
+  @override
+  String get transactions => 'பரிவர்த்தனைகள்';
+
+  @override
+  String get add => 'சேர்க்க';
+
+  @override
+  String get search => 'தேடல்';
+
+  @override
+  String get filterAll => 'அனைத்தும்';
+
+  @override
+  String get filterIncome => 'வருமானம்';
+
+  @override
+  String get filterExpense => 'செலவு';
+
+  @override
+  String get uncategorized => 'வகைப்படுத்தப்படாதது';
+
+  @override
+  String get addTransaction => 'பரிவர்த்தனை சேர்க்க';
+
+  @override
+  String get deleteTransactionTitle => 'பரிவர்த்தனை நீக்கு';
+
+  @override
+  String get delete => 'நீக்கு';
+
+  @override
+  String get cancel => 'ரத்து';
+
+  @override
+  String get retry => 'மீண்டும் முயற்சி';
+
+  @override
+  String get noTransactions => 'பரிவர்த்தனைகள் இல்லை';
+
+  @override
+  String get dateLabel => 'தேதி:';
+
+  @override
+  String get save => 'சேமிக்க';
+
+  @override
+  String get saveChanges => 'மாற்றங்களை சேமிக்க';
+
+  @override
+  String get transactionSaved => 'பரிவர்த்தனை சேமிக்கப்பட்டது';
+
+  @override
+  String get transactionUpdated => 'பரிவர்த்தனை புதுப்பிக்கப்பட்டது';
+
+  @override
+  String get typeLabel => 'வகை';
+
+  @override
+  String get categoryLabel => 'வகை';
+
+  @override
+  String get titleLabel => 'தலைப்பு';
+
+  @override
+  String get amountLabel => 'தொகை';
+
+  @override
+  String get amountHelperEg => 'உதா., 123.45';
+
+  @override
+  String get income => 'வருமானம்';
+
+  @override
+  String get expense => 'செலவு';
+
+  @override
+  String get repeatLabel => 'மீண்டும்';
+
+  @override
+  String get monthlyLabel => 'மாதாந்திரம்';
+
+  @override
+  String get weeklyLabel => 'வாராந்திரம்';
+
+  @override
+  String get frequencyLabel => 'அடிக்கடி';
+
+  @override
+  String get draftSaved => 'வரைவு சேமிக்கப்பட்டது';
+
+  @override
+  String get enterTitleError => 'தலைப்பை உள்ளிடவும்';
+
+  @override
+  String get enterValidAmountError => 'செல்லுபடியாகும் தொகையை உள்ளிடவும்';
+
+  @override
+  String get enterValidDateError => 'செல்லுபடியாகும் தேதியை உள்ளிடவும்';
+
+  @override
+  String get manageCategoriesTitle => 'வகைகளை நிர்வகிக்க';
+
+  @override
+  String get noCategories => 'வகைகள் இல்லை';
+
+  @override
+  String get addCategory => 'வகை சேர்க்க';
+
+  @override
+  String get edit => 'திருத்து';
+
+  @override
+  String get deleteCategoryTitle => 'வகையை நீக்கு';
+
+  @override
+  String get deleteCategoryConfirm => 'இந்த வகையை நீக்க விரும்புகிறீர்களா?';
+
+  @override
+  String get deleted => 'நீக்கப்பட்டது';
+
+  @override
+  String get addCategoryTitle => 'வகை சேர்க்க';
+
+  @override
+  String get editCategoryTitle => 'வகையை திருத்து';
+
+  @override
+  String get nameLabel => 'பெயர்';
+
+  @override
+  String get nameEmptyError => 'பெயர் காலியாக இருக்க முடியாது';
+
+  @override
+  String get saved => 'சேமிக்கப்பட்டது';
+
+  @override
+  String get quickTransfer => 'பரிமாற்றம்';
+
+  @override
+  String get quickTopUp => 'டாப்-அப்';
+
+  @override
+  String get quickBill => 'பில்';
+
+  @override
+  String get quickMore => 'மேலும்';
+
+  @override
+  String get emiUpcoming => 'வரவிருக்கும் EMI';
+
+  @override
+  String get viewDetails => 'விவரங்களை பார்க்க';
+
+  @override
+  String get noUpcomingEmi => 'இந்த மாதம் வரவிருக்கும் EMI இல்லை';
+
+  @override
+  String get setReminder => 'நினைவூட்டலை அமைக்க';
+
+  @override
+  String get pay => 'கட்டணம்';
+
+  @override
+  String get emiMarkedPaidAdded =>
+      'EMI கட்டப்பட்டது என குறிக்கப்பட்டது மற்றும் பரிவர்த்தனை சேர்க்கப்பட்டது';
+
+  @override
+  String get net => 'நிகர்';
+
+  @override
+  String get preferencesTitle => 'விருப்பங்கள்';
+
+  @override
+  String get alertsTitle => 'எச்சரிக்கைகள்';
+
+  @override
+  String get alertsSubtitle => 'பட்ஜெட் வரம்பை அணுகும்போது அறிவிக்க';
+
+  @override
+  String get biometricRequireTitle => 'திறக்க பயோமெட்ரிக் தேவை';
+
+  @override
+  String get biometricRequireSubtitle => 'ஆப் தொடக்கத்தில் பயோமெட்ரிக் கேட்க';
+
+  @override
+  String get developerOptionsTitle => 'டெவலப்பர் விருப்பங்கள்';
+
+  @override
+  String get developerOptionsSubtitle =>
+      'மேம்பட்ட கருவிகளை காட்ட (பேக்கப்/ரிஸ்டோர்)';
+
+  @override
+  String get dataPrivacyTitle => 'தரவு & தனியுரிமை';
+
+  @override
+  String get categoriesManageTitle => 'வகைகள்';
+
+  @override
+  String get categoriesManageSubtitle => 'வகைகளை நிர்வகிக்க';
+
+  @override
+  String get onboardingTitle => 'ஆன்போர்டிங்';
+
+  @override
+  String get onboardingSubtitle => 'வாக்க்த்ருவை மீண்டும் பார்க்க';
+
+  @override
+  String get emiTrackerTitle => 'EMI கண்காணிப்பி';
+
+  @override
+  String get addEmiPlanTitle => 'EMI திட்டம் சேர்க்க';
+
+  @override
+  String get addEmiPlanSubtitle => 'திட்டத்தை உருவாக்க';
+
+  @override
+  String get backupToFileTitle => 'கோப்பிற்கு பேக்கப்';
+
+  @override
+  String get backupToFileSubtitle => 'JSON சேமித்து பகிர';
+
+  @override
+  String get backupToDriveTitle => 'டிரைவுக்கு பேக்கப்';
+
+  @override
+  String get backupToDriveSubtitle => 'JSON-ஐ டிரைவில் பதிவேற்ற';
+
+  @override
+  String get restoreFromFileTitle => 'கோப்பில் இருந்து ரிஸ்டோர்';
+
+  @override
+  String get restoreFromFileSubtitle => 'JSON பேக்கப்பை இறக்குமதி';
+
+  @override
+  String get restoreFromDriveTitle => 'டிரைவில் இருந்து ரிஸ்டோர்';
+
+  @override
+  String get restoreFromDriveSubtitle => 'JSON பதிவிறக்கி இறக்குமதி';
+
+  @override
+  String get exportDataTitle => 'தரவு ஏற்றுமதி';
+
+  @override
+  String get exportDataSubtitle => 'JSON-ஐ கிளிப்போர்டில் நகலெடுக்க';
+
+  @override
+  String get clearAllDataTitle => 'அனைத்து தரவையும் அழி';
+
+  @override
+  String get clearAllDataSubtitle =>
+      'DELETE تایپ மற்றும் ஏற்றுமதி உறுதிப்பாடு தேவை';
+}

@@ -6,6 +6,7 @@ import '../../core/providers/transaction_providers.dart';
 import '../../core/providers/insights_providers.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/utils/format.dart';
+import '../../l10n/app_localizations.dart';
 
 class InsightsScreen extends ConsumerStatefulWidget {
   const InsightsScreen({super.key});
@@ -44,6 +45,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
     final monthly = ref.watch(monthlyTrendProvider);
     // final filtered = ref.watch(filteredTransactionsProvider);
     final categories = ref.watch(categoryBreakdownProvider);
+    final t = AppLocalizations.of(context);
     final txsAsync = ref.watch(recentTransactionsProvider);
     final kpis = ref.watch(kpisProvider);
     final selectedRange = ref.watch(selectedTimeRangeProvider);
@@ -98,7 +100,11 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Income', style: theme.textTheme.bodySmall),
+                      Text(
+                        t?.income ?? 'Income',
+                        style: theme.textTheme.bodySmall,
+                      ),
+
                       Text(
                         formatAmount(kpis.income, currency),
                         style: theme.textTheme.titleMedium,
@@ -108,7 +114,10 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Expense', style: theme.textTheme.bodySmall),
+                      Text(
+                        t?.expense ?? 'Expense',
+                        style: theme.textTheme.bodySmall,
+                      ),
                       Text(
                         formatAmount(kpis.expense, currency),
                         style: theme.textTheme.titleMedium,
@@ -118,7 +127,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Net', style: theme.textTheme.bodySmall),
+                      Text(t?.net ?? 'Net', style: theme.textTheme.bodySmall),
                       Text(
                         formatAmount(kpis.net, currency),
                         style: theme.textTheme.titleMedium,

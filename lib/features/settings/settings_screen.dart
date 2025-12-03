@@ -17,6 +17,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../core/services/drive_backup_service.dart';
+import '../../l10n/app_localizations.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -69,184 +70,293 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       );
     }
 
-    final preferences = sectionCard(Icons.tune, 'Preferences', [
-      ListTile(
-        title: const Text('Alerts'),
-        subtitle: const Text('Notify when budgets approach thresholds'),
-        contentPadding: EdgeInsets.zero,
-        trailing: Switch(
+    final t = AppLocalizations.of(context);
+    final preferences = sectionCard(
+      Icons.tune,
+      t?.preferencesTitle ?? 'Preferences',
+      [
+        SwitchListTile.adaptive(
+          title: Text(t?.alertsTitle ?? 'Alerts'),
+          subtitle: Text(
+            t?.alertsSubtitle ?? 'Notify when budgets approach thresholds',
+          ),
+          contentPadding: EdgeInsets.zero,
           value: alertsEnabled,
           onChanged: (v) async {
             await prefs.setAlertsEnabled(v);
             setState(() {});
           },
         ),
-      ),
-      FutureBuilder<bool>(
-        future: ref.read(biometricServiceProvider).isAvailable(),
-        builder: (ctx, snap) {
-          final show = (snap.data ?? false) && prefs.biometricEnabled;
-          if (!show) return const SizedBox.shrink();
-          return ListTile(
-            title: const Text('Require Biometric to unlock'),
-            subtitle: const Text('App requires biometric on launch'),
-            contentPadding: EdgeInsets.zero,
-          );
-        },
-      ),
-      ListTile(
-        title: const Text('Show Development Section'),
-        subtitle: const Text('Toggle advanced tools like backup/restore'),
-        contentPadding: EdgeInsets.zero,
-        trailing: Switch(
+        FutureBuilder<bool>(
+          future: ref.read(biometricServiceProvider).isAvailable(),
+          builder: (ctx, snap) {
+            final available = snap.data ?? false;
+            if (!available) return const SizedBox.shrink();
+            return SwitchListTile.adaptive(
+              title: Text(
+                t?.biometricRequireTitle ?? 'Require biometric to unlock',
+              ),
+              subtitle: Text(
+                t?.biometricRequireSubtitle ?? 'Prompt biometric on app launch',
+              ),
+              contentPadding: EdgeInsets.zero,
+              value: prefs.biometricEnabled,
+              onChanged: (v) async {
+                await prefs.setBiometricEnabled(v);
+                setState(() {});
+              },
+            );
+          },
+        ),
+        SwitchListTile.adaptive(
+          title: Text(t?.developerOptionsTitle ?? 'Developer Options'),
+          subtitle: Text(
+            t?.developerOptionsSubtitle ??
+                'Show advanced tools like backup/restore',
+          ),
+          contentPadding: EdgeInsets.zero,
           value: prefs.showDevelopmentSection,
           onChanged: (v) async {
             await prefs.setShowDevelopmentSection(v);
             setState(() {});
           },
         ),
-      ),
-      const SizedBox(height: 12),
-      Row(
-        children: [
-          Expanded(
-            child: Semantics(
-              label: 'Budget alert threshold',
-              value: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
-              child: Slider(
-                value: (prefs.alertThreshold.clamp(0.5, 1.0)),
-                min: 0.5,
-                max: 1.0,
-                divisions: 10,
-                label:
-                    '${(prefs.alertThreshold * 100).toStringAsFixed(0)}% threshold',
-                onChanged: (v) {
-                  prefs.setAlertThreshold(v);
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: Semantics(
+                label: 'Budget alert threshold',
+                value: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
+                child: Slider(
+                  value: (prefs.alertThreshold.clamp(0.5, 1.0)),
+                  min: 0.5,
+                  max: 1.0,
+                  divisions: 10,
+                  label:
+                      '${(prefs.alertThreshold * 100).toStringAsFixed(0)}% threshold',
+                  onChanged: (v) {
+                    prefs.setAlertThreshold(v);
+                    setState(() {});
+                  },
+                  onChangeEnd: (v) async {
+                    await ref
+                        .read(analyticsServiceProvider)
+                        .logEvent(
+                          'alert_threshold_change',
+                          params: {'threshold_percent': (v * 100).round()},
+                        );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text('${(prefs.alertThreshold * 100).toStringAsFixed(0)}%'),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                initialValue: prefs.alertFrequency,
+                items: const [
+                  DropdownMenuItem(value: 'daily', child: Text('Daily')),
+                  DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
+                  DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
+                ],
+                onChanged: (v) async {
+                  if (v == null) return;
+                  await prefs.setAlertFrequency(v);
                   setState(() {});
                 },
-                onChangeEnd: (v) async {
-                  await ref
-                      .read(analyticsServiceProvider)
-                      .logEvent(
-                        'alert_threshold_change',
-                        params: {'threshold_percent': (v * 100).round()},
-                      );
+                decoration: const InputDecoration(
+                  labelText: 'Alert frequency',
+                  filled: true,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                initialValue: currency,
+                items: const [
+                  DropdownMenuItem(value: 'USD', child: Text('USD')),
+                  DropdownMenuItem(value: 'EUR', child: Text('EUR')),
+                  DropdownMenuItem(value: 'INR', child: Text('INR')),
+                ],
+                onChanged: (v) async {
+                  if (v == null) return;
+                  await ref.read(currencyProvider.notifier).set(v);
                 },
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text('${(prefs.alertThreshold * 100).toStringAsFixed(0)}%'),
-        ],
-      ),
-      const SizedBox(height: 12),
-      Row(
-        children: [
-          Expanded(
-            child: DropdownButtonFormField<String>(
-              initialValue: prefs.alertFrequency,
-              items: const [
-                DropdownMenuItem(value: 'daily', child: Text('Daily')),
-                DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
-                DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
-              ],
-              onChanged: (v) async {
-                if (v == null) return;
-                await prefs.setAlertFrequency(v);
-                setState(() {});
-              },
-              decoration: const InputDecoration(
-                labelText: 'Alert frequency',
-                filled: true,
-              ),
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 12),
-      Row(
-        children: [
-          Expanded(
-            child: DropdownButtonFormField<String>(
-              initialValue: currency,
-              items: const [
-                DropdownMenuItem(value: 'USD', child: Text('USD')),
-                DropdownMenuItem(value: 'EUR', child: Text('EUR')),
-                DropdownMenuItem(value: 'INR', child: Text('INR')),
-              ],
-              onChanged: (v) async {
-                if (v == null) return;
-                await ref.read(currencyProvider.notifier).set(v);
-              },
-              decoration: const InputDecoration(
-                labelText: 'Currency',
-                filled: true,
-              ),
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 12),
-      Row(
-        children: [
-          Expanded(
-            child: DropdownButtonFormField<String>(
-              initialValue: dateFormat,
-              items: const [
-                DropdownMenuItem(
-                  value: 'yyyy-MM-dd',
-                  child: Text('yyyy-MM-dd'),
+                decoration: const InputDecoration(
+                  labelText: 'Currency',
+                  filled: true,
                 ),
-                DropdownMenuItem(
-                  value: 'dd/MM/yyyy',
-                  child: Text('dd/MM/yyyy'),
-                ),
-                DropdownMenuItem(
-                  value: 'MM/dd/yyyy',
-                  child: Text('MM/dd/yyyy'),
-                ),
-              ],
-              onChanged: (v) async {
-                if (v == null) return;
-                await prefs.setDateFormat(v);
-                setState(() {});
-              },
-              decoration: const InputDecoration(
-                labelText: 'Date format',
-                filled: true,
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                initialValue: dateFormat,
+                items: const [
+                  DropdownMenuItem(
+                    value: 'yyyy-MM-dd',
+                    child: Text('yyyy-MM-dd'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'dd/MM/yyyy',
+                    child: Text('dd/MM/yyyy'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'MM/dd/yyyy',
+                    child: Text('MM/dd/yyyy'),
+                  ),
+                ],
+                onChanged: (v) async {
+                  if (v == null) return;
+                  await prefs.setDateFormat(v);
+                  setState(() {});
+                },
+                decoration: const InputDecoration(
+                  labelText: 'Date format',
+                  filled: true,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+    Widget actionTile({
+      required IconData icon,
+      required String title,
+      String? subtitle,
+      required VoidCallback onTap,
+      Color? color,
+    }) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: 180,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+            ),
           ),
-        ],
-      ),
-    ]);
-    final dataSection =
-        sectionCard(Icons.layers_outlined, 'Data & Personalization', [
-          ListTile(
-            leading: const Icon(Icons.category_outlined),
-            title: const Text('Manage Categories'),
-            subtitle: const Text('Create and edit your spending categories'),
-            onTap: () => GoRouter.of(context).go('/categories'),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: (color ?? theme.colorScheme.primary).withValues(
+                    alpha: 0.12,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color ?? theme.colorScheme.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: theme.textTheme.bodyMedium),
+                    if (subtitle != null)
+                      Text(
+                        subtitle,
+                        style: theme.textTheme.bodySmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          ListTile(
-            leading: const Icon(Icons.school_outlined),
-            title: const Text('Revisit Onboarding'),
-            subtitle: const Text('Refresh tips and app walkthrough'),
-            onTap: () => GoRouter.of(context).go('/onboarding_preview'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.payments_outlined),
-            title: const Text('EMI Tracker'),
-            subtitle: const Text('Track loans and installments'),
-            onTap: () => GoRouter.of(context).go('/emi'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.add_card),
-            title: const Text('Add EMI Plan'),
-            subtitle: const Text('Create a new EMI plan'),
-            onTap: () => GoRouter.of(context).go('/emi/new'),
-          ),
-        ]);
+        ),
+      );
+    }
+
+    final dataSection = sectionCard(
+      Icons.layers_outlined,
+      t?.dataPrivacyTitle ?? 'Data & Privacy',
+      [
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            actionTile(
+              icon: Icons.category_outlined,
+              title: t?.categoriesManageTitle ?? 'Categories',
+              subtitle: t?.categoriesManageSubtitle ?? 'Manage categories',
+              onTap: () => GoRouter.of(context).go('/categories'),
+            ),
+            actionTile(
+              icon: Icons.school_outlined,
+              title: t?.onboardingTitle ?? 'Onboarding',
+              subtitle: t?.onboardingSubtitle ?? 'Revisit walkthrough',
+              onTap: () => GoRouter.of(context).go('/onboarding_preview'),
+            ),
+            actionTile(
+              icon: Icons.payments_outlined,
+              title: t?.emiTrackerTitle ?? 'EMI Tracker',
+              subtitle: 'Track installments',
+              onTap: () => GoRouter.of(context).go('/emi'),
+            ),
+            actionTile(
+              icon: Icons.add_card,
+              title: t?.addEmiPlanTitle ?? 'Add EMI Plan',
+              subtitle: t?.addEmiPlanSubtitle ?? 'Create plan',
+              onTap: () => GoRouter.of(context).go('/emi/new'),
+            ),
+            actionTile(
+              icon: Icons.backup_outlined,
+              title: t?.backupToFileTitle ?? 'Backup to File',
+              subtitle: t?.backupToFileSubtitle ?? 'Save JSON and share',
+              onTap: () async => _backupTransactionsToFile(context, ref),
+            ),
+            actionTile(
+              icon: Icons.cloud_upload_outlined,
+              title: t?.backupToDriveTitle ?? 'Backup to Drive',
+              subtitle: t?.backupToDriveSubtitle ?? 'Upload JSON to Drive',
+              onTap: () async => _backupTransactionsToDrive(context, ref),
+            ),
+            actionTile(
+              icon: Icons.restore_outlined,
+              title: t?.restoreFromFileTitle ?? 'Restore from File',
+              subtitle: t?.restoreFromFileSubtitle ?? 'Import JSON backup',
+              onTap: () async => _restoreTransactionsFromFile(context, ref),
+            ),
+            actionTile(
+              icon: Icons.cloud_download_outlined,
+              title: t?.restoreFromDriveTitle ?? 'Restore from Drive',
+              subtitle: t?.restoreFromDriveSubtitle ?? 'Download & import JSON',
+              onTap: () async => _restoreTransactionsFromDrive(context, ref),
+            ),
+            actionTile(
+              icon: Icons.download_outlined,
+              title: t?.exportDataTitle ?? 'Export Data',
+              subtitle: t?.exportDataSubtitle ?? 'Copy JSON to clipboard',
+              onTap: () async => _showExportDataDialog(context, ref),
+            ),
+          ],
+        ),
+      ],
+    );
     final accountSection = sectionCard(
       Icons.lock_outline,
       'Account & Security',
@@ -367,46 +477,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ],
     );
 
-    final developmentSection = sectionCard(Icons.code, 'Development', [
-      ListTile(
-        leading: const Icon(Icons.backup_outlined, color: Colors.blue),
-        title: const Text('Backup Transactions'),
-        subtitle: const Text('Save a JSON file and share to Drive'),
-        onTap: () async => _backupTransactionsToFile(context, ref),
-      ),
-      ListTile(
-        leading: const Icon(Icons.cloud_upload_outlined, color: Colors.blue),
-        title: const Text('Back up to Google Drive'),
-        subtitle: const Text('Upload transactions JSON to Drive'),
-        onTap: () async => _backupTransactionsToDrive(context, ref),
-      ),
-      ListTile(
-        leading: const Icon(Icons.restore_outlined, color: Colors.green),
-        title: const Text('Restore Transactions'),
-        subtitle: const Text('Import from a JSON file'),
-        onTap: () async => _restoreTransactionsFromFile(context, ref),
-      ),
-      ListTile(
-        leading: const Icon(Icons.cloud_download_outlined, color: Colors.green),
-        title: const Text('Restore from Google Drive'),
-        subtitle: const Text('Download and import transactions JSON'),
-        onTap: () async => _restoreTransactionsFromDrive(context, ref),
-      ),
-      ListTile(
-        leading: const Icon(Icons.download_outlined, color: Colors.blue),
-        title: const Text('Export Data'),
-        subtitle: const Text('Copy JSON of your data to clipboard'),
-        onTap: () async => _showExportDataDialog(context, ref),
-      ),
-      ListTile(
-        leading: const Icon(Icons.clear_all, color: Colors.orange),
-        title: const Text('Clear All Data'),
-        subtitle: const Text(
-          'Requires typing DELETE and export acknowledgment',
-        ),
-        onTap: () async => _showClearDataDialog(context, ref),
-      ),
-    ]);
+    final developmentSection =
+        sectionCard(Icons.code, t?.developerOptionsTitle ?? 'Development', [
+          ListTile(
+            leading: const Icon(Icons.clear_all, color: Colors.orange),
+            title: Text(t?.clearAllDataTitle ?? 'Clear All Data'),
+            subtitle: Text(
+              t?.clearAllDataSubtitle ??
+                  'Requires typing DELETE and export acknowledgment',
+            ),
+            onTap: () async => _showClearDataDialog(context, ref),
+          ),
+        ]);
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: LayoutBuilder(

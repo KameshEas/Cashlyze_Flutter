@@ -188,4 +188,90 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get emiMarkedPaidAdded => 'EMI marked paid and transaction added';
+
+  @override
+  String get net => 'Net';
+
+  @override
+  String get preferencesTitle => 'Preferences';
+
+  @override
+  String get alertsTitle => 'Alerts';
+
+  @override
+  String get alertsSubtitle => 'Notify when budgets approach thresholds';
+
+  @override
+  String get biometricRequireTitle => 'Require biometric to unlock';
+
+  @override
+  String get biometricRequireSubtitle => 'Prompt biometric on app launch';
+
+  @override
+  String get developerOptionsTitle => 'Developer Options';
+
+  @override
+  String get developerOptionsSubtitle =>
+      'Show advanced tools like backup/restore';
+
+  @override
+  String get dataPrivacyTitle => 'Data & Privacy';
+
+  @override
+  String get categoriesManageTitle => 'Categories';
+
+  @override
+  String get categoriesManageSubtitle => 'Manage categories';
+
+  @override
+  String get onboardingTitle => 'Onboarding';
+
+  @override
+  String get onboardingSubtitle => 'Revisit walkthrough';
+
+  @override
+  String get emiTrackerTitle => 'EMI Tracker';
+
+  @override
+  String get addEmiPlanTitle => 'Add EMI Plan';
+
+  @override
+  String get addEmiPlanSubtitle => 'Create plan';
+
+  @override
+  String get backupToFileTitle => 'Backup to File';
+
+  @override
+  String get backupToFileSubtitle => 'Save JSON and share';
+
+  @override
+  String get backupToDriveTitle => 'Backup to Drive';
+
+  @override
+  String get backupToDriveSubtitle => 'Upload JSON to Drive';
+
+  @override
+  String get restoreFromFileTitle => 'Restore from File';
+
+  @override
+  String get restoreFromFileSubtitle => 'Import JSON backup';
+
+  @override
+  String get restoreFromDriveTitle => 'Restore from Drive';
+
+  @override
+  String get restoreFromDriveSubtitle => 'Download & import JSON';
+
+  @override
+  String get exportDataTitle => 'Export Data';
+
+  @override
+  String get exportDataSubtitle => 'Copy JSON to clipboard';
+
+  @override
+  String get clearAllDataTitle => 'Clear All Data';
+
+  @override
+  String get clearAllDataSubtitle =>
+      'Requires typing DELETE and export acknowledgment';
 }

@@ -7,6 +7,7 @@ import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
 import 'app_localizations_hi.dart';
+import 'app_localizations_ta.dart';
 
 // ignore_for_file: type=lint
 
@@ -96,6 +97,7 @@ abstract class AppLocalizations {
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
     Locale('hi'),
+    Locale('ta'),
   ];
 
   /// No description provided for @appTitle.
@@ -457,6 +459,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'EMI marked paid and transaction added'**
   String get emiMarkedPaidAdded;
+
+  /// No description provided for @net.
+  ///
+  /// In en, this message translates to:
+  /// **'Net'**
+  String get net;
+
+  /// No description provided for @preferencesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferences'**
+  String get preferencesTitle;
+
+  /// No description provided for @alertsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Alerts'**
+  String get alertsTitle;
+
+  /// No description provided for @alertsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notify when budgets approach thresholds'**
+  String get alertsSubtitle;
+
+  /// No description provided for @biometricRequireTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Require biometric to unlock'**
+  String get biometricRequireTitle;
+
+  /// No description provided for @biometricRequireSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Prompt biometric on app launch'**
+  String get biometricRequireSubtitle;
+
+  /// No description provided for @developerOptionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Developer Options'**
+  String get developerOptionsTitle;
+
+  /// No description provided for @developerOptionsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show advanced tools like backup/restore'**
+  String get developerOptionsSubtitle;
+
+  /// No description provided for @dataPrivacyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Data & Privacy'**
+  String get dataPrivacyTitle;
+
+  /// No description provided for @categoriesManageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories'**
+  String get categoriesManageTitle;
+
+  /// No description provided for @categoriesManageSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage categories'**
+  String get categoriesManageSubtitle;
+
+  /// No description provided for @onboardingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Onboarding'**
+  String get onboardingTitle;
+
+  /// No description provided for @onboardingSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Revisit walkthrough'**
+  String get onboardingSubtitle;
+
+  /// No description provided for @emiTrackerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'EMI Tracker'**
+  String get emiTrackerTitle;
+
+  /// No description provided for @addEmiPlanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add EMI Plan'**
+  String get addEmiPlanTitle;
+
+  /// No description provided for @addEmiPlanSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create plan'**
+  String get addEmiPlanSubtitle;
+
+  /// No description provided for @backupToFileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup to File'**
+  String get backupToFileTitle;
+
+  /// No description provided for @backupToFileSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save JSON and share'**
+  String get backupToFileSubtitle;
+
+  /// No description provided for @backupToDriveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup to Drive'**
+  String get backupToDriveTitle;
+
+  /// No description provided for @backupToDriveSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload JSON to Drive'**
+  String get backupToDriveSubtitle;
+
+  /// No description provided for @restoreFromFileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore from File'**
+  String get restoreFromFileTitle;
+
+  /// No description provided for @restoreFromFileSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import JSON backup'**
+  String get restoreFromFileSubtitle;
+
+  /// No description provided for @restoreFromDriveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore from Drive'**
+  String get restoreFromDriveTitle;
+
+  /// No description provided for @restoreFromDriveSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Download & import JSON'**
+  String get restoreFromDriveSubtitle;
+
+  /// No description provided for @exportDataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Data'**
+  String get exportDataTitle;
+
+  /// No description provided for @exportDataSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy JSON to clipboard'**
+  String get exportDataSubtitle;
+
+  /// No description provided for @clearAllDataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear All Data'**
+  String get clearAllDataTitle;
+
+  /// No description provided for @clearAllDataSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Requires typing DELETE and export acknowledgment'**
+  String get clearAllDataSubtitle;
 }
 
 class _AppLocalizationsDelegate
@@ -470,7 +640,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en', 'hi'].contains(locale.languageCode);
+      <String>['en', 'hi', 'ta'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -483,6 +653,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsEn();
     case 'hi':
       return AppLocalizationsHi();
+    case 'ta':
+      return AppLocalizationsTa();
   }
 
   throw FlutterError(

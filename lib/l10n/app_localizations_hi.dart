@@ -188,4 +188,89 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get emiMarkedPaidAdded => 'ईएमआई भुगतान चिह्नित और लेनदेन जोड़ा गया';
+
+  @override
+  String get net => 'शुद्ध';
+
+  @override
+  String get preferencesTitle => 'प्राथमिकताएँ';
+
+  @override
+  String get alertsTitle => 'अलर्ट';
+
+  @override
+  String get alertsSubtitle => 'बजट सीमा के पास पहुँचने पर सूचित करें';
+
+  @override
+  String get biometricRequireTitle => 'अनलॉक करने के लिए बायोमेट्रिक आवश्यक';
+
+  @override
+  String get biometricRequireSubtitle => 'ऐप लॉन्च पर बायोमेट्रिक मांगें';
+
+  @override
+  String get developerOptionsTitle => 'डेवलपर विकल्प';
+
+  @override
+  String get developerOptionsSubtitle => 'उन्नत उपकरण (बैकअप/रीस्टोर) दिखाएँ';
+
+  @override
+  String get dataPrivacyTitle => 'डेटा और गोपनीयता';
+
+  @override
+  String get categoriesManageTitle => 'श्रेणियाँ';
+
+  @override
+  String get categoriesManageSubtitle => 'श्रेणियाँ प्रबंधित करें';
+
+  @override
+  String get onboardingTitle => 'ऑनबोर्डिंग';
+
+  @override
+  String get onboardingSubtitle => 'वॉकथ्रू पुनः देखें';
+
+  @override
+  String get emiTrackerTitle => 'ईएमआई ट्रैकर';
+
+  @override
+  String get addEmiPlanTitle => 'ईएमआई योजना जोड़ें';
+
+  @override
+  String get addEmiPlanSubtitle => 'योजना बनाएँ';
+
+  @override
+  String get backupToFileTitle => 'फ़ाइल में बैकअप';
+
+  @override
+  String get backupToFileSubtitle => 'JSON सहेजें और साझा करें';
+
+  @override
+  String get backupToDriveTitle => 'ड्राइव में बैकअप';
+
+  @override
+  String get backupToDriveSubtitle => 'JSON को ड्राइव में अपलोड करें';
+
+  @override
+  String get restoreFromFileTitle => 'फ़ाइल से पुनर्स्थापित';
+
+  @override
+  String get restoreFromFileSubtitle => 'JSON बैकअप आयात करें';
+
+  @override
+  String get restoreFromDriveTitle => 'ड्राइव से पुनर्स्थापित';
+
+  @override
+  String get restoreFromDriveSubtitle => 'JSON डाउनलोड और आयात करें';
+
+  @override
+  String get exportDataTitle => 'डेटा निर्यात';
+
+  @override
+  String get exportDataSubtitle => 'क्लिपबोर्ड पर JSON कॉपी करें';
+
+  @override
+  String get clearAllDataTitle => 'सभी डेटा साफ़ करें';
+
+  @override
+  String get clearAllDataSubtitle =>
+      'DELETE टाइपिंग और निर्यात स्वीकार्यता आवश्यक';
 }
