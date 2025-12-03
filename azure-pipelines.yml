@@ -1,0 +1,50 @@
+trigger:
+- main
+
+stages:
+- stage: analyze_test
+  displayName: Analyze and Test
+  jobs:
+  - job: analyze_test_job
+    pool:
+      vmImage: macos-latest
+    steps:
+    - bash: |
+        set -e
+        git clone https://github.com/flutter/flutter.git -b stable $HOME/flutter
+        export PATH="$PATH:$HOME/flutter/bin"
+        flutter --version
+        flutter pub get
+        flutter analyze
+        flutter test
+      displayName: Flutter analyze and test
+
+- stage: build_android
+  displayName: Build Android and Distribute
+  dependsOn: analyze_test
+  jobs:
+  - job: android_job
+    pool:
+      vmImage: macos-latest
+    steps:
+    - bash: |
+        set -e
+        git clone https://github.com/flutter/flutter.git -b stable $HOME/flutter
+        export PATH="$PATH:$HOME/flutter/bin"
+        flutter --version
+        flutter pub get
+        flutter build appbundle --release
+      displayName: Build Android App Bundle
+    - bash: |
+        set -e
+        gem install fastlane -NV
+        export PATH="$PATH:$HOME/flutter/bin"
+        fastlane android firebase
+      env:
+        FIREBASE_CLI_TOKEN: $(FIREBASE_CLI_TOKEN)
+      displayName: Distribute via Firebase App Distribution
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: build/app/outputs/bundle
+        ArtifactName: android-bundle
+        publishLocation: Container
