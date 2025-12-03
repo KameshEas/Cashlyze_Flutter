@@ -7,7 +7,7 @@ stages:
   jobs:
   - job: analyze_test_job
     pool:
-      vmImage: macos-latest
+      vmImage: ubuntu-latest
     steps:
     - bash: |
         set -e
@@ -25,7 +25,7 @@ stages:
   jobs:
   - job: android_job
     pool:
-      vmImage: macos-latest
+      vmImage: ubuntu-latest
     steps:
     - bash: |
         set -e
