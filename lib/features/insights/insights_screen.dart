@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:go_router/go_router.dart';
 import '../../core/providers/transaction_providers.dart';
 import '../../core/providers/insights_providers.dart';
-import '../../core/repositories/category_repository.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/utils/format.dart';
 
@@ -20,7 +18,6 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _shimmerController;
   late final Animation<double> _shimmer;
-  bool _breakdownIncome = false;
 
   @override
   void initState() {
@@ -45,17 +42,8 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final monthly = ref.watch(monthlyTrendProvider);
-    final filtered = ref.watch(filteredTransactionsProvider);
-    final categories = _breakdownIncome
-        ? (() {
-            final map = <String, double>{};
-            for (final t in filtered.where((t) => t.amount > 0)) {
-              final cat = t.categoryId ?? 'Other';
-              map[cat] = (map[cat] ?? 0) + t.amount.abs();
-            }
-            return map;
-          })()
-        : ref.watch(categoryBreakdownProvider);
+    // final filtered = ref.watch(filteredTransactionsProvider);
+    final categories = ref.watch(categoryBreakdownProvider);
     final txsAsync = ref.watch(recentTransactionsProvider);
     final kpis = ref.watch(kpisProvider);
     final selectedRange = ref.watch(selectedTimeRangeProvider);
@@ -68,40 +56,29 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              spacing: 8,
               children: [
-                Text(
-                  'Insights',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                ChoiceChip(
+                  label: const Text('7d'),
+                  selected: selectedRange == TimeRange.last7d,
+                  onSelected: (_) => ref
+                      .read(selectedTimeRangeProvider.notifier)
+                      .setRange(TimeRange.last7d),
                 ),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    ChoiceChip(
-                      label: const Text('7d'),
-                      selected: selectedRange == TimeRange.last7d,
-                      onSelected: (_) => ref
-                          .read(selectedTimeRangeProvider.notifier)
-                          .setRange(TimeRange.last7d),
-                    ),
-                    ChoiceChip(
-                      label: const Text('30d'),
-                      selected: selectedRange == TimeRange.last30d,
-                      onSelected: (_) => ref
-                          .read(selectedTimeRangeProvider.notifier)
-                          .setRange(TimeRange.last30d),
-                    ),
-                    ChoiceChip(
-                      label: const Text('90d'),
-                      selected: selectedRange == TimeRange.last90d,
-                      onSelected: (_) => ref
-                          .read(selectedTimeRangeProvider.notifier)
-                          .setRange(TimeRange.last90d),
-                    ),
-                  ],
+                ChoiceChip(
+                  label: const Text('30d'),
+                  selected: selectedRange == TimeRange.last30d,
+                  onSelected: (_) => ref
+                      .read(selectedTimeRangeProvider.notifier)
+                      .setRange(TimeRange.last30d),
+                ),
+                ChoiceChip(
+                  label: const Text('90d'),
+                  selected: selectedRange == TimeRange.last90d,
+                  onSelected: (_) => ref
+                      .read(selectedTimeRangeProvider.notifier)
+                      .setRange(TimeRange.last90d),
                 ),
               ],
             ),
@@ -148,27 +125,11 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                       ),
                     ],
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Avg/day', style: theme.textTheme.bodySmall),
-                      Text(
-                        formatAmount(kpis.avgDailySpend, currency),
-                        style: theme.textTheme.titleMedium,
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
-            Text(
-              'Monthly Trend',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Builder(
               builder: (ctx) {
                 final reduceMotion = MediaQuery.of(ctx).disableAnimations;
@@ -319,78 +280,14 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
               },
             ),
             const SizedBox(height: 24),
-            Consumer(
-              builder: (chipCtx, chipRef, _) {
-                final catsAsync = chipRef.watch(userCategoriesProvider);
-                final selected = chipRef.watch(selectedCategoriesProvider);
-                return catsAsync.when(
-                  loading: () => const SizedBox.shrink(),
-                  error: (err, st) => const SizedBox.shrink(),
-                  data: (list) => SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        ChoiceChip(
-                          label: const Text('All'),
-                          selected: selected.isEmpty,
-                          onSelected: (_) => chipRef
-                              .read(selectedCategoriesProvider.notifier)
-                              .clear(),
-                        ),
-                        const SizedBox(width: 8),
-                        ...list.map(
-                          (c) => Padding(
-                            padding: const EdgeInsets.only(right: 8.0),
-                            child: ChoiceChip(
-                              label: Text(c.name),
-                              selected: selected.contains(c.name),
-                              onSelected: (_) => chipRef
-                                  .read(selectedCategoriesProvider.notifier)
-                                  .toggle(c.name),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Breakdown by Category',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                ToggleButtons(
-                  isSelected: [!_breakdownIncome, _breakdownIncome],
-                  onPressed: (i) {
-                    setState(() => _breakdownIncome = i == 1);
-                  },
-                  children: const [
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 12),
-                      child: Text('Expense'),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 12),
-                      child: Text('Income'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Builder(
               builder: (ctx) {
                 final reduceMotion = MediaQuery.of(ctx).disableAnimations;
                 final duration = reduceMotion
                     ? Duration.zero
                     : const Duration(milliseconds: 180);
-                Widget child;
+                Widget child = const SizedBox.shrink();
                 if (txsAsync.isLoading) {
                   child = MediaQuery.of(context).disableAnimations
                       ? Container(
@@ -431,41 +328,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                             ),
                           ),
                         );
-                } else if (categories.isEmpty) {
-                  child = Center(
-                    key: const ValueKey('cat_empty'),
-                    child: Column(
-                      children: [
-                        Semantics(
-                          label: 'No category data illustration',
-                          child: Icon(
-                            Icons.pie_chart_outline,
-                            size: 72,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'No category data',
-                          style: theme.textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Add transactions to see insights',
-                          style: theme.textTheme.bodySmall,
-                        ),
-                        const SizedBox(height: 8),
-                        FilledButton.icon(
-                          onPressed: () {
-                            GoRouter.of(context).go('/transactions');
-                          },
-                          icon: const Icon(Icons.add),
-                          label: const Text('Add transaction'),
-                        ),
-                      ],
-                    ),
-                  );
-                } else {
+                } else if (categories.isNotEmpty) {
                   child = Semantics(
                     key: const ValueKey('cat_chart'),
                     label: 'Spending by category for selected range.',
@@ -510,198 +373,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen>
                 return AnimatedSwitcher(duration: duration, child: child);
               },
             ),
-            if (categories.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Semantics(
-                label: 'Chart legend for categories',
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: categories.entries.map((e) {
-                    final palette = [
-                      theme.colorScheme.secondary,
-                      theme.colorScheme.primary,
-                      theme.colorScheme.error,
-                      theme.colorScheme.secondaryContainer,
-                      theme.colorScheme.primaryContainer,
-                    ];
-                    final idx = e.key.hashCode % palette.length;
-                    final color = palette[idx];
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.05,
-                          ),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: color,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(e.key, style: theme.textTheme.bodySmall),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Builder(
-                builder: (ctx) {
-                  final sorted = categories.entries.toList()
-                    ..sort((a, b) => b.value.compareTo(a.value));
-                  final top = sorted.take(5).toList();
-                  final maxVal = sorted.isEmpty ? 0 : sorted.first.value;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: top.map((e) {
-                      final pct = maxVal == 0
-                          ? 0.0
-                          : (e.value / maxVal).clamp(0.0, 1.0);
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(e.key, style: theme.textTheme.bodyMedium),
-                                Text(
-                                  formatAmount(e.value, currency),
-                                  style: theme.textTheme.bodySmall,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            LinearProgressIndicator(value: pct, minHeight: 6),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  );
-                },
-              ),
-            ],
             const SizedBox(height: 24),
-            Text(
-              'Recommendations',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Builder(
-              builder: (ctx) {
-                final recos = ref.watch(recommendationsProvider);
-                if (recos.isEmpty) {
-                  return Text(
-                    'No suggestions for this range',
-                    style: theme.textTheme.bodySmall,
-                  );
-                }
-                return Column(
-                  children: recos
-                      .map(
-                        (r) => ListTile(
-                          leading: Semantics(
-                            label: 'Recommendation',
-                            child: Icon(Icons.lightbulb_outline),
-                          ),
-                          title: Text(r),
-                        ),
-                      )
-                      .toList(),
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Anomalies',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Builder(
-              builder: (ctx) {
-                final anomalies = ref.watch(anomaliesProvider);
-                if (anomalies.isEmpty) {
-                  return Text(
-                    'No anomalies detected in this range',
-                    style: theme.textTheme.bodySmall,
-                  );
-                }
-                return Column(
-                  children: anomalies.take(5).map((t) {
-                    final isIncome = t.amount >= 0;
-                    return ListTile(
-                      leading: Semantics(
-                        label: 'Anomaly warning',
-                        child: Icon(
-                          Icons.warning_amber_outlined,
-                          color: theme.colorScheme.error,
-                        ),
-                      ),
-                      title: Text(t.title),
-                      subtitle: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.onSurface.withValues(
-                                alpha: 0.08,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              t.categoryId ?? 'Uncategorized',
-                              style: theme.textTheme.bodySmall,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${t.date.toLocal()}'.split('.').first,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(
-                                alpha: 0.7,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      trailing: Text(
-                        formatAmount(t.amount, currency),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: isIncome
-                              ? theme.colorScheme.secondary
-                              : theme.colorScheme.error,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
-            ),
           ],
         ),
       ),

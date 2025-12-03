@@ -9,6 +9,7 @@ import '../../core/repositories/transaction_repository.dart';
 import '../../core/repositories/budget_repository.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/repositories/emi_repository.dart';
+import '../../core/services/biometric_service.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -77,6 +78,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           value: alertsEnabled,
           onChanged: (v) async {
             await prefs.setAlertsEnabled(v);
+            setState(() {});
+          },
+        ),
+      ),
+      FutureBuilder<bool>(
+        future: ref.read(biometricServiceProvider).isAvailable(),
+        builder: (ctx, snap) {
+          final show = (snap.data ?? false) && prefs.biometricEnabled;
+          if (!show) return const SizedBox.shrink();
+          return ListTile(
+            title: const Text('Require Biometric to unlock'),
+            subtitle: const Text('App requires biometric on launch'),
+            contentPadding: EdgeInsets.zero,
+          );
+        },
+      ),
+      ListTile(
+        title: const Text('Show Development Section'),
+        subtitle: const Text('Toggle advanced tools like backup/restore'),
+        contentPadding: EdgeInsets.zero,
+        trailing: Switch(
+          value: prefs.showDevelopmentSection,
+          onChanged: (v) async {
+            await prefs.setShowDevelopmentSection(v);
             setState(() {});
           },
         ),
@@ -408,7 +433,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       children: [
                         accountSection,
                         const SizedBox(height: 24),
-                        developmentSection,
+                        if (prefs.showDevelopmentSection) developmentSection,
                       ],
                     ),
                   ),
@@ -427,7 +452,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(height: 16),
                 accountSection,
                 const SizedBox(height: 16),
-                developmentSection,
+                if (prefs.showDevelopmentSection) developmentSection,
               ],
             ),
           );

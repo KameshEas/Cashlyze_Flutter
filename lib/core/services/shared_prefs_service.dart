@@ -9,6 +9,7 @@ class SharedPrefsService {
   static const String _currencyKey = 'currency';
   static const String _dateFormatKey = 'date_format';
   static const String _biometricKey = 'biometric_enabled';
+  static const String _showDevKey = 'show_development_section';
   final SharedPreferences _prefs;
 
   SharedPrefsService(this._prefs);
@@ -48,6 +49,11 @@ class SharedPrefsService {
   bool get biometricEnabled => _prefs.getBool(_biometricKey) ?? false;
   Future<void> setBiometricEnabled(bool value) async {
     await _prefs.setBool(_biometricKey, value);
+  }
+
+  bool get showDevelopmentSection => _prefs.getBool(_showDevKey) ?? false;
+  Future<void> setShowDevelopmentSection(bool value) async {
+    await _prefs.setBool(_showDevKey, value);
   }
 
   Map<String, dynamic>? getDraft(String key) {
