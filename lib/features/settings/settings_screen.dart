@@ -353,6 +353,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               subtitle: t?.exportDataSubtitle ?? 'Copy JSON to clipboard',
               onTap: () async => _showExportDataDialog(context, ref),
             ),
+            actionTile(
+              icon: Icons.privacy_tip_outlined,
+              title: 'Privacy Policy',
+              subtitle: 'View our privacy policy',
+              onTap: () async {
+                await ref.read(analyticsServiceProvider).logEvent('privacy_policy_viewed');
+                if (context.mounted) {
+                  _showPrivacyPolicyDialog(context);
+                }
+              },
+            ),
           ],
         ),
       ],
@@ -887,6 +898,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         );
       }
     }
+  }
+
+  void _showPrivacyPolicyDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Privacy Policy'),
+        content: const SingleChildScrollView(
+          child: Text(
+            'Cashlyze is a personal finance management app that stores all your financial data locally on your device and/or in your personal cloud storage (Google Drive). We do not have access to or control over your financial data.\n\n'
+            'For complete privacy policy details, please visit:\n\n'
+            'https://cashlyze.app/privacy_policy.html\n\n'
+            'Key points:\n'
+            '• Your data is stored locally on your device using encrypted storage\n'
+            '• Cloud backups (Google Drive) are only accessible by you\n'
+            '• We do not sell or rent your personal information\n'
+            '• You can export or delete your data at any time',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _clearAllUserData(WidgetRef ref, String userId) async {
