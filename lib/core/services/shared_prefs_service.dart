@@ -11,6 +11,8 @@ class SharedPrefsService {
   static const String _biometricKey = 'biometric_enabled';
   static const String _showDevKey = 'show_development_section';
   static const String _languageKey = 'app_language_code';
+  static const String _analyticsConsentKey = 'analytics_consent_given';
+  static const String _crashlyticsConsentKey = 'crashlytics_consent_given';
   final SharedPreferences _prefs;
 
   SharedPrefsService(this._prefs);
@@ -80,5 +82,16 @@ class SharedPrefsService {
 
   Future<void> clearDraft(String key) async {
     await _prefs.remove('draft_$key');
+  }
+
+  // Analytics & Crashlytics consent
+  bool get analyticsConsentGiven => _prefs.getBool(_analyticsConsentKey) ?? false;
+  Future<void> setAnalyticsConsentGiven(bool value) async {
+    await _prefs.setBool(_analyticsConsentKey, value);
+  }
+
+  bool get crashlyticsConsentGiven => _prefs.getBool(_crashlyticsConsentKey) ?? false;
+  Future<void> setCrashlyticsConsentGiven(bool value) async {
+    await _prefs.setBool(_crashlyticsConsentKey, value);
   }
 }

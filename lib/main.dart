@@ -19,7 +19,10 @@ void main() async {
   try {
     await dotenv.load(fileName: ".env");
   } catch (e) {
-    debugPrint('Failed to load .env file: $e');
+    // Only log in debug mode
+    if (!kReleaseMode) {
+      debugPrint('Failed to load .env file: $e');
+    }
   }
 
   final usePlaceholder =
@@ -33,12 +36,18 @@ void main() async {
           : DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e) {
-    debugPrint('Firebase init failed: $e');
+    // Only log in debug mode
+    if (!kReleaseMode) {
+      debugPrint('Firebase init failed: $e');
+    }
   }
   try {
     FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
   } catch (e) {
-    debugPrint('Crashlytics init failed: $e');
+    // Only log in debug mode
+    if (!kReleaseMode) {
+      debugPrint('Crashlytics init failed: $e');
+    }
   }
 
   final prefs = await SharedPreferences.getInstance();

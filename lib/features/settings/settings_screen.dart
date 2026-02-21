@@ -121,6 +121,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             setState(() {});
           },
         ),
+        SwitchListTile.adaptive(
+          title: const Text('Analytics & Crash Reporting'),
+          subtitle: const Text(
+            'Help improve Cashlyze by sharing usage data',
+          ),
+          contentPadding: EdgeInsets.zero,
+          value: prefs.analyticsConsentGiven,
+          onChanged: (v) async {
+            await prefs.setAnalyticsConsentGiven(v);
+            await prefs.setCrashlyticsConsentGiven(v);
+            await ref.read(analyticsServiceProvider).updateAnalyticsConsent(v);
+            await ref.read(analyticsServiceProvider).logEvent(
+              'analytics_consent_changed',
+              params: {'enabled': v},
+            );
+            setState(() {});
+          },
+        ),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -295,6 +313,60 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       Icons.layers_outlined,
       t?.dataPrivacyTitle ?? 'Data & Privacy',
       [
+        // Prominent Data Export Section
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: theme.colorScheme.primary.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.backup, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    '📦 Data Management',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Export all your data or delete your account. Your data stays yours.',
+                style: TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async => _showExportDataDialog(context, ref),
+                      icon: const Icon(Icons.download),
+                      label: const Text('Export All Data'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async => _backupTransactionsToFile(context, ref),
+                      icon: const Icon(Icons.save),
+                      label: const Text('Backup'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
         Wrap(
           spacing: 12,
           runSpacing: 12,
@@ -324,34 +396,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onTap: () => GoRouter.of(context).go('/emi/new'),
             ),
             actionTile(
-              icon: Icons.backup_outlined,
-              title: t?.backupToFileTitle ?? 'Backup to File',
-              subtitle: t?.backupToFileSubtitle ?? 'Save JSON and share',
-              onTap: () async => _backupTransactionsToFile(context, ref),
-            ),
-            actionTile(
               icon: Icons.cloud_upload_outlined,
               title: t?.backupToDriveTitle ?? 'Backup to Drive',
               subtitle: t?.backupToDriveSubtitle ?? 'Upload JSON to Drive',
               onTap: () async => _backupTransactionsToDrive(context, ref),
             ),
             actionTile(
-              icon: Icons.restore_outlined,
-              title: t?.restoreFromFileTitle ?? 'Restore from File',
-              subtitle: t?.restoreFromFileSubtitle ?? 'Import JSON backup',
-              onTap: () async => _restoreTransactionsFromFile(context, ref),
-            ),
-            actionTile(
               icon: Icons.cloud_download_outlined,
               title: t?.restoreFromDriveTitle ?? 'Restore from Drive',
               subtitle: t?.restoreFromDriveSubtitle ?? 'Download & import JSON',
               onTap: () async => _restoreTransactionsFromDrive(context, ref),
-            ),
-            actionTile(
-              icon: Icons.download_outlined,
-              title: t?.exportDataTitle ?? 'Export Data',
-              subtitle: t?.exportDataSubtitle ?? 'Copy JSON to clipboard',
-              onTap: () async => _showExportDataDialog(context, ref),
             ),
             actionTile(
               icon: Icons.privacy_tip_outlined,
@@ -414,33 +468,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           },
         ),
         ListTile(
-          leading: const Icon(Icons.delete_forever),
-          title: const Text('Delete Account'),
+          leading: const Icon(Icons.delete_forever, color: Colors.red),
+          title: const Text('Delete Account', style: TextStyle(color: Colors.red)),
+          subtitle: const Text('Delete all data & account'),
           onTap: () async {
-            final confirm = await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Text('Delete Account'),
-                content: const Text(
-                  'This will permanently delete your account. Are you sure?',
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(false),
-                    child: const Text('Cancel'),
-                  ),
-                  FilledButton(
-                    onPressed: () => Navigator.of(ctx).pop(true),
-                    child: const Text('Delete'),
-                  ),
-                ],
-              ),
-            );
+            final confirm = await _showDeleteAccountDialog(context, ref);
             if (confirm == true) {
               try {
+                // First delete all user data
+                final user = ref.read(currentUserProvider);
+                if (user != null) {
+                  await _clearAllUserData(ref, user.uid);
+                }
+                // Then delete the account
                 await ref.read(authServiceProvider).deleteAccount();
                 messenger.showSnackBar(
-                  const SnackBar(content: Text('Account deleted')),
+                  const SnackBar(content: Text('Account and all data deleted')),
                 );
                 router.go('/login');
               } catch (e) {
@@ -904,17 +947,49 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Privacy Policy'),
+        title: const Text('Privacy & Data Safety'),
         content: const SingleChildScrollView(
-          child: Text(
-            'Cashlyze is a personal finance management app that stores all your financial data locally on your device and/or in your personal cloud storage (Google Drive). We do not have access to or control over your financial data.\n\n'
-            'For complete privacy policy details, please visit:\n\n'
-            'https://cashlyze.app/privacy_policy.html\n\n'
-            'Key points:\n'
-            '• Your data is stored locally on your device using encrypted storage\n'
-            '• Cloud backups (Google Drive) are only accessible by you\n'
-            '• We do not sell or rent your personal information\n'
-            '• You can export or delete your data at any time',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Data Collection Disclosure',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Cashlyze is a personal finance management app that stores all your financial data locally on your device and/or in your personal cloud storage (Google Drive). We do not have access to or control over your financial data.\n\n'
+                'Data we may collect (with your consent):\n'
+                '• Usage analytics to improve the app\n'
+                '• Crash reports for bug fixes\n'
+                '• No personal financial data is sent to our servers\n\n'
+                'Your data is stored:\n'
+                '• Locally on your device using encrypted storage\n'
+                '• In your personal Google Drive (if you enable backup)\n\n'
+                'You can control analytics sharing in Settings.',
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Key Points',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text(
+                '• Your financial data stays on your device\n'
+                '• Cloud backups are only accessible by you\n'
+                '• We do not sell or rent your personal information\n'
+                '• You can export or delete your data at any time\n'
+                '• Analytics can be disabled in Settings',
+              ),
+              SizedBox(height: 16),
+              Text(
+                'For complete details, visit:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 4),
+              Text('https://cashlyze.app/privacy_policy.html'),
+            ],
           ),
         ),
         actions: [
@@ -924,6 +999,102 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<bool?> _showDeleteAccountDialog(BuildContext context, WidgetRef ref) async {
+    final user = ref.read(currentUserProvider);
+    if (user == null) return false;
+
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        String typed = '';
+        bool exportAcknowledged = false;
+        return StatefulBuilder(
+          builder: (ctx, setState) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.warning, color: Colors.red),
+                SizedBox(width: 8),
+                Text('Delete Account', style: TextStyle(color: Colors.red)),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '⚠️ This action is IRREVERSIBLE!\n\n'
+                    'Deleting your account will permanently remove:\n\n'
+                    '• Your account and login credentials\n'
+                    '• All transactions\n'
+                    '• All budgets\n'
+                    '• All categories\n'
+                    '• All EMI plans\n'
+                    '• All preferences\n\n'
+                    'Your cloud backups will become orphaned.',
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.info, color: Colors.orange, size: 20),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Export your data before deleting to keep a backup.',
+                            style: TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: () async => _showExportDataDialog(context, ref),
+                    icon: const Icon(Icons.download),
+                    label: const Text('Export All Data First'),
+                  ),
+                  CheckboxListTile(
+                    value: exportAcknowledged,
+                    onChanged: (v) => setState(() => exportAcknowledged = v ?? false),
+                    title: const Text('I have exported my data'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    onChanged: (v) => setState(() => typed = v),
+                    decoration: const InputDecoration(
+                      labelText: 'Type DELETE to confirm',
+                      filled: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: (exportAcknowledged && typed == 'DELETE')
+                    ? () => Navigator.of(ctx).pop(true)
+                    : null,
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Delete Everything'),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
