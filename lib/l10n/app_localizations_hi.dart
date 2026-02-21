@@ -273,4 +273,141 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get clearAllDataSubtitle =>
       'DELETE टाइपिंग और निर्यात स्वीकार्यता आवश्यक';
+
+  @override
+  String get privacyPolicyTitle => 'गोपनीयता नीति';
+
+  @override
+  String get privacyPolicySubtitle => 'हमारी गोपनीयता नीति देखें';
+
+  @override
+  String get dataCollectionDisclosure => 'डेटा संग्रह प्रकटीकरण';
+
+  @override
+  String get privacyPolicyDescription =>
+      'Cashlyze एक व्यक्तिगत वित्त प्रबंधन ऐप है जो आपके सभी वित्तीय डेटा को आपके डिवाइस पर स्थानीय रूप से और/या आपके व्यक्तिगत क्लाउड स्टोरेज (Google Drive) में संग्रहीत करता है। हमारे पास आपके वित्तीय डेटा तक पहुँच या नियंत्रण नहीं है।';
+
+  @override
+  String get dataWeMayCollect =>
+      'डेटा जिसे हम एकत्र कर सकते हैं (आपकी सहमति से):';
+
+  @override
+  String get usageAnalytics => 'ऐप को बेहतर बनाने के लिए उपयोग विश्लेषण';
+
+  @override
+  String get crashReports => 'बग फिक्स के लिए क्रैश रिपोर्ट';
+
+  @override
+  String get noFinancialDataSent =>
+      'कोई व्यक्तिगत वित्तीय डेटा हमारे सर्वर पर नहीं भेजा जाता';
+
+  @override
+  String get yourDataIsStored => 'आपका डेटा यहाँ संग्रहीत है:';
+
+  @override
+  String get locallyOnDevice =>
+      'एन्क्रिप्टेड स्टोरेज का उपयोग करके आपके डिवाइस पर स्थानीय रूप से';
+
+  @override
+  String get inGoogleDrive =>
+      'आपके व्यक्तिगत Google Drive में (यदि आप बैकअप सक्षम करते हैं)';
+
+  @override
+  String get controlAnalytics =>
+      'आप सेटिंग्स में एनालिटिक्स शेरिंग को नियंत्रित कर सकते हैं।';
+
+  @override
+  String get keyPoints => 'मुख्य बिंदु';
+
+  @override
+  String get financialDataStays => 'आपका वित्तीय डेटा आपके डिवाइस पर रहता है';
+
+  @override
+  String get cloudBackupsAccessible => 'क्लाउड बैकअप केवल आपके द्वारा सुलभ हैं';
+
+  @override
+  String get noDataSale =>
+      'हम आपकी व्यक्तिगत जानकारी बेचते या किराए पर नहीं देते';
+
+  @override
+  String get exportDeleteData =>
+      'आप किसी भी समय अपना डेटा निर्यात या हटा सकते हैं';
+
+  @override
+  String get analyticsCanDisable =>
+      'Analytics सेटिंग्स में अक्षम किया जा सकता है';
+
+  @override
+  String get forCompleteDetails => 'पूर्ण विवरण के लिए:';
+
+  @override
+  String get close => 'बंद करें';
+
+  @override
+  String get dataManagement => 'डेटा प्रबंधन';
+
+  @override
+  String get exportAllData => 'सभी डेटा निर्यात करें';
+
+  @override
+  String get backup => 'बैकअप';
+
+  @override
+  String get deleteAccount => 'खाता हटाएं';
+
+  @override
+  String get deleteAllDataAccount => 'सभी डेटा और खाता हटाएं';
+
+  @override
+  String get deleteAccountWarning => 'खाता हटाने की चेतावनी';
+
+  @override
+  String get deleteAccountIrreversible => 'यह क्रिया अपरिवर्तनीय है!';
+
+  @override
+  String get deletingAccountWillRemove =>
+      'आपका खाता हटाने से स्थायी रूप से हटा दिया जाएगा:';
+
+  @override
+  String get accountLoginCredentials => 'आपका खाता और लॉगिन क्रेडेंशियल्स';
+
+  @override
+  String get allTransactions => 'सभी लेनदेन';
+
+  @override
+  String get allBudgets => 'सभी बजट';
+
+  @override
+  String get allCategories => 'सभी श्रेणियाँ';
+
+  @override
+  String get allEmiPlans => 'सभी EMI योजनाएँ';
+
+  @override
+  String get allPreferences => 'सभी प्राथमिकताएँ';
+
+  @override
+  String get cloudBackupsOrphaned => 'आपके क्लाउड बैकअप अनुपयोगी हो जाएंगे।';
+
+  @override
+  String get exportDataBeforeDeleting =>
+      'बैकअप रखने के लिए हटाने से पहले अपना डेटा निर्यात करें।';
+
+  @override
+  String get exportAllDataFirst => 'पहले सभी डेटा निर्यात करें';
+
+  @override
+  String get iHaveExportedData => 'मैंने अपना डेटा निर्यात कर लिया है';
+
+  @override
+  String get typeDeleteConfirm => 'पुष्टि के लिए DELETE टाइप करें';
+
+  @override
+  String get deleteEverything => 'सब कुछ हटाएं';
+
+  @override
+  String get analyticsTitle => 'Analytics & Crash Reporting';
+
+  @override
+  String get analyticsSubtitle => 'Cashlyze को बेहतर बनाने में मदद करें';
 }

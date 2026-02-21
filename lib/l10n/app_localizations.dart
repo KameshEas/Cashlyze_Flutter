@@ -627,6 +627,258 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Requires typing DELETE and export acknowledgment'**
   String get clearAllDataSubtitle;
+
+  /// No description provided for @privacyPolicyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get privacyPolicyTitle;
+
+  /// No description provided for @privacyPolicySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'View our privacy policy'**
+  String get privacyPolicySubtitle;
+
+  /// No description provided for @dataCollectionDisclosure.
+  ///
+  /// In en, this message translates to:
+  /// **'Data Collection Disclosure'**
+  String get dataCollectionDisclosure;
+
+  /// No description provided for @privacyPolicyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Cashlyze is a personal finance management app that stores all your financial data locally on your device and/or in your personal cloud storage (Google Drive). We do not have access to or control over your financial data.'**
+  String get privacyPolicyDescription;
+
+  /// No description provided for @dataWeMayCollect.
+  ///
+  /// In en, this message translates to:
+  /// **'Data we may collect (with your consent):'**
+  String get dataWeMayCollect;
+
+  /// No description provided for @usageAnalytics.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage analytics to improve the app'**
+  String get usageAnalytics;
+
+  /// No description provided for @crashReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Crash reports for bug fixes'**
+  String get crashReports;
+
+  /// No description provided for @noFinancialDataSent.
+  ///
+  /// In en, this message translates to:
+  /// **'No personal financial data is sent to our servers'**
+  String get noFinancialDataSent;
+
+  /// No description provided for @yourDataIsStored.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data is stored:'**
+  String get yourDataIsStored;
+
+  /// No description provided for @locallyOnDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Locally on your device using encrypted storage'**
+  String get locallyOnDevice;
+
+  /// No description provided for @inGoogleDrive.
+  ///
+  /// In en, this message translates to:
+  /// **'In your personal Google Drive (if you enable backup)'**
+  String get inGoogleDrive;
+
+  /// No description provided for @controlAnalytics.
+  ///
+  /// In en, this message translates to:
+  /// **'You can control analytics sharing in Settings.'**
+  String get controlAnalytics;
+
+  /// No description provided for @keyPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'Key Points'**
+  String get keyPoints;
+
+  /// No description provided for @financialDataStays.
+  ///
+  /// In en, this message translates to:
+  /// **'Your financial data stays on your device'**
+  String get financialDataStays;
+
+  /// No description provided for @cloudBackupsAccessible.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud backups are only accessible by you'**
+  String get cloudBackupsAccessible;
+
+  /// No description provided for @noDataSale.
+  ///
+  /// In en, this message translates to:
+  /// **'We do not sell or rent your personal information'**
+  String get noDataSale;
+
+  /// No description provided for @exportDeleteData.
+  ///
+  /// In en, this message translates to:
+  /// **'You can export or delete your data at any time'**
+  String get exportDeleteData;
+
+  /// No description provided for @analyticsCanDisable.
+  ///
+  /// In en, this message translates to:
+  /// **'Analytics can be disabled in Settings'**
+  String get analyticsCanDisable;
+
+  /// No description provided for @forCompleteDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'For complete details, visit:'**
+  String get forCompleteDetails;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @dataManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Data Management'**
+  String get dataManagement;
+
+  /// No description provided for @exportAllData.
+  ///
+  /// In en, this message translates to:
+  /// **'Export All Data'**
+  String get exportAllData;
+
+  /// No description provided for @backup.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup'**
+  String get backup;
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteAccount;
+
+  /// No description provided for @deleteAllDataAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all data & account'**
+  String get deleteAllDataAccount;
+
+  /// No description provided for @deleteAccountWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account Warning'**
+  String get deleteAccountWarning;
+
+  /// No description provided for @deleteAccountIrreversible.
+  ///
+  /// In en, this message translates to:
+  /// **'This action is IRREVERSIBLE!'**
+  String get deleteAccountIrreversible;
+
+  /// No description provided for @deletingAccountWillRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting your account will permanently remove:'**
+  String get deletingAccountWillRemove;
+
+  /// No description provided for @accountLoginCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account and login credentials'**
+  String get accountLoginCredentials;
+
+  /// No description provided for @allTransactions.
+  ///
+  /// In en, this message translates to:
+  /// **'All transactions'**
+  String get allTransactions;
+
+  /// No description provided for @allBudgets.
+  ///
+  /// In en, this message translates to:
+  /// **'All budgets'**
+  String get allBudgets;
+
+  /// No description provided for @allCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'All categories'**
+  String get allCategories;
+
+  /// No description provided for @allEmiPlans.
+  ///
+  /// In en, this message translates to:
+  /// **'All EMI plans'**
+  String get allEmiPlans;
+
+  /// No description provided for @allPreferences.
+  ///
+  /// In en, this message translates to:
+  /// **'All preferences'**
+  String get allPreferences;
+
+  /// No description provided for @cloudBackupsOrphaned.
+  ///
+  /// In en, this message translates to:
+  /// **'Your cloud backups will become orphaned.'**
+  String get cloudBackupsOrphaned;
+
+  /// No description provided for @exportDataBeforeDeleting.
+  ///
+  /// In en, this message translates to:
+  /// **'Export your data before deleting to keep a backup.'**
+  String get exportDataBeforeDeleting;
+
+  /// No description provided for @exportAllDataFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Export All Data First'**
+  String get exportAllDataFirst;
+
+  /// No description provided for @iHaveExportedData.
+  ///
+  /// In en, this message translates to:
+  /// **'I have exported my data'**
+  String get iHaveExportedData;
+
+  /// No description provided for @typeDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Type DELETE to confirm'**
+  String get typeDeleteConfirm;
+
+  /// No description provided for @deleteEverything.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Everything'**
+  String get deleteEverything;
+
+  /// No description provided for @analyticsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Analytics & Crash Reporting'**
+  String get analyticsTitle;
+
+  /// No description provided for @analyticsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Help improve Cashlyze by sharing usage data'**
+  String get analyticsSubtitle;
 }
 
 class _AppLocalizationsDelegate

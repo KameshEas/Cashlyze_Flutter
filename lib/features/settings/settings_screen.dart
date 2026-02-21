@@ -122,9 +122,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           },
         ),
         SwitchListTile.adaptive(
-          title: const Text('Analytics & Crash Reporting'),
-          subtitle: const Text(
-            'Help improve Cashlyze by sharing usage data',
+          title: Text(t?.analyticsTitle ?? 'Analytics & Crash Reporting'),
+          subtitle: Text(
+            t?.analyticsSubtitle ?? 'Help improve Cashlyze by sharing usage data',
           ),
           contentPadding: EdgeInsets.zero,
           value: prefs.analyticsConsentGiven,

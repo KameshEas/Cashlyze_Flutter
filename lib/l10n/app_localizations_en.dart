@@ -274,4 +274,139 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get clearAllDataSubtitle =>
       'Requires typing DELETE and export acknowledgment';
+
+  @override
+  String get privacyPolicyTitle => 'Privacy Policy';
+
+  @override
+  String get privacyPolicySubtitle => 'View our privacy policy';
+
+  @override
+  String get dataCollectionDisclosure => 'Data Collection Disclosure';
+
+  @override
+  String get privacyPolicyDescription =>
+      'Cashlyze is a personal finance management app that stores all your financial data locally on your device and/or in your personal cloud storage (Google Drive). We do not have access to or control over your financial data.';
+
+  @override
+  String get dataWeMayCollect => 'Data we may collect (with your consent):';
+
+  @override
+  String get usageAnalytics => 'Usage analytics to improve the app';
+
+  @override
+  String get crashReports => 'Crash reports for bug fixes';
+
+  @override
+  String get noFinancialDataSent =>
+      'No personal financial data is sent to our servers';
+
+  @override
+  String get yourDataIsStored => 'Your data is stored:';
+
+  @override
+  String get locallyOnDevice =>
+      'Locally on your device using encrypted storage';
+
+  @override
+  String get inGoogleDrive =>
+      'In your personal Google Drive (if you enable backup)';
+
+  @override
+  String get controlAnalytics =>
+      'You can control analytics sharing in Settings.';
+
+  @override
+  String get keyPoints => 'Key Points';
+
+  @override
+  String get financialDataStays => 'Your financial data stays on your device';
+
+  @override
+  String get cloudBackupsAccessible =>
+      'Cloud backups are only accessible by you';
+
+  @override
+  String get noDataSale => 'We do not sell or rent your personal information';
+
+  @override
+  String get exportDeleteData =>
+      'You can export or delete your data at any time';
+
+  @override
+  String get analyticsCanDisable => 'Analytics can be disabled in Settings';
+
+  @override
+  String get forCompleteDetails => 'For complete details, visit:';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get dataManagement => 'Data Management';
+
+  @override
+  String get exportAllData => 'Export All Data';
+
+  @override
+  String get backup => 'Backup';
+
+  @override
+  String get deleteAccount => 'Delete Account';
+
+  @override
+  String get deleteAllDataAccount => 'Delete all data & account';
+
+  @override
+  String get deleteAccountWarning => 'Delete Account Warning';
+
+  @override
+  String get deleteAccountIrreversible => 'This action is IRREVERSIBLE!';
+
+  @override
+  String get deletingAccountWillRemove =>
+      'Deleting your account will permanently remove:';
+
+  @override
+  String get accountLoginCredentials => 'Your account and login credentials';
+
+  @override
+  String get allTransactions => 'All transactions';
+
+  @override
+  String get allBudgets => 'All budgets';
+
+  @override
+  String get allCategories => 'All categories';
+
+  @override
+  String get allEmiPlans => 'All EMI plans';
+
+  @override
+  String get allPreferences => 'All preferences';
+
+  @override
+  String get cloudBackupsOrphaned => 'Your cloud backups will become orphaned.';
+
+  @override
+  String get exportDataBeforeDeleting =>
+      'Export your data before deleting to keep a backup.';
+
+  @override
+  String get exportAllDataFirst => 'Export All Data First';
+
+  @override
+  String get iHaveExportedData => 'I have exported my data';
+
+  @override
+  String get typeDeleteConfirm => 'Type DELETE to confirm';
+
+  @override
+  String get deleteEverything => 'Delete Everything';
+
+  @override
+  String get analyticsTitle => 'Analytics & Crash Reporting';
+
+  @override
+  String get analyticsSubtitle => 'Help improve Cashlyze by sharing usage data';
 }
