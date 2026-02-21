@@ -46,13 +46,22 @@ android {
             // Remove this line for production builds
             signingConfig = signingConfigs.getByName("debug")
             
-            // Enable minification and obfuscation for release
+            // Enable R8/ProGuard minification and obfuscation for release
             isMinifyEnabled = true
             isShrinkResources = true
+            
+            // Configure R8/ProGuard rules
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+    }
+    
+    // R8 configuration for code shrinking and obfuscation
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
         }
     }
 }

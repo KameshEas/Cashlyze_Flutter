@@ -12,7 +12,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-
+import 'core/providers/shared_prefs_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
