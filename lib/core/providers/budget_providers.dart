@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import '../repositories/budget_repository.dart';
 import '../repositories/category_repository.dart';
 import '../repositories/transaction_repository.dart';
@@ -64,6 +65,15 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
     for (final k in keys) {
       primaryForKey.putIfAbsent(k, () => b.id);
     }
+  }
+
+  // Debug logging to help diagnose mismatches between stored category
+  // values on transactions and budget category identifiers.
+  if (kDebugMode) {
+    print('DEBUG budgetsUtilization: categories (id->name) = $idToName');
+    print('DEBUG budgetsUtilization: nameToId = $nameToId');
+    print('DEBUG budgetsUtilization: budgetNormalized = $budgetNormalized');
+    print('DEBUG budgetsUtilization: primaryForKey = $primaryForKey');
   }
 
   // Precompute period starts
