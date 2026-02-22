@@ -391,7 +391,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           ),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Column(
+            child: StatefulBuilder(builder: (ctx, setSheetState) => Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
@@ -444,17 +444,20 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                       for (final c in categories)
                         FilterChip(
                           label: Text(c.name),
-                          selected: selectedCategoryIds.contains(c.id),
+                          // Store & compare by name — transactions also store
+                          // categoryId as the category name string, not the
+                          // RTDB key, so this must match.
+                          selected: selectedCategoryIds.contains(c.name),
                           onSelected: (sel) {
-                            setState(() {
+                            setSheetState(() {
                               if (sel) {
                                 selectedCategoryIds = [
                                   ...selectedCategoryIds,
-                                  c.id,
+                                  c.name,
                                 ];
                               } else {
                                 selectedCategoryIds = selectedCategoryIds
-                                    .where((id) => id != c.id)
+                                    .where((n) => n != c.name)
                                     .toList();
                               }
                             });
@@ -470,27 +473,51 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                       child: FilledButton(
                         onPressed: () async {
                           final user = ref.read(currentUserProvider);
-                          if (user == null) return;
+                          if (user == null) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Please sign in to create a budget',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
                           final repo = ref.read(budgetRepositoryProvider);
                           final name = nameController.text.trim();
                           if (name.isEmpty) {
-                            pageMessenger.showSnackBar(
+                            // Use the sheet's own ScaffoldMessenger so the
+                            // snackbar appears INSIDE/ABOVE the modal, not
+                            // hidden behind it on the page underneath.
+                            ScaffoldMessenger.of(ctx).showSnackBar(
                               const SnackBar(content: Text('Enter a name')),
                             );
                             return;
                           }
-                          if (!validateAmount(
-                            allocatedController.text.trim(),
-                          )) {
-                            pageMessenger.showSnackBar(
+
+                          final amountText = allocatedController.text.trim();
+                          if (!validateAmount(amountText)) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
                               const SnackBar(
                                 content: Text('Enter a valid amount'),
                               ),
                             );
                             return;
                           }
-                          final amount =
-                              double.tryParse(allocatedController.text) ?? 0;
+
+                          final amount = double.tryParse(amountText) ?? 0;
+                          if (amount <= 0) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Amount must be greater than zero',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
                           try {
                             await repo.create(
                               userId: user.uid,
@@ -504,7 +531,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                               const SnackBar(content: Text('Budget created')),
                             );
                           } catch (e) {
-                            pageMessenger.showSnackBar(
+                            ScaffoldMessenger.of(ctx).showSnackBar(
                               SnackBar(content: Text('Failed: $e')),
                             );
                           }
@@ -515,7 +542,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                   ],
                 ),
               ],
-            ),
+            )),
           ),
         );
       },
