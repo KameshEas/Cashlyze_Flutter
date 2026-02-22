@@ -23,7 +23,9 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(recurringProcessorProvider);
     final currency = ref.watch(currencyProvider);
-    final kpis = ref.watch(kpisProvider);
+    // Use current-month KPIs so the home "This Month" card matches
+    // the data and aligns with the Transactions default view.
+    final kpis = ref.watch(currentMonthKpisProvider);
     final txsAsync = ref.watch(recentTransactionsProvider);
     final mismatch = ref.watch(databaseUrlMismatchProvider);
     final dbUrl = ref.watch(databaseUrlProvider);
@@ -382,7 +384,23 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
       data: (items) {
-        if (items.isEmpty) {
+        // Show only transactions from the current calendar month so this
+        // section matches the "This Month" summary above and the
+        // Transactions screen default view.
+        final now = DateTime.now();
+        final monthStart = DateTime(now.year, now.month, 1);
+        final nextMonthStart = DateTime(now.year, now.month + 1, 1);
+        final monthItems = items
+            .where(
+              (t) =>
+                  t.date.isAfter(
+                    monthStart.subtract(const Duration(seconds: 1)),
+                  ) &&
+                  t.date.isBefore(nextMonthStart),
+            )
+            .toList();
+
+        if (monthItems.isEmpty) {
           return Center(
             child: Column(
               children: [
@@ -400,7 +418,7 @@ class HomeScreen extends ConsumerWidget {
             ),
           );
         }
-        final list = items.take(3).toList();
+        final list = monthItems.take(3).toList();
         return Column(
           children: [
             for (var i = 0; i < list.length; i++) ...[
@@ -694,8 +712,9 @@ class HomeScreen extends ConsumerWidget {
     } else {
       await prefs.clearDraft('home_quick_add');
     }
-    titleController.dispose();
-    amountController.dispose();
+    // Do not dispose controllers here; they are tied to the bottom
+    // sheet lifecycle and disposing them synchronously can race with
+    // framework rebuilds and cause "used after dispose" assertions.
   }
 
   Widget _buildUpcomingEmi(

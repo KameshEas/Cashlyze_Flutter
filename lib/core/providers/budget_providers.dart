@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../repositories/budget_repository.dart';
+import '../repositories/category_repository.dart';
 import '../repositories/transaction_repository.dart';
 import '../models/budget.dart';
 import '../providers/shared_prefs_provider.dart';
@@ -20,15 +21,85 @@ DateTime _periodStart(BudgetPeriod p) {
 final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
   final budgets = ref.watch(userBudgetsProvider).maybeWhen(data: (d) => d, orElse: () => const []);
   final txs = ref.watch(userTransactionsProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+  final categories = ref.watch(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
   final spentByBudget = <String, double>{};
-  for (final b in budgets) {
-    final start = _periodStart(b.period);
-    final spent = txs
-        .where((t) => t.amount < 0 && t.date.isAfter(start))
-        .where((t) => b.categoryIds.isEmpty || b.categoryIds.contains(t.categoryId))
-        .fold<double>(0, (p, t) => p + t.amount.abs());
-    spentByBudget[b.id] = spent;
+
+  // Build maps for category id <-> name to normalize matching.
+  final idToName = <String, String>{};
+  final nameToId = <String, String>{};
+  for (final c in categories) {
+    idToName[c.id] = c.name;
+    nameToId[c.name.toLowerCase()] = c.id;
   }
+
+  // Sort budgets oldest → newest so the first budget that claims a
+  // category becomes the "primary" owner of that category's spend.
+  final sortedBudgets = [...budgets]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+  // For each budget, compute a normalized set of identifiers it claims
+  // (both ids and lowercased names) so we can match transactions stored
+  // as either name or id.
+  final budgetNormalized = <String, Set<String>>{};
+  for (final b in sortedBudgets) {
+    final s = <String>{};
+    for (final v in b.categoryIds) {
+      s.add(v); // as stored in budget (could be id or name)
+      s.add(v.toLowerCase());
+      // If this value looks like an id we can map to a name too.
+      final mappedName = idToName[v];
+      if (mappedName != null) s.add(mappedName.toLowerCase());
+      // If value is a name, map to id too.
+      final mappedId = nameToId[v.toLowerCase()];
+      if (mappedId != null) s.add(mappedId);
+    }
+    budgetNormalized[b.id] = s;
+    spentByBudget[b.id] = 0;
+  }
+
+  // Build primary budget map: for each normalized category key choose the
+  // first budget (oldest) that contains it.
+  final primaryForKey = <String, String>{};
+  for (final b in sortedBudgets) {
+    final keys = budgetNormalized[b.id] ?? <String>{};
+    for (final k in keys) {
+      primaryForKey.putIfAbsent(k, () => b.id);
+    }
+  }
+
+  // Precompute period starts
+  final periodStartById = {for (final b in sortedBudgets) b.id: _periodStart(b.period)};
+
+  for (final t in txs) {
+    if (t.amount >= 0) continue;
+    final raw = t.categoryId;
+    if (raw == null) continue;
+
+    final candidates = <String>{};
+    candidates.add(raw);
+    candidates.add(raw.toLowerCase());
+    // If raw matches a known id, also add its name lowercased
+    final asName = idToName[raw];
+    if (asName != null) candidates.add(asName.toLowerCase());
+    // If raw looks like a name, try mapping to id
+    final asId = nameToId[raw.toLowerCase()];
+    if (asId != null) candidates.add(asId);
+
+    // Find the primary budget for the first candidate that has one
+    String? ownerId;
+    for (final c in candidates) {
+      if (primaryForKey.containsKey(c)) {
+        ownerId = primaryForKey[c];
+        break;
+      }
+    }
+    if (ownerId == null) continue;
+
+    final start = periodStartById[ownerId]!;
+    if (!t.date.isAfter(start)) continue;
+
+    spentByBudget[ownerId] = (spentByBudget[ownerId] ?? 0) + t.amount.abs();
+  }
+
   return spentByBudget;
 });
 

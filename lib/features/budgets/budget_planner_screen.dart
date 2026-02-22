@@ -474,13 +474,10 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                         onPressed: () async {
                           final user = ref.read(currentUserProvider);
                           if (user == null) {
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Please sign in to create a budget',
-                                ),
-                              ),
-                            );
+                            // In normal app flow this shouldn't happen because
+                            // the Budgets page requires an authenticated user.
+                            // If it does, just no-op instead of showing a
+                            // confusing snackbar.
                             return;
                           }
 
@@ -563,8 +560,10 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     } else {
       await prefs.clearDraft('budget_create');
     }
-    nameController.dispose();
-    allocatedController.dispose();
+    // Do not dispose the controllers here; they are short-lived and tied to
+    // the bottom sheet lifecycle. Disposing them synchronously after the
+    // sheet closes can race with framework rebuilds and trigger
+    // "controller used after dispose" assertions.
   }
 
   Future<void> _openAdjustBudget(
@@ -707,7 +706,8 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     } else {
       await prefs.clearDraft('budget_adjust');
     }
-    amountController.dispose();
-    noteController.dispose();
+    // Do not dispose these controllers synchronously; like the create budget
+    // sheet, they are short-lived and tied to the bottom sheet lifecycle,
+    // and disposing them here can race with framework rebuilds.
   }
 }

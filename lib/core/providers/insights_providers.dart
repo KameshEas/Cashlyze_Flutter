@@ -35,11 +35,70 @@ final kpisProvider = Provider<Kpis>((ref) {
   final income = txs.where((t) => t.amount > 0).fold<num>(0, (p, t) => p + t.amount);
   final expense = txs.where((t) => t.amount < 0).fold<num>(0, (p, t) => p + t.amount.abs());
   final num net = income - expense;
-  final num savingsRate = income == 0 ? 0 : (((income - expense) <= 0) ? 0 : (income - expense)) / income;
+  final num savingsRate = income == 0
+      ? 0
+      : (((income - expense) <= 0) ? 0 : (income - expense)) / income;
   final int txCount = txs.length;
   final num avgDailySpend = days == 0 ? 0 : (expense / days);
-  final num largestExpense = txs.where((t) => t.amount < 0).map((t) => t.amount.abs()).fold<num>(0, (p, a) => a > p ? a : p);
-  return Kpis(income, expense, net, savingsRate, avgDailySpend, txCount, largestExpense);
+  final num largestExpense = txs
+      .where((t) => t.amount < 0)
+      .map((t) => t.amount.abs())
+      .fold<num>(0, (p, a) => a > p ? a : p);
+  return Kpis(income, expense, net, savingsRate, avgDailySpend, txCount,
+      largestExpense);
+});
+
+/// KPIs for the current calendar month (used on Home so the
+/// "This Month" card matches the underlying data, independent of the
+/// Insights time-range selector).
+final currentMonthKpisProvider = Provider<Kpis>((ref) {
+  var txs = ref.watch(recentTransactionsProvider).maybeWhen(
+    data: (d) => d,
+    orElse: () => ref.watch(transactionsCacheProvider),
+  );
+
+  final now = DateTime.now();
+  final monthStart = DateTime(now.year, now.month, 1);
+  final nextMonthStart = DateTime(now.year, now.month + 1, 1);
+
+  txs = txs
+      .where(
+        (t) =>
+            t.date.isAfter(
+              monthStart.subtract(const Duration(seconds: 1)),
+            ) &&
+            t.date.isBefore(nextMonthStart),
+      )
+      .toList();
+
+  final int days = now.difference(monthStart).inDays + 1;
+
+  final income = txs
+      .where((t) => t.amount > 0)
+      .fold<num>(0, (p, t) => p + t.amount);
+  final expense = txs
+      .where((t) => t.amount < 0)
+      .fold<num>(0, (p, t) => p + t.amount.abs());
+  final num net = income - expense;
+  final num savingsRate = income == 0
+      ? 0
+      : (((income - expense) <= 0) ? 0 : (income - expense)) / income;
+  final int txCount = txs.length;
+  final num avgDailySpend = days == 0 ? 0 : (expense / days);
+  final num largestExpense = txs
+      .where((t) => t.amount < 0)
+      .map((t) => t.amount.abs())
+      .fold<num>(0, (p, a) => a > p ? a : p);
+
+  return Kpis(
+    income,
+    expense,
+    net,
+    savingsRate,
+    avgDailySpend,
+    txCount,
+    largestExpense,
+  );
 });
 
 final anomaliesProvider = Provider<List<TransactionModel>>((ref) {

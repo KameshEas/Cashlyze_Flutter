@@ -31,8 +31,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   String _minAmountText = '';
   String _maxAmountText = '';
   // null means "All time" — no month filter applied.
-  // Previously defaulted to current month, which hid all older transactions.
-  DateTime? _selectedMonth;
+  // Default is current month so users first see recent spend.
+  DateTime? _selectedMonth = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    1,
+  );
 
   // ── Active filter count (shown as badge on the filter button) ───────────
   int get _activeFilterCount {
@@ -256,12 +260,16 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () {
+                            final now = DateTime.now();
+                            final currentMonthStart =
+                                DateTime(now.year, now.month, 1);
                             setState(() {
                               _filter = 'All';
                               _categoryFilter = 'All';
                               _minAmountText = '';
                               _maxAmountText = '';
-                              _selectedMonth = null; // reset to All time
+                              // Reset to default view: current month only.
+                              _selectedMonth = currentMonthStart;
                             });
                             Navigator.of(ctx).pop();
                           },
