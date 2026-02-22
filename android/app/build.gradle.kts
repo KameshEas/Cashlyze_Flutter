@@ -39,17 +39,19 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("cashlyze-release.jks")
+            storePassword = "Cashlyze2026!"
+            keyAlias = "cashlyze"
+            keyPassword = "Cashlyze2026!"
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // For production release, use one of the following options:
-            
-            // Option 1: Use a custom keystore (uncomment and configure)
-            // signingConfig = signingConfigs.getByName("release")
-            
-            // Option 2: Use debug keys for testing (not for production)
-            // Remove this line for production builds
-            signingConfig = signingConfigs.getByName("debug")
+            // Use custom keystore for production release builds
+            signingConfig = signingConfigs.getByName("release")
             
             // Enable R8/ProGuard minification and obfuscation for release
             isMinifyEnabled = true

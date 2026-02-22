@@ -50,3 +50,8 @@ docs/
 
 # Environment variables
 .env
+
+# Keystore files (keep these secure, never commit to version control)
+*.jks
+*.keystore
+*.pfx

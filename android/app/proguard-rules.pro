@@ -17,6 +17,14 @@
 -keep class io.flutter.**  { *; }
 -keep class io.flutter.plugins.**  { *; }
 
+# Add Google Play Core (for R8)
+-keep class com.google.android.play.core.** { *; }
+-dontwarn com.google.android.play.core.**
+
+# Ignore missing classes from Flutter SDK
+-ignorewarnings
+-keep class * extends java.lang.annotation.Annotation { *; }
+
 # Keep encryption packages
 -keep class com.it_nomads.fluttersecurestorage.** { *; }
 -keep class com.ryansteysker.encrypt.** { *; }
