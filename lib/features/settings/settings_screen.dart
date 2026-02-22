@@ -27,6 +27,102 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  // ── Extracted from build() closure — was recreated on every setState call.
+  // Now defined once as a class method: stable across rebuilds.
+  Widget sectionCard(IconData icon, String title, List<Widget> children) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  /// Full-width action tile for the Data section.
+  /// Extracted from build() closure so it is stable across redraws and
+  /// no longer has a hard-coded width:180 that clips on narrow screens.
+  Widget _actionTile({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    final theme = Theme.of(context);
+    final iconColor = color ?? theme.colorScheme.primary;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: iconColor, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: theme.textTheme.bodyMedium),
+                  if (subtitle != null)
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface
+                            .withValues(alpha: 0.6),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -36,39 +132,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     bool alertsEnabled = prefs.alertsEnabled;
     final currency = ref.watch(currencyProvider);
     String dateFormat = prefs.dateFormat;
-    Widget sectionCard(IconData icon, String title, List<Widget> children) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: theme.textTheme.titleMedium,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ...children,
-          ],
-        ),
-      );
-    }
 
     final t = AppLocalizations.of(context);
     final preferences = sectionCard(
@@ -254,180 +317,111 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ],
     );
-    Widget actionTile({
-      required IconData icon,
-      required String title,
-      String? subtitle,
-      required VoidCallback onTap,
-      Color? color,
-    }) {
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: 180,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: (color ?? theme.colorScheme.primary).withValues(
-                    alpha: 0.12,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color ?? theme.colorScheme.primary),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: theme.textTheme.bodyMedium),
-                    if (subtitle != null)
-                      Text(
-                        subtitle,
-                        style: theme.textTheme.bodySmall,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     final dataSection = sectionCard(
       Icons.layers_outlined,
       t?.dataPrivacyTitle ?? 'Data & Privacy',
       [
-        // Prominent Data Export Section
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: theme.colorScheme.primary.withValues(alpha: 0.3),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.backup, color: theme.colorScheme.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    '📦 Data Management',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Export all your data or delete your account. Your data stays yours.',
-                style: TextStyle(fontSize: 13),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async => _showExportDataDialog(context, ref),
-                      icon: const Icon(Icons.download),
-                      label: const Text('Export All Data'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async => _backupTransactionsToFile(context, ref),
-                      icon: const Icon(Icons.save),
-                      label: const Text('Backup'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
+        // Export / backup buttons — sectionCard header already labels the section,
+        // so the old nested 📦 container was redundant.
+        Row(
           children: [
-            actionTile(
-              icon: Icons.category_outlined,
-              title: t?.categoriesManageTitle ?? 'Categories',
-              subtitle: t?.categoriesManageSubtitle ?? 'Manage categories',
-              onTap: () => GoRouter.of(context).go('/categories'),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () async => _showExportDataDialog(context, ref),
+                icon: const Icon(Icons.download_outlined),
+                label: const Text('Export Data'),
+              ),
             ),
-            actionTile(
-              icon: Icons.school_outlined,
-              title: t?.onboardingTitle ?? 'Onboarding',
-              subtitle: t?.onboardingSubtitle ?? 'Revisit walkthrough',
-              onTap: () => GoRouter.of(context).go('/onboarding_preview'),
-            ),
-            actionTile(
-              icon: Icons.payments_outlined,
-              title: t?.emiTrackerTitle ?? 'EMI Tracker',
-              subtitle: 'Track installments',
-              onTap: () => GoRouter.of(context).go('/emi'),
-            ),
-            actionTile(
-              icon: Icons.add_card,
-              title: t?.addEmiPlanTitle ?? 'Add EMI Plan',
-              subtitle: t?.addEmiPlanSubtitle ?? 'Create plan',
-              onTap: () => GoRouter.of(context).go('/emi/new'),
-            ),
-            actionTile(
-              icon: Icons.cloud_upload_outlined,
-              title: t?.backupToDriveTitle ?? 'Backup to Drive',
-              subtitle: t?.backupToDriveSubtitle ?? 'Upload JSON to Drive',
-              onTap: () async => _backupTransactionsToDrive(context, ref),
-            ),
-            actionTile(
-              icon: Icons.cloud_download_outlined,
-              title: t?.restoreFromDriveTitle ?? 'Restore from Drive',
-              subtitle: t?.restoreFromDriveSubtitle ?? 'Download & import JSON',
-              onTap: () async => _restoreTransactionsFromDrive(context, ref),
-            ),
-            actionTile(
-              icon: Icons.privacy_tip_outlined,
-              title: 'Privacy Policy',
-              subtitle: 'View our privacy policy',
-              onTap: () async {
-                await ref.read(analyticsServiceProvider).logEvent('privacy_policy_viewed');
-                if (context.mounted) {
-                  _showPrivacyPolicyDialog(context);
-                }
-              },
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () async =>
+                    _backupTransactionsToFile(context, ref),
+                icon: const Icon(Icons.save_outlined),
+                label: const Text('Backup'),
+              ),
             ),
           ],
         ),
+        const Divider(height: 20),
+        // Navigation + action tiles — changed from Wrap(width:180) to full-width
+        // Column so tiles never clip on narrow phones.
+        _actionTile(
+          icon: Icons.category_outlined,
+          title: t?.categoriesManageTitle ?? 'Categories',
+          subtitle: t?.categoriesManageSubtitle ?? 'Manage categories',
+          onTap: () => GoRouter.of(context).go('/categories'),
+        ),
+        const Divider(height: 1, indent: 52),
+        _actionTile(
+          icon: Icons.school_outlined,
+          title: t?.onboardingTitle ?? 'Onboarding',
+          subtitle: t?.onboardingSubtitle ?? 'Revisit walkthrough',
+          onTap: () => GoRouter.of(context).go('/onboarding_preview'),
+        ),
+        const Divider(height: 1, indent: 52),
+        _actionTile(
+          icon: Icons.payments_outlined,
+          title: t?.emiTrackerTitle ?? 'EMI Tracker',
+          subtitle: 'Track installments',
+          onTap: () => GoRouter.of(context).go('/emi'),
+        ),
+        const Divider(height: 1, indent: 52),
+        _actionTile(
+          icon: Icons.add_card,
+          title: t?.addEmiPlanTitle ?? 'Add EMI Plan',
+          subtitle: t?.addEmiPlanSubtitle ?? 'Create plan',
+          onTap: () => GoRouter.of(context).go('/emi/new'),
+        ),
+        const Divider(height: 1, indent: 52),
+        _actionTile(
+          icon: Icons.cloud_upload_outlined,
+          title: t?.backupToDriveTitle ?? 'Backup to Drive',
+          subtitle: t?.backupToDriveSubtitle ?? 'Upload JSON to Drive',
+          onTap: () async => _backupTransactionsToDrive(context, ref),
+        ),
+        const Divider(height: 1, indent: 52),
+        _actionTile(
+          icon: Icons.cloud_download_outlined,
+          title: t?.restoreFromDriveTitle ?? 'Restore from Drive',
+          subtitle: t?.restoreFromDriveSubtitle ?? 'Download & import JSON',
+          onTap: () async => _restoreTransactionsFromDrive(context, ref),
+        ),
+        const Divider(height: 1, indent: 52),
+        _actionTile(
+          icon: Icons.privacy_tip_outlined,
+          title: 'Privacy Policy',
+          subtitle: 'View our privacy policy',
+          onTap: () async {
+            await ref
+                .read(analyticsServiceProvider)
+                .logEvent('privacy_policy_viewed');
+            if (context.mounted) _showPrivacyPolicyDialog(context);
+          },
+        ),
       ],
     );
+    // Account section — ListTile leading icons now use the same 36×36 rounded
+    // pill container as _actionTile for visual consistency.
     final accountSection = sectionCard(
       Icons.lock_outline,
       'Account & Security',
       [
         ListTile(
-          leading: const Icon(Icons.lock_reset),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+          leading: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.lock_reset,
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
+          ),
           title: const Text('Change Password'),
           onTap: () async {
             final controller = TextEditingController();
@@ -468,7 +462,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           },
         ),
         ListTile(
-          leading: const Icon(Icons.delete_forever, color: Colors.red),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+          leading: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.delete_forever, size: 18, color: Colors.red),
+          ),
           title: const Text('Delete Account', style: TextStyle(color: Colors.red)),
           subtitle: const Text('Delete all data & account'),
           onTap: () async {
@@ -493,7 +496,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           },
         ),
         ListTile(
-          leading: const Icon(Icons.logout),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+          leading: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.logout,
+              size: 18,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
           title: const Text('Sign out'),
           onTap: () async {
             final confirm = await showDialog<bool>(
@@ -558,17 +574,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: Column(
                       children: [
                         preferences,
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
                         dataSection,
                       ],
                     ),
                   ),
-                  const SizedBox(width: 24),
+                  const SizedBox(width: 20),
                   Expanded(
                     child: Column(
                       children: [
                         accountSection,
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
                         if (prefs.showDevelopmentSection) developmentSection,
                       ],
                     ),
@@ -583,11 +599,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 preferences,
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 dataSection,
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 accountSection,
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 if (prefs.showDevelopmentSection) developmentSection,
               ],
             ),

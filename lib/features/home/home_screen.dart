@@ -27,6 +27,12 @@ class HomeScreen extends ConsumerWidget {
     final txsAsync = ref.watch(recentTransactionsProvider);
     final mismatch = ref.watch(databaseUrlMismatchProvider);
     final dbUrl = ref.watch(databaseUrlProvider);
+    // Watch EMI list here so we can conditionally render the section.
+    final emiAsync = ref.watch(emiUpcomingProvider);
+    final hasEmis = emiAsync.maybeWhen(
+      data: (list) => list.isNotEmpty,
+      orElse: () => false,
+    );
     final t = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
@@ -34,29 +40,15 @@ class HomeScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
+            // Notifications coming in a future release.
+            // Showing an empty handler breaks trust — use SnackBar as placeholder.
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Notifications coming soon'),
+                duration: Duration(seconds: 2),
+              ),
+            ),
             tooltip: 'Notifications',
-          ),
-          const SizedBox(width: 8),
-          PopupMenuButton<String>(
-            tooltip: 'Menu',
-            itemBuilder: (ctx) => [
-              PopupMenuItem(
-                value: 'emi',
-                child: Text(t?.emiTracker ?? 'EMI Tracker'),
-              ),
-              const PopupMenuItem(
-                value: 'emi_new',
-                child: Text('Add EMI Plan'),
-              ),
-            ],
-            onSelected: (value) {
-              if (value == 'emi') {
-                GoRouter.of(context).go('/emi');
-              } else if (value == 'emi_new') {
-                GoRouter.of(context).go('/emi/new');
-              }
-            },
           ),
         ],
       ),
@@ -92,15 +84,21 @@ class HomeScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             _buildQuickActions(context, ref),
-            const SizedBox(height: 24),
-            Text(
-              t?.emiTracker ?? 'EMI Tracker',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            _buildUpcomingEmi(context, ref, currency),
+            // ── EMI section: only shown when the user has EMI plans ───────────
+            // Progressive disclosure: empty section adds noise for non-EMI users.
+            if (hasEmis) ...
+              [
+                const SizedBox(height: 24),
+                Text(
+                  t?.emiTracker ?? 'EMI Tracker',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                _buildUpcomingEmi(context, ref, currency),
+              ],
             const SizedBox(height: 24),
             Text(
               t?.recentTransactions ?? 'Recent Transactions',
@@ -281,9 +279,13 @@ class HomeScreen extends ConsumerWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: actions.map((action) {
-        return Column(
-          children: [
-            Semantics(
+        final scheme = Theme.of(context).colorScheme;
+        // FIX: label moved INSIDE InkWell — previously it was orphaned below the
+        // tap target, making it a dead zone (no onTap on label tap).
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Semantics(
               label: '${action['label']} action',
               button: true,
               child: InkWell(
@@ -300,49 +302,49 @@ class HomeScreen extends ConsumerWidget {
                   }
                 },
                 borderRadius: BorderRadius.circular(16),
-                focusColor: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.1),
-                hoverColor: Theme.of(
-                  context,
-                ).colorScheme.secondary.withValues(alpha: 0.08),
+                focusColor: scheme.primary.withValues(alpha: 0.1),
+                hoverColor: scheme.secondary.withValues(alpha: 0.08),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 20,
+                    horizontal: 8,
+                    vertical: 16,
                   ),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
+                    color: scheme.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.05),
+                      color: scheme.onSurface.withValues(alpha: 0.08),
                     ),
                   ),
-                  child: IconTheme(
-                    data: const IconThemeData(size: 20),
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.secondary.withValues(alpha: 0.08),
-                        shape: BoxShape.circle,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: scheme.secondary.withValues(alpha: 0.08),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          action['icon'] as IconData,
+                          color: scheme.secondary,
+                          size: 20,
+                        ),
                       ),
-                      child: Icon(
-                        action['icon'] as IconData,
-                        color: Theme.of(context).colorScheme.secondary,
+                      const SizedBox(height: 8),
+                      Text(
+                        action['label'] as String,
+                        style: Theme.of(context).textTheme.bodySmall,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              action['label'] as String,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
+          ),
         );
       }).toList(),
     );

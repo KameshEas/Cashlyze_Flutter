@@ -106,13 +106,25 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                       color: Colors.white.withValues(alpha: 0.8),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Allocated: ${formatAmount(totalAllocated, currency)}\nSpent: ${formatAmount(totalSpent, currency)}',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  const SizedBox(height: 12),
+                  // FIX: was a single Text with '\n' — no typographic hierarchy.
+                  // Now two rows with label + amount, matching the home card pattern.
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildBudgetStat(
+                        context,
+                        label: 'Allocated',
+                        value: formatAmount(totalAllocated, currency),
+                        icon: Icons.account_balance_wallet_outlined,
+                      ),
+                      _buildBudgetStat(
+                        context,
+                        label: 'Spent',
+                        value: formatAmount(totalSpent, currency),
+                        icon: Icons.trending_up_rounded,
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   LinearProgressIndicator(
@@ -296,6 +308,47 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Stat pill used in the hero budget card (replaces the '\n' text blob).
+  Widget _buildBudgetStat(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 16),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.85),
+                ),
+              ),
+              Text(
+                value,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

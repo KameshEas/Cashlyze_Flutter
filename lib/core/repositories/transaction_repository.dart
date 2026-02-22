@@ -98,6 +98,21 @@ final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
 
 final userTransactionsProvider = StreamProvider<List<TransactionModel>>((ref) {
   final user = ref.watch(currentUserProvider);
-  if (user == null) return const Stream.empty();
-  return ref.watch(transactionRepositoryProvider).streamForUser(user.uid);
+  // Stream.empty() never emits → StreamProvider stays loading forever.
+  // Use Stream.value([]) so it immediately resolves to data([]) for guests.
+  if (user == null) return Stream.value(<TransactionModel>[]);
+  final repo = ref.watch(transactionRepositoryProvider);
+  // Mirror recentTransactionsProvider: eager getAllForUser() snapshot first so
+  // the list appears instantly, then keep the RTDB listener for live updates.
+  // A 5-second timeout prevents an infinite skeleton on cold connections.
+  final stream = Stream<List<TransactionModel>>.multi((controller) async {
+    try {
+      final initial = await repo.getAllForUser(user.uid);
+      controller.add(initial);
+    } catch (_) {}
+    await for (final items in repo.streamForUser(user.uid)) {
+      controller.add(items);
+    }
+  });
+  return stream.timeout(const Duration(seconds: 5)).handleError((_, __) {});
 });

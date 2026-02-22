@@ -30,11 +30,270 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   String _query = '';
   String _minAmountText = '';
   String _maxAmountText = '';
-  DateTime _selectedMonth = DateTime(
-    DateTime.now().year,
-    DateTime.now().month,
-    1,
-  );
+  // null means "All time" — no month filter applied.
+  // Previously defaulted to current month, which hid all older transactions.
+  DateTime? _selectedMonth;
+
+  // ── Active filter count (shown as badge on the filter button) ───────────
+  int get _activeFilterCount {
+    int count = 0;
+    if (_filter != 'All') count++;
+    if (_categoryFilter != 'All') count++;
+    if (_minAmountText.isNotEmpty) count++;
+    if (_maxAmountText.isNotEmpty) count++;
+    if (_selectedMonth != null) count++;
+    return count;
+  }
+
+  // ── Filter bottom sheet ─────────────────────────────────────────────────
+  void _openFilterSheet(
+    BuildContext context,
+    dynamic t,
+    AsyncValue catsAsync,
+  ) {
+    // Local copies — applied on "Apply" tap, discarded on dismiss.
+    String localFilter = _filter;
+    String localCategory = _categoryFilter;
+    DateTime? localMonth = _selectedMonth;
+    final minController = TextEditingController(text: _minAmountText);
+    final maxController = TextEditingController(text: _maxAmountText);
+    final theme = Theme.of(context);
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: theme.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+                top: 16,
+                left: 16,
+                right: 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Handle
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.2,
+                        ),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Filter Transactions',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.of(ctx).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ── Period ────────────────────────────────────────────
+                  Text('Period', style: theme.textTheme.labelLarge),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 40,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      // 1 extra item at index 0 for "All time"
+                      itemCount: 13,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (_, i) {
+                        if (i == 0) {
+                          return FilterChip(
+                            label: const Text('All time'),
+                            selected: localMonth == null,
+                            onSelected: (_) =>
+                                setSheetState(() => localMonth = null),
+                          );
+                        }
+                        final now = DateTime.now();
+                        final m = DateTime(now.year, now.month - (i - 1), 1);
+                        final label =
+                            '${m.year}-${m.month.toString().padLeft(2, '0')}';
+                        final isSelected = localMonth != null &&
+                            localMonth!.year == m.year &&
+                            localMonth!.month == m.month;
+                        return FilterChip(
+                          label: Text(label),
+                          selected: isSelected,
+                          onSelected: (_) =>
+                              setSheetState(() => localMonth = m),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // ── Type ──────────────────────────────────────────────
+                  Text('Type', style: theme.textTheme.labelLarge),
+                  const SizedBox(height: 8),
+                  SegmentedButton<String>(
+                    segments: [
+                      ButtonSegment(
+                        value: 'All',
+                        label: Text(t?.filterAll ?? 'All'),
+                      ),
+                      ButtonSegment(
+                        value: 'Income',
+                        label: Text(t?.filterIncome ?? 'Income'),
+                        icon: const Icon(Icons.arrow_downward, size: 14),
+                      ),
+                      ButtonSegment(
+                        value: 'Expense',
+                        label: Text(t?.filterExpense ?? 'Expense'),
+                        icon: const Icon(Icons.arrow_upward, size: 14),
+                      ),
+                    ],
+                    selected: {localFilter},
+                    onSelectionChanged: (v) =>
+                        setSheetState(() => localFilter = v.first),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // ── Category ──────────────────────────────────────────
+                  Text('Category', style: theme.textTheme.labelLarge),
+                  const SizedBox(height: 8),
+                  catsAsync.when(
+                    loading: () => const LinearProgressIndicator(),
+                    error: (_, __) => const SizedBox.shrink(),
+                    data: (list) {
+                      final cats = [
+                        'All',
+                        'Uncategorized',
+                        ...List<String>.from(
+                          (list as List).map((c) => c.name as String),
+                        ),
+                      ];
+                      return Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: cats
+                            .map(
+                              (c) => FilterChip(
+                                label: Text(c),
+                                selected: localCategory == c,
+                                onSelected: (_) =>
+                                    setSheetState(() => localCategory = c),
+                              ),
+                            )
+                            .toList(),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+
+                  // ── Amount range ──────────────────────────────────────
+                  Text('Amount Range', style: theme.textTheme.labelLarge),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: minController,
+                          decoration: const InputDecoration(
+                            labelText: 'Min',
+                            filled: true,
+                          ),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d*\.?\d{0,2}'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: maxController,
+                          decoration: const InputDecoration(
+                            labelText: 'Max',
+                            filled: true,
+                          ),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d*\.?\d{0,2}'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // ── Actions ───────────────────────────────────────────
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            setState(() {
+                              _filter = 'All';
+                              _categoryFilter = 'All';
+                              _minAmountText = '';
+                              _maxAmountText = '';
+                              _selectedMonth = null; // reset to All time
+                            });
+                            Navigator.of(ctx).pop();
+                          },
+                          child: const Text('Clear'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () {
+                            setState(() {
+                              _filter = localFilter;
+                              _categoryFilter = localCategory;
+                              _selectedMonth = localMonth;
+                              _minAmountText = minController.text;
+                              _maxAmountText = maxController.text;
+                            });
+                            Navigator.of(ctx).pop();
+                          },
+                          child: const Text('Apply'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +317,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       ),
       body: Column(
         children: [
+          // ── Filter bar ─────────────────────────────────────────────────────────
+          // BEFORE: 7 controls crammed in one Row → overflows on <400dp devices.
+          // AFTER:  Search field + single filter icon button that opens a sheet.
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Row(
@@ -75,180 +337,50 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
+                        // Inline clear button
+                        suffixIcon: _query.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.close, size: 18),
+                                tooltip: 'Clear search',
+                                onPressed: () => setState(() => _query = ''),
+                              )
+                            : null,
                       ),
                       onChanged: (v) => setState(() => _query = v),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
+                const SizedBox(width: 8),
+                // Filter icon with active-filter badge
+                Tooltip(
+                  message: 'Filter & sort',
+                  child: InkWell(
+                    onTap: () => _openFilterSheet(context, t, catsAsync),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.05),
-                    ),
-                  ),
-                  child: DropdownButton<DateTime>(
-                    value: _selectedMonth,
-                    items: List.generate(12, (i) {
-                      final now = DateTime.now();
-                      final m = DateTime(now.year, now.month - i, 1);
-                      final label =
-                          '${m.year}-${m.month.toString().padLeft(2, '0')}';
-                      return DropdownMenuItem(value: m, child: Text(label));
-                    }),
-                    onChanged: (v) =>
-                        setState(() => _selectedMonth = v ?? _selectedMonth),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                DropdownButtonHideUnderline(
-                  child: Semantics(
-                    label: 'Filter by type',
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
+                        color: _activeFilterCount > 0
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.05),
-                        ),
-                      ),
-                      child: DropdownButton<String>(
-                        value: _filter,
-                        items: [
-                          DropdownMenuItem(
-                            value: 'All',
-                            child: Text(t?.filterAll ?? 'All'),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.1,
                           ),
-                          DropdownMenuItem(
-                            value: 'Income',
-                            child: Text(t?.filterIncome ?? 'Income'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Expense',
-                            child: Text(t?.filterExpense ?? 'Expense'),
-                          ),
-                        ],
-                        onChanged: (v) => setState(() => _filter = v ?? 'All'),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                DropdownButtonHideUnderline(
-                  child: Semantics(
-                    label: 'Filter by category',
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.05),
                         ),
                       ),
-                      child: catsAsync.when(
-                        loading: () => DropdownButton<String>(
-                          value: _categoryFilter,
-                          items: const [
-                            DropdownMenuItem(value: 'All', child: Text('All')),
-                          ],
-                          onChanged: (v) =>
-                              setState(() => _categoryFilter = v ?? 'All'),
-                        ),
-                        error: (e, _) => DropdownButton<String>(
-                          value: _categoryFilter,
-                          items: const [
-                            DropdownMenuItem(value: 'All', child: Text('All')),
-                          ],
-                          onChanged: (v) =>
-                              setState(() => _categoryFilter = v ?? 'All'),
-                        ),
-                        data: (list) => DropdownButton<String>(
-                          value: _categoryFilter,
-                          items: [
-                            DropdownMenuItem(
-                              value: 'All',
-                              child: Text(t?.filterAll ?? 'All'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Uncategorized',
-                              child: Text(t?.uncategorized ?? 'Uncategorized'),
-                            ),
-                            ...list
-                                .map(
-                                  (c) => DropdownMenuItem(
-                                    value: c.name,
-                                    child: Text(c.name),
-                                  ),
-                                )
-                                .toList(),
-                          ],
-                          onChanged: (v) =>
-                              setState(() => _categoryFilter = v ?? 'All'),
+                      child: Badge(
+                        isLabelVisible: _activeFilterCount > 0,
+                        label: Text('$_activeFilterCount'),
+                        child: Icon(
+                          Icons.tune,
+                          size: 20,
+                          color: _activeFilterCount > 0
+                              ? Colors.white
+                              : theme.colorScheme.onSurface,
                         ),
                       ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: 110,
-                  child: Semantics(
-                    label: 'Minimum amount filter',
-                    hint: 'Set lowest amount to show',
-                    textField: true,
-                    child: TextField(
-                      decoration: const InputDecoration(
-                        labelText: 'Min',
-                        filled: true,
-                      ),
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d{0,2}'),
-                        ),
-                      ],
-                      onChanged: (v) => setState(() => _minAmountText = v),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: 110,
-                  child: Semantics(
-                    label: 'Maximum amount filter',
-                    hint: 'Set highest amount to show',
-                    textField: true,
-                    child: TextField(
-                      decoration: const InputDecoration(
-                        labelText: 'Max',
-                        filled: true,
-                      ),
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d{0,2}'),
-                        ),
-                      ],
-                      onChanged: (v) => setState(() => _maxAmountText = v),
                     ),
                   ),
                 ),
@@ -297,16 +429,17 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 ),
               ),
               data: (items) {
-                final monthStart = DateTime(
-                  _selectedMonth.year,
-                  _selectedMonth.month,
-                  1,
-                );
-                final monthEnd = DateTime(
-                  _selectedMonth.year,
-                  _selectedMonth.month + 1,
-                  1,
-                );
+                // _selectedMonth == null → show all transactions (no date filter)
+                final monthStart = _selectedMonth == null
+                    ? null
+                    : DateTime(_selectedMonth!.year, _selectedMonth!.month, 1);
+                final monthEnd = _selectedMonth == null
+                    ? null
+                    : DateTime(
+                        _selectedMonth!.year,
+                        _selectedMonth!.month + 1,
+                        1,
+                      );
                 final filtered = items.where((e) {
                   final matchesQuery =
                       _query.isEmpty ||
@@ -324,11 +457,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   final matchesAmount =
                       (minAmt == null || absAmount >= minAmt) &&
                       (maxAmt == null || absAmount <= maxAmt);
-                  final inMonth =
-                      e.date.isAfter(
-                        monthStart.subtract(const Duration(seconds: 1)),
-                      ) &&
-                      e.date.isBefore(monthEnd);
+                  final inMonth = monthStart == null ||
+                      (e.date.isAfter(
+                            monthStart.subtract(const Duration(seconds: 1)),
+                          ) &&
+                          e.date.isBefore(monthEnd!));
                   return matchesQuery &&
                       matchesType &&
                       matchesCategory &&
