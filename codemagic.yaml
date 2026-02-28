@@ -18,14 +18,25 @@ workflows:
         script: |
           #!/bin/bash
           set -euo pipefail
+          KEYPATH="$(pwd)/android/app/cashlyze-release.jks"
           if [ -n "${ANDROID_KEYSTORE_BASE64-}" ]; then
             mkdir -p android/app
-            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/cashlyze-release.jks
-            chmod 600 android/app/cashlyze-release.jks
-            echo "Keystore restored to android/app/cashlyze-release.jks"
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYPATH"
+            chmod 600 "$KEYPATH"
+            echo "Keystore restored to $KEYPATH"
           else
-            echo "ANDROID_KEYSTORE_BASE64 not set — assuming keystore is present or will be provided by CI" 
+            echo "ANDROID_KEYSTORE_BASE64 not set. Checking if keystore already exists at $KEYPATH"
+            if [ ! -f "$KEYPATH" ]; then
+              echo "Keystore not found at $KEYPATH and ANDROID_KEYSTORE_BASE64 is not set."
+              echo "Please add the keystore as Codemagic secure file or set ANDROID_KEYSTORE_BASE64 env var." 
+              exit 1
+            else
+              echo "Keystore already present at $KEYPATH"
+            fi
           fi
+          echo "Keystore file details:"
+          ls -la "$KEYPATH" || true
+          if command -v realpath >/dev/null 2>&1; then realpath "$KEYPATH" || true; fi
 
       - name: Build Android AppBundle
         script: |
