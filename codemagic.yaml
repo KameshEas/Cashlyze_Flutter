@@ -1,0 +1,88 @@
+workflows:
+  ios_no_codesign:
+    name: iOS (no codesign)
+    max_build_duration: 120
+    workflows:
+      android_firebase:
+        name: Android → Firebase App Distribution
+        max_build_duration: 90
+        environment:
+          flutter: stable
+          vars:
+            FLUTTER_BUILD_MODE: release
+        scripts:
+          - name: Install dependencies
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+              flutter --version
+              flutter pub get
+
+          - name: Build Android AppBundle
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+              flutter build appbundle --${FLUTTER_BUILD_MODE}
+
+          - name: Restore Android keystore
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+              if [ -n "${ANDROID_KEYSTORE_BASE64-}" ]; then
+                mkdir -p android/app
+                echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/cashlyze-release.jks
+                chmod 600 android/app/cashlyze-release.jks
+                echo "Keystore restored to android/app/cashlyze-release.jks"
+              else
+                echo "ANDROID_KEYSTORE_BASE64 not set — assuming keystore is present or will be provided by CI" 
+              fi
+
+          - name: Install Firebase CLI
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+              if ! command -v firebase >/dev/null 2>&1; then
+                npm install -g firebase-tools
+              fi
+
+          - name: Authenticate to Firebase
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+              if [ -n "${FIREBASE_TOKEN-}" ]; then
+                echo "Using FIREBASE_TOKEN"
+              elif [ -n "${FIREBASE_SERVICE_ACCOUNT_BASE64-}" ]; then
+                echo "$FIREBASE_SERVICE_ACCOUNT_BASE64" | base64 --decode > /tmp/firebase_key.json
+                export GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase_key.json
+              else
+                echo "Missing FIREBASE_TOKEN or FIREBASE_SERVICE_ACCOUNT_BASE64 env var" && exit 1
+              fi
+
+          - name: Upload to Firebase App Distribution (Android)
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+              AAB=$(ls build/app/outputs/bundle/*/*/*.aab 2>/dev/null || true)
+              if [ -z "$AAB" ]; then
+                echo "No AAB produced at expected path" && exit 1
+              fi
+              if [ -n "${FIREBASE_TOKEN-}" ]; then
+                firebase appdistribution:distribute "$AAB" --app "$FIREBASE_ANDROID_APP_ID" --groups "$FIREBASE_DISTRIBUTION_GROUPS" --token "$FIREBASE_TOKEN"
+              else
+                firebase appdistribution:distribute "$AAB" --app "$FIREBASE_ANDROID_APP_ID" --groups "$FIREBASE_DISTRIBUTION_GROUPS"
+              fi
+
+        artifacts:
+          - build/app/outputs/bundle/release/*.aab
+
+        cache:
+          key: flutter-{{ checksum "pubspec.lock" }}-android
+          paths:
+            - ~/.pub-cache
+
+    # Notes:
+    # - Set the following environment vars in Codemagic UI (encrypted):
+    #   - FIREBASE_TOKEN (preferred: `firebase login:ci` token) OR
+    #   - FIREBASE_SERVICE_ACCOUNT_BASE64 (base64 of service account JSON)
+    #   - FIREBASE_ANDROID_APP_ID (Firebase App ID for Android)
+    #   - FIREBASE_DISTRIBUTION_GROUPS (comma-separated groups/testers)
