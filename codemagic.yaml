@@ -72,9 +72,7 @@ workflows:
       - build/app/outputs/bundle/release/*.aab
 
     cache:
-      - key: flutter-{{ checksum "pubspec.lock" }}-android
-        paths:
-          - ~/.pub-cache
+      - ~/.pub-cache
 
 # Notes:
 # - Set the following environment vars in Codemagic UI (encrypted):
