@@ -44,7 +44,12 @@ workflows:
         script: |
           #!/bin/bash
           set -euo pipefail
-          flutter build appbundle --${FLUTTER_BUILD_MODE}
+          FLAGS="--${FLUTTER_BUILD_MODE}"
+          if [ "${NO_TREE_SHAKE_ICONS-}" = "true" ]; then
+            FLAGS="$FLAGS --no-tree-shake-icons"
+            echo "Disabling icon tree-shaking: adding --no-tree-shake-icons"
+          fi
+          flutter build appbundle $FLAGS
 
       - name: Install Firebase CLI
         script: |
@@ -71,9 +76,12 @@ workflows:
         script: |
           #!/bin/bash
           set -euo pipefail
-          AAB=$(ls build/app/outputs/bundle/*/*/*.aab 2>/dev/null || true)
+          # Find any .aab under the bundle output tree (handles different Gradle layouts)
+          AAB=$(find build/app/outputs/bundle -type f -name '*.aab' | head -n 1 || true)
           if [ -z "$AAB" ]; then
-            echo "No AAB produced at expected path" && exit 1
+            echo "No AAB produced at expected path. Listing outputs for debugging:" >&2
+            ls -R build/app/outputs || true
+            exit 1
           fi
           if [ -n "${FIREBASE_TOKEN-}" ]; then
             firebase appdistribution:distribute "$AAB" --app "$FIREBASE_ANDROID_APP_ID" --groups "$FIREBASE_DISTRIBUTION_GROUPS" --token "$FIREBASE_TOKEN"
