@@ -3,6 +3,8 @@ workflows:
     name: Android → Firebase App Distribution
     max_build_duration: 90
     environment:
+      groups:
+        - android-secrets
       flutter: stable
       vars:
         FLUTTER_BUILD_MODE: release
