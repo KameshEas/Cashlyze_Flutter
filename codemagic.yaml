@@ -44,11 +44,33 @@ workflows:
         script: |
           #!/bin/bash
           set -euo pipefail
-          FLAGS="--${FLUTTER_BUILD_MODE}"
+          # Determine build-name and build-number
+          # Build number precedence: CODENMAGIC_BUILD_NUMBER env -> CM_BUILD_NUMBER -> GIT commit count -> timestamp
+          if [ -n "${CODENAME_BUILD_NUMBER-}" ]; then
+            BUILD_NUMBER="$CODENAME_BUILD_NUMBER"
+          elif [ -n "${CM_BUILD_NUMBER-}" ]; then
+            BUILD_NUMBER="$CM_BUILD_NUMBER"
+          elif git rev-parse --git-dir >/dev/null 2>&1; then
+            BUILD_NUMBER=$(git rev-list --count HEAD 2>/dev/null || date +%s)
+          else
+            BUILD_NUMBER=$(date +%s)
+          fi
+
+          # Build name: allow override, else derive from pubspec.yaml version (major.minor.patch)
+          if [ -n "${FLUTTER_BUILD_NAME-}" ]; then
+            BUILD_NAME="$FLUTTER_BUILD_NAME"
+          else
+            PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g' || true)
+            BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
+            if [ -z "$BUILD_NAME" ]; then BUILD_NAME="0.0.0"; fi
+          fi
+
+          FLAGS="--${FLUTTER_BUILD_MODE} --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER"
           if [ "${NO_TREE_SHAKE_ICONS-}" = "true" ]; then
             FLAGS="$FLAGS --no-tree-shake-icons"
             echo "Disabling icon tree-shaking: adding --no-tree-shake-icons"
           fi
+          echo "Building APK with build-name=$BUILD_NAME build-number=$BUILD_NUMBER"
           flutter build apk $FLAGS
 
       - name: Install Firebase CLI
@@ -76,6 +98,41 @@ workflows:
         script: |
           #!/bin/bash
           set -euo pipefail
+          # Determine build-name and build-number (same logic as build step)
+          if [ -n "${CODENAME_BUILD_NUMBER-}" ]; then
+            BUILD_NUMBER="$CODENAME_BUILD_NUMBER"
+          elif [ -n "${CM_BUILD_NUMBER-}" ]; then
+            BUILD_NUMBER="$CM_BUILD_NUMBER"
+          elif git rev-parse --git-dir >/dev/null 2>&1; then
+            BUILD_NUMBER=$(git rev-list --count HEAD 2>/dev/null || date +%s)
+          else
+            BUILD_NUMBER=$(date +%s)
+          fi
+          if [ -n "${FLUTTER_BUILD_NAME-}" ]; then
+            BUILD_NAME="$FLUTTER_BUILD_NAME"
+          else
+            PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g' || true)
+            BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
+            if [ -z "$BUILD_NAME" ]; then BUILD_NAME="0.0.0"; fi
+          fi
+
+          # Prepare release notes (prefer env var, else last git message or build id)
+          if [ -n "${FIREBASE_RELEASE_NOTES-}" ]; then
+            RELEASE_NOTES="$FIREBASE_RELEASE_NOTES"
+          else
+            RELEASE_NOTES=$(git log -1 --pretty=%B 2>/dev/null || echo "Build $BUILD_NAME+$BUILD_NUMBER")
+          fi
+
+          # Ensure distribution groups include 'codemagic'
+          if [ -z "${FIREBASE_DISTRIBUTION_GROUPS-}" ]; then
+            FIREBASE_DISTRIBUTION_GROUPS="codemagic"
+          else
+            case ",${FIREBASE_DISTRIBUTION_GROUPS}," in
+              *,codemagic,*) ;;
+              *) FIREBASE_DISTRIBUTION_GROUPS="${FIREBASE_DISTRIBUTION_GROUPS},codemagic" ;;
+            esac
+          fi
+
           # Locate APK artifact
           APK=$(find build/app/outputs/apk -type f -name '*.apk' | head -n 1 || true)
           if [ -z "$APK" ]; then
@@ -83,13 +140,12 @@ workflows:
             ls -R build/app/outputs || true
             exit 1
           fi
-
           OUT=/tmp/firebase_upload_out.txt
           if [ -n "${FIREBASE_TOKEN-}" ]; then
-            firebase appdistribution:distribute "$APK" --app "$FIREBASE_ANDROID_APP_ID" --groups "$FIREBASE_DISTRIBUTION_GROUPS" --token "$FIREBASE_TOKEN" 2>&1 | tee "$OUT"
+            firebase appdistribution:distribute "$APK" --app "$FIREBASE_ANDROID_APP_ID" --groups "$FIREBASE_DISTRIBUTION_GROUPS" --release-notes "$RELEASE_NOTES" --token "$FIREBASE_TOKEN" 2>&1 | tee "$OUT"
             RC=${PIPESTATUS[0]}
           else
-            firebase appdistribution:distribute "$APK" --app "$FIREBASE_ANDROID_APP_ID" --groups "$FIREBASE_DISTRIBUTION_GROUPS" 2>&1 | tee "$OUT"
+            firebase appdistribution:distribute "$APK" --app "$FIREBASE_ANDROID_APP_ID" --groups "$FIREBASE_DISTRIBUTION_GROUPS" --release-notes "$RELEASE_NOTES" 2>&1 | tee "$OUT"
             RC=${PIPESTATUS[0]}
           fi
 
