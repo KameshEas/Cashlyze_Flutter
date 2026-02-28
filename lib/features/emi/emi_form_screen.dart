@@ -170,6 +170,8 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                     active: true,
                   );
                   final repo = ref.read(emiRepositoryProvider);
+                  final messenger = ScaffoldMessenger.of(context);
+                  final nav = Navigator.of(context);
                   final created = await repo.createPlan(plan);
                   final calc = EMICalculator.compute(
                     planId: created.id,
@@ -181,7 +183,7 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                   );
                   await repo.addSchedule(user.uid, created.id, calc.schedule);
                   if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text(
                         _isZeroCostEMI 
@@ -190,7 +192,7 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                       ),
                     ),
                   );
-                  Navigator.of(context).pop();
+                  nav.pop();
                 },
                 child: const Text('Create Plan'),
               ),

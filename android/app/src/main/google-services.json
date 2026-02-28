@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "605910682978",
+    "firebase_url": "https://cashlyze-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "cashlyze",
+    "storage_bucket": "cashlyze.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:605910682978:android:99a1dddd0370a35fcb703b",
+        "android_client_info": {
+          "package_name": "com.aspiredesignovation.cashlyze"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlXYdj1CilxK1NItkYiPhCuiKNKGVzLw4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:605910682978:android:16e43e38cc03f22dcb703b",
+        "android_client_info": {
+          "package_name": "com.example.myapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlXYdj1CilxK1NItkYiPhCuiKNKGVzLw4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -4,7 +4,10 @@ import '../../core/services/auth_service.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/repositories/user_repository.dart';
 import '../../core/services/analytics_service.dart';
+import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/services/auth_service.dart' as cfg;
+import '../../core/services/biometric_service.dart';
+import '../../core/utils/error_messages.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   final bool initialIsLogin;
@@ -21,7 +24,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _passwordController = TextEditingController();
   bool _isLogin = true;
   bool _isLoading = false;
+  bool _obscurePassword = true;
   String? _errorMessage;
+  bool _canUseBiometrics = false;
 
   @override
   void dispose() {
@@ -34,6 +39,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   void initState() {
     super.initState();
     _isLogin = widget.initialIsLogin;
+    // Only check biometric availability — the toggle to enable/disable
+    // biometrics lives in Settings, not here.
+    Future(() async {
+      final bio = await ref.read(biometricServiceProvider).isAvailable();
+      if (mounted) {
+        setState(() => _canUseBiometrics = bio);
+      }
+    });
   }
 
   Future<void> _submit() async {
@@ -112,7 +125,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       router.go('/');
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString();
+        // Use human-readable messages — never expose raw Firebase error codes.
+        _errorMessage = friendlyAuthError(e);
       });
     } finally {
       if (mounted) {
@@ -205,7 +219,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       // Password Field
                       TextFormField(
                         controller: _passwordController,
-                        obscureText: true,
+                        obscureText: _obscurePassword,
                         decoration: InputDecoration(
                           labelText: 'Password',
                           prefixIcon: const Icon(Icons.lock_outline),
@@ -213,6 +227,20 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           filled: true,
+                          // Show/hide toggle — a 2024 table-stakes UX requirement
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                            ),
+                            tooltip: _obscurePassword
+                                ? 'Show password'
+                                : 'Hide password',
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
+                          ),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -288,6 +316,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       ),
 
                       // Forgot Password
+                      // Note: biometric on/off toggle is in Settings → Preferences
+                      // (showing a security toggle before the user is authenticated
+                      //  is contextually wrong and confusing for new users)
                       if (_isLogin)
                         TextButton(
                           onPressed: () async {
@@ -322,6 +353,33 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             }
                           },
                           child: const Text('Forgot Password?'),
+                        ),
+                      if (_isLogin && _canUseBiometrics &&
+                          ref.read(sharedPrefsServiceProvider).biometricEnabled)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final router = GoRouter.of(context);
+                              final messenger = ScaffoldMessenger.of(context);
+                              final ok = await ref
+                                  .read(biometricServiceProvider)
+                                  .authenticate(reason: 'Unlock Cashlyze');
+                              if (ok) {
+                                if (mounted) router.go('/');
+                              } else {
+                                if (mounted) {
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Biometric failed'),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.fingerprint),
+                            label: const Text('Use biometrics'),
+                          ),
                         ),
                     ],
                   ),

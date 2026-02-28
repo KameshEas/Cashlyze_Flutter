@@ -23,7 +23,11 @@ class CategoryRepository {
     return CategoryModel.fromRTDB(key, data);
   }
 
-  Future<void> update(String userId, String id, Map<String, dynamic> data) async {
+  Future<void> update(
+    String userId,
+    String id,
+    Map<String, dynamic> data,
+  ) async {
     await _db.update('users/$userId/categories/$id', data);
   }
 
@@ -70,7 +74,12 @@ final userCategoriesProvider = StreamProvider<List<CategoryModel>>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(<CategoryModel>[]);
   final s = ref.watch(categoryRepositoryProvider).streamForUser(user.uid);
-  return s.timeout(const Duration(seconds: 5), onTimeout: (sink) {
-    sink.add(<CategoryModel>[]);
-  }).handleError((_, __) {});
+  return s
+      .timeout(
+        const Duration(seconds: 5),
+        onTimeout: (sink) {
+          sink.add(<CategoryModel>[]);
+        },
+      )
+      .handleError((_, __) {});
 });

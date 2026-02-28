@@ -1,13 +1,6 @@
 workflows:
   android_firebase:
     name: Android → Firebase App Distribution
-    triggers:
-      push:
-        branches:
-          include:
-            - development
-            - 'feature/*'
-            - 'bugfix/*'
     max_build_duration: 90
     environment:
       groups:

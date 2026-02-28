@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/providers/onboarding_provider.dart';
+import '../../core/providers/shared_prefs_provider.dart';
+import '../../core/services/biometric_service.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   final Duration duration;
@@ -20,7 +22,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _fadeIn;
-  bool _timerDone = false; // reserved for future timed animations
   bool _navigated = false;
 
   @override
@@ -34,7 +35,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _controller.forward();
 
     Future<void>.delayed(widget.duration, () {
-      _timerDone = true;
+      _maybeNavigate();
+    });
+    Future<void>.delayed(const Duration(seconds: 2), () {
       _maybeNavigate();
     });
   }
@@ -42,17 +45,35 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void _maybeNavigate() {
     if (!mounted || _navigated) return;
     final authState = ref.read(authStateChangesProvider);
+    final currentUser = ref.read(currentUserProvider);
     final onboardingCompleted = ref.read(onboardingCompletedProvider);
+    final prefs = ref.read(sharedPrefsServiceProvider);
 
-    if (authState.isLoading) return;
-
-    final user = authState.value;
-    final target = !onboardingCompleted
+    final user = currentUser ?? authState.value;
+    String target = !onboardingCompleted
         ? '/onboarding'
         : (user == null ? '/login' : '/');
 
+    if (target == '/' && prefs.biometricEnabled) {
+      _navigated = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final ok = await ref
+            .read(biometricServiceProvider)
+            .authenticate(reason: 'Unlock Cashlyze');
+        if (!mounted) return;
+        if (ok) {
+          context.go('/');
+        } else {
+          context.go('/login');
+        }
+      });
+      return;
+    }
+
     _navigated = true;
-    if (mounted) context.go(target);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.go(target);
+    });
   }
 
   @override

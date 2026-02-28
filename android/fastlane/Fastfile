@@ -1,0 +1,80 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+default_platform(:android)
+
+platform :android do
+  desc "Runs all the tests"
+  lane :test do
+    gradle(task: "test")
+  end
+
+  desc "Submit a new Beta Build to Crashlytics Beta"
+  lane :beta do
+    gradle(task: "clean assembleRelease")
+    crashlytics
+  
+    # sh "your_script.sh"
+    # You can also use other beta testing services here
+  end
+
+  desc "Deploy a new version to the Google Play"
+  lane :deploy do
+    gradle(task: "clean assembleRelease")
+    upload_to_play_store
+  end
+
+  lane :firebase do
+    sh "flutter build appbundle --release"
+    project_root = File.expand_path('../../', __dir__)
+    glob_primary = File.join(project_root, 'build', 'app', 'outputs', 'bundle', '**', '*.aab')
+    glob_android = File.join(project_root, 'android', 'app', 'build', 'outputs', 'bundle', '**', '*.aab')
+    aab_candidates = Dir[glob_primary] + Dir[glob_android]
+    if aab_candidates.empty?
+      UI.user_error!("Couldn't find .aab in build outputs. Checked: #{glob_primary} and #{glob_android}")
+    end
+    artifact_path = aab_candidates.max_by { |f| File.mtime(f) }
+
+    begin
+      firebase_app_distribution(
+        app: "1:655565727204:android:70bd6ab5ed20350e6013f1",
+        testers: "kamesheas@gmail.com",
+        release_notes: "Automated build via fastlane 🚀",
+        android_artifact_path: artifact_path,
+        android_artifact_type: "AAB"
+      )
+    rescue => e
+      UI.message("AAB upload failed: #{e}")
+      UI.message("Falling back to APK distribution (Google Play not linked or AAB not allowed). Building APK...")
+      sh "flutter build apk --release"
+      apk_glob_primary = File.join(project_root, 'build', 'app', 'outputs', 'apk', '**', '*.apk')
+      apk_glob_android = File.join(project_root, 'android', 'app', 'build', 'outputs', 'apk', '**', '*.apk')
+      apk_candidates = Dir[apk_glob_primary] + Dir[apk_glob_android]
+      if apk_candidates.empty?
+        UI.user_error!("Couldn't find .apk in build outputs. Checked: #{apk_glob_primary} and #{apk_glob_android}")
+      end
+      apk_path = apk_candidates.max_by { |f| File.mtime(f) }
+      firebase_app_distribution(
+        app: "1:655565727204:android:70bd6ab5ed20350e6013f1",
+        testers: "kamesheas@gmail.com",
+        release_notes: "Automated build via fastlane 🚀",
+        android_artifact_path: apk_path,
+        android_artifact_type: "APK"
+      )
+    end
+  end
+
+
+end
