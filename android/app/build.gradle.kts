@@ -42,9 +42,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("cashlyze-release.jks")
-            storePassword = "Cashlyze2026!"
-            keyAlias = "cashlyze"
-            keyPassword = "Cashlyze2026!"
+            storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: "Cashlyze2026!"
+            keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: "cashlyze"
+            keyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: "Cashlyze2026!"
         }
     }
 
