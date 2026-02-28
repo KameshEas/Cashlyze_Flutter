@@ -71,9 +71,6 @@ workflows:
     artifacts:
       - build/app/outputs/bundle/release/*.aab
 
-    cache:
-      paths:
-        - ~/.pub-cache
 
 # Notes:
 # - Set the following environment vars in Codemagic UI (encrypted):
