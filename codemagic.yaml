@@ -14,12 +14,6 @@ workflows:
           flutter --version
           flutter pub get
 
-      - name: Build Android AppBundle
-        script: |
-          #!/bin/bash
-          set -euo pipefail
-          flutter build appbundle --${FLUTTER_BUILD_MODE}
-
       - name: Restore Android keystore
         script: |
           #!/bin/bash
@@ -32,6 +26,12 @@ workflows:
           else
             echo "ANDROID_KEYSTORE_BASE64 not set — assuming keystore is present or will be provided by CI" 
           fi
+
+      - name: Build Android AppBundle
+        script: |
+          #!/bin/bash
+          set -euo pipefail
+          flutter build appbundle --${FLUTTER_BUILD_MODE}
 
       - name: Install Firebase CLI
         script: |
