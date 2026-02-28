@@ -43,3 +43,15 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+test/goldens/failures/
+Findings.md
+.trae/documents/
+docs/
+
+# Environment variables
+.env
+
+# Keystore files (keep these secure, never commit to version control)
+*.jks
+*.keystore
+*.pfx

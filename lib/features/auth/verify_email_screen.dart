@@ -48,6 +48,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
     final router = GoRouter.of(context);
     try {
       await ref.read(authServiceProvider).reloadUser();
+      ref.invalidate(authStateChangesProvider);
       final user = ref.read(currentUserProvider);
       if (user != null && user.emailVerified) {
         if (!mounted) return;

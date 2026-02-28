@@ -1,0 +1,2 @@
+# json_key_file("E:\Mobile Development\Flutter_Projects\Cashlyze\android\app") # Path to the json secret file - Follow https://docs.fastlane.tools/actions/supply/#setup to get one
+package_name("com.aspiredesignovation.cashlyze") # e.g. com.krausefx.app

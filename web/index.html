@@ -1,38 +1,337 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
-
+  <meta name="description" content="Cashlyze - Your Personal Finance Manager">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="cashlyze">
+  <meta name="apple-mobile-web-app-title" content="Cashlyze">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>cashlyze</title>
+  <title>Cashlyze - Personal Finance Manager</title>
   <link rel="manifest" href="manifest.json">
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Animated background shapes */
+    .bg-shape {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.5;
+      animation: float 6s ease-in-out infinite;
+      z-index: 0;
+    }
+
+    .shape-1 {
+      width: 400px;
+      height: 400px;
+      background: #ff6b6b;
+      top: -100px;
+      left: -100px;
+      animation-delay: 0s;
+    }
+
+    .shape-2 {
+      width: 300px;
+      height: 300px;
+      background: #4ecdc4;
+      bottom: -50px;
+      right: -50px;
+      animation-delay: 2s;
+    }
+
+    .shape-3 {
+      width: 200px;
+      height: 200px;
+      background: #ffe66d;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      animation-delay: 4s;
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0) scale(1);
+      }
+      50% {
+        transform: translateY(-30px) scale(1.1);
+      }
+    }
+
+    /* Main container */
+    .container {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 40px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Logo */
+    .logo {
+      width: 140px;
+      height: 140px;
+      margin: 0 auto 30px;
+      background: white;
+      border-radius: 35px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: pulse 2s ease-in-out infinite;
+      overflow: hidden;
+    }
+
+    .logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+      50% {
+        transform: scale(1.05);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+      }
+    }
+
+    /* Title */
+    h1 {
+      color: white;
+      font-size: 3.5rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      animation: slideUp 1s ease-out;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Subtitle */
+    .subtitle {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 1.3rem;
+      font-weight: 400;
+      margin-bottom: 40px;
+      animation: slideUp 1s ease-out 0.2s backwards;
+    }
+
+    /* Features */
+    .features {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+      animation: slideUp 1s ease-out 0.4s backwards;
+    }
+
+    .feature {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      padding: 20px 30px;
+      border-radius: 15px;
+      color: white;
+      font-size: 0.95rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: transform 0.3s ease, background 0.3s ease;
+    }
+
+    .feature:hover {
+      transform: translateY(-5px);
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Loading indicator */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: rgba(255, 255, 255, 0.8);
+      animation: slideUp 1s ease-out 0.6s backwards;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Footer */
+    footer {
+      position: relative;
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px);
+      padding: 20px 40px;
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      animation: slideUp 1s ease-out 0.8s backwards;
+    }
+
+    footer a {
+      color: rgba(255, 255, 255, 0.8);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.3s ease;
+    }
+
+    footer a:hover {
+      color: white;
+      text-decoration: underline;
+    }
+
+    footer .copyright {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.85rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 2.5rem;
+      }
+      
+      .subtitle {
+        font-size: 1.1rem;
+      }
+      
+      .features {
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      .logo {
+        width: 100px;
+        height: 100px;
+      }
+      
+      footer {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+      }
+    }
+
+    /* Hide loading when Flutter loads */
+    body.loading-complete .container {
+      animation: fadeOut 0.5s ease-out forwards;
+    }
+
+    @keyframes fadeOut {
+      to {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+    }
+  </style>
 </head>
 <body>
+  <!-- Animated background shapes -->
+  <div class="bg-shape shape-1"></div>
+  <div class="bg-shape shape-2"></div>
+  <div class="bg-shape shape-3"></div>
+
+  <div class="container">
+    <!-- Logo -->
+    <div class="logo">
+      <img src="assets/logo_icon.png" alt="Cashlyze Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+      <svg style="display:none;" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#667eea"/>
+        <path d="M12 6v12M8 10l4-4 4 4M8 14l4 4 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <!-- Title -->
+    <h1>Cashlyze</h1>
+    
+    <!-- Subtitle -->
+    <p class="subtitle">Your Personal Finance Manager</p>
+
+    <!-- Features -->
+    <div class="features">
+      <div class="feature">📊 Track Expenses</div>
+      <div class="feature">💰 Budget Planning</div>
+      <div class="feature">📈 Financial Insights</div>
+      <div class="feature">🔒 Secure Data</div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading">
+      <div class="spinner"></div>
+      <span>Loading Cashlyze...</span>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <a href="privacy_policy.html">Privacy Policy</a>
+    <a href="contact.html">Contact Us</a>
+    <span class="copyright">© 2026 Cashlyze. All rights reserved.</span>
+  </footer>
+
   <script src="flutter_bootstrap.js" async></script>
+  <script>
+    // Hide the loading screen when Flutter is ready
+    window.addEventListener('flutter_loaded', function() {
+      document.body.classList.add('loading-complete');
+    });
+  </script>
 </body>
 </html>

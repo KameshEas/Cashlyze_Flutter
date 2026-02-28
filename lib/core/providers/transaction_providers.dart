@@ -15,19 +15,59 @@ class TimeRangeNotifier extends Notifier<TimeRange> {
 final selectedTimeRangeProvider =
     NotifierProvider<TimeRangeNotifier, TimeRange>(TimeRangeNotifier.new);
 
-final recentTransactionsProvider = StreamProvider<List<TransactionModel>>((ref) {
+final recentTransactionsProvider = StreamProvider<List<TransactionModel>>((
+  ref,
+) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(<TransactionModel>[]);
-  final s = ref.watch(transactionRepositoryProvider).streamForUser(user.uid);
-  return s.timeout(const Duration(seconds: 5), onTimeout: (sink) {
-    sink.add(<TransactionModel>[]);
-  }).handleError((_, __) {});
+  final repo = ref.watch(transactionRepositoryProvider);
+  final stream = Stream<List<TransactionModel>>.multi((controller) async {
+    try {
+      final initial = await repo.getAllForUser(user.uid);
+      controller.add(initial);
+    } catch (_) {}
+    await for (final items in repo.streamForUser(user.uid)) {
+      controller.add(items);
+    }
+  });
+  return stream.timeout(const Duration(seconds: 5)).handleError((_, __) {});
 });
 
+class TransactionsCacheNotifier extends Notifier<List<TransactionModel>> {
+  @override
+  List<TransactionModel> build() {
+    state = <TransactionModel>[];
+    ref.listen<AsyncValue<List<TransactionModel>>>(recentTransactionsProvider, (
+      prev,
+      next,
+    ) {
+      next.when(
+        data: (d) {
+          state = d;
+        },
+        loading: () {
+          // keep last known state during loading
+        },
+        error: (_, __) {
+          // keep last known state on error
+        },
+      );
+    });
+    return state;
+  }
+}
+
+final transactionsCacheProvider =
+    NotifierProvider<TransactionsCacheNotifier, List<TransactionModel>>(
+      TransactionsCacheNotifier.new,
+    );
+
 final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {
-  final txs = ref
-      .watch(recentTransactionsProvider)
-      .maybeWhen(data: (d) => d, orElse: () => <TransactionModel>[]);
+  final txsAsync = ref.watch(recentTransactionsProvider);
+  final txs = txsAsync.maybeWhen(
+    data: (d) => d,
+    orElse: () => ref.watch(transactionsCacheProvider),
+  );
   final range = ref.watch(selectedTimeRangeProvider);
   final selectedCats = ref.watch(selectedCategoriesProvider);
   final now = DateTime.now();
@@ -41,14 +81,20 @@ final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {
   }
   return txs
       .where((t) => t.date.isAfter(cutoff))
-      .where((t) => selectedCats.isEmpty || selectedCats.contains(t.categoryId ?? 'Other'))
+      .where(
+        (t) =>
+            selectedCats.isEmpty ||
+            selectedCats.contains(t.categoryId ?? 'Other'),
+      )
       .toList();
 });
 
 final monthlyTrendProvider = Provider<List<double>>((ref) {
-  final txs = ref
-      .watch(recentTransactionsProvider)
-      .maybeWhen(data: (d) => d, orElse: () => const []);
+  final txsAsync = ref.watch(recentTransactionsProvider);
+  final txs = txsAsync.maybeWhen(
+    data: (d) => d,
+    orElse: () => ref.watch(transactionsCacheProvider),
+  );
   final now = DateTime.now();
   final months = List.generate(
     6,
@@ -89,8 +135,11 @@ class SelectedCategoriesNotifier extends Notifier<Set<String>> {
     }
     state = s;
   }
+
   void clear() => state = <String>{};
 }
 
 final selectedCategoriesProvider =
-    NotifierProvider<SelectedCategoriesNotifier, Set<String>>(SelectedCategoriesNotifier.new);
+    NotifierProvider<SelectedCategoriesNotifier, Set<String>>(
+      SelectedCategoriesNotifier.new,
+    );
