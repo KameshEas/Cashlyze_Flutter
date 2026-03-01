@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/bank_linking_service.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/repositories/transaction_repository.dart';
@@ -389,6 +390,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         const Divider(height: 1, indent: 52),
         _actionTile(
+          icon: Icons.link_rounded,
+          title: 'Connect Mock Bank (POC)',
+          subtitle: 'Link a mock bank and import transactions',
+          onTap: () async {
+            final messenger = ScaffoldMessenger.of(context);
+            final user = ref.read(currentUserProvider);
+            if (user == null) {
+              messenger.showSnackBar(const SnackBar(content: Text('Sign in first')));
+              return;
+            }
+            try {
+              final list = await ref.read(bankLinkingServiceProvider).linkBank('mock_bank');
+              int count = 0;
+              for (final c in list) {
+                await ref.read(transactionRepositoryProvider).ingestFromProvider(userId: user.uid, canonical: c);
+                count++;
+              }
+              await ref.read(analyticsServiceProvider).logEvent('transaction_imported', params: {'import_method': 'bank_link', 'provider': 'mock_bank', 'count': count, 'import_duration_ms': 0, 'success': true});
+              messenger.showSnackBar(SnackBar(content: Text('Imported $count transactions from mock bank')));
+            } catch (e) {
+              messenger.showSnackBar(SnackBar(content: Text('Bank link failed: $e')));
+            }
+          },
+        ),
+        const Divider(height: 1, indent: 52),
+        _actionTile(
           icon: Icons.privacy_tip_outlined,
           title: 'Privacy Policy',
           subtitle: 'View our privacy policy',
@@ -740,9 +767,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           count++;
         }
       }
-      await ref
-          .read(analyticsServiceProvider)
-          .logEvent('restore_drive', params: {'items': count});
+      await ref.read(analyticsServiceProvider).logEvent('restore_drive', params: {'items': count});
+      await ref.read(analyticsServiceProvider).logEvent('transaction_imported', params: {
+        'import_method': 'drive',
+        'provider': null,
+        'count': count,
+        'import_duration_ms': 0,
+        'success': true,
+      });
       messenger.showSnackBar(
         SnackBar(content: Text('Restored $count transactions from Drive')),
       );
@@ -791,6 +823,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           count++;
         }
       }
+      await ref.read(analyticsServiceProvider).logEvent('transaction_imported', params: {
+        'import_method': 'file_upload',
+        'provider': null,
+        'count': count,
+        'import_duration_ms': 0,
+        'success': true,
+      });
       messenger.showSnackBar(
         SnackBar(content: Text('Restored $count transactions')),
       );

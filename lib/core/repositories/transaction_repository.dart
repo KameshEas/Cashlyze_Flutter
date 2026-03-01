@@ -2,11 +2,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../services/realtime_db_service.dart';
 import '../services/auth_service.dart';
+import '../services/sync_service.dart';
 import '../models/transaction.dart';
 
 class TransactionRepository {
   final RealtimeDbService _db;
-  TransactionRepository(this._db);
+  final SyncService? _sync;
+
+  TransactionRepository(this._db, [this._sync]);
 
   Future<TransactionModel> create({
     required String userId,
@@ -29,8 +32,50 @@ class TransactionRepository {
       'created_at_ms': ServerValue.timestamp,
       'updated_at_ms': ServerValue.timestamp,
     };
-    final key = await _db.pushKey('users/$userId/transactions', data);
-    return TransactionModel.fromRTDB(key, data);
+    try {
+      final key = await _db.pushKey('users/$userId/transactions', data);
+      return TransactionModel.fromRTDB(key, data);
+    } catch (e) {
+      // If push fails (offline), enqueue a canonical payload for later sync
+      final canonical = {
+        'id': 'local_${DateTime.now().millisecondsSinceEpoch}',
+        'account_id': userId,
+        'provider': 'local',
+        'amount': amount,
+        'currency': 'INR',
+        'date': date.toIso8601String(),
+        'transaction_type': amount < 0 ? 'debit' : 'credit',
+        'merchant_name': title.trim(),
+        'raw_description': notes ?? title.trim(),
+        'normalized_description': title.trim(),
+        'category': categoryId,
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+      _sync?.enqueue(canonical);
+      // Return a local model so UI can reflect created txn immediately
+      return TransactionModel.fromRTDB(canonical['id'] as String, {
+        'title': canonical['merchant_name'],
+        'amount': canonical['amount'],
+        'categoryId': canonical['category'],
+        'date_ms': DateTime.parse(canonical['date']).millisecondsSinceEpoch,
+        'notes': canonical['normalized_description'],
+        'tags': [],
+        'created_at_ms': DateTime.now().millisecondsSinceEpoch,
+        'updated_at_ms': DateTime.now().millisecondsSinceEpoch,
+      });
+    }
+  }
+
+  /// Ingest a canonical transaction (from bank provider) and persist.
+  Future<TransactionModel> ingestFromProvider({
+    required String userId,
+    required Map<String, dynamic> canonical,
+  }) async {
+    final title = (canonical['merchant_name'] as String?) ?? 'Imported';
+    final amount = ((canonical['amount'] as num?) ?? 0).toDouble();
+    final date = DateTime.parse((canonical['date'] as String?) ?? DateTime.now().toIso8601String());
+    return create(userId: userId, title: title, amount: amount, date: date, notes: canonical['normalized_description'] as String?);
   }
 
   Future<void> update(String userId, String id, Map<String, dynamic> data) async {
@@ -93,7 +138,7 @@ class TransactionRepository {
 }
 
 final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
-  return TransactionRepository(ref.watch(realtimeDbServiceProvider));
+  return TransactionRepository(ref.watch(realtimeDbServiceProvider), ref.watch(syncServiceProvider));
 });
 
 final userTransactionsProvider = StreamProvider<List<TransactionModel>>((ref) {

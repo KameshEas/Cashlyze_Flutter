@@ -42,9 +42,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("cashlyze-release.jks")
-            storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: "Cashlyze2026!"
+            storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: error("ANDROID_KEYSTORE_PASSWORD must be set in CI/Environment")
             keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: "cashlyze"
-            keyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: "Cashlyze2026!"
+            keyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: error("ANDROID_KEY_PASSWORD or ANDROID_KEYSTORE_PASSWORD must be set in CI/Environment")
         }
     }
 
