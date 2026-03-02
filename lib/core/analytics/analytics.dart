@@ -19,15 +19,16 @@ class AnalyticsService {
     int? accountCount,
     bool? hasLinkedAccount,
   }) async {
+    final paramsOnboarding = <String, Object>{
+      'method': method,
+      'steps': steps,
+      'duration_ms': durationMs,
+      'success': success,
+    };
+    if (reason != null) paramsOnboarding['reason'] = reason;
     await _analytics.logEvent(
       name: 'onboarding_completed',
-      parameters: <String, Object?>{
-        'method': method,
-        'steps': steps,
-        'duration_ms': durationMs,
-        'success': success,
-        if (reason != null) 'reason': reason,
-      },
+      parameters: paramsOnboarding,
     );
 
     if (accountCount != null) {
@@ -49,17 +50,18 @@ class AnalyticsService {
     String? errorCode,
     String? sampleTxnId,
   }) async {
+    final paramsImport = <String, Object>{
+      'import_method': importMethod,
+      'count': count,
+      'import_duration_ms': importDurationMs,
+      'success': success,
+    };
+    if (provider != null) paramsImport['provider'] = provider;
+    if (errorCode != null) paramsImport['error_code'] = errorCode;
+    if (sampleTxnId != null) paramsImport['sample_txn_id'] = sampleTxnId;
     await _analytics.logEvent(
       name: 'transaction_imported',
-      parameters: <String, Object?>{
-        'import_method': importMethod,
-        if (provider != null) 'provider': provider,
-        'count': count,
-        'import_duration_ms': importDurationMs,
-        'success': success,
-        if (errorCode != null) 'error_code': errorCode,
-        if (sampleTxnId != null) 'sample_txn_id': sampleTxnId,
-      },
+      parameters: paramsImport,
     );
   }
 }

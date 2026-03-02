@@ -84,17 +84,31 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           return;
         }
       } else {
-        await authService.createUserWithEmailAndPassword(
+        final credential = await authService.createUserWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
-        final user = ref.read(currentUserProvider);
-        if (user != null) {
+        final user = credential.user ?? ref.read(currentUserProvider);
+          if (user != null) {
           await ref
               .read(userRepositoryProvider)
               .getOrCreateUser(user.uid, user.email!);
           if (cfg.kRequireEmailVerification) {
-            await ref.read(authServiceProvider).sendEmailVerification();
+            try {
+              await ref.read(authServiceProvider).sendEmailVerificationTo(user);
+            } catch (e) {
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Failed to send verification email. ${friendlyAuthError(e)}',
+                  ),
+                  backgroundColor: Colors.redAccent,
+                ),
+              );
+              // Still navigate to verify screen so user can retry sending
+              router.go('/verify-email');
+              return;
+            }
           }
           await ref
               .read(analyticsServiceProvider)

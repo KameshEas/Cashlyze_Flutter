@@ -19,6 +19,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../core/services/drive_backup_service.dart';
 import '../../l10n/app_localizations.dart';
+import '../../routes/app_router.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -561,13 +562,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             if (confirm == true) {
               await ref.read(authServiceProvider).signOut();
               await ref.read(analyticsServiceProvider).logEvent('sign_out');
+              // Invalidate auth-related providers so UI refreshes immediately
+              ref.invalidate(authStateChangesProvider);
+              ref.invalidate(currentUserProvider);
+              ref.invalidate(userTransactionsProvider);
+              ref.invalidate(transactionRepositoryProvider);
+
               messenger.showSnackBar(
                 const SnackBar(
                   content: Text('Signed out successfully'),
                   backgroundColor: Colors.green,
                 ),
               );
-              router.go('/login');
+              // Use the app router provider to ensure root navigation is used
+              try {
+                ref.read(appRouterProvider).go('/login');
+              } catch (_) {
+                // Fallback to local router if provider router is unavailable
+                router.go('/login');
+              }
             }
           },
         ),

@@ -77,9 +77,18 @@ class AuthService {
   }
 
   /// Send email verification
+  /// Send email verification to the current authenticated user.
   Future<void> sendEmailVerification() async {
     final user = _auth.currentUser;
     if (user != null && !user.emailVerified) {
+      await user.reload();
+      await user.sendEmailVerification();
+    }
+  }
+
+  /// Send email verification to a specific [user].
+  Future<void> sendEmailVerificationTo(User user) async {
+    if (!user.emailVerified) {
       await user.reload();
       await user.sendEmailVerification();
     }

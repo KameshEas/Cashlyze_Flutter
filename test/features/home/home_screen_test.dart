@@ -39,7 +39,7 @@ void main() {
                   500, // largestExpense
                 )),
             recentTransactionsProvider.overrideWith(
-              (ref) => const AsyncValue<List<TransactionModel>>.data([]),
+              (ref) => Stream<List<TransactionModel>>.value(<TransactionModel>[]),
             ),
           ],
           child: const MaterialApp(
@@ -63,7 +63,7 @@ void main() {
                   5000, 3000, 2000, 0.4, 100, 10, 500,
                 )),
             recentTransactionsProvider.overrideWith(
-              (ref) => const AsyncValue<List<TransactionModel>>.data([]),
+              (ref) => Stream<List<TransactionModel>>.value(<TransactionModel>[]),
             ),
           ],
           child: const MaterialApp(
@@ -88,7 +88,7 @@ void main() {
                   5000, 3000, 2000, 0.4, 100, 10, 500,
                 )),
             recentTransactionsProvider.overrideWith(
-              (ref) => const AsyncValue<List<TransactionModel>>.data([]),
+              (ref) => Stream<List<TransactionModel>>.value(<TransactionModel>[]),
             ),
           ],
           child: const MaterialApp(
@@ -136,7 +136,7 @@ void main() {
                   5000, 50, 4950, 0.99, 1.67, 2, 50,
                 )),
             recentTransactionsProvider.overrideWith(
-              (ref) => AsyncValue<List<TransactionModel>>.data(testTransactions),
+              (ref) => Stream<List<TransactionModel>>.value(testTransactions),
             ),
           ],
           child: const MaterialApp(
@@ -162,7 +162,7 @@ void main() {
                   0, 0, 0, 0, 0, 0, 0,
                 )),
             recentTransactionsProvider.overrideWith(
-              (ref) => const AsyncValue<List<TransactionModel>>.data([]),
+              (ref) => Stream<List<TransactionModel>>.value(<TransactionModel>[]),
             ),
           ],
           child: const MaterialApp(
@@ -185,7 +185,9 @@ void main() {
                   0, 0, 0, 0, 0, 0, 0,
                 )),
             recentTransactionsProvider.overrideWith(
-              (ref) => const AsyncValue<List<TransactionModel>>.loading(),
+              (ref) => Stream<List<TransactionModel>>.fromFuture(
+                Future<List<TransactionModel>>.delayed(const Duration(seconds: 1), () => <TransactionModel>[]),
+              ),
             ),
           ],
           child: const MaterialApp(
@@ -209,10 +211,7 @@ void main() {
                   0, 0, 0, 0, 0, 0, 0,
                 )),
             recentTransactionsProvider.overrideWith(
-              (ref) => AsyncValue<List<TransactionModel>>.error(
-                Exception('Failed to load'),
-                StackTrace.current,
-              ),
+              (ref) => Stream<List<TransactionModel>>.error(Exception('Failed to load')),
             ),
           ],
           child: const MaterialApp(
@@ -235,7 +234,7 @@ void main() {
                   0, 0, 0, 0, 0, 0, 0,
                 )),
             recentTransactionsProvider.overrideWith(
-              (ref) => const AsyncValue<List<TransactionModel>>.data([]),
+              (ref) => Stream<List<TransactionModel>>.value(<TransactionModel>[]),
             ),
           ],
           child: const MaterialApp(
@@ -258,7 +257,7 @@ void main() {
                   0, 0, 0, 0, 0, 0, 0,
                 )),
             recentTransactionsProvider.overrideWith(
-              (ref) => const AsyncValue<List<TransactionModel>>.data([]),
+              (ref) => Stream<List<TransactionModel>>.value(<TransactionModel>[]),
             ),
           ],
           child: const MaterialApp(

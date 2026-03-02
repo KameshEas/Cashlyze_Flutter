@@ -54,11 +54,28 @@ class TransactionRepository {
       };
       _sync?.enqueue(canonical);
       // Return a local model so UI can reflect created txn immediately
+      // Safely parse canonical['date'] which may be String, int (ms), double, or absent.
+      final dynamic dateRaw = canonical['date'];
+      late final int dateMs;
+      if (dateRaw is int) {
+        dateMs = dateRaw;
+      } else if (dateRaw is double) {
+        dateMs = DateTime.fromMillisecondsSinceEpoch(dateRaw.toInt()).millisecondsSinceEpoch;
+      } else if (dateRaw is String) {
+        try {
+          dateMs = DateTime.parse(dateRaw).millisecondsSinceEpoch;
+        } catch (_) {
+          dateMs = DateTime.now().millisecondsSinceEpoch;
+        }
+      } else {
+        dateMs = DateTime.now().millisecondsSinceEpoch;
+      }
+
       return TransactionModel.fromRTDB(canonical['id'] as String, {
         'title': canonical['merchant_name'],
         'amount': canonical['amount'],
         'categoryId': canonical['category'],
-        'date_ms': DateTime.parse(canonical['date']).millisecondsSinceEpoch,
+        'date_ms': dateMs,
         'notes': canonical['normalized_description'],
         'tags': [],
         'created_at_ms': DateTime.now().millisecondsSinceEpoch,
