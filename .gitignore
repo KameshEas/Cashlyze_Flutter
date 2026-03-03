@@ -56,3 +56,7 @@ docs/
 *.keystore
 *.pfx
 phase0
+
+# Local Netlify folder
+.netlify
+node_modules
