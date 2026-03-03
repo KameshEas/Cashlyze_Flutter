@@ -96,6 +96,19 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                     ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Text("I've verified, continue"),
               ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () {
+                  final user = ref.read(currentUserProvider);
+                  final email = user?.email ?? '';
+                  if (email.isNotEmpty) {
+                    GoRouter.of(context).go('/otp?email=${Uri.encodeComponent(email)}');
+                  } else {
+                    GoRouter.of(context).go('/otp');
+                  }
+                },
+                child: const Text('Use OTP instead'),
+              ),
             ],
           ),
         ),

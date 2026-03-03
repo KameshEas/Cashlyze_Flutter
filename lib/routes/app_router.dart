@@ -12,6 +12,7 @@ import '../features/insights/insights_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/splash/splash_screen.dart';
 import '../features/auth/verify_email_screen.dart';
+import '../features/auth/otp_screen.dart';
 import '../features/categories/categories_screen.dart';
 import '../features/emi/emi_form_screen.dart';
 import '../features/emi/emi_dashboard_screen.dart';
@@ -270,6 +271,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ? Duration.zero
               : kRouteFadeDuration,
         ),
+      ),
+      GoRoute(
+        path: '/otp',
+        name: 'otp',
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const OtpScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+                FadeTransition(opacity: animation, child: child),
+            transitionDuration: MediaQuery.of(context).disableAnimations
+                ? Duration.zero
+                : kRouteFadeDuration,
+          );
+        },
       ),
       GoRoute(
         path: '/categories',
