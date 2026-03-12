@@ -78,7 +78,23 @@ exports.handler = async (event) => {
       };
     }
 
-    const emailHtml = `<p>Your Cashlyze verification code is <strong>${otp}</strong>.</p><p>This code will expire in 10 minutes.</p>`;
+    const templateId = process.env.RESEND_TEMPLATE_ID;
+
+    // Build the Resend payload — prefer a configured template (plain text),
+    // fall back to an inline plain-text body so the function works without one.
+    const emailPayload = templateId
+      ? {
+          from,
+          to: email,
+          template_id: templateId,
+          variables: { otp },          // matches {{otp}} in the Resend template
+        }
+      : {
+          from,
+          to: email,
+          subject: 'Your Cashlyze verification code',
+          text: `Your Cashlyze verification code is: ${otp}\n\nThis code expires in 10 minutes. Do not share it with anyone.\n\nIf you did not request this code, you can safely ignore this email.\n\n© Cashlyze · https://cashlyze.netlify.app`,
+        };
 
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -86,12 +102,7 @@ exports.handler = async (event) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        from,
-        to: email,
-        subject: 'Your Cashlyze verification code',
-        html: emailHtml,
-      }),
+      body: JSON.stringify(emailPayload),
     });
 
     const text = await res.text();
