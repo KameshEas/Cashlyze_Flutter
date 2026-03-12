@@ -3,7 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-const kRequireEmailVerification = true;
+// OTP is used for email verification instead of Firebase email links.
+const kRequireEmailVerification = false;
 
 /// Provider for FirebaseAuth instance
 final firebaseAuthProvider = Provider<FirebaseAuth>((ref) {
@@ -42,8 +43,8 @@ class AuthService {
         email: email,
         password: password,
       );
-    } on FirebaseAuthException catch (e) {
-      throw _handleAuthException(e);
+    } on FirebaseAuthException {
+      rethrow;
     }
   }
 
@@ -57,8 +58,8 @@ class AuthService {
         email: email,
         password: password,
       );
-    } on FirebaseAuthException catch (e) {
-      throw _handleAuthException(e);
+    } on FirebaseAuthException {
+      rethrow;
     }
   }
 
@@ -71,8 +72,8 @@ class AuthService {
   Future<void> sendPasswordResetEmail(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);
-    } on FirebaseAuthException catch (e) {
-      throw _handleAuthException(e);
+    } on FirebaseAuthException {
+      rethrow;
     }
   }
 
@@ -125,29 +126,9 @@ class AuthService {
     }
   }
 
-  /// Handle Firebase Auth exceptions
-  String _handleAuthException(FirebaseAuthException e) {
-    switch (e.code) {
-      case 'weak-password':
-        return 'The password provided is too weak.';
-      case 'email-already-in-use':
-        return 'An account already exists for that email.';
-      case 'user-not-found':
-        return 'No user found for that email.';
-      case 'wrong-password':
-        return 'Wrong password provided.';
-      case 'invalid-email':
-        return 'The email address is not valid.';
-      case 'user-disabled':
-        return 'This user account has been disabled.';
-      case 'too-many-requests':
-        return 'Too many requests. Please try again later.';
-      case 'operation-not-allowed':
-        return 'This operation is not allowed.';
-      default:
-        return 'An error occurred. Please try again.';
-    }
-  }
+  // FirebaseAuthExceptions are rethrown directly so that friendlyAuthError()
+  // in error_messages.dart can match the original error codes and return the
+  // correct human-readable message for every case (including network-request-failed).
 }
 
 /// Provider for AuthService

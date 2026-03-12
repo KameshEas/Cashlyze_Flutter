@@ -1,12 +1,11 @@
 {
-  "name": "cashlyze-netlify-functions",
+  "name": "cashlyze",
   "version": "1.0.0",
-  "description": "Netlify Functions for Cashlyze (OTP send/verify and health check)",
+  "description": "Cashlyze Flutter app — root package (see workers/ for the Cloudflare Worker API)",
   "private": true,
-  "engines": {
-    "node": "18.x"
-  },
-  "dependencies": {
-    "firebase-admin": "^11.10.0"
+  "scripts": {
+    "worker:dev": "cd workers && npm run dev",
+    "worker:deploy": "cd workers && npm run deploy",
+    "worker:install": "cd workers && npm install"
   }
 }

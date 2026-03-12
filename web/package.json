@@ -1,11 +1,6 @@
 {
-  "name": "cashlyze-web-functions",
+  "name": "cashlyze-web",
   "version": "1.0.0",
-  "description": "Netlify functions for Cashlyze web",
-  "engines": {
-    "node": "18.x"
-  },
-  "dependencies": {
-    "firebase-admin": "^11.10.0"
-  }
+  "description": "Cashlyze Flutter web app",
+  "private": true
 }

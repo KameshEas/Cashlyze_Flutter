@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/providers/onboarding_provider.dart';
 import '../core/services/auth_service.dart';
+import '../core/providers/otp_pending_provider.dart';
 import '../features/auth/auth_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/home/home_screen.dart';
@@ -21,6 +22,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final onboardingCompleted = ref.watch(onboardingCompletedProvider);
   final authState = ref.watch(authStateChangesProvider);
   final currentUser = ref.watch(currentUserProvider);
+  final otpPending = ref.watch(otpPendingProvider);
   const kRouteFadeDuration = Duration(milliseconds: 300);
   final rootKey = GlobalKey<NavigatorState>();
   final shellKey = GlobalKey<NavigatorState>();
@@ -276,9 +278,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/otp',
         name: 'otp',
         pageBuilder: (context, state) {
+          final email = state.uri.queryParameters['email'] ?? '';
           return CustomTransitionPage(
             key: state.pageKey,
-            child: const OtpScreen(),
+            child: OtpScreen(email: email),
             transitionsBuilder: (context, animation, secondaryAnimation, child) =>
                 FadeTransition(opacity: animation, child: child),
             transitionDuration: MediaQuery.of(context).disableAnimations
@@ -322,20 +325,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == '/signup';
       final isSplash = state.matchedLocation == '/splash';
       final isVerifyEmail = state.matchedLocation == '/verify-email';
+      final isOtp = state.matchedLocation.startsWith('/otp');
 
       final user = currentUser ?? authState.value;
-      // Do not force splash during auth loading; rely on SplashScreen for app start only
 
       if (isSplash) {
         return null;
       }
 
+      // If OTP verification is pending, always stay on /otp regardless of
+      // auth state changes — prevents the isAuthRoute redirect race.
+      if (otpPending) {
+        return isOtp ? null : '/otp';
+      }
+
       if (user != null) {
         if (kRequireEmailVerification) {
-          if (!user.emailVerified && !isVerifyEmail) {
+          if (!user.emailVerified && !isVerifyEmail && !isOtp) {
             return '/verify-email';
           }
-          if (isVerifyEmail && user.emailVerified) {
+          if ((isVerifyEmail || isOtp) && user.emailVerified) {
             return '/';
           }
         }
