@@ -6,3 +6,9 @@
 
 # If you build on Netlify, set an appropriate build command such as:
 # command = "flutter build web"
+
+# ALLOWED_ORIGIN (a public URL) and FROM_EMAIL (an email address) are not
+# sensitive secrets. Omit them from secrets scanning so the build doesn't fail
+# when their values appear as hardcoded fallbacks in source files.
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "ALLOWED_ORIGIN,FROM_EMAIL"
