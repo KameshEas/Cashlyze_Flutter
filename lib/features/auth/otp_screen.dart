@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:go_router/go_router.dart';
+import '../../core/services/auth_service.dart';
+import '../../core/utils/api_constants.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
   const OtpScreen({super.key});
@@ -13,15 +15,12 @@ class OtpScreen extends ConsumerStatefulWidget {
 }
 
 class _OtpScreenState extends ConsumerState<OtpScreen> {
-  final _emailController = TextEditingController();
   final _otpController = TextEditingController();
   bool _sending = false;
   bool _verifying = false;
-  String? _serverOtp; // Only used in development when server returns OTP
 
   @override
   void dispose() {
-    _emailController.dispose();
     _otpController.dispose();
     super.dispose();
   }
@@ -29,49 +28,44 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   @override
   void initState() {
     super.initState();
-    // Try to prefill email from query param if present (GoRouter navigation passes it)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      try {
-        final loc = GoRouter.of(context).location;
-        final uri = Uri.parse(loc);
-        final email = uri.queryParameters['email'];
-        if (email != null && email.isNotEmpty) {
-          _emailController.text = Uri.decodeComponent(email);
-        }
-      } catch (_) {}
-    });
+    // Auto-send OTP to the registered user's email on screen open.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _sendOtp());
   }
 
+  String? get _userEmail => ref.read(currentUserProvider)?.email;
+
   Future<void> _sendOtp() async {
-    final email = _emailController.text.trim();
-    if (email.isEmpty) return;
+    final email = _userEmail;
+    if (email == null || email.isEmpty) return;
     setState(() => _sending = true);
     try {
-      // Default to Netlify function path; change as needed for your deployment.
-      final url = Uri.parse('/.netlify/functions/send-otp');
+      final url = Uri.parse(ApiConstants.sendOtp);
       final res = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
       );
       final body = res.body.isNotEmpty ? jsonDecode(res.body) : {};
-      if (res.statusCode >= 200 && res.statusCode < 300) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('OTP sent. Check your inbox.')),
-        );
-        if (body != null && body['otp'] != null && body['otp'] != 'generated') {
-          // Server returned OTP (dev mode) — store for verification convenience
-          setState(() => _serverOtp = body['otp'].toString());
+      if (mounted) {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('OTP sent to $email. Check your inbox.')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to send OTP: ${body['error'] ?? res.statusCode}'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
         }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send OTP: ${body['error'] ?? res.statusCode}')),
-        );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error sending OTP: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error sending OTP: $e')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -79,41 +73,34 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   Future<void> _verifyOtp() async {
     final entered = _otpController.text.trim();
-    if (entered.isEmpty) return;
+    final email = _userEmail;
+    if (entered.isEmpty || email == null) return;
     setState(() => _verifying = true);
     try {
-      // If server returned OTP (dev), compare locally.
-      if (_serverOtp != null) {
-        if (entered == _serverOtp) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('OTP verified (dev).')),
-          );
-          GoRouter.of(context).go('/');
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('OTP does not match.')),
-          );
-        }
-        return;
-      }
-      // Call verify-otp server endpoint
-      final email = _emailController.text.trim();
-      final url = Uri.parse('/.netlify/functions/verify-otp');
+      final url = Uri.parse(ApiConstants.verifyOtp);
       final res = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'otp': entered}),
       );
       final body = res.body.isNotEmpty ? jsonDecode(res.body) : {};
-      if (res.statusCode >= 200 && res.statusCode < 300 && body['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('OTP verified.')),
-        );
-        GoRouter.of(context).go('/');
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('OTP verification failed: ${body['error'] ?? res.statusCode}')),
-        );
+      if (mounted) {
+        if (res.statusCode >= 200 && res.statusCode < 300 && body['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('OTP verified successfully.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          GoRouter.of(context).go('/');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('OTP verification failed: ${body['error'] ?? res.statusCode}'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _verifying = false);
@@ -123,6 +110,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final email = _userEmail ?? '';
     return Scaffold(
       appBar: AppBar(title: const Text('OTP Verification')),
       body: Center(
@@ -133,28 +121,59 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('Enter your email to receive a one-time code', style: theme.textTheme.bodyLarge),
+                Icon(
+                  Icons.mark_email_read_outlined,
+                  size: 56,
+                  color: theme.colorScheme.primary,
+                ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                Text(
+                  'Verify your email',
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: _sending ? null : _sendOtp,
-                  child: _sending ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Send OTP'),
+                const SizedBox(height: 8),
+                Text(
+                  'A one-time code has been sent to\n$email',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
                 TextField(
                   controller: _otpController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Enter OTP'),
+                  maxLength: 6,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.headlineSmall?.copyWith(letterSpacing: 8),
+                  decoration: InputDecoration(
+                    labelText: 'Enter OTP',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    counterText: '',
+                  ),
                 ),
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: _verifying ? null : _verifyOtp,
-                  child: _verifying ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Verify OTP'),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: _verifying ? null : _verifyOtp,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: _verifying
+                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Text('Verify OTP'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextButton.icon(
+                  onPressed: _sending ? null : _sendOtp,
+                  icon: _sending
+                      ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.refresh),
+                  label: Text(_sending ? 'Sending…' : 'Resend OTP'),
                 ),
               ],
             ),
