@@ -56,14 +56,10 @@ workflows:
             BUILD_NUMBER=$(date +%s)
           fi
 
-          # Build name: allow override, else derive from pubspec.yaml version (major.minor.patch)
-          if [ -n "${FLUTTER_BUILD_NAME-}" ]; then
-            BUILD_NAME="$FLUTTER_BUILD_NAME"
-          else
-            PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g' || true)
-            BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
-            if [ -z "$BUILD_NAME" ]; then BUILD_NAME="0.0.0"; fi
-          fi
+          # Build name: always derive from pubspec.yaml version (major.minor.patch)
+          PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g' || true)
+          BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
+          if [ -z "$BUILD_NAME" ]; then BUILD_NAME="0.0.0"; fi
 
           FLAGS="--${FLUTTER_BUILD_MODE} --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER"
           if [ "${NO_TREE_SHAKE_ICONS-}" = "true" ]; then
@@ -108,13 +104,10 @@ workflows:
           else
             BUILD_NUMBER=$(date +%s)
           fi
-          if [ -n "${FLUTTER_BUILD_NAME-}" ]; then
-            BUILD_NAME="$FLUTTER_BUILD_NAME"
-          else
-            PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g' || true)
-            BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
-            if [ -z "$BUILD_NAME" ]; then BUILD_NAME="0.0.0"; fi
-          fi
+          # Build name: always derive from pubspec.yaml version (major.minor.patch)
+          PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g' || true)
+          BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
+          if [ -z "$BUILD_NAME" ]; then BUILD_NAME="0.0.0"; fi
 
           # Prepare release notes (prefer env var, else last git message or build id)
           if [ -n "${FIREBASE_RELEASE_NOTES-}" ]; then
