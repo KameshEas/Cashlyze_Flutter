@@ -78,23 +78,23 @@ exports.handler = async (event) => {
       };
     }
 
-    const templateId = process.env.RESEND_TEMPLATE_ID;
-
-    // Build the Resend payload — prefer a configured template (plain text),
-    // fall back to an inline plain-text body so the function works without one.
-    const emailPayload = templateId
-      ? {
-          from,
-          to: email,
-          template_id: templateId,
-          variables: { otp },          // matches {{otp}} in the Resend template
-        }
-      : {
-          from,
-          to: email,
-          subject: 'Your Cashlyze verification code',
-          text: `Your Cashlyze verification code is: ${otp}\n\nThis code expires in 10 minutes. Do not share it with anyone.\n\nIf you did not request this code, you can safely ignore this email.\n\n© Cashlyze · https://cashlyze.netlify.app`,
-        };
+    // Resend's /emails API requires an explicit `text` or `html` field.
+    // (Resend "templates" are dashboard-only and cannot be used programmatically
+    // with variable substitution via the REST API.)
+    const emailPayload = {
+      from,
+      to: email,
+      subject: 'Your Cashlyze verification code',
+      text: [
+        `Your Cashlyze verification code is: ${otp}`,
+        '',
+        'This code expires in 10 minutes. Do not share it with anyone.',
+        '',
+        'If you did not request this code, you can safely ignore this email.',
+        '',
+        '© Cashlyze · https://cashlyze.netlify.app',
+      ].join('\n'),
+    };
 
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
