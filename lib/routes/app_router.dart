@@ -336,7 +336,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // If OTP verification is pending, always stay on /otp regardless of
       // auth state changes — prevents the isAuthRoute redirect race.
       if (otpPending) {
-        return isOtp ? null : '/otp';
+        if (isOtp) return null;
+        final pendingEmail = ref.read(otpPendingProvider.notifier).pendingEmail;
+        final emailParam = pendingEmail.isNotEmpty
+            ? '?email=${Uri.encodeComponent(pendingEmail)}'
+            : '';
+        return '/otp$emailParam';
       }
 
       if (user != null) {

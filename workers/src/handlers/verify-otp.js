@@ -48,7 +48,7 @@ export async function handleVerifyOtp(request, env) {
   try {
     const svc = env.FIREBASE_SERVICE_ACCOUNT;
     if (!svc) throw new Error('FIREBASE_SERVICE_ACCOUNT not set');
-    serviceAccount = JSON.parse(svc);
+    serviceAccount = typeof svc === 'string' ? JSON.parse(svc) : svc;
     projectId = serviceAccount.project_id;
     token = await getAccessToken(serviceAccount);
   } catch (e) {

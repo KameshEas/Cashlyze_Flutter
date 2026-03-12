@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:go_router/go_router.dart';
 import '../../core/utils/api_constants.dart';
 import '../../core/providers/otp_pending_provider.dart';
+import '../../core/services/auth_service.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
   /// Email is passed via route query parameter so the screen never depends
@@ -25,8 +27,14 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   // Two-phase UI: first "Send Now", then OTP input after sending.
   bool _otpSent = false;
 
+  // Resend cooldown — user must wait 2 minutes before requesting another OTP.
+  static const int _kCooldownSeconds = 120;
+  int _resendCooldown = 0;  // 0 means the button is enabled
+  Timer? _cooldownTimer;
+
   @override
   void dispose() {
+    _cooldownTimer?.cancel();
     _otpController.dispose();
     super.dispose();
   }
@@ -34,9 +42,54 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   @override
   void initState() {
     super.initState();
+    // Restore UI phase if this widget is recreated mid-session (e.g. after a
+    // router rebuild triggered by Firebase authStateChanges).
+    final notifier = ref.read(otpPendingProvider.notifier);
+    if (notifier.otpAlreadySent) {
+      _otpSent = true;
+      _startCooldown();
+    }
   }
 
-  String get _userEmail => widget.email;
+  void _startCooldown() {
+    _cooldownTimer?.cancel();
+    setState(() => _resendCooldown = _kCooldownSeconds);
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      setState(() {
+        if (_resendCooldown > 0) {
+          _resendCooldown--;
+        } else {
+          t.cancel();
+        }
+      });
+    });
+  }
+
+  // Resolve email from route param first, then fall back to the signed-in
+  // user's email. This makes the screen resilient when the router omits
+  // the `email` query parameter.
+  String get _userEmail {
+    if (widget.email.isNotEmpty) return widget.email;
+    final user = ref.read(currentUserProvider);
+    return user?.email ?? '';
+  }
+
+  /// Safely decodes a JSON response body. Returns an empty map on any parse
+  /// error so callers never crash on HTML / plain-text error pages.
+  Map<String, dynamic> _decodeBody(String raw) {
+    if (raw.isEmpty) return {};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) return decoded;
+      return {};
+    } catch (_) {
+      return {};
+    }
+  }
 
   Future<void> _sendOtp() async {
     final email = _userEmail;
@@ -49,10 +102,12 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
       );
-      final body = res.body.isNotEmpty ? jsonDecode(res.body) : {};
+      final body = _decodeBody(res.body);
       if (mounted) {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
+        if (body['success'] == true) {
+          ref.read(otpPendingProvider.notifier).markOtpSent();
           setState(() => _otpSent = true);
+          _startCooldown();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('OTP sent to $email. Check your inbox.')),
           );
@@ -88,9 +143,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'otp': entered}),
       );
-      final body = res.body.isNotEmpty ? jsonDecode(res.body) : {};
+      final body = _decodeBody(res.body);
       if (mounted) {
-        if (res.statusCode >= 200 && res.statusCode < 300 && body['success'] == true) {
+        if (body['success'] == true) {
           // Clear pending flag so the router allows navigation to home.
           ref.read(otpPendingProvider.notifier).clearPending();
           ScaffoldMessenger.of(context).showSnackBar(
@@ -103,11 +158,20 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('OTP verification failed: ${body['error'] ?? res.statusCode}'),
+              content: Text('OTP verification failed: ${body['error'] ?? 'Invalid or expired OTP.'}'),
               backgroundColor: Colors.redAccent,
             ),
           );
         }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error verifying OTP: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _verifying = false);
@@ -197,11 +261,17 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                   ),
                   const SizedBox(height: 16),
                   TextButton.icon(
-                    onPressed: _sending ? null : _sendOtp,
+                    onPressed: (_sending || _resendCooldown > 0) ? null : _sendOtp,
                     icon: _sending
                         ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
                         : const Icon(Icons.refresh),
-                    label: Text(_sending ? 'Sending…' : 'Resend OTP'),
+                    label: Text(
+                      _sending
+                          ? 'Sending…'
+                          : _resendCooldown > 0
+                              ? 'Resend in ${_resendCooldown}s'
+                              : 'Resend OTP',
+                    ),
                   ),
                 ],
               ],

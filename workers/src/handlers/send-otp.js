@@ -86,7 +86,7 @@ export async function handleSendOtp(request, env) {
   try {
     const svc = env.FIREBASE_SERVICE_ACCOUNT;
     if (!svc) throw new Error('FIREBASE_SERVICE_ACCOUNT not set');
-    const serviceAccount = JSON.parse(svc);
+    const serviceAccount = typeof svc === 'string' ? JSON.parse(svc) : svc;
     const token = await getAccessToken(serviceAccount);
     const projectId = serviceAccount.project_id;
 

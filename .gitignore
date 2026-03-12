@@ -60,3 +60,4 @@ phase0
 # Local Cloudflare / Wrangler caches
 .wrangler
 node_modules
+*.md

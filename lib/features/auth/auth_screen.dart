@@ -76,7 +76,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         // Set pending BEFORE calling Firebase so the router guard is already
         // active when authStateChanges fires internally during account creation.
         // If creation fails below, the catch block clears it.
-        ref.read(otpPendingProvider.notifier).setPending();
+        ref.read(otpPendingProvider.notifier).setPending(
+          email: _emailController.text.trim(),
+        );
 
         final credential = await authService.createUserWithEmailAndPassword(
           email: _emailController.text.trim(),
