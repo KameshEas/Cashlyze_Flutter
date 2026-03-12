@@ -1,7 +1,26 @@
-// Netlify Function: send-otp
-// Expects POST { "email": "user@example.com" } and optionally { "otp": "123456" }
-// Requires environment variable: RESEND_API_KEY
-// Optional env: FROM_EMAIL, ALLOWED_ORIGIN (defaults to https://cashlyze.netlify.app)
+const crypto = require('crypto');
+let admin;
+try {
+  // Lazily require firebase-admin to avoid errors where not needed.
+  admin = require('firebase-admin');
+} catch (e) {
+  admin = null;
+}
+
+function hashOtp(otp) {
+  const secret = process.env.OTP_SECRET || '';
+  return crypto.createHash('sha256').update(otp + secret).digest('hex');
+}
+
+async function ensureAdminInitialized() {
+  if (!admin) return null;
+  if (admin.apps && admin.apps.length) return admin;
+  const svc = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (!svc) throw new Error('FIREBASE_SERVICE_ACCOUNT not configured');
+  const creds = JSON.parse(svc);
+  admin.initializeApp({ credential: admin.credential.cert(creds) });
+  return admin;
+}
 
 exports.handler = async (event) => {
   const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://cashlyze.netlify.app';
@@ -48,7 +67,7 @@ exports.handler = async (event) => {
     }
 
     const otp = payload.otp || (Math.floor(100000 + Math.random() * 900000)).toString();
-    const from = process.env.FROM_EMAIL || 'onboarding@resend.dev';
+    const from = process.env.FROM_EMAIL || 'Cashlyze <noreply@aspired2d.cloud>';
     const apiKey = process.env.RESEND_API_KEY;
 
     if (!apiKey) {
@@ -84,10 +103,35 @@ exports.handler = async (event) => {
       };
     }
 
+    // Store hashed OTP in Firestore for later verification (expires in 10 minutes)
+    try {
+      const a = await ensureAdminInitialized();
+      if (!a) throw new Error('firebase-admin not available');
+      const db = a.firestore();
+      const now = Date.now();
+      const expiresAt = new Date(now + 10 * 60 * 1000);
+      const doc = {
+        email: email.toLowerCase(),
+        otpHash: hashOtp(otp),
+        createdAt: a.firestore.Timestamp.fromMillis(now),
+        expiresAt: a.firestore.Timestamp.fromMillis(expiresAt.getTime()),
+        used: false,
+      };
+      await db.collection('otps').add(doc);
+    } catch (e) {
+      // Non-fatal: log server-side but keep going to allow email delivery to be tested.
+      console.error('Failed to store OTP in Firestore:', e.message || e);
+    }
+
+    const devReturnOtp = process.env.DEV_RETURN_OTP === 'true';
+    const responseBody = devReturnOtp
+      ? { success: true, otp: otp, to: email }
+      : { success: true, otp: 'generated', to: email };
+
     return {
       statusCode: 200,
       headers: CORS_HEADERS,
-      body: JSON.stringify({ success: true, otp: 'generated', to: email }),
+      body: JSON.stringify(responseBody),
     };
   } catch (err) {
     return {
