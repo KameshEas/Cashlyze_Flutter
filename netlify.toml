@@ -1,8 +1,8 @@
 [build]
   # Publish the static site from the web folder (Flutter web build output)
   publish = "web"
-  # Use web/api as the functions directory so send-otp.js and health.js are deployed
-  functions = "web/api"
+  # Functions directory (outside publish dir to avoid static-asset conflicts)
+  functions = "web/netlify/functions"
 
 # If you build on Netlify, set an appropriate build command such as:
 # command = "flutter build web"
