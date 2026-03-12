@@ -1,7 +1,3 @@
-// Simple health-check Netlify Function for the API
-// GET /.netlify/functions/health
-// OPTIONS for CORS preflight
-
 exports.handler = async (event) => {
   const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://cashlyze.netlify.app';
   const CORS_HEADERS = {
