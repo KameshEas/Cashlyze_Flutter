@@ -1,0 +1,11 @@
+{
+  "name": "cashlyze",
+  "version": "1.0.0",
+  "description": "Cashlyze Flutter app — root package (see workers/ for the Cloudflare Worker API)",
+  "private": true,
+  "scripts": {
+    "worker:dev": "cd workers && npm run dev",
+    "worker:deploy": "cd workers && npm run deploy",
+    "worker:install": "cd workers && npm install"
+  }
+}

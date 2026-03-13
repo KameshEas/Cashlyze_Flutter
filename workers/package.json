@@ -1,0 +1,19 @@
+{
+  "name": "cashlyze-api-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for Cashlyze API (OTP send/verify and health check)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "tail": "wrangler tail",
+    "secret:resend": "wrangler secret put RESEND_API_KEY",
+    "secret:otp": "wrangler secret put OTP_SECRET",
+    "secret:firebase": "wrangler secret put FIREBASE_SERVICE_ACCOUNT"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

@@ -17,6 +17,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  late DateTime _onboardingStart;
 
   // ── Onboarding data ────────────────────────────────────────────────────────
   // Removed dead CDN Lottie URLs — replaced with intentional icon + gradient.
@@ -49,10 +50,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     },
   ];
 
-  Future<void> _complete() async {
+  @override
+  void initState() {
+    super.initState();
+    _onboardingStart = DateTime.now();
+  }
+
+  Future<void> _complete({bool skipped = false}) async {
+    final start = _onboardingStart;
+    final durationMs = DateTime.now().difference(start).inMilliseconds;
+    final steps = _currentPage + 1;
+    final method = skipped ? 'skip' : 'slides';
+
     await ref.read(sharedPrefsServiceProvider).completeOnboarding();
     ref.read(onboardingCompletedProvider.notifier).complete();
-    await ref.read(analyticsServiceProvider).logEvent('onboarding_complete');
+    await ref.read(analyticsServiceProvider).logEvent(
+      'onboarding_completed',
+      params: {
+        'method': method,
+        'steps': steps,
+        'duration_ms': durationMs,
+        'success': true,
+      },
+    );
+
     if (mounted) context.go('/login');
   }
 
@@ -72,7 +93,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   opacity: _currentPage < _pages.length - 1 ? 1 : 0,
                   child: TextButton(
                     onPressed:
-                        _currentPage < _pages.length - 1 ? _complete : null,
+                      _currentPage < _pages.length - 1 ? () => _complete(skipped: true) : null,
                     child: const Text('Skip'),
                   ),
                 ),
@@ -193,7 +214,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           // ── Next / Get Started ─────────────────────────────────────────
           FilledButton(
             onPressed: () async {
-              if (_currentPage < _pages.length - 1) {
+                if (_currentPage < _pages.length - 1) {
                 if (MediaQuery.of(context).disableAnimations) {
                   _pageController.jumpToPage(_currentPage + 1);
                 } else {
@@ -203,7 +224,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   );
                 }
               } else {
-                await _complete();
+                await _complete(skipped: false);
               }
             },
             child: Text(

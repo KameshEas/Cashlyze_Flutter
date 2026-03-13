@@ -42,9 +42,20 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("cashlyze-release.jks")
-            storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: "Cashlyze2026!"
-            keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: "cashlyze"
-            keyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: "Cashlyze2026!"
+            // Read signing credentials from environment when available.
+            val keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            val keyAliasEnv = System.getenv("ANDROID_KEY_ALIAS")
+            val keyPasswordEnv = System.getenv("ANDROID_KEY_PASSWORD")
+
+            if (keystorePassword != null) {
+                storePassword = keystorePassword
+                keyAlias = keyAliasEnv ?: "cashlyze"
+                keyPassword = keyPasswordEnv ?: keystorePassword
+            } else {
+                // No keystore env provided — don't fail during configuration.
+                // CI should set the env vars for release signing; local debug builds
+                // will use the default debug signing config and won't require these.
+            }
         }
     }
 

@@ -77,9 +77,13 @@ void main() {
       await tester.pumpAndSettle();
 
       final passwordFields = find.byType(TextFormField);
-      final passwordField = tester.widget<TextFormField>(passwordFields.at(1));
-
-      expect(passwordField.obscureText, isTrue);
+      // Find the internal TextField inside the TextFormField and assert obscureText
+      final innerTextFieldFinder = find.descendant(
+        of: passwordFields.at(1),
+        matching: find.byType(TextField),
+      );
+      final innerTextField = tester.widget<TextField>(innerTextFieldFinder);
+      expect(innerTextField.obscureText, isTrue);
     });
 
     testWidgets('can toggle between sign in and sign up',

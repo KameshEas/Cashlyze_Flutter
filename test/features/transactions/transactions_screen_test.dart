@@ -1,5 +1,6 @@
 import 'package:cashlyze/core/models/transaction.dart';
 import 'package:cashlyze/core/providers/transaction_providers.dart';
+import 'package:cashlyze/core/repositories/transaction_repository.dart';
 import 'package:cashlyze/core/services/auth_service.dart';
 import 'package:cashlyze/features/transactions/transactions_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -28,7 +29,7 @@ void main() {
           overrides: [
             currentUserProvider.overrideWithValue(mockUser),
             userTransactionsProvider.overrideWith(
-              (ref) => const AsyncValue.data([]),
+              (ref) => Stream<List<TransactionModel>>.value(<TransactionModel>[]),
             ),
           ],
           child: const MaterialApp(
@@ -75,7 +76,7 @@ void main() {
           overrides: [
             currentUserProvider.overrideWithValue(mockUser),
             userTransactionsProvider.overrideWith(
-              (ref) => AsyncValue.data(testTransactions),
+              (ref) => Stream<List<TransactionModel>>.value(testTransactions),
             ),
           ],
           child: const MaterialApp(
@@ -98,7 +99,7 @@ void main() {
           overrides: [
             currentUserProvider.overrideWithValue(mockUser),
             userTransactionsProvider.overrideWith(
-              (ref) => const AsyncValue.data([]),
+              (ref) => Stream<List<TransactionModel>>.value(<TransactionModel>[]),
             ),
           ],
           child: const MaterialApp(
@@ -118,7 +119,9 @@ void main() {
           overrides: [
             currentUserProvider.overrideWithValue(mockUser),
             userTransactionsProvider.overrideWith(
-              (ref) => const AsyncValue.loading(),
+              (ref) => Stream<List<TransactionModel>>.fromFuture(
+                Future<List<TransactionModel>>.delayed(const Duration(seconds: 1), () => <TransactionModel>[]),
+              ),
             ),
           ],
           child: const MaterialApp(
@@ -138,10 +141,7 @@ void main() {
           overrides: [
             currentUserProvider.overrideWithValue(mockUser),
             userTransactionsProvider.overrideWith(
-              (ref) => AsyncValue.error(
-                Exception('Failed to load transactions'),
-                StackTrace.current,
-              ),
+              (ref) => Stream<List<TransactionModel>>.error(Exception('Failed to load transactions')),
             ),
           ],
           child: const MaterialApp(
@@ -161,7 +161,7 @@ void main() {
           overrides: [
             currentUserProvider.overrideWithValue(mockUser),
             userTransactionsProvider.overrideWith(
-              (ref) => const AsyncValue.data([]),
+              (ref) => Stream<List<TransactionModel>>.value(<TransactionModel>[]),
             ),
           ],
           child: const MaterialApp(
@@ -209,7 +209,7 @@ void main() {
           overrides: [
             currentUserProvider.overrideWithValue(mockUser),
             userTransactionsProvider.overrideWith(
-              (ref) => AsyncValue.data(testTransactions),
+              (ref) => Stream<List<TransactionModel>>.value(testTransactions),
             ),
           ],
           child: const MaterialApp(
@@ -243,7 +243,7 @@ void main() {
           overrides: [
             currentUserProvider.overrideWithValue(mockUser),
             userTransactionsProvider.overrideWith(
-              (ref) => AsyncValue.data(testTransactions),
+              (ref) => Stream<List<TransactionModel>>.value(testTransactions),
             ),
           ],
           child: const MaterialApp(
@@ -283,7 +283,7 @@ void main() {
           overrides: [
             currentUserProvider.overrideWithValue(mockUser),
             userTransactionsProvider.overrideWith(
-              (ref) => AsyncValue.data(testTransactions),
+              (ref) => Stream<List<TransactionModel>>.value(testTransactions),
             ),
           ],
           child: const MaterialApp(

@@ -597,37 +597,42 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                   .read(transactionRepositoryProvider)
                                   .deleteForUser(user.uid, e.id);
                               messenger.clearSnackBars();
-                              messenger.showSnackBar(
-                                SnackBar(
-                                  content: Text(t?.deleted ?? 'Deleted'),
-                                  duration: const Duration(seconds: 3),
-                                  behavior: SnackBarBehavior.floating,
-                                  action: SnackBarAction(
-                                    label: 'Undo',
-                                    onPressed: () async {
-                                      final user = ref.read(
-                                        currentUserProvider,
-                                      );
-                                      if (user == null) return;
-                                      try {
-                                        await ref
-                                            .read(transactionRepositoryProvider)
-                                            .create(
-                                              userId: user.uid,
-                                              title: payload['title'] as String,
-                                              amount:
-                                                  payload['amount'] as double,
-                                              categoryId:
-                                                  payload['categoryId']
-                                                      as String?,
-                                              date: payload['date'] as DateTime,
-                                              notes: null,
-                                            );
-                                      } catch (_) {}
-                                    },
-                                  ),
+                              final snack = SnackBar(
+                                content: Text(t?.deleted ?? 'Deleted'),
+                                duration: const Duration(seconds: 3),
+                                behavior: SnackBarBehavior.floating,
+                                action: SnackBarAction(
+                                  label: 'Undo',
+                                  onPressed: () async {
+                                    final user = ref.read(
+                                      currentUserProvider,
+                                    );
+                                    if (user == null) return;
+                                    try {
+                                      await ref
+                                          .read(transactionRepositoryProvider)
+                                          .create(
+                                            userId: user.uid,
+                                            title: payload['title'] as String,
+                                            amount: payload['amount'] as double,
+                                            categoryId:
+                                                payload['categoryId'] as String?,
+                                            date: payload['date'] as DateTime,
+                                            notes: null,
+                                          );
+                                    } catch (_) {}
+                                  },
                                 ),
                               );
+                              final controller = messenger.showSnackBar(snack);
+                              // As a defensive fallback ensure the snackbar is closed
+                              // shortly after its duration in case platform/overlay
+                              // issues prevent it from auto-dismissing.
+                              Future.delayed(snack.duration + const Duration(milliseconds: 200), () {
+                                try {
+                                  controller.close();
+                                } catch (_) {}
+                              });
                               return true;
                             } catch (err) {
                               messenger.clearSnackBars();

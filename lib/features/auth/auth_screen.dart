@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/repositories/user_repository.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/providers/shared_prefs_provider.dart';
-import '../../core/services/auth_service.dart' as cfg;
+import '../../core/providers/otp_pending_provider.dart';
 import '../../core/services/biometric_service.dart';
 import '../../core/utils/error_messages.dart';
 
@@ -27,6 +27,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   bool _obscurePassword = true;
   String? _errorMessage;
   bool _canUseBiometrics = false;
+  // Guards the finally-block setState when we navigate away mid-async.
+  bool _navigatedAway = false;
 
   @override
   void dispose() {
@@ -70,45 +72,29 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         await ref
             .read(analyticsServiceProvider)
             .logEvent('login', params: {'method': 'email'});
-        final user = ref.read(currentUserProvider);
-        if (cfg.kRequireEmailVerification &&
-            user != null &&
-            !user.emailVerified) {
-          messenger.showSnackBar(
-            const SnackBar(
-              content: Text('Please verify your email to continue.'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-          router.go('/verify-email');
-          return;
-        }
       } else {
-        await authService.createUserWithEmailAndPassword(
+        // Set pending BEFORE calling Firebase so the router guard is already
+        // active when authStateChanges fires internally during account creation.
+        // If creation fails below, the catch block clears it.
+        ref.read(otpPendingProvider.notifier).setPending(
+          email: _emailController.text.trim(),
+        );
+
+        final credential = await authService.createUserWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
-        final user = ref.read(currentUserProvider);
+        final user = credential.user ?? ref.read(currentUserProvider);
         if (user != null) {
           await ref
               .read(userRepositoryProvider)
               .getOrCreateUser(user.uid, user.email!);
-          if (cfg.kRequireEmailVerification) {
-            await ref.read(authServiceProvider).sendEmailVerification();
-          }
           await ref
               .read(analyticsServiceProvider)
               .logEvent('signup', params: {'method': 'email'});
-          if (cfg.kRequireEmailVerification) {
-            messenger.showSnackBar(
-              const SnackBar(
-                content: Text('Account created! Verification email sent.'),
-                backgroundColor: Colors.green,
-              ),
-            );
-            router.go('/verify-email');
-            return;
-          }
+          _navigatedAway = true;
+          router.go('/otp?email=${Uri.encodeComponent(_emailController.text.trim())}');
+          return;
         }
       }
 
@@ -122,14 +108,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           backgroundColor: Colors.green,
         ),
       );
+      _navigatedAway = true;
       router.go('/');
     } catch (e) {
+      // If signup failed, the pending flag was set pre-emptively — clear it.
+      if (!_isLogin) {
+        ref.read(otpPendingProvider.notifier).clearPending();
+      }
       setState(() {
         // Use human-readable messages — never expose raw Firebase error codes.
         _errorMessage = friendlyAuthError(e);
       });
     } finally {
-      if (mounted) {
+      if (mounted && !_navigatedAway) {
         setState(() {
           _isLoading = false;
         });

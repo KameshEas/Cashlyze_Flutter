@@ -1,0 +1,40 @@
+name = "cashlyze-api"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Static Assets — serves HTML pages from the public/ directory
+# ─────────────────────────────────────────────────────────────────────────────
+[assets]
+directory = "./public"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Non-secret environment variables
+# ─────────────────────────────────────────────────────────────────────────────
+[vars]
+# Public origin allowed for CORS — update to your Cloudflare Pages / custom domain
+ALLOWED_ORIGIN = "https://cashlyze-flutter.pages.dev"
+FROM_EMAIL = "Cashlyze <noreply@aspired2d.cloud>"
+# Set to "true" only in a dev/staging deployment to return the OTP in the response
+DEV_RETURN_OTP = "false"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Secrets — set via CLI, never commit real values:
+#
+#   npx wrangler secret put RESEND_API_KEY
+#   npx wrangler secret put OTP_SECRET
+#   npx wrangler secret put FIREBASE_SERVICE_ACCOUNT
+#
+# FIREBASE_SERVICE_ACCOUNT must be the full JSON content of your Firebase
+# service-account key file, stored as a single string secret.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Optional: Dev / staging environment overrides
+# ─────────────────────────────────────────────────────────────────────────────
+[env.staging]
+name = "cashlyze-api-staging"
+
+[env.staging.vars]
+ALLOWED_ORIGIN = "http://localhost:8080"
+DEV_RETURN_OTP = "true"

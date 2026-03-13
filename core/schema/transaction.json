@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Canonical Transaction",
+  "description": "Minimal canonical schema for transactions used across ingestion, storage, ML and analytics.",
+  "type": "object",
+  "required": ["id", "account_id", "provider", "amount", "currency", "date", "transaction_type", "raw_description", "created_at"],
+  "properties": {
+    "id": { "type": "string", "description": "Unique transaction id (source-provided or generated)" },
+    "account_id": { "type": "string", "description": "Internal account identifier" },
+    "provider": { "type": "string", "description": "Source provider (bank, card, importer)" },
+    "amount": { "type": "number", "description": "Signed amount: negative for debit, positive for credit" },
+    "currency": { "type": "string", "pattern": "^[A-Z]{3}$", "description": "ISO 4217 currency code" },
+    "date": { "type": "string", "format": "date-time", "description": "Transaction timestamp in ISO 8601" },
+    "transaction_type": { "type": "string", "enum": ["debit","credit"], "description": "Basic transaction direction" },
+    "merchant_name": { "type": ["string", "null"], "description": "Normalized merchant name if available" },
+    "raw_description": { "type": "string", "description": "Raw description returned by source" },
+    "normalized_description": { "type": ["string", "null"], "description": "Normalized / parsed description" },
+    "category": { "type": ["string", "null"], "description": "Assigned category label" },
+    "category_confidence": { "type": "number", "minimum": 0, "maximum": 1, "description": "Model confidence for category (0-1)" },
+    "is_emi": { "type": "boolean", "description": "Whether transaction is part of an EMI" },
+    "emi_details": {
+      "type": ["object", "null"],
+      "properties": {
+        "emi_amount": { "type": "number" },
+        "emi_tenure_months": { "type": "integer" },
+        "emi_start_date": { "type": "string", "format": "date" },
+        "emi_issuer": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "metadata": { "type": "object", "description": "Arbitrary key/value for provenance and source-specific fields", "additionalProperties": true },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "id": "bank_abc_txn_12345",
+      "account_id": "acct_001",
+      "provider": "bank_abc",
+      "amount": -1250.75,
+      "currency": "INR",
+      "date": "2026-02-20T10:34:00Z",
+      "transaction_type": "debit",
+      "merchant_name": "Acme Electronics",
+      "raw_description": "ACME ELECTRONICS POS 1234",
+      "normalized_description": "Acme Electronics - POS",
+      "category": "electronics",
+      "category_confidence": 0.92,
+      "is_emi": true,
+      "emi_details": {
+        "emi_amount": 1250.75,
+        "emi_tenure_months": 12,
+        "emi_start_date": "2026-02-20",
+        "emi_issuer": "card_xyz"
+      },
+      "metadata": { "raw_account_mask": "****1234" },
+      "created_at": "2026-02-20T10:35:00Z",
+      "updated_at": "2026-02-20T10:35:00Z"
+    }
+  ]
+}
