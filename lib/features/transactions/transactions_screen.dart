@@ -796,21 +796,64 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       builder: (ctx) {
         final catsAsync = ref.watch(userCategoriesProvider);
         return StatefulBuilder(
-          builder: (ctx, setModalState) {
+            builder: (ctx, setModalState) {
             final categoryItems = <DropdownMenuItem<String>>[
               const DropdownMenuItem(value: 'General', child: Text('General')),
             ];
+            final addedValues = <String>{'general'};
             catsAsync.when(
               loading: () {},
               error: (_, __) {},
               data: (list) {
                 for (final c in list) {
-                  categoryItems.add(
-                    DropdownMenuItem(value: c.name, child: Text(c.name)),
-                  );
+                  final name = c.name.trim();
+                  if (!addedValues.contains(name.toLowerCase())) {
+                    categoryItems.add(
+                      DropdownMenuItem(
+                        value: name,
+                        child: Row(children: [Expanded(child: Text(name, overflow: TextOverflow.ellipsis))]),
+                      ),
+                    );
+                    addedValues.add(name.toLowerCase());
+                  }
                 }
               },
             );
+
+            // Also include budgets as category options where budgets claim a
+            // specific category. Use the first categoryId/name on the budget
+            // to map transactions into that budget while showing the budget
+            // label in the dropdown.
+            final budgets = ref
+                .watch(userBudgetsProvider)
+                .maybeWhen(data: (d) => d, orElse: () => const []);
+            for (final b in budgets) {
+              final catIds = b.categoryIds ?? <String>[];
+              String key = '';
+              if (catIds.isNotEmpty) {
+                key = catIds.first.trim();
+              } else {
+                // If budget doesn't list categoryIds, fall back to budget name
+                // so budgets like "Food" still appear as selectable categories.
+                key = (b.name ?? '').trim();
+              }
+              if (key.isEmpty) continue;
+              final keyLower = key.toLowerCase();
+              if (!addedValues.contains(keyLower)) {
+                categoryItems.add(
+                  DropdownMenuItem(
+                    value: key,
+                    child: Row(children: [Expanded(child: Text('${(b.name ?? key)} (Budget)', overflow: TextOverflow.ellipsis))]),
+                  ),
+                );
+                addedValues.add(keyLower);
+              }
+            }
+            // Compute a safe initial category that matches exactly one item.
+            final matchingCount = categoryItems.where((it) => it.value == category).length;
+            final effectiveInitialCategory = matchingCount == 1
+                ? category
+                : (categoryItems.isNotEmpty ? (categoryItems.first.value as String?) : null);
             return Padding(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(ctx).viewInsets.bottom,
@@ -860,9 +903,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            initialValue: category,
-                            items: categoryItems,
-                            onChanged: (v) => category = v ?? 'General',
+                            initialValue: effectiveInitialCategory,
+                              isExpanded: true,
+                              items: categoryItems,
+                              onChanged: (v) => category = v ?? 'General',
                             decoration: InputDecoration(
                               labelText:
                                   AppLocalizations.of(ctx)?.categoryLabel ??
@@ -1506,6 +1550,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     Expanded(
                       child: FilledButton(
                         onPressed: () async {
+                          debugPrint('Transaction modal: Save pressed');
+                          print('Transaction modal: Save pressed');
+                          // Visual feedback removed (no blocking dialog).
                           final user = ref.read(currentUserProvider);
                           if (user == null) return;
                           final repo = ref.read(budgetRepositoryProvider);
@@ -1513,12 +1560,15 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               double.tryParse(allocatedController.text) ?? 0;
                           try {
                             // Create budget
-                            await repo.create(
+                            debugPrint('Creating budget for $categoryName (amount=$amount)');
+                            final createdBudget = await repo.create(
                               userId: user.uid,
                               name: categoryName,
                               allocated: amount,
                               period: BudgetPeriod.monthly,
+                              categoryIds: [categoryName],
                             );
+                            debugPrint('Created budget id=${createdBudget.id}');
                             if (!ctx.mounted) return;
                             FocusScope.of(ctx).unfocus();
                             nav.pop(true);

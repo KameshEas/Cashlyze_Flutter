@@ -11,6 +11,8 @@ import '../../core/widgets/skeleton.dart';
 import '../../core/models/transaction.dart';
 import '../../core/repositories/emi_repository.dart';
 import '../../core/repositories/transaction_repository.dart';
+import '../../core/repositories/budget_repository.dart';
+import '../../core/repositories/category_repository.dart';
 import '../../core/services/realtime_db_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/providers/shared_prefs_provider.dart';
@@ -544,6 +546,60 @@ class HomeScreen extends ConsumerWidget {
       builder: (ctx) {
         final messenger = ScaffoldMessenger.of(context);
         final nav = Navigator.of(context);
+
+        // Build category list from user categories + budgets so Quick Add
+        // uses the same options as the full Transactions screen.
+        final cats = ref.watch(userCategoriesProvider)
+            .maybeWhen(data: (d) => d, orElse: () => const []);
+        final categoryItems = <DropdownMenuItem<String>>[
+          const DropdownMenuItem(value: 'General', child: Text('General')),
+        ];
+        final addedValues = <String>{'general'};
+        for (final c in cats) {
+          final name = (c.name ?? '').trim();
+          if (name.isEmpty) continue;
+          if (!addedValues.contains(name.toLowerCase())) {
+            categoryItems.add(
+              DropdownMenuItem(
+                value: name,
+                child: Row(children: [Expanded(child: Text(name, overflow: TextOverflow.ellipsis))]),
+              ),
+            );
+            addedValues.add(name.toLowerCase());
+          }
+        }
+        final budgets = ref
+            .watch(userBudgetsProvider)
+            .maybeWhen(data: (d) => d, orElse: () => const []);
+        for (final b in budgets) {
+          final catIds = b.categoryIds ?? <String>[];
+          String key = '';
+          if (catIds.isNotEmpty) {
+            key = catIds.first.trim();
+          } else {
+            key = (b.name ?? '').trim();
+          }
+          if (key.isEmpty) continue;
+          final keyLower = key.toLowerCase();
+          if (!addedValues.contains(keyLower)) {
+            categoryItems.add(
+              DropdownMenuItem(
+                value: key,
+                child: Row(children: [Expanded(child: Text('${(b.name ?? key)} (Budget)', overflow: TextOverflow.ellipsis))]),
+              ),
+            );
+            addedValues.add(keyLower);
+          }
+        }
+
+        // Ensure the initially selected category matches exactly one
+        // dropdown item. If it doesn't, fall back to the first item
+        // to avoid Flutter's Dropdown assertion.
+        final matchingCountHome = categoryItems.where((it) => it.value == localCategory).length;
+        final effectiveInitialLocalCategory = matchingCountHome == 1
+            ? localCategory
+            : (categoryItems.isNotEmpty ? (categoryItems.first.value as String?) : null);
+
         return Padding(
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(ctx).viewInsets.bottom,
@@ -562,21 +618,22 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
+
                 Row(
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         initialValue: localType,
                         items: const [
-                          DropdownMenuItem(
-                            value: 'Expense',
-                            child: Text('Expense'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Income',
-                            child: Text('Income'),
-                          ),
-                        ],
+                              DropdownMenuItem(
+                                value: 'Expense',
+                                child: Text('Expense'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Income',
+                                child: Text('Income'),
+                              ),
+                            ],
                         onChanged: (v) => localType = v ?? 'Expense',
                         decoration: const InputDecoration(
                           labelText: 'Type',
@@ -587,27 +644,10 @@ class HomeScreen extends ConsumerWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        initialValue: localCategory,
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'General',
-                            child: Text('General'),
-                          ),
-                          DropdownMenuItem(value: 'Food', child: Text('Food')),
-                          DropdownMenuItem(
-                            value: 'Entertainment',
-                            child: Text('Entertainment'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Transport',
-                            child: Text('Transport'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Income',
-                            child: Text('Income'),
-                          ),
-                        ],
-                        onChanged: (v) => localCategory = v ?? 'General',
+                          initialValue: effectiveInitialLocalCategory,
+                          isExpanded: true,
+                          items: categoryItems,
+                          onChanged: (v) => localCategory = v ?? 'General',
                         decoration: const InputDecoration(
                           labelText: 'Category',
                           filled: true,

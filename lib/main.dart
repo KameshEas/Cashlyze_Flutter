@@ -7,8 +7,8 @@ import 'firebase_options.dart';
 import 'firebase_options_placeholder.dart';
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform, kReleaseMode;
-import 'package:sentry_flutter/sentry_flutter.dart';
 import 'core/theme/app_theme.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'routes/app_router.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -16,6 +16,10 @@ import 'l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/providers/shared_prefs_provider.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
+
+// Tracks whether Sentry has finished initialization.
+bool _sentryReady = false;
 
 Future<void> _runAppWithPrefs() async {
   final prefs = await SharedPreferences.getInstance();
@@ -45,19 +49,33 @@ Future<void> _appRunner() async {
   }
 
   try {
+    // Initially only record Flutter errors to Crashlytics. Sentry will be
+    // enabled asynchronously after init completes to avoid blocking UI.
     FlutterError.onError = (FlutterErrorDetails details) {
       FirebaseCrashlytics.instance.recordFlutterError(details);
-      if (kReleaseMode) {
-        Sentry.captureException(details.exception, stackTrace: details.stack);
-      } else {
-        FlutterError.dumpErrorToConsole(details);
-      }
+      FlutterError.dumpErrorToConsole(details);
     };
   } catch (e) {
     if (!kReleaseMode) debugPrint('Crashlytics init failed: $e');
   }
 
-  await _runAppWithPrefs();
+  // Use runZonedGuarded so we can capture uncaught errors from the zone.
+  runZonedGuarded(() async {
+    await _runAppWithPrefs();
+  }, (error, stack) async {
+    try {
+      await FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    } catch (_) {}
+
+    // Forward to Sentry only after initialization completed.
+    if (_sentryReady) {
+      try {
+        await Sentry.captureException(error, stackTrace: stack);
+      } catch (_) {}
+    } else {
+      if (!kReleaseMode) debugPrint('Uncaught error: $error');
+    }
+  });
 }
 
 void main() async {
@@ -69,51 +87,96 @@ void main() async {
     if (!kReleaseMode) debugPrint('Failed to load .env file: $e');
   }
 
-  // Resolve DSN from .env first then compile-time env
+  // Start the app immediately so Sentry cannot block UI startup.
+  _appRunner();
+
+  // Initialize OneSignal (fire-and-forget). App ID from request.
+  () async {
+    try {
+      await OneSignal.initialize('37af7f2d-22d4-4eac-972b-50cb1377fbb8');
+      if (!kReleaseMode) debugPrint('OneSignal initialized');
+      try {
+        final canRequest = await OneSignal.Notifications.canRequest();
+        if (canRequest) {
+          final granted = await OneSignal.Notifications.requestPermission(true);
+          if (!kReleaseMode) debugPrint('Notification permission granted: $granted');
+        } else {
+          if (!kReleaseMode) debugPrint('Notification permission prompt not available');
+        }
+      } catch (e) {
+        if (!kReleaseMode) debugPrint('OneSignal permission request failed: $e');
+      }
+    } catch (e) {
+      if (!kReleaseMode) debugPrint('OneSignal init failed: $e');
+    }
+  }();
+
+  // Resolve DSN from .env first then compile-time env. If provided,
+  // initialize Sentry asynchronously (do not await) so the app UI is not
+  // blocked by Sentry init. Once ready, update error forwarding.
   final sentryDsn = dotenv.env['SENTRY_DSN'] ??
-      const String.fromEnvironment('SENTRY_DSN', defaultValue: '');
+      const String.fromEnvironment(
+        'SENTRY_DSN',
+        defaultValue:
+            'https://bc9d78a3c4da4aa4f78f3620f1eea37c@o4511054838300672.ingest.us.sentry.io/4511054843674624',
+      );
 
   if (sentryDsn.isEmpty) {
-    if (!kReleaseMode) debugPrint('SENTRY_DSN not set — running without Sentry.');
-    await _appRunner();
+    if (!kReleaseMode) debugPrint('SENTRY_DSN not set — Sentry disabled.');
     return;
   }
 
-  // Initialize Sentry safely — do not let Sentry failures block startup.
-  try {
-    await SentryFlutter.init(
-      (options) {
-        options.dsn = sentryDsn;
-        options.tracesSampleRate = 0.0;
-        options.environment = const String.fromEnvironment(
-          'SENTRY_ENV',
-          defaultValue: kReleaseMode ? 'production' : 'development',
-        );
+  // Fire-and-forget Sentry initialization.
+  () async {
+    try {
+      await SentryFlutter.init(
+        (options) {
+          options.dsn = sentryDsn;
+          options.tracesSampleRate = 0.0;
+          options.environment = const String.fromEnvironment(
+            'SENTRY_ENV',
+            defaultValue: kReleaseMode ? 'production' : 'development',
+          );
 
-        (options as dynamic).beforeSend = (event, {hint}) {
-          if (!kReleaseMode) return null;
+          // Use dynamic assignment to avoid signature mismatches across
+          // different Sentry package versions.
+          (options as dynamic).beforeSend = (event, {hint}) {
+            if (!kReleaseMode) return null;
 
-          final ex = event.exceptions?.first;
-          final exType = ex?.type ?? '';
-          const skipTypes = [
-            'FormatException',
-            'AssertionError',
-            'RangeError',
-            'StateError'
-          ];
-          for (final skip in skipTypes) {
-            if (exType.contains(skip)) return null;
-          }
-          return event;
-        };
-      },
-      appRunner: _appRunner,
-    );
-  } catch (e) {
-    // If Sentry init fails for any reason, log and continue startup.
-    if (!kReleaseMode) debugPrint('Sentry init failed: $e');
-    await _appRunner();
-  }
+            final ex = event.exceptions?.first;
+            final exType = ex?.type ?? '';
+            const skipTypes = [
+              'FormatException',
+              'AssertionError',
+              'RangeError',
+              'StateError'
+            ];
+            for (final skip in skipTypes) {
+              if (exType.contains(skip)) return null;
+            }
+            return event;
+          };
+        },
+      );
+
+      _sentryReady = true;
+
+      // Now enable forwarding of Flutter framework errors to Sentry in
+      // release builds. Crashlytics remains the primary recorder.
+      FlutterError.onError = (FlutterErrorDetails details) {
+        FirebaseCrashlytics.instance.recordFlutterError(details);
+        if (kReleaseMode) {
+          Sentry.captureException(details.exception, stackTrace: details.stack);
+        } else {
+          FlutterError.dumpErrorToConsole(details);
+        }
+      };
+
+      if (!kReleaseMode) debugPrint('Sentry initialized');
+    } catch (e) {
+      if (!kReleaseMode) debugPrint('Sentry init failed: $e');
+    }
+  }();
 }
 
 class App extends ConsumerWidget {

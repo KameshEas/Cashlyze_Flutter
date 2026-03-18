@@ -29,8 +29,9 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
   final idToName = <String, String>{};
   final nameToId = <String, String>{};
   for (final c in categories) {
-    idToName[c.id] = c.name;
-    nameToId[c.name.toLowerCase()] = c.id;
+    final nameTrim = (c.name ?? '').trim();
+    idToName[c.id] = nameTrim;
+    nameToId[nameTrim.toLowerCase()] = c.id;
   }
 
   // Sort budgets oldest → newest so the first budget that claims a
@@ -43,15 +44,30 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
   final budgetNormalized = <String, Set<String>>{};
   for (final b in sortedBudgets) {
     final s = <String>{};
-    for (final v in b.categoryIds) {
-      s.add(v); // as stored in budget (could be id or name)
-      s.add(v.toLowerCase());
-      // If this value looks like an id we can map to a name too.
-      final mappedName = idToName[v];
-      if (mappedName != null) s.add(mappedName.toLowerCase());
-      // If value is a name, map to id too.
-      final mappedId = nameToId[v.toLowerCase()];
-      if (mappedId != null) s.add(mappedId);
+    if (b.categoryIds.isEmpty) {
+      // If budget doesn't explicitly list categoryIds, assume the budget's
+      // name itself is the claimed category (e.g., budget named "Food").
+      final vTrim = (b.name ?? '').trim();
+      if (vTrim.isNotEmpty) {
+        s.add(vTrim);
+        s.add(vTrim.toLowerCase());
+        final mappedName = idToName[vTrim];
+        if (mappedName != null) s.add(mappedName.toLowerCase());
+        final mappedId = nameToId[vTrim.toLowerCase()];
+        if (mappedId != null) s.add(mappedId);
+      }
+    } else {
+      for (final v in b.categoryIds) {
+        final vTrim = v.trim();
+        s.add(vTrim); // as stored in budget (could be id or name)
+        s.add(vTrim.toLowerCase());
+        // If this value looks like an id we can map to a name too.
+        final mappedName = idToName[vTrim];
+        if (mappedName != null) s.add(mappedName.toLowerCase());
+        // If value is a name, map to id too.
+        final mappedId = nameToId[vTrim.toLowerCase()];
+        if (mappedId != null) s.add(mappedId);
+      }
     }
     budgetNormalized[b.id] = s;
     spentByBudget[b.id] = 0;
@@ -84,14 +100,15 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
     final raw = t.categoryId;
     if (raw == null) continue;
 
+    final rawTrim = raw.trim();
     final candidates = <String>{};
-    candidates.add(raw);
-    candidates.add(raw.toLowerCase());
+    candidates.add(rawTrim);
+    candidates.add(rawTrim.toLowerCase());
     // If raw matches a known id, also add its name lowercased
-    final asName = idToName[raw];
+    final asName = idToName[rawTrim];
     if (asName != null) candidates.add(asName.toLowerCase());
     // If raw looks like a name, try mapping to id
-    final asId = nameToId[raw.toLowerCase()];
+    final asId = nameToId[rawTrim.toLowerCase()];
     if (asId != null) candidates.add(asId);
 
     // Find the primary budget for the first candidate that has one
@@ -101,6 +118,9 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
         ownerId = primaryForKey[c];
         break;
       }
+    }
+    if (kDebugMode) {
+      print('DEBUG budgetsUtilization: txn=${t.id} raw="$raw" candidates=$candidates owner=$ownerId amount=${t.amount}');
     }
     if (ownerId == null) continue;
 
