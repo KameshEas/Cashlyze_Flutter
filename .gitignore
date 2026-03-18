@@ -61,9 +61,10 @@ phase0
 .wrangler
 node_modules
 *.md
-linux/flutter/generated_plugin_registrant.cc
+
+linux/flutter/
 linux/flutter/generated_plugins.cmake
-macos/Flutter/GeneratedPluginRegistrant.swift
-windows/flutter/generated_plugin_registrant.cc
-windows/flutter/generated_plugins.cmake
+macos/Flutter/
+windows/flutter/        
 sentry.properties
+linux/flutter/generated_plugin_registrant.cc
