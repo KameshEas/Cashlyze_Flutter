@@ -45,19 +45,24 @@ workflows:
           #!/bin/bash
           set -euo pipefail
           # Determine build-name and build-number
-          # Build number precedence: CODENMAGIC_BUILD_NUMBER env -> CM_BUILD_NUMBER -> GIT commit count -> timestamp
-          if [ -n "${CODENAME_BUILD_NUMBER-}" ]; then
-            BUILD_NUMBER="$CODENAME_BUILD_NUMBER"
-          elif [ -n "${CM_BUILD_NUMBER-}" ]; then
-            BUILD_NUMBER="$CM_BUILD_NUMBER"
-          elif git rev-parse --git-dir >/dev/null 2>&1; then
-            BUILD_NUMBER=$(git rev-list --count HEAD 2>/dev/null || date +%s)
+          # Prefer build number from pubspec.yaml (version +build), then CI envs, then git count, then timestamp
+          PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g' || true)
+          PKG_BUILD=$(echo "$PKG_VER" | cut -d+ -f2 || true)
+          if [ -n "$PKG_BUILD" ] && echo "$PKG_BUILD" | grep -Eq '^[0-9]+$'; then
+            BUILD_NUMBER="$PKG_BUILD"
           else
-            BUILD_NUMBER=$(date +%s)
+            if [ -n "${CODEMAGIC_BUILD_NUMBER-}" ]; then
+              BUILD_NUMBER="$CODEMAGIC_BUILD_NUMBER"
+            elif [ -n "${CM_BUILD_NUMBER-}" ]; then
+              BUILD_NUMBER="$CM_BUILD_NUMBER"
+            elif git rev-parse --git-dir >/dev/null 2>&1; then
+              BUILD_NUMBER=$(git rev-list --count HEAD 2>/dev/null || date +%s)
+            else
+              BUILD_NUMBER=$(date +%s)
+            fi
           fi
 
           # Build name: always derive from pubspec.yaml version (major.minor.patch)
-          PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g' || true)
           BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
           if [ -z "$BUILD_NAME" ]; then BUILD_NAME="0.0.0"; fi
 
@@ -94,18 +99,23 @@ workflows:
         script: |
           #!/bin/bash
           set -euo pipefail
-          # Determine build-name and build-number (same logic as build step)
-          if [ -n "${CODENAME_BUILD_NUMBER-}" ]; then
-            BUILD_NUMBER="$CODENAME_BUILD_NUMBER"
-          elif [ -n "${CM_BUILD_NUMBER-}" ]; then
-            BUILD_NUMBER="$CM_BUILD_NUMBER"
-          elif git rev-parse --git-dir >/dev/null 2>&1; then
-            BUILD_NUMBER=$(git rev-list --count HEAD 2>/dev/null || date +%s)
+          # Determine build-name and build-number (prefer pubspec build metadata)
+          PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g' || true)
+          PKG_BUILD=$(echo "$PKG_VER" | cut -d+ -f2 || true)
+          if [ -n "$PKG_BUILD" ] && echo "$PKG_BUILD" | grep -Eq '^[0-9]+$'; then
+            BUILD_NUMBER="$PKG_BUILD"
           else
-            BUILD_NUMBER=$(date +%s)
+            if [ -n "${CODEMAGIC_BUILD_NUMBER-}" ]; then
+              BUILD_NUMBER="$CODEMAGIC_BUILD_NUMBER"
+            elif [ -n "${CM_BUILD_NUMBER-}" ]; then
+              BUILD_NUMBER="$CM_BUILD_NUMBER"
+            elif git rev-parse --git-dir >/dev/null 2>&1; then
+              BUILD_NUMBER=$(git rev-list --count HEAD 2>/dev/null || date +%s)
+            else
+              BUILD_NUMBER=$(date +%s)
+            fi
           fi
           # Build name: always derive from pubspec.yaml version (major.minor.patch)
-          PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g' || true)
           BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
           if [ -z "$BUILD_NAME" ]; then BUILD_NAME="0.0.0"; fi
 
