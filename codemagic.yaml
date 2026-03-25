@@ -1,6 +1,9 @@
 workflows:
+  # ---------------------------------------------------------------------------
+  # Workflow 1: APK build -> Firebase App Distribution (testers / QA)
+  # ---------------------------------------------------------------------------
   android_firebase:
-    name: Android → Firebase App Distribution
+    name: Android - Firebase App Distribution (APK)
     max_build_duration: 90
     environment:
       groups:
@@ -30,7 +33,7 @@ workflows:
             echo "ANDROID_KEYSTORE_BASE64 not set. Checking if keystore already exists at $KEYPATH"
             if [ ! -f "$KEYPATH" ]; then
               echo "Keystore not found at $KEYPATH and ANDROID_KEYSTORE_BASE64 is not set."
-              echo "Please add the keystore as Codemagic secure file or set ANDROID_KEYSTORE_BASE64 env var." 
+              echo "Please add the keystore as Codemagic secure file or set ANDROID_KEYSTORE_BASE64 env var."
               exit 1
             else
               echo "Keystore already present at $KEYPATH"
@@ -44,8 +47,6 @@ workflows:
         script: |
           #!/bin/bash
           set -euo pipefail
-          # Determine build-name and build-number
-          # Prefer build number from pubspec.yaml (version +build), then CI envs, then git count, then timestamp
           PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g' || true)
           PKG_BUILD=$(echo "$PKG_VER" | cut -d+ -f2 || true)
           if [ -n "$PKG_BUILD" ] && echo "$PKG_BUILD" | grep -Eq '^[0-9]+$'; then
@@ -61,11 +62,8 @@ workflows:
               BUILD_NUMBER=$(date +%s)
             fi
           fi
-
-          # Build name: always derive from pubspec.yaml version (major.minor.patch)
           BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
           if [ -z "$BUILD_NAME" ]; then BUILD_NAME="0.0.0"; fi
-
           FLAGS="--${FLUTTER_BUILD_MODE} --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER"
           if [ "${NO_TREE_SHAKE_ICONS-}" = "true" ]; then
             FLAGS="$FLAGS --no-tree-shake-icons"
@@ -95,11 +93,10 @@ workflows:
             echo "Missing FIREBASE_TOKEN or FIREBASE_SERVICE_ACCOUNT_BASE64 env var" && exit 1
           fi
 
-      - name: Upload to Firebase App Distribution (Android)
+      - name: Upload to Firebase App Distribution (Android APK)
         script: |
           #!/bin/bash
           set -euo pipefail
-          # Determine build-name and build-number (prefer pubspec build metadata)
           PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g' || true)
           PKG_BUILD=$(echo "$PKG_VER" | cut -d+ -f2 || true)
           if [ -n "$PKG_BUILD" ] && echo "$PKG_BUILD" | grep -Eq '^[0-9]+$'; then
@@ -115,18 +112,13 @@ workflows:
               BUILD_NUMBER=$(date +%s)
             fi
           fi
-          # Build name: always derive from pubspec.yaml version (major.minor.patch)
           BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
           if [ -z "$BUILD_NAME" ]; then BUILD_NAME="0.0.0"; fi
-
-          # Prepare release notes (prefer env var, else last git message or build id)
           if [ -n "${FIREBASE_RELEASE_NOTES-}" ]; then
             RELEASE_NOTES="$FIREBASE_RELEASE_NOTES"
           else
             RELEASE_NOTES=$(git log -1 --pretty=%B 2>/dev/null || echo "Build $BUILD_NAME+$BUILD_NUMBER")
           fi
-
-          # Ensure distribution groups include 'codemagic'
           if [ -z "${FIREBASE_DISTRIBUTION_GROUPS-}" ]; then
             FIREBASE_DISTRIBUTION_GROUPS="codemagic"
           else
@@ -135,8 +127,6 @@ workflows:
               *) FIREBASE_DISTRIBUTION_GROUPS="${FIREBASE_DISTRIBUTION_GROUPS},codemagic" ;;
             esac
           fi
-
-          # Locate APK artifact
           APK=$(find build/app/outputs/apk -type f -name '*.apk' | head -n 1 || true)
           if [ -z "$APK" ]; then
             echo "No APK produced at expected path. Listing outputs for debugging:" >&2
@@ -145,13 +135,19 @@ workflows:
           fi
           OUT=/tmp/firebase_upload_out.txt
           if [ -n "${FIREBASE_TOKEN-}" ]; then
-            firebase appdistribution:distribute "$APK" --app "$FIREBASE_ANDROID_APP_ID" --groups "$FIREBASE_DISTRIBUTION_GROUPS" --release-notes "$RELEASE_NOTES" --token "$FIREBASE_TOKEN" 2>&1 | tee "$OUT"
+            firebase appdistribution:distribute "$APK" \
+              --app "$FIREBASE_ANDROID_APP_ID" \
+              --groups "$FIREBASE_DISTRIBUTION_GROUPS" \
+              --release-notes "$RELEASE_NOTES" \
+              --token "$FIREBASE_TOKEN" 2>&1 | tee "$OUT"
             RC=${PIPESTATUS[0]}
           else
-            firebase appdistribution:distribute "$APK" --app "$FIREBASE_ANDROID_APP_ID" --groups "$FIREBASE_DISTRIBUTION_GROUPS" --release-notes "$RELEASE_NOTES" 2>&1 | tee "$OUT"
+            firebase appdistribution:distribute "$APK" \
+              --app "$FIREBASE_ANDROID_APP_ID" \
+              --groups "$FIREBASE_DISTRIBUTION_GROUPS" \
+              --release-notes "$RELEASE_NOTES" 2>&1 | tee "$OUT"
             RC=${PIPESTATUS[0]}
           fi
-
           if [ $RC -ne 0 ]; then
             echo "APK upload failed. See output:" >&2
             cat "$OUT" >&2
@@ -162,10 +158,111 @@ workflows:
     artifacts:
       - build/app/outputs/apk/release/*.apk
 
+  # ---------------------------------------------------------------------------
+  # Workflow 2: AAB build -> Google Play Store
+  # ---------------------------------------------------------------------------
+  android_playstore:
+    name: Android - Google Play Store (AAB)
+    max_build_duration: 90
+    environment:
+      groups:
+        - android-secrets
+      flutter: stable
+      vars:
+        FLUTTER_BUILD_MODE: release
+        # Target Play Store track: internal | alpha | beta | production
+        GOOGLE_PLAY_TRACK: internal
 
-# Notes:
-# - Set the following environment vars in Codemagic UI (encrypted):
-#   - FIREBASE_TOKEN (preferred: `firebase login:ci` token) OR
-#   - FIREBASE_SERVICE_ACCOUNT_BASE64 (base64 of service account JSON)
-#   - FIREBASE_ANDROID_APP_ID (Firebase App ID for Android)
-#   - FIREBASE_DISTRIBUTION_GROUPS (comma-separated groups/testers)
+    scripts:
+      - name: Install dependencies
+        script: |
+          #!/bin/bash
+          set -euo pipefail
+          flutter --version
+          flutter pub get
+
+      - name: Restore Android keystore
+        script: |
+          #!/bin/bash
+          set -euo pipefail
+          KEYPATH="$(pwd)/android/app/cashlyze-release.jks"
+          if [ -n "${ANDROID_KEYSTORE_BASE64-}" ]; then
+            mkdir -p android/app
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYPATH"
+            chmod 600 "$KEYPATH"
+            echo "Keystore restored to $KEYPATH"
+          else
+            echo "ANDROID_KEYSTORE_BASE64 not set. Checking if keystore already exists at $KEYPATH"
+            if [ ! -f "$KEYPATH" ]; then
+              echo "Keystore not found at $KEYPATH and ANDROID_KEYSTORE_BASE64 is not set."
+              echo "Please add the keystore as Codemagic secure file or set ANDROID_KEYSTORE_BASE64 env var."
+              exit 1
+            else
+              echo "Keystore already present at $KEYPATH"
+            fi
+          fi
+          echo "Keystore file details:"
+          ls -la "$KEYPATH" || true
+          if command -v realpath >/dev/null 2>&1; then realpath "$KEYPATH" || true; fi
+
+      - name: Build Android App Bundle (AAB)
+        script: |
+          #!/bin/bash
+          set -euo pipefail
+          PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g' || true)
+          PKG_BUILD=$(echo "$PKG_VER" | cut -d+ -f2 || true)
+          if [ -n "$PKG_BUILD" ] && echo "$PKG_BUILD" | grep -Eq '^[0-9]+$'; then
+            BUILD_NUMBER="$PKG_BUILD"
+          else
+            if [ -n "${CODEMAGIC_BUILD_NUMBER-}" ]; then
+              BUILD_NUMBER="$CODEMAGIC_BUILD_NUMBER"
+            elif [ -n "${CM_BUILD_NUMBER-}" ]; then
+              BUILD_NUMBER="$CM_BUILD_NUMBER"
+            elif git rev-parse --git-dir >/dev/null 2>&1; then
+              BUILD_NUMBER=$(git rev-list --count HEAD 2>/dev/null || date +%s)
+            else
+              BUILD_NUMBER=$(date +%s)
+            fi
+          fi
+          BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
+          if [ -z "$BUILD_NAME" ]; then BUILD_NAME="0.0.0"; fi
+          FLAGS="--${FLUTTER_BUILD_MODE} --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER"
+          if [ "${NO_TREE_SHAKE_ICONS-}" = "true" ]; then
+            FLAGS="$FLAGS --no-tree-shake-icons"
+            echo "Disabling icon tree-shaking: adding --no-tree-shake-icons"
+          fi
+          echo "Building AAB with build-name=$BUILD_NAME build-number=$BUILD_NUMBER"
+          flutter build appbundle $FLAGS
+
+    artifacts:
+      - build/app/outputs/bundle/release/*.aab
+
+    publishing:
+      # Publishes the AAB to Google Play using a GCP service account.
+      # Add GCLOUD_SERVICE_ACCOUNT_CREDENTIALS to the android-secrets group
+      # in Codemagic (paste the full contents of the service account JSON).
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: $GOOGLE_PLAY_TRACK
+        submit_as_draft: true   # change to false to publish immediately
+
+# -------------------------------------------------------------------------------
+# Required environment variables - set as encrypted vars in Codemagic UI
+# (recommended: group all under "android-secrets")
+# -------------------------------------------------------------------------------
+# Shared (both workflows):
+#   ANDROID_KEYSTORE_BASE64              base64-encoded .jks release keystore
+#   ANDROID_KEY_ALIAS                    key alias used in build.gradle
+#   ANDROID_KEY_PASSWORD                 key password
+#   ANDROID_STORE_PASSWORD               keystore store password
+#
+# android_firebase workflow:
+#   FIREBASE_TOKEN                       `firebase login:ci` token  (preferred)
+#     OR FIREBASE_SERVICE_ACCOUNT_BASE64   base64-encoded service account JSON
+#   FIREBASE_ANDROID_APP_ID              Firebase App ID for Android
+#   FIREBASE_DISTRIBUTION_GROUPS        comma-separated tester groups (optional)
+#   FIREBASE_RELEASE_NOTES              release notes string (optional)
+#
+# android_playstore workflow:
+#   GCLOUD_SERVICE_ACCOUNT_CREDENTIALS  full JSON content of GCP service account
+#   GOOGLE_PLAY_TRACK                   override track at build time (optional)
