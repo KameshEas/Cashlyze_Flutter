@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/insights_providers.dart';
 import '../../core/providers/transaction_providers.dart';
@@ -883,95 +884,119 @@ class HomeScreen extends ConsumerWidget {
                 )
               else ...[
                 for (var i = 0; i < items.take(3).length; i++) ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.05,
+                  Builder(builder: (ctx) {
+                    final e = items[i];
+                    final now = DateTime.now();
+                    final dueDays = e.dueDate.difference(DateTime(now.year, now.month, now.day)).inDays;
+                    Color pillColor;
+                    String pillLabel;
+                    if (dueDays < 0) {
+                      pillColor = Colors.red;
+                      pillLabel = 'Overdue';
+                    } else if (dueDays == 0) {
+                      pillColor = Colors.orange;
+                      pillLabel = 'Due Today';
+                    } else if (dueDays == 1) {
+                      pillColor = Colors.orange;
+                      pillLabel = 'Due Tomorrow';
+                    } else {
+                      pillColor = Colors.green;
+                      pillLabel = 'Due in $dueDays days';
+                    }
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.05,
+                          ),
                         ),
                       ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.credit_card, size: 18),
-                            const SizedBox(width: 8),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Row(
                               children: [
-                                Text(
-                                  'Due: ${items[i].dueDate.toLocal()}'
-                                      .split(' ')
-                                      .first,
-                                  style: theme.textTheme.bodyMedium,
-                                ),
-                                Text(
-                                  formatAmount(items[i].installment, currency),
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                const Icon(Icons.credit_card, size: 18),
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      formatAmount(e.installment, currency),
+                                      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: pillColor.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        pillLabel,
+                                        style: theme.textTheme.bodySmall?.copyWith(color: pillColor),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                        FilledButton.tonal(
-                          onPressed: () async {
-                            final messenger = ScaffoldMessenger.of(context);
-                            final user = ref.read(currentUserProvider);
-                            if (user == null) return;
-                            try {
-                              await ref
-                                  .read(emiRepositoryProvider)
-                                  .markPaid(
-                                    user.uid,
-                                    items[i].planId,
-                                    items[i].id,
-                                  );
-                              await ref
-                                  .read(transactionRepositoryProvider)
-                                  .create(
-                                    userId: user.uid,
-                                    title: 'EMI installment',
-                                    amount: -items[i].installment.abs(),
-                                    categoryId: 'EMI',
-                                    date: items[i].dueDate,
-                                    notes: 'EMI payment recorded from Home',
-                                  );
-                              messenger.showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    AppLocalizations.of(
-                                          context,
-                                        )?.emiMarkedPaidAdded ??
-                                        'EMI marked paid and transaction added',
+                          ),
+                          FilledButton.tonal(
+                            onPressed: () async {
+                              final messenger = ScaffoldMessenger.of(context);
+                              final user = ref.read(currentUserProvider);
+                              if (user == null) return;
+                              HapticFeedback.lightImpact();
+                              try {
+                                await ref
+                                    .read(emiRepositoryProvider)
+                                    .markPaid(
+                                      user.uid,
+                                      e.planId,
+                                      e.id,
+                                    );
+                                await ref
+                                    .read(transactionRepositoryProvider)
+                                    .create(
+                                      userId: user.uid,
+                                      title: 'EMI installment',
+                                      amount: -e.installment.abs(),
+                                      categoryId: 'EMI',
+                                      date: e.dueDate,
+                                      notes: 'EMI payment recorded from Home',
+                                    );
+                                messenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      AppLocalizations.of(
+                                            context,
+                                          )?.emiMarkedPaidAdded ??
+                                          'EMI marked paid and transaction added',
+                                    ),
                                   ),
-                                ),
-                              );
-                            } catch (e) {
-                              messenger.showSnackBar(
-                                SnackBar(content: Text('Failed: $e')),
-                              );
-                            }
-                          },
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
+                                );
+                              } catch (err) {
+                                messenger.showSnackBar(
+                                  SnackBar(content: Text('Failed: $err')),
+                                );
+                              }
+                            },
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
                             ),
+                            child: Text('Pay ${formatAmount(e.installment, currency)}'),
                           ),
-                          child: Text(
-                            AppLocalizations.of(context)?.pay ?? 'Pay',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                        ],
+                      ),
+                    );
+                  }),
                   if (i < items.take(3).length - 1) const SizedBox(height: 12),
                 ],
               ],
