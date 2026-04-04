@@ -225,7 +225,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                       ),
                       confirmDismiss: (dir) async {
                         if (dir == DismissDirection.startToEnd) {
-                          await _openAdjustBudget(context, e.id, e.allocated);
+                          await _openAdjustBudget(context, e.id, e.allocated, e.name);
                           return false;
                         }
                         final messenger = ScaffoldMessenger.of(context);
@@ -576,9 +576,11 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     BuildContext context,
     String id,
     double allocated,
+    String currentName,
   ) async {
     final theme = Theme.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final nameController = TextEditingController(text: currentName);
     final amountController = TextEditingController(
       text: allocated.toStringAsFixed(2),
     );
@@ -589,6 +591,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     if (adjustDraft != null) {
       final amt = adjustDraft['newAllocated'];
       if (amt != null) amountController.text = amt.toString();
+      nameController.text = (adjustDraft['name'] as String?) ?? nameController.text;
       noteController.text = (adjustDraft['note'] as String?) ?? '';
     }
     final result = await showModalBottomSheet<bool>(
@@ -616,6 +619,15 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Budget name',
+                    helperText: 'Edit the budget name',
+                    filled: true,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -660,9 +672,22 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                           final newAlloc =
                               double.tryParse(amountController.text) ??
                               allocated;
+                          final newName = nameController.text.trim();
+                          if (newName.isEmpty) {
+                            pageMessenger.showSnackBar(
+                              const SnackBar(content: Text('Enter a valid name')),
+                            );
+                            return;
+                          }
                           try {
                             final user = ref.read(currentUserProvider);
                             if (user == null) return;
+                            // Update name if changed
+                            if (newName != currentName) {
+                              await ref
+                                  .read(budgetRepositoryProvider)
+                                  .update(id, {'userId': user.uid, 'name': newName});
+                            }
                             await ref
                                 .read(budgetRepositoryProvider)
                                 .addAdjustment(
@@ -698,13 +723,17 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     if (result != true) {
       final hasData =
           amountController.text.trim().isNotEmpty ||
-          noteController.text.trim().isNotEmpty;
+          noteController.text.trim().isNotEmpty ||
+          nameController.text.trim().isNotEmpty;
       if (hasData) {
         await prefs.saveDraft('budget_adjust', {
           'newAllocated': double.tryParse(amountController.text.trim()),
           'note': noteController.text.trim().isEmpty
               ? null
               : noteController.text.trim(),
+          'name': nameController.text.trim().isEmpty
+              ? null
+              : nameController.text.trim(),
         });
         if (mounted)
           messenger.showSnackBar(const SnackBar(content: Text('Draft saved')));

@@ -6,6 +6,7 @@ import '../../core/utils/format.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/services/auth_service.dart';
 import 'package:go_router/go_router.dart';
+import 'emi_form_screen.dart';
 
 class EMIDashboardScreen extends ConsumerWidget {
   const EMIDashboardScreen({super.key});
@@ -70,7 +71,14 @@ class _PlanCard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04)),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: scheduleAsync.when(
         loading: () => const SizedBox(
@@ -146,6 +154,54 @@ class _PlanCard extends ConsumerWidget {
                   Text(
                     'Loan: ${formatAmount(plan.loanAmount, currency)}',
                     style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(width: 8),
+                  // Edit action for EMI plan
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined),
+                    tooltip: 'Edit plan',
+                    onPressed: () async {
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => EMIFormScreen(initialPlan: plan)));
+                    },
+                  ),
+                  const SizedBox(width: 4),
+                  // Delete action for EMI plan
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    color: Colors.redAccent,
+                    tooltip: 'Delete plan',
+                    onPressed: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Delete EMI plan'),
+                          content: const Text('Delete this EMI plan and its schedule? This action cannot be undone.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(false),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(true),
+                              child: const Text('Delete'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm != true) return;
+                      final messenger = ScaffoldMessenger.of(context);
+                      final user = ref.read(currentUserProvider);
+                      if (user == null) {
+                        messenger.showSnackBar(const SnackBar(content: Text('Not signed in')));
+                        return;
+                      }
+                      try {
+                        await ref.read(emiRepositoryProvider).deletePlan(user.uid, plan.id);
+                        messenger.showSnackBar(const SnackBar(content: Text('EMI plan deleted')));
+                      } catch (e) {
+                        messenger.showSnackBar(SnackBar(content: Text('Failed to delete: $e')));
+                      }
+                    },
                   ),
                 ],
               ),

@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
@@ -7,6 +9,21 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// Load signing config at top level (accessible to all scopes in Kotlin DSL)
+val signingProps = Properties()
+val envKeystorePassword: String? = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+if (envKeystorePassword != null) {
+    signingProps["storeFile"] = "cashlyze-release.jks"
+    signingProps["storePassword"] = envKeystorePassword
+    signingProps["keyAlias"] = System.getenv("ANDROID_KEY_ALIAS") ?: "cashlyze"
+    signingProps["keyPassword"] = System.getenv("ANDROID_KEY_PASSWORD") ?: envKeystorePassword
+} else {
+    val keystorePropsFile = rootProject.file("key.properties")
+    if (keystorePropsFile.exists()) {
+        keystorePropsFile.reader().use { signingProps.load(it) }
+    }
 }
 
 android {
@@ -41,20 +58,12 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("cashlyze-release.jks")
-            // Read signing credentials from environment when available.
-            val keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-            val keyAliasEnv = System.getenv("ANDROID_KEY_ALIAS")
-            val keyPasswordEnv = System.getenv("ANDROID_KEY_PASSWORD")
-
-            if (keystorePassword != null) {
-                storePassword = keystorePassword
-                keyAlias = keyAliasEnv ?: "cashlyze"
-                keyPassword = keyPasswordEnv ?: keystorePassword
-            } else {
-                // No keystore env provided — don't fail during configuration.
-                // CI should set the env vars for release signing; local debug builds
-                // will use the default debug signing config and won't require these.
+            val sf = signingProps.getProperty("storeFile")
+            if (sf != null) {
+                storeFile = file(sf)
+                storePassword = signingProps.getProperty("storePassword")
+                keyAlias = signingProps.getProperty("keyAlias") ?: "cashlyze"
+                keyPassword = signingProps.getProperty("keyPassword")
             }
         }
     }

@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/emi.dart';
 import '../../core/services/emi_calculator.dart';
 import '../../core/repositories/emi_repository.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/services/auth_service.dart';
 
 class EMIFormScreen extends ConsumerStatefulWidget {
-  const EMIFormScreen({super.key});
+  final EMIPlan? initialPlan;
+  const EMIFormScreen({super.key, this.initialPlan});
 
   @override
   ConsumerState<EMIFormScreen> createState() => _EMIFormScreenState();
@@ -22,6 +24,20 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
   bool _isZeroCostEMI = false;
 
   @override
+  void initState() {
+    super.initState();
+    final p = widget.initialPlan;
+    if (p != null) {
+      _amountController.text = p.loanAmount.toStringAsFixed(2);
+      _rateController.text = p.annualInterestRate.toString();
+      _tenureController.text = p.tenureMonths.toString();
+      _startDate = p.startDate;
+      _frequency = p.frequency;
+      _isZeroCostEMI = p.annualInterestRate == 0.0;
+    }
+  }
+
+  @override
   void dispose() {
     _amountController.dispose();
     _rateController.dispose();
@@ -31,8 +47,9 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isEditing = widget.initialPlan != null;
     return Scaffold(
-      appBar: AppBar(title: const Text('New EMI Plan')),
+      appBar: AppBar(title: Text(isEditing ? 'Edit EMI Plan' : 'New EMI Plan')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -156,11 +173,11 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                   if (!_formKey.currentState!.validate()) return;
                   final user = ref.read(currentUserProvider);
                   if (user == null) return;
-                  
+
                   final interestRate = _isZeroCostEMI ? 0.0 : double.parse(_rateController.text);
-                  
+
                   final plan = EMIPlan(
-                    id: 'new',
+                    id: widget.initialPlan?.id ?? 'new',
                     userId: user.uid,
                     loanAmount: double.parse(_amountController.text),
                     annualInterestRate: interestRate,
@@ -171,30 +188,54 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                   );
                   final repo = ref.read(emiRepositoryProvider);
                   final messenger = ScaffoldMessenger.of(context);
-                  final nav = Navigator.of(context);
-                  final created = await repo.createPlan(plan);
-                  final calc = EMICalculator.compute(
-                    planId: created.id,
-                    loanAmount: plan.loanAmount,
-                    annualRate: plan.annualInterestRate,
-                    tenureMonths: plan.tenureMonths,
-                    startDate: plan.startDate,
-                    frequency: plan.frequency,
-                  );
-                  await repo.addSchedule(user.uid, created.id, calc.schedule);
-                  if (!mounted) return;
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        _isZeroCostEMI 
-                          ? 'Zero cost EMI plan created' 
-                          : 'EMI plan created'
+
+                  if (widget.initialPlan == null) {
+                    final created = await repo.createPlan(plan);
+                    final calc = EMICalculator.compute(
+                      planId: created.id,
+                      loanAmount: plan.loanAmount,
+                      annualRate: plan.annualInterestRate,
+                      tenureMonths: plan.tenureMonths,
+                      startDate: plan.startDate,
+                      frequency: plan.frequency,
+                    );
+                    await repo.addSchedule(user.uid, created.id, calc.schedule);
+                    if (!mounted) return;
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          _isZeroCostEMI
+                              ? 'Zero cost EMI plan created'
+                              : 'EMI plan created',
+                        ),
                       ),
-                    ),
-                  );
-                  nav.pop();
+                    );
+                  } else {
+                    // Update existing plan and replace schedule
+                    await repo.updatePlan(plan);
+                    final calc = EMICalculator.compute(
+                      planId: plan.id,
+                      loanAmount: plan.loanAmount,
+                      annualRate: plan.annualInterestRate,
+                      tenureMonths: plan.tenureMonths,
+                      startDate: plan.startDate,
+                      frequency: plan.frequency,
+                    );
+                    await repo.replaceSchedule(user.uid, plan.id, calc.schedule);
+                    if (!mounted) return;
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          _isZeroCostEMI
+                              ? 'Zero cost EMI plan updated' 
+                              : 'EMI plan updated',
+                        ),
+                      ),
+                    );
+                  }
+                  GoRouter.of(context).go('/emi');
                 },
-                child: const Text('Create Plan'),
+                child: Text(isEditing ? 'Update Plan' : 'Create Plan'),
               ),
             ],
           ),

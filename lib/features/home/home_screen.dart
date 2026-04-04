@@ -33,9 +33,14 @@ class HomeScreen extends ConsumerWidget {
     final dbUrl = ref.watch(databaseUrlProvider);
     // Watch EMI list here so we can conditionally render the section.
     final emiAsync = ref.watch(emiUpcomingProvider);
-    final hasEmis = emiAsync.maybeWhen(
-      data: (list) => list.isNotEmpty,
-      orElse: () => false,
+    final plansAsync = ref.watch(userEMIPlansProvider);
+    // Show the EMI section while either the plans or upcoming streams are
+    // loading or when either has data. This reduces flicker when streams
+    // reconnect or are briefly delayed.
+    final hasEmis = (
+      plansAsync.maybeWhen(data: (list) => list.isNotEmpty, loading: () => true, orElse: () => false)
+    ) || (
+      emiAsync.maybeWhen(data: (list) => list.isNotEmpty, loading: () => true, orElse: () => false)
     );
     final t = AppLocalizations.of(context);
     return Scaffold(
@@ -269,10 +274,9 @@ class HomeScreen extends ConsumerWidget {
         'category': 'Income',
       },
       {
-        'icon': Icons.receipt,
-        'label': t?.quickBill ?? 'Bill',
-        'type': 'Expense',
-        'category': 'General',
+        'icon': Icons.add,
+        'label': 'Add EMI',
+        'route': '/emi/new',
       },
       {
         'icon': Icons.more_horiz,

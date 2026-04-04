@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:developer' as developer;
 import 'package:firebase_database/firebase_database.dart';
 import '../services/realtime_db_service.dart';
 import '../services/auth_service.dart';
@@ -23,9 +24,25 @@ class EMIRepository {
     await _db.updateMulti(updates);
   }
 
+  /// Replace the schedule for a plan by removing the existing schedule node
+  /// and writing the new entries. This is used when editing a plan.
+  Future<void> replaceSchedule(String userId, String planId, List<EMIPayment> schedule) async {
+    await _db.remove('users/$userId/emi_schedules/$planId');
+    await addSchedule(userId, planId, schedule);
+  }
+
+  /// Update an existing plan's data in RTDB.
+  Future<void> updatePlan(EMIPlan plan) async {
+    final data = plan.toRTDB();
+    await _db.ref('users/${plan.userId}/emi_plans/${plan.id}').set(data);
+  }
+
   Stream<List<EMIPlan>> streamPlans(String userId) {
     return _db.onValueMap('users/$userId/emi_plans').map((map) {
-      if (map == null) return <EMIPlan>[];
+      if (map == null) {
+        developer.log('EMI streamPlans: received null map for user $userId', name: 'emi_repository');
+        return <EMIPlan>[];
+      }
       final items = <EMIPlan>[];
       map.forEach((key, value) {
         if (value is Map) {
@@ -33,6 +50,7 @@ class EMIRepository {
           items.add(EMIPlan.fromRTDB(key, data));
         }
       });
+      developer.log('EMI streamPlans: emitting ${items.length} plans for user $userId', name: 'emi_repository');
       return items;
     });
   }
@@ -61,7 +79,10 @@ class EMIRepository {
     final start = DateTime(now.year, now.month, 1);
     final end = DateTime(now.year, now.month + 1, 1);
     return _db.onValueMap('users/$userId/emi_schedules').map((root) {
-      if (root == null) return <EMIPayment>[];
+      if (root == null) {
+        developer.log('EMI streamUpcomingThisMonth: received null root for user $userId', name: 'emi_repository');
+        return <EMIPayment>[];
+      }
       final items = <EMIPayment>[];
       root.forEach((planId, planMap) {
         if (planMap is Map) {
@@ -78,6 +99,7 @@ class EMIRepository {
         }
       });
       items.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+      developer.log('EMI streamUpcomingThisMonth: emitting ${items.length} payments for user $userId (range ${start.toIso8601String()} - ${end.toIso8601String()})', name: 'emi_repository');
       return items;
     });
   }
@@ -110,25 +132,19 @@ final userEMIPlansProvider = StreamProvider<List<EMIPlan>>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(<EMIPlan>[]);
   final s = ref.watch(emiRepositoryProvider).streamPlans(user.uid);
-  return s.timeout(const Duration(seconds: 5), onTimeout: (sink) {
-    sink.add(<EMIPlan>[]);
-  }).handleError((_, __) {});
+  return s.handleError((_, __) {});
 });
 
 final emiScheduleProvider = StreamProvider.family<List<EMIPayment>, String>((ref, planId) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(<EMIPayment>[]);
   final s = ref.watch(emiRepositoryProvider).streamSchedule(user.uid, planId);
-  return s.timeout(const Duration(seconds: 5), onTimeout: (sink) {
-    sink.add(<EMIPayment>[]);
-  }).handleError((_, __) {});
+  return s.handleError((_, __) {});
 });
 
 final emiUpcomingProvider = StreamProvider<List<EMIPayment>>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(<EMIPayment>[]);
   final s = ref.watch(emiRepositoryProvider).streamUpcomingThisMonth(user.uid);
-  return s.timeout(const Duration(seconds: 5), onTimeout: (sink) {
-    sink.add(<EMIPayment>[]);
-  }).handleError((_, __) {});
+  return s.handleError((_, __) {});
 });
