@@ -77,8 +77,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
                 top: 16,
-                left: 16,
-                right: 16,
+                left: 12,
+                right: 12,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -404,7 +404,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   await Future.delayed(const Duration(milliseconds: 150));
                 },
                 child: ListView.separated(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 88),
                   itemBuilder: (listCtx, i) => const SkeletonListTile(),
                   separatorBuilder: (sepCtx, i) => const SizedBox(height: 12),
                   itemCount: 6,
@@ -516,7 +516,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       await Future.delayed(const Duration(milliseconds: 150));
                     },
                     child: ListView.separated(
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 88),
                       itemBuilder: (ctx, i) {
                         final e = filtered[i];
                         final isIncome = e.amount > 0;
@@ -692,23 +692,26 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     const SizedBox(height: 6),
                                     Row(
                                       children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: theme.colorScheme.onSurface
-                                                .withValues(alpha: 0.08),
-                                            borderRadius: BorderRadius.circular(
-                                              12,
+                                        Flexible(
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
                                             ),
-                                          ),
-                                          child: Text(
-                                            e.categoryId ??
-                                                (t?.uncategorized ??
-                                                    'Uncategorized'),
-                                            style: theme.textTheme.bodySmall,
+                                            decoration: BoxDecoration(
+                                              color: theme.colorScheme.onSurface
+                                                  .withValues(alpha: 0.08),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: Text(
+                                              e.categoryId ??
+                                                  (t?.uncategorized ??
+                                                      'Uncategorized'),
+                                              style: theme.textTheme.bodySmall,
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
                                           ),
                                         ),
                                         const SizedBox(width: 8),
@@ -721,6 +724,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                                     .onSurface
                                                     .withValues(alpha: 0.7),
                                               ),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
                                         ),
                                       ],
                                     ),
@@ -859,7 +864,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 bottom: MediaQuery.of(ctx).viewInsets.bottom,
               ),
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1233,7 +1238,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 bottom: MediaQuery.of(ctx).viewInsets.bottom,
               ),
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1498,7 +1503,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             bottom: MediaQuery.of(ctx).viewInsets.bottom,
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [

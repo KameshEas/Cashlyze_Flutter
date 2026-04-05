@@ -15,14 +15,7 @@ class Kpis {
 }
 
 final kpisProvider = Provider<Kpis>((ref) {
-  var txs = ref.watch(filteredTransactionsProvider);
-  final allTxs = ref.watch(recentTransactionsProvider).maybeWhen(
-    data: (d) => d,
-    orElse: () => ref.watch(transactionsCacheProvider),
-  );
-  if (txs.isEmpty && allTxs.isNotEmpty) {
-    txs = allTxs;
-  }
+  final txs = ref.watch(filteredTransactionsProvider);
   final range = ref.watch(selectedTimeRangeProvider);
   int days;
   if (range == TimeRange.last7d) {

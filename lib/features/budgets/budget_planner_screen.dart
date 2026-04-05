@@ -390,7 +390,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
             bottom: MediaQuery.of(ctx).viewInsets.bottom,
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
             child: StatefulBuilder(builder: (ctx, setSheetState) => Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -609,7 +609,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
             bottom: MediaQuery.of(ctx).viewInsets.bottom,
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [

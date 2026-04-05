@@ -110,12 +110,10 @@ class HomeScreen extends ConsumerWidget {
                 _buildUpcomingEmi(context, ref, currency),
               ],
             const SizedBox(height: 24),
-            Text(
-              t?.recentTransactions ?? 'Recent Transactions',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
+                Text(
+                  t?.recentTransactions ?? 'Recent Transactions',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
             const SizedBox(height: 16),
             _buildRecentTransactions(context, ref, currency, txsAsync),
           ],
@@ -263,10 +261,10 @@ class HomeScreen extends ConsumerWidget {
     final t = AppLocalizations.of(context);
     final actions = [
       {
-        'icon': Icons.send,
-        'label': t?.quickTransfer ?? 'Transfer',
+        'icon': Icons.remove,
+        'label': 'Expense',
         'type': 'Expense',
-        'category': 'Transport',
+        'category': 'General',
       },
       {
         'icon': Icons.add_card,
@@ -275,14 +273,15 @@ class HomeScreen extends ConsumerWidget {
         'category': 'Income',
       },
       {
-        'icon': Icons.add,
-        'label': 'Add EMI',
-        'route': '/emi/new',
+        'icon': Icons.send,
+        'label': t?.quickTransfer ?? 'Transfer',
+        'type': 'Expense',
+        'category': 'Transport',
       },
       {
-        'icon': Icons.more_horiz,
-        'label': t?.quickMore ?? 'More',
-        'route': '/transactions',
+        'icon': Icons.add_box,
+        'label': 'View More',
+        'menu': true,
       },
     ];
     return Row(
@@ -299,7 +298,9 @@ class HomeScreen extends ConsumerWidget {
               button: true,
               child: InkWell(
                 onTap: () {
-                  if (action.containsKey('route')) {
+                  if (action.containsKey('menu')) {
+                    _openQuickActionsMenu(context, ref);
+                  } else if (action.containsKey('route')) {
                     GoRouter.of(context).go(action['route'] as String);
                   } else {
                     _openQuickAdd(
@@ -610,7 +611,7 @@ class HomeScreen extends ConsumerWidget {
             bottom: MediaQuery.of(ctx).viewInsets.bottom,
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -762,6 +763,128 @@ class HomeScreen extends ConsumerWidget {
     // framework rebuilds and cause "used after dispose" assertions.
   }
 
+  Future<void> _openQuickActionsMenu(BuildContext context, WidgetRef ref) async {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: true,
+      backgroundColor: theme.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        final nav = Navigator.of(ctx);
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 48,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    // Add EMI (single)
+                    InkWell(
+                      onTap: () {
+                        nav.pop();
+                        Future.microtask(() => GoRouter.of(context).go('/emi/new'));
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: SizedBox(
+                        width: 92,
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.payments, size: 20),
+                            ),
+                            const SizedBox(height: 8),
+                            Text('Add EMI', textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Add Budget
+                    InkWell(
+                      onTap: () {
+                        nav.pop();
+                        Future.microtask(() => GoRouter.of(context).go('/budgets'));
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: SizedBox(
+                        width: 92,
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.savings, size: 20),
+                            ),
+                            const SizedBox(height: 8),
+                            Text('Add Budget', textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Scan Receipt (placeholder)
+                    InkWell(
+                      onTap: () {
+                        nav.pop();
+                        Future.microtask(() => ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Scan receipt not implemented')),
+                        ));
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: SizedBox(
+                        width: 92,
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.camera_alt, size: 20),
+                            ),
+                            const SizedBox(height: 8),
+                            Text('Scan', textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // (removed: View Transactions)
+                  ],
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildUpcomingEmi(
     BuildContext context,
     WidgetRef ref,
@@ -801,41 +924,22 @@ class HomeScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.08,
-                          ),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.calendar_today, size: 20),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: 0.08,
                       ),
-                      const SizedBox(width: 12),
-                      Text(
-                        AppLocalizations.of(context)?.emiUpcoming ??
-                            'Upcoming EMI',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  FilledButton.tonal(
-                    onPressed: () => GoRouter.of(context).go('/emi'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
+                      shape: BoxShape.circle,
                     ),
-                    child: Text(
-                      AppLocalizations.of(context)?.viewDetails ??
-                          'View Details',
+                    child: const Icon(Icons.calendar_today, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    AppLocalizations.of(context)?.emiUpcoming ?? 'Upcoming EMI',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
