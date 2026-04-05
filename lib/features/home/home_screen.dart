@@ -272,42 +272,49 @@ class HomeScreen extends ConsumerWidget {
         'type': 'Income',
         'category': 'Income',
       },
+      // Bottom-sheet items brought into the quick actions row
       {
-        'icon': Icons.send,
-        'label': t?.quickTransfer ?? 'Transfer',
-        'type': 'Expense',
-        'category': 'Transport',
+        'icon': Icons.payments,
+        'label': 'Add EMI',
+        'route': '/emi/new',
       },
       {
-        'icon': Icons.add_box,
-        'label': 'View More',
-        'menu': true,
+        'icon': Icons.savings,
+        'label': 'Add Budget',
+        'route': '/budgets',
+      },
+      {
+        'icon': Icons.camera_alt,
+        'label': 'Scan',
+        'action': 'scan',
       },
     ];
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: actions.map((action) {
-        final scheme = Theme.of(context).colorScheme;
-        // FIX: label moved INSIDE InkWell — previously it was orphaned below the
-        // tap target, making it a dead zone (no onTap on label tap).
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+
+    final scheme = Theme.of(context).colorScheme;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: actions.map((action) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             child: Semantics(
               label: '${action['label']} action',
               button: true,
               child: InkWell(
                 onTap: () {
-                  if (action.containsKey('menu')) {
-                    _openQuickActionsMenu(context, ref);
-                  } else if (action.containsKey('route')) {
+                  if (action.containsKey('route')) {
                     GoRouter.of(context).go(action['route'] as String);
-                  } else {
+                  } else if (action.containsKey('type')) {
                     _openQuickAdd(
                       context,
                       ref,
                       type: action['type'] as String,
                       category: action['category'] as String,
+                    );
+                  } else if (action['action'] == 'scan') {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Scan receipt not implemented')),
                     );
                   }
                 },
@@ -315,10 +322,8 @@ class HomeScreen extends ConsumerWidget {
                 focusColor: scheme.primary.withValues(alpha: 0.1),
                 hoverColor: scheme.secondary.withValues(alpha: 0.08),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 16,
-                  ),
+                  width: 92,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                   decoration: BoxDecoration(
                     color: scheme.surface,
                     borderRadius: BorderRadius.circular(16),
@@ -354,9 +359,9 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -776,110 +781,119 @@ class HomeScreen extends ConsumerWidget {
       ),
       builder: (ctx) {
         final nav = Navigator.of(ctx);
-        return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 48,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(2),
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.32,
+          minChildSize: 0.18,
+          maxChildSize: 0.9,
+          builder: (sheetCtx, controller) {
+            return SingleChildScrollView(
+              controller: controller,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          // Add EMI (single)
+                          InkWell(
+                            onTap: () {
+                              nav.pop();
+                              Future.microtask(() => GoRouter.of(context).go('/emi/new'));
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: SizedBox(
+                              width: 92,
+                              child: Column(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.payments, size: 20),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text('Add EMI', textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
+                                ],
+                              ),
+                            ),
+                          ),
+                          // Add Budget
+                          InkWell(
+                            onTap: () {
+                              nav.pop();
+                              Future.microtask(() => GoRouter.of(context).go('/budgets'));
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: SizedBox(
+                              width: 92,
+                              child: Column(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.savings, size: 20),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text('Add Budget', textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
+                                ],
+                              ),
+                            ),
+                          ),
+                          // Scan Receipt (placeholder)
+                          InkWell(
+                            onTap: () {
+                              nav.pop();
+                              Future.microtask(() => ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Scan receipt not implemented')),
+                              ));
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: SizedBox(
+                              width: 92,
+                              child: Column(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.camera_alt, size: 20),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text('Scan', textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    // Add EMI (single)
-                    InkWell(
-                      onTap: () {
-                        nav.pop();
-                        Future.microtask(() => GoRouter.of(context).go('/emi/new'));
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: SizedBox(
-                        width: 92,
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.payments, size: 20),
-                            ),
-                            const SizedBox(height: 8),
-                            Text('Add EMI', textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Add Budget
-                    InkWell(
-                      onTap: () {
-                        nav.pop();
-                        Future.microtask(() => GoRouter.of(context).go('/budgets'));
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: SizedBox(
-                        width: 92,
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.savings, size: 20),
-                            ),
-                            const SizedBox(height: 8),
-                            Text('Add Budget', textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Scan Receipt (placeholder)
-                    InkWell(
-                      onTap: () {
-                        nav.pop();
-                        Future.microtask(() => ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Scan receipt not implemented')),
-                        ));
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: SizedBox(
-                        width: 92,
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.camera_alt, size: 20),
-                            ),
-                            const SizedBox(height: 8),
-                            Text('Scan', textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // (removed: View Transactions)
-                  ],
-                ),
-                const SizedBox(height: 12),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
