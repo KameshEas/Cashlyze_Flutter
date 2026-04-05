@@ -555,213 +555,214 @@ class HomeScreen extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) {
-        final messenger = ScaffoldMessenger.of(context);
-        final nav = Navigator.of(context);
+        // Use a Consumer inside the sheet so it rebuilds when categories/budgets load.
+        return Consumer(builder: (sheetCtx, sheetRef, _) {
+          final messenger = ScaffoldMessenger.of(context);
+          final nav = Navigator.of(context);
 
-        // Build category list from user categories + budgets so Quick Add
-        // uses the same options as the full Transactions screen.
-        final cats = ref.watch(userCategoriesProvider)
-            .maybeWhen(data: (d) => d, orElse: () => const []);
-        final categoryItems = <DropdownMenuItem<String>>[
-          const DropdownMenuItem(value: 'General', child: Text('General')),
-        ];
-        final addedValues = <String>{'general'};
-        for (final c in cats) {
-          final name = (c.name ?? '').trim();
-          if (name.isEmpty) continue;
-          if (!addedValues.contains(name.toLowerCase())) {
-            categoryItems.add(
-              DropdownMenuItem(
-                value: name,
-                child: Row(children: [Expanded(child: Text(name, overflow: TextOverflow.ellipsis))]),
-              ),
-            );
-            addedValues.add(name.toLowerCase());
-          }
-        }
-        final catsList = cats;
-        final idToNameHome = <String, String>{};
-        final nameToIdHome = <String, String>{};
-        for (final c in catsList) {
-          final nm = (c.name ?? '').trim();
-          if (nm.isEmpty) continue;
-          idToNameHome[c.id] = nm;
-          nameToIdHome[nm.toLowerCase()] = c.id;
-        }
-
-        final budgets = ref
-            .watch(userBudgetsProvider)
-            .maybeWhen(data: (d) => d, orElse: () => const []);
-        for (final b in budgets) {
-          final catIds = b.categoryIds ?? <String>[];
-          String key = '';
-          if (catIds.isNotEmpty) {
-            final raw = catIds.first.trim();
-            if (raw.isEmpty) {
-              key = (b.name ?? '').trim();
-            } else if (idToNameHome.containsKey(raw)) {
-              key = idToNameHome[raw]!.trim();
-            } else {
-              final mappedId = nameToIdHome[raw.toLowerCase()];
-              if (mappedId != null) key = idToNameHome[mappedId] ?? raw;
-              else key = raw;
-            }
-          } else {
-            key = (b.name ?? '').trim();
-          }
-          if (key.isEmpty) continue;
-          final keyLower = key.toLowerCase();
-          if (!addedValues.contains(keyLower)) {
-            categoryItems.add(
-              DropdownMenuItem(
-                value: key,
-                child: Row(children: [Expanded(child: Text('${(b.name ?? key)} (Budget)', overflow: TextOverflow.ellipsis))]),
-              ),
-            );
-            addedValues.add(keyLower);
-          }
-        }
-
-        // Ensure the initially selected category matches exactly one
-        // dropdown item. If it doesn't, fall back to the first item
-        // to avoid Flutter's Dropdown assertion.
-        final matchingCountHome = categoryItems.where((it) => it.value == localCategory).length;
-        final effectiveInitialLocalCategory = matchingCountHome == 1
-            ? localCategory
-            : (categoryItems.isNotEmpty ? (categoryItems.first.value as String?) : null);
-
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 48,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+          // Build category list from user categories + budgets so Quick Add
+          // uses the same options as the full Transactions screen.
+          final cats = sheetRef.watch(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+          final categoryItems = <DropdownMenuItem<String>>[
+            const DropdownMenuItem(value: 'General', child: Text('General')),
+          ];
+          final addedValues = <String>{'general'};
+          for (final c in cats) {
+            final name = (c.name ?? '').trim();
+            if (name.isEmpty) continue;
+            if (!addedValues.contains(name.toLowerCase())) {
+              categoryItems.add(
+                DropdownMenuItem(
+                  value: name,
+                  child: Row(children: [Expanded(child: Text(name, overflow: TextOverflow.ellipsis))]),
                 ),
-                const SizedBox(height: 12),
+              );
+              addedValues.add(name.toLowerCase());
+            }
+          }
+          final catsList = cats;
+          final idToNameHome = <String, String>{};
+          final nameToIdHome = <String, String>{};
+          for (final c in catsList) {
+            final nm = (c.name ?? '').trim();
+            if (nm.isEmpty) continue;
+            idToNameHome[c.id] = nm;
+            nameToIdHome[nm.toLowerCase()] = c.id;
+          }
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: localType,
-                        items: const [
-                              DropdownMenuItem(
-                                value: 'Expense',
-                                child: Text('Expense'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Income',
-                                child: Text('Income'),
-                              ),
-                            ],
-                        onChanged: (v) => localType = v ?? 'Expense',
-                        decoration: const InputDecoration(
-                          labelText: 'Type',
-                          filled: true,
+          final budgets = sheetRef.watch(userBudgetsProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+          for (final b in budgets) {
+            final catIds = b.categoryIds ?? <String>[];
+            String key = '';
+            if (catIds.isNotEmpty) {
+              final raw = catIds.first.trim();
+              if (raw.isEmpty) {
+                key = (b.name ?? '').trim();
+              } else if (idToNameHome.containsKey(raw)) {
+                key = idToNameHome[raw]!.trim();
+              } else {
+                final mappedId = nameToIdHome[raw.toLowerCase()];
+                if (mappedId != null) key = idToNameHome[mappedId] ?? raw;
+                else key = (b.name ?? raw).trim();
+              }
+            } else {
+              key = (b.name ?? '').trim();
+            }
+            if (key.isEmpty) continue;
+            final keyLower = key.toLowerCase();
+            if (!addedValues.contains(keyLower)) {
+              categoryItems.add(
+                DropdownMenuItem(
+                  value: key,
+                  child: Row(children: [Expanded(child: Text('${(b.name ?? key)} (Budget)', overflow: TextOverflow.ellipsis))]),
+                ),
+              );
+              addedValues.add(keyLower);
+            }
+          }
+
+          // Ensure the initially selected category matches exactly one
+          // dropdown item. If it doesn't, fall back to the first item
+          // to avoid Flutter's Dropdown assertion.
+          // Map stored draft/local category id -> display name when possible
+          String displayLocalCategory = (localCategory ?? '').trim();
+          if (displayLocalCategory.isNotEmpty && idToNameHome.containsKey(displayLocalCategory)) {
+            displayLocalCategory = idToNameHome[displayLocalCategory]!.trim();
+          } else {
+            final mappedId = nameToIdHome[displayLocalCategory.toLowerCase()];
+            if (mappedId != null) displayLocalCategory = idToNameHome[mappedId] ?? displayLocalCategory;
+          }
+          final matchingCountHome = categoryItems.where((it) => it.value == displayLocalCategory).length;
+          final effectiveInitialLocalCategory = matchingCountHome == 1
+              ? displayLocalCategory
+              : (categoryItems.isNotEmpty ? (categoryItems.first.value as String?) : null);
+
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: localType,
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'Expense',
+                              child: Text('Expense'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Income',
+                              child: Text('Income'),
+                            ),
+                          ],
+                          onChanged: (v) => localType = v ?? 'Expense',
+                          decoration: const InputDecoration(
+                            labelText: 'Type',
+                            filled: true,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
                           initialValue: effectiveInitialLocalCategory,
                           isExpanded: true,
                           items: categoryItems,
                           onChanged: (v) => localCategory = v ?? 'General',
-                        decoration: const InputDecoration(
-                          labelText: 'Category',
-                          filled: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Category',
+                            filled: true,
+                          ),
                         ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Title',
+                      filled: true,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Title',
-                    filled: true,
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: amountController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: amountController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Amount',
+                      filled: true,
+                    ),
                   ),
-                  decoration: const InputDecoration(
-                    labelText: 'Amount',
-                    filled: true,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: ctx,
-                            firstDate: DateTime(2000),
-                            lastDate: DateTime(2100),
-                            initialDate: date,
-                          );
-                          if (picked != null) date = picked;
-                        },
-                        child: Text('Date: ${date.toLocal()}'.split(' ').first),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: ctx,
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime(2100),
+                              initialDate: date,
+                            );
+                            if (picked != null) date = picked;
+                          },
+                          child: Text('Date: ${date.toLocal()}'.split(' ').first),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    FilledButton(
-                      onPressed: () async {
-                        final user = ref.read(currentUserProvider);
-                        if (user == null) return;
-                        final amount =
-                            double.tryParse(amountController.text) ?? 0;
-                        final ingest = ref.read(
-                          transactionIngestServiceProvider,
-                        );
-                        try {
-                          await ingest.addManual(
-                            userId: user.uid,
-                            title: titleController.text,
-                            amount: amount,
-                            isIncome: localType == 'Income',
-                            categoryId: localCategory == 'General'
-                                ? null
-                                : localCategory,
-                            date: date,
-                            notes: null,
+                      const SizedBox(width: 12),
+                      FilledButton(
+                        onPressed: () async {
+                          final user = ref.read(currentUserProvider);
+                          if (user == null) return;
+                          final amount = double.tryParse(amountController.text) ?? 0;
+                          final ingest = ref.read(
+                            transactionIngestServiceProvider,
                           );
-                          nav.pop(true);
-                          messenger.showSnackBar(
-                            const SnackBar(content: Text('Transaction saved')),
-                          );
-                        } catch (e) {
-                          messenger.showSnackBar(
-                            SnackBar(content: Text('Failed: $e')),
-                          );
-                        }
-                      },
-                      child: const Text('Save'),
-                    ),
-                  ],
-                ),
-              ],
+                          try {
+                            await ingest.addManual(
+                              userId: user.uid,
+                              title: titleController.text,
+                              amount: amount,
+                              isIncome: localType == 'Income',
+                              categoryId: localCategory == 'General' ? null : localCategory,
+                              date: date,
+                              notes: null,
+                            );
+                            nav.pop(true);
+                            messenger.showSnackBar(const SnackBar(content: Text('Transaction saved')));
+                          } catch (e) {
+                            messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                          }
+                        },
+                        child: const Text('Save'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
+          );
+        });
       },
     );
     final messenger = ScaffoldMessenger.of(context);

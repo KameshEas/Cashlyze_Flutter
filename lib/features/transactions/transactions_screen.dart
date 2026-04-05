@@ -185,13 +185,47 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     loading: () => const LinearProgressIndicator(),
                     error: (_, __) => const SizedBox.shrink(),
                     data: (list) {
-                      final cats = [
-                        'All',
-                        'Uncategorized',
-                        ...List<String>.from(
-                          (list as List).map((c) => c.name as String),
-                        ),
-                      ];
+                      // Start with explicit options
+                      final cats = <String>['All', 'Uncategorized'];
+                      final seenLower = <String>{'all', 'uncategorized'};
+                      for (final c in list) {
+                        final nm = (c.name ?? '').trim();
+                        if (nm.isEmpty) continue;
+                        final nl = nm.toLowerCase();
+                        if (!seenLower.contains(nl)) {
+                          cats.add(nm);
+                          seenLower.add(nl);
+                        }
+                      }
+
+                      // Append budget-claimed category names (map ids -> names
+                      // or use budget name if no categoryIds present). Avoid
+                      // duplicates using lowercase set.
+                      final budgets = ref.watch(userBudgetsProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+                      final idToName = <String, String>{};
+                      for (final c in list) {
+                        final nm = (c.name ?? '').trim();
+                        if (nm.isNotEmpty) idToName[c.id] = nm;
+                      }
+                      for (final b in budgets) {
+                        final catIds = b.categoryIds ?? <String>[];
+                        String key = '';
+                        if (catIds.isNotEmpty) {
+                          final raw = catIds.first.trim();
+                          if (raw.isEmpty) key = (b.name ?? '').trim();
+                          else if (idToName.containsKey(raw)) key = idToName[raw]!.trim();
+                          else key = (b.name ?? raw).trim();
+                        } else {
+                          key = (b.name ?? '').trim();
+                        }
+                        if (key.isEmpty) continue;
+                        final kl = key.toLowerCase();
+                        if (!seenLower.contains(kl)) {
+                          cats.add(key);
+                          seenLower.add(kl);
+                        }
+                      }
+
                       return Wrap(
                         spacing: 8,
                         runSpacing: 4,
@@ -876,10 +910,21 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 addedValues.add(keyLower);
               }
             }
+
             // Compute a safe initial category that matches exactly one item.
-            final matchingCount = categoryItems.where((it) => it.value == category).length;
+            // If the stored `category` is an id, map it to the canonical
+            // display name so it matches dropdown item values (which are
+            // display names).
+            String displayCategory = category.trim();
+            if (idToName.containsKey(displayCategory)) {
+              displayCategory = idToName[displayCategory]!.trim();
+            } else {
+              final mappedId = nameToId[displayCategory.toLowerCase()];
+              if (mappedId != null) displayCategory = idToName[mappedId] ?? displayCategory;
+            }
+            final matchingCount = categoryItems.where((it) => it.value == displayCategory).length;
             final effectiveInitialCategory = matchingCount == 1
-                ? category
+                ? displayCategory
                 : (categoryItems.isNotEmpty ? (categoryItems.first.value as String?) : null);
             return Padding(
               padding: EdgeInsets.only(
@@ -1244,17 +1289,74 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             final categoryItems = <DropdownMenuItem<String>>[
               const DropdownMenuItem(value: 'General', child: Text('General')),
             ];
+            final addedValues = <String>{'general'};
             catsAsync.when(
               loading: () {},
               error: (_, __) {},
               data: (list) {
                 for (final c in list) {
-                  categoryItems.add(
-                    DropdownMenuItem(value: c.name, child: Text(c.name)),
-                  );
+                  final nm = (c.name ?? '').trim();
+                  if (nm.isEmpty) continue;
+                  if (!addedValues.contains(nm.toLowerCase())) {
+                    categoryItems.add(
+                      DropdownMenuItem(value: nm, child: Text(nm)),
+                    );
+                    addedValues.add(nm.toLowerCase());
+                  }
                 }
               },
             );
+
+            // Include budgets as category options using the same mapping
+            // logic as the create form so budget-claimed categories appear.
+            final catsListEdit = catsAsync.maybeWhen(data: (d) => d, orElse: () => const []);
+            final idToNameEdit = <String, String>{};
+            final nameToIdEdit = <String, String>{};
+            for (final c in catsListEdit) {
+              final nm = (c.name ?? '').trim();
+              if (nm.isEmpty) continue;
+              idToNameEdit[c.id] = nm;
+              nameToIdEdit[nm.toLowerCase()] = c.id;
+            }
+            final budgetsEdit = ref.watch(userBudgetsProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+            for (final b in budgetsEdit) {
+              final catIds = b.categoryIds ?? <String>[];
+              String key = '';
+              if (catIds.isNotEmpty) {
+                final raw = catIds.first.trim();
+                if (raw.isEmpty) key = (b.name ?? '').trim();
+                else if (idToNameEdit.containsKey(raw)) key = idToNameEdit[raw]!.trim();
+                else {
+                  final mappedId = nameToIdEdit[raw.toLowerCase()];
+                  if (mappedId != null) key = idToNameEdit[mappedId] ?? raw;
+                  else key = (b.name ?? raw).trim();
+                }
+              } else {
+                key = (b.name ?? '').trim();
+              }
+              if (key.isEmpty) continue;
+              final keyLower = key.toLowerCase();
+              if (!addedValues.contains(keyLower)) {
+                categoryItems.add(
+                  DropdownMenuItem(value: key, child: Text(key)),
+                );
+                addedValues.add(keyLower);
+              }
+            }
+
+            // Ensure the initially selected category matches exactly one
+            // item by mapping stored ids -> display names when needed.
+            String displayCategoryEdit = category.trim();
+            if (idToNameEdit.containsKey(displayCategoryEdit)) {
+              displayCategoryEdit = idToNameEdit[displayCategoryEdit]!.trim();
+            } else {
+              final mappedId = nameToIdEdit[displayCategoryEdit.toLowerCase()];
+              if (mappedId != null) displayCategoryEdit = idToNameEdit[mappedId] ?? displayCategoryEdit;
+            }
+            final matchingCountEdit = categoryItems.where((it) => it.value == displayCategoryEdit).length;
+            final effectiveInitialCategoryEdit = matchingCountEdit == 1
+                ? displayCategoryEdit
+                : (categoryItems.isNotEmpty ? (categoryItems.first.value as String?) : null);
             return Padding(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(ctx).viewInsets.bottom,
@@ -1304,7 +1406,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            initialValue: category,
+                            initialValue: effectiveInitialCategoryEdit,
                             items: categoryItems,
                             onChanged: (v) => category = v ?? 'General',
                             decoration: InputDecoration(
@@ -1588,12 +1690,29 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           try {
                             // Create budget
                             debugPrint('Creating budget for $categoryName (amount=$amount)');
+                            // Normalize the category identifier to an ID when
+                            // possible so the created budget references the
+                            // canonical category id instead of a display name.
+                            final catsListForCreate = ref.read(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+                            final nameToIdForCreate = <String, String>{};
+                            for (final c in catsListForCreate) {
+                              final nm = (c.name ?? '').trim();
+                              if (nm.isEmpty) continue;
+                              nameToIdForCreate[nm.toLowerCase()] = c.id;
+                            }
+                            final rawKey = categoryName.trim();
+                            String storageKey = rawKey;
+                            if (nameToIdForCreate.containsKey(rawKey.toLowerCase())) {
+                              storageKey = nameToIdForCreate[rawKey.toLowerCase()]!;
+                            } else if (catsListForCreate.any((c) => c.id == rawKey)) {
+                              storageKey = rawKey;
+                            }
                             final createdBudget = await repo.create(
                               userId: user.uid,
                               name: categoryName,
                               allocated: amount,
                               period: BudgetPeriod.monthly,
-                              categoryIds: [categoryName],
+                              categoryIds: [storageKey],
                             );
                             debugPrint('Created budget id=${createdBudget.id}');
                             if (!ctx.mounted) return;

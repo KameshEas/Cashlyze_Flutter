@@ -31,9 +31,21 @@ class TransactionIngestService {
     // Check if budget exists for this category
     if (_budgetRepo != null && cat != null && !isIncome) {
       final budgets = await _budgetRepo.streamForUser(userId).first;
-      final hasBudgetForCategory = budgets.any(
-        (budget) => budget.name.toLowerCase() == cat.toLowerCase(),
-      );
+      final lcCat = cat.toLowerCase();
+      final hasBudgetForCategory = budgets.any((budget) {
+        // Match by budget name
+        if (budget.name.toLowerCase() == lcCat) return true;
+        // Match by explicit budget id
+        if (budget.id == cat) return true;
+        // Match any listed category identifier (could be id or name)
+        for (final bid in budget.categoryIds) {
+          final bTrim = (bid ?? '').trim();
+          if (bTrim.isEmpty) continue;
+          if (bTrim.toLowerCase() == lcCat) return true;
+          if (bTrim == cat) return true;
+        }
+        return false;
+      });
 
       if (!hasBudgetForCategory) {
         // Store the transaction data for later processing

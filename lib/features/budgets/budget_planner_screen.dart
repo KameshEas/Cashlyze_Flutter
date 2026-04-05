@@ -519,13 +519,38 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                           }
 
                           try {
-                            debugPrint('Creating budget (name=$name, allocated=$amount, cats=$selectedCategoryIds)');
+                            debugPrint('Creating budget (name=$name, allocated=$amount, cats=$selectedCategoryIds');
+                            // Normalize selected category identifiers to canonical
+                            // category IDs where possible before persisting the
+                            // budget. The UI keeps `selectedCategoryIds` as
+                            // readable names for UX; here we convert names -> ids
+                            // using the user's categories so stored budgets are
+                            // consistent.
+                            final catsList = ref.read(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+                            final nameToId = <String, String>{};
+                            for (final c in catsList) {
+                              final nm = (c.name ?? '').trim();
+                              if (nm.isEmpty) continue;
+                              nameToId[nm.toLowerCase()] = c.id;
+                            }
+                            final finalCategoryIds = selectedCategoryIds.map((s) {
+                              final sTrim = (s ?? '').trim();
+                              if (sTrim.isEmpty) return sTrim;
+                              final mapped = nameToId[sTrim.toLowerCase()];
+                              if (mapped != null) return mapped;
+                              // If value already looks like an id that exists,
+                              // keep it as-is.
+                              if (catsList.any((c) => c.id == sTrim)) return sTrim;
+                              // Otherwise persist the original string (legacy).
+                              return sTrim;
+                            }).where((s) => s.isNotEmpty).toList();
+
                             final created = await repo.create(
                               userId: user.uid,
                               name: name,
                               allocated: amount,
                               period: BudgetPeriod.monthly,
-                              categoryIds: selectedCategoryIds,
+                              categoryIds: finalCategoryIds,
                             );
                             debugPrint('Budget created id=${created.id}');
                             nav.pop(true);
