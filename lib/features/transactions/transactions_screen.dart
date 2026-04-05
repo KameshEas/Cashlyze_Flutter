@@ -826,9 +826,20 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             );
 
             // Also include budgets as category options where budgets claim a
-            // specific category. Use the first categoryId/name on the budget
-            // to map transactions into that budget while showing the budget
-            // label in the dropdown.
+            // specific category. Budgets may store either category *ids* or
+            // category *names* (legacy). Map identifiers to a friendly
+            // category name using the user's categories to ensure dropdown
+            // entries are consistent.
+            final catsList = catsAsync.maybeWhen(data: (d) => d, orElse: () => const []);
+            final idToName = <String, String>{};
+            final nameToId = <String, String>{};
+            for (final c in catsList) {
+              final nm = (c.name ?? '').trim();
+              if (nm.isEmpty) continue;
+              idToName[c.id] = nm;
+              nameToId[nm.toLowerCase()] = c.id;
+            }
+
             final budgets = ref
                 .watch(userBudgetsProvider)
                 .maybeWhen(data: (d) => d, orElse: () => const []);
@@ -836,10 +847,21 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               final catIds = b.categoryIds ?? <String>[];
               String key = '';
               if (catIds.isNotEmpty) {
-                key = catIds.first.trim();
+                final raw = catIds.first.trim();
+                if (raw.isEmpty) {
+                  key = (b.name ?? '').trim();
+                } else if (idToName.containsKey(raw)) {
+                  key = idToName[raw]!.trim();
+                } else {
+                  // Maybe the stored value was a category name instead of id.
+                  final mappedId = nameToId[raw.toLowerCase()];
+                  if (mappedId != null) {
+                    key = idToName[mappedId] ?? raw;
+                  } else {
+                    key = raw;
+                  }
+                }
               } else {
-                // If budget doesn't list categoryIds, fall back to budget name
-                // so budgets like "Food" still appear as selectable categories.
                 key = (b.name ?? '').trim();
               }
               if (key.isEmpty) continue;

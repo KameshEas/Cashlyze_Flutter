@@ -579,6 +579,16 @@ class HomeScreen extends ConsumerWidget {
             addedValues.add(name.toLowerCase());
           }
         }
+        final catsList = cats;
+        final idToNameHome = <String, String>{};
+        final nameToIdHome = <String, String>{};
+        for (final c in catsList) {
+          final nm = (c.name ?? '').trim();
+          if (nm.isEmpty) continue;
+          idToNameHome[c.id] = nm;
+          nameToIdHome[nm.toLowerCase()] = c.id;
+        }
+
         final budgets = ref
             .watch(userBudgetsProvider)
             .maybeWhen(data: (d) => d, orElse: () => const []);
@@ -586,7 +596,16 @@ class HomeScreen extends ConsumerWidget {
           final catIds = b.categoryIds ?? <String>[];
           String key = '';
           if (catIds.isNotEmpty) {
-            key = catIds.first.trim();
+            final raw = catIds.first.trim();
+            if (raw.isEmpty) {
+              key = (b.name ?? '').trim();
+            } else if (idToNameHome.containsKey(raw)) {
+              key = idToNameHome[raw]!.trim();
+            } else {
+              final mappedId = nameToIdHome[raw.toLowerCase()];
+              if (mappedId != null) key = idToNameHome[mappedId] ?? raw;
+              else key = raw;
+            }
           } else {
             key = (b.name ?? '').trim();
           }
