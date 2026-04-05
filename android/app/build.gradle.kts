@@ -29,11 +29,13 @@ if (envKeystorePassword != null) {
 android {
     namespace = "com.aspiredesignovation.cashlyze"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "26.1.10909125"
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Enable core library desugaring for newer Java APIs used by plugins
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -105,4 +107,9 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Required for core library desugaring (Java 8+ APIs used by some plugins)
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

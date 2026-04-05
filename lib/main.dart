@@ -16,6 +16,8 @@ import 'l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/providers/shared_prefs_provider.dart';
+import 'core/providers/budget_alerts_handler.dart';
+import 'core/services/local_notification_service.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 
 // Tracks whether Sentry has finished initialization.
@@ -37,13 +39,19 @@ Future<void> _appRunner() async {
       const bool.fromEnvironment('FIREBASE_PLACEHOLDER') && !kReleaseMode;
 
   try {
-    await Firebase.initializeApp(
-      options: usePlaceholder
-          ? (defaultTargetPlatform == TargetPlatform.iOS
-              ? DefaultFirebaseOptionsPlaceholder.ios
-              : DefaultFirebaseOptionsPlaceholder.android)
-          : DefaultFirebaseOptions.currentPlatform,
-    );
+    // Avoid duplicate initialization if another piece of code has already
+    // initialized Firebase (some plugins may auto-init). Check `Firebase.apps`.
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: usePlaceholder
+            ? (defaultTargetPlatform == TargetPlatform.iOS
+                ? DefaultFirebaseOptionsPlaceholder.ios
+                : DefaultFirebaseOptionsPlaceholder.android)
+            : DefaultFirebaseOptions.currentPlatform,
+      );
+    } else {
+      if (!kReleaseMode) debugPrint('Firebase already initialized');
+    }
   } catch (e) {
     if (!kReleaseMode) debugPrint('Firebase init failed: $e');
   }
@@ -60,7 +68,10 @@ Future<void> _appRunner() async {
   }
 
   // Use runZonedGuarded so we can capture uncaught errors from the zone.
+  // Initialize bindings inside the zone so `ensureInitialized` and
+  // `runApp` execute in the same zone (prevents zone mismatch assertions).
   runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
     await _runAppWithPrefs();
   }, (error, stack) async {
     try {
@@ -79,15 +90,15 @@ Future<void> _appRunner() async {
 }
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
   try {
     await dotenv.load(fileName: '.env');
   } catch (e) {
     if (!kReleaseMode) debugPrint('Failed to load .env file: $e');
   }
 
-  // Start the app immediately so Sentry cannot block UI startup.
+  // Start the app asynchronously so Sentry cannot block UI startup. We will
+  // initialize the Flutter bindings inside the runZonedGuarded zone to make
+  // sure binding initialization and `runApp` happen in the same zone.
   _appRunner();
 
   // Initialize OneSignal (fire-and-forget). App ID from request.
@@ -114,12 +125,20 @@ void main() async {
   // Resolve DSN from .env first then compile-time env. If provided,
   // initialize Sentry asynchronously (do not await) so the app UI is not
   // blocked by Sentry init. Once ready, update error forwarding.
-  final sentryDsn = dotenv.env['SENTRY_DSN'] ??
-      const String.fromEnvironment(
-        'SENTRY_DSN',
-        defaultValue:
-            'https://bc9d78a3c4da4aa4f78f3620f1eea37c@o4511054838300672.ingest.us.sentry.io/4511054843674624',
-      );
+  String? _sentryFromDotenv;
+  try {
+    _sentryFromDotenv = dotenv.env['SENTRY_DSN'];
+  } catch (_) {
+    _sentryFromDotenv = null;
+  }
+
+  final sentryDsn = (_sentryFromDotenv != null && _sentryFromDotenv.isNotEmpty)
+      ? _sentryFromDotenv
+      : const String.fromEnvironment(
+          'SENTRY_DSN',
+          defaultValue:
+              'https://bc9d78a3c4da4aa4f78f3620f1eea37c@o4511054838300672.ingest.us.sentry.io/4511054843674624',
+        );
 
   if (sentryDsn.isEmpty) {
     if (!kReleaseMode) debugPrint('SENTRY_DSN not set — Sentry disabled.');
@@ -185,6 +204,17 @@ class App extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final appRouter = ref.watch(appRouterProvider);
+    // Ensure budget alert handler is initialized so threshold crossings
+    // produce notifications while the app is running.
+    ref.watch(budgetAlertsHandlerProvider);
+    // Initialize local notifications (idempotent).
+    Future.microtask(() async {
+      try {
+        await ref.read(localNotificationServiceProvider).init();
+      } catch (e) {
+        if (!kReleaseMode) debugPrint('LocalNotification init failed: $e');
+      }
+    });
     final locale = ref.watch(localeProvider);
     return MaterialApp.router(
       title: AppLocalizations.of(context)?.appTitle ?? 'Cashlyze',
