@@ -5,6 +5,8 @@ import '../../core/services/emi_calculator.dart';
 import '../../core/repositories/emi_repository.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/utils/format.dart';
+import '../../core/providers/shared_prefs_provider.dart';
 
 class EMIFormScreen extends ConsumerStatefulWidget {
   final EMIPlan? initialPlan;
@@ -48,6 +50,7 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.initialPlan != null;
+    final prefs = ref.read(sharedPrefsServiceProvider);
     return Scaffold(
       appBar: AppBar(title: Text(isEditing ? 'Edit EMI Plan' : 'New EMI Plan')),
       body: SingleChildScrollView(
@@ -123,7 +126,7 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
+                      child: OutlinedButton(
                       onPressed: () async {
                         final picked = await showDatePicker(
                           context: context,
@@ -134,7 +137,7 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                         if (picked != null) setState(() => _startDate = picked);
                       },
                       child: Text(
-                        'Start: ${_startDate.toLocal()}'.split(' ').first,
+                        'Start: ${formatDate(_startDate.toLocal(), prefs.dateFormat)}',
                       ),
                     ),
                   ),

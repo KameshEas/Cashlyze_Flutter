@@ -1036,9 +1036,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               }
                             },
                             child: Text(
-                              '${AppLocalizations.of(ctx)?.dateLabel ?? 'Date:'} ${date.toLocal()}'
-                                  .split(' ')
-                                  .first,
+                              '${AppLocalizations.of(ctx)?.dateLabel ?? 'Date:'} ${formatDate(date.toLocal(), ref.watch(sharedPrefsServiceProvider).dateFormat)}',
                             ),
                           ),
                         ),
@@ -1469,9 +1467,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               }
                             },
                             child: Text(
-                              '${AppLocalizations.of(ctx)?.dateLabel ?? 'Date:'} ${pickedDate.toLocal()}'
-                                  .split(' ')
-                                  .first,
+                              '${AppLocalizations.of(ctx)?.dateLabel ?? 'Date:'} ${formatDate(pickedDate.toLocal(), ref.watch(sharedPrefsServiceProvider).dateFormat)}',
                             ),
                           ),
                         ),

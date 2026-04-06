@@ -13,11 +13,27 @@ import '../../l10n/app_localizations.dart';
 // Converted from ConsumerStatefulWidget → ConsumerWidget.
 // The custom AnimationController was only used for a shimmer that duplicated
 // SkeletonChartBox. Removing it eliminates ~40 lines of boilerplate.
-class InsightsScreen extends ConsumerWidget {
+const List<Color> _kInsightPalette = [
+  AppColors.emerald600,
+  AppColors.teal500,
+  AppColors.info,
+  AppColors.warning,
+  Color(0xFF8B5CF6), // violet
+  Color(0xFFEC4899), // pink
+];
+
+class InsightsScreen extends ConsumerStatefulWidget {
   const InsightsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<InsightsScreen> createState() => _InsightsScreenState();
+}
+
+class _InsightsScreenState extends ConsumerState<InsightsScreen> {
+  int? _touchedIndex;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final monthly = ref.watch(monthlyTrendProvider);
     final categories = ref.watch(categoryBreakdownProvider);
@@ -197,31 +213,75 @@ class InsightsScreen extends ConsumerWidget {
                 label: 'Spending by category for selected range.',
                 child: _ChartCard(
                   height: 260,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 5,
-                        child: PieChart(
-                          PieChartData(
-                            sectionsSpace: 3,
-                            centerSpaceRadius: 44,
-                            sections: _buildPieSections(
-                              context,
-                              categories,
-                              theme,
-                            ),
+                  child: Builder(builder: (ctx) {
+                    // Sort categories desc and group small slices into "Other"
+                    final entries = categories.entries.toList()
+                      ..sort((a, b) => b.value.compareTo(a.value));
+                    const maxSlices = 6;
+                    late final List<MapEntry<String, double>> displayEntries;
+                    if (entries.length > maxSlices) {
+                      final top = entries.sublist(0, maxSlices - 1);
+                      final rest = entries.sublist(maxSlices - 1);
+                      final otherSum = rest.fold<double>(0.0, (p, e) => p + e.value);
+                      displayEntries = [...top, MapEntry('Other', otherSum)];
+                    } else {
+                      displayEntries = entries;
+                    }
+
+                    final total = displayEntries.fold<double>(0.0, (p, e) => p + e.value);
+
+                    return Row(
+                      children: [
+                        Expanded(
+                          flex: 5,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              PieChart(
+                                PieChartData(
+                                  sectionsSpace: 3,
+                                  centerSpaceRadius: 44,
+                                  sections: _buildPieSections(displayEntries, theme, _touchedIndex),
+                                  pieTouchData: PieTouchData(
+                                    touchCallback: (event, response) {
+                                      final idx = response?.touchedSection?.touchedSectionIndex;
+                                      setState(() => _touchedIndex = idx);
+                                    },
+                                  ),
+                                ),
+                              ),
+                              // Center total label
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    formatAmount(total, currency),
+                                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Total',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                      Expanded(
-                        flex: 4,
-                        child: _CategoryLegend(
-                          categories: categories,
-                          theme: theme,
+                        Expanded(
+                          flex: 4,
+                          child: _CategoryLegend(
+                            entries: displayEntries,
+                            theme: theme,
+                            currency: currency,
+                            touchedIndex: _touchedIndex,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    );
+                  }),
                 ),
               ),
             const SizedBox(height: AppSpacing.s16),
@@ -233,31 +293,28 @@ class InsightsScreen extends ConsumerWidget {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  static const List<Color> _palette = [
-    AppColors.emerald600,
-    AppColors.teal500,
-    AppColors.info,
-    AppColors.warning,
-    Color(0xFF8B5CF6), // violet
-    Color(0xFFEC4899), // pink
-  ];
-
   List<PieChartSectionData> _buildPieSections(
-    BuildContext context,
-    Map<String, double> categories,
+    List<MapEntry<String, double>> entries,
     ThemeData theme,
+    int? touchedIndex,
   ) {
-    int i = 0;
-    return categories.entries.map((e) {
-      final color = _palette[i % _palette.length];
-      i++;
-      return PieChartSectionData(
-        title: '',  // labels moved to legend — avoids crowded chart text
-        value: e.value,
-        color: color,
-        radius: 52,
+    final List<PieChartSectionData> sections = [];
+    for (var i = 0; i < entries.length; i++) {
+      final e = entries[i];
+      final color = _kInsightPalette[i % _kInsightPalette.length];
+      final isTouched = i == touchedIndex;
+      final radius = isTouched ? 64.0 : 52.0;
+      sections.add(
+        PieChartSectionData(
+          title: '', // labels moved to legend — keeps slices clean
+          value: e.value,
+          color: color,
+          radius: radius,
+          showTitle: false,
+        ),
       );
-    }).toList();
+    }
+    return sections;
   }
 }
 
@@ -407,32 +464,31 @@ class _VerticalDivider extends StatelessWidget {
 
 /// Legend for the pie chart — labels moved here so pie slices stay clean.
 class _CategoryLegend extends StatelessWidget {
-  final Map<String, double> categories;
+  final List<MapEntry<String, double>> entries;
   final ThemeData theme;
+  final String currency;
+  final int? touchedIndex;
 
-  const _CategoryLegend({required this.categories, required this.theme});
-
-  static const List<Color> _palette = [
-    AppColors.emerald600,
-    AppColors.teal500,
-    AppColors.info,
-    AppColors.warning,
-    Color(0xFF8B5CF6),
-    Color(0xFFEC4899),
-  ];
+  const _CategoryLegend({
+    required this.entries,
+    required this.theme,
+    required this.currency,
+    this.touchedIndex,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final total = categories.values.fold(0.0, (a, b) => a + b);
-    int i = 0;
+    final total = entries.fold<double>(0.0, (p, e) => p + e.value);
     return SingleChildScrollView(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: categories.entries.map((e) {
-          final color = _palette[i % _palette.length];
+        children: List.generate(entries.length, (i) {
+          final e = entries[i];
+          final color = _kInsightPalette[i % _kInsightPalette.length];
           final pct = total > 0 ? (e.value / total * 100) : 0;
-          i++;
+          final amount = formatAmount(e.value, currency);
+          final isSelected = i == touchedIndex;
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.s4),
             child: Row(
@@ -449,10 +505,20 @@ class _CategoryLegend extends StatelessWidget {
                 Expanded(
                   child: Text(
                     e.key,
-                    style: theme.textTheme.bodySmall,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: AppSpacing.s8),
+                Text(
+                  amount,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.s8),
                 Text(
                   '${pct.toStringAsFixed(0)}%',
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -462,7 +528,7 @@ class _CategoryLegend extends StatelessWidget {
               ],
             ),
           );
-        }).toList(),
+        }),
       ),
     );
   }

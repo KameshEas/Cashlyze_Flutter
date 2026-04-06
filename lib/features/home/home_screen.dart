@@ -556,10 +556,14 @@ class HomeScreen extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) {
-        // Use a Consumer inside the sheet so it rebuilds when categories/budgets load.
-        return Consumer(builder: (sheetCtx, sheetRef, _) {
-          final messenger = ScaffoldMessenger.of(context);
-          final nav = Navigator.of(context);
+        // Wrap the sheet in a StatefulBuilder so local sheet state (date,
+        // selected type/category) can update the UI when mutated.
+        return StatefulBuilder(builder: (sheetCtx2, setSheetState) {
+          // Use a Consumer inside the StatefulBuilder so it rebuilds when
+          // categories/budgets load while still allowing local state updates.
+          return Consumer(builder: (sheetCtx, sheetRef, _) {
+            final messenger = ScaffoldMessenger.of(context);
+            final nav = Navigator.of(context);
 
           // Build category list from user categories + budgets so Quick Add
           // uses the same options as the full Transactions screen.
@@ -672,7 +676,7 @@ class HomeScreen extends ConsumerWidget {
                               child: Text('Income'),
                             ),
                           ],
-                          onChanged: (v) => localType = v ?? 'Expense',
+                          onChanged: (v) => setSheetState(() => localType = v ?? 'Expense'),
                           decoration: const InputDecoration(
                             labelText: 'Type',
                             filled: true,
@@ -685,7 +689,7 @@ class HomeScreen extends ConsumerWidget {
                           initialValue: effectiveInitialLocalCategory,
                           isExpanded: true,
                           items: categoryItems,
-                          onChanged: (v) => localCategory = v ?? 'General',
+                          onChanged: (v) => setSheetState(() => localCategory = v ?? 'General'),
                           decoration: const InputDecoration(
                             labelText: 'Category',
                             filled: true,
@@ -717,7 +721,7 @@ class HomeScreen extends ConsumerWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton(
+                          child: OutlinedButton(
                           onPressed: () async {
                             final picked = await showDatePicker(
                               context: ctx,
@@ -725,9 +729,11 @@ class HomeScreen extends ConsumerWidget {
                               lastDate: DateTime(2100),
                               initialDate: date,
                             );
-                            if (picked != null) date = picked;
+                            if (picked != null) setSheetState(() => date = picked);
                           },
-                          child: Text('Date: ${date.toLocal()}'.split(' ').first),
+                          child: Text(
+                            '${AppLocalizations.of(ctx)?.dateLabel ?? 'Date:'} ${formatDate(date.toLocal(), prefs.dateFormat)}',
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -764,6 +770,7 @@ class HomeScreen extends ConsumerWidget {
             ),
           );
         });
+      });
       },
     ));
     final messenger = ScaffoldMessenger.of(context);
