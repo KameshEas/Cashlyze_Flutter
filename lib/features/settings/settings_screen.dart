@@ -3,20 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/services/auth_service.dart';
-import '../../core/services/bank_linking_service.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/providers/onboarding_provider.dart';
+import '../../core/repositories/category_repository.dart';
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/repositories/budget_repository.dart';
-import '../../core/repositories/category_repository.dart';
 import '../../core/repositories/emi_repository.dart';
 import '../../core/services/biometric_service.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:file_picker/file_picker.dart';
 import '../../core/services/drive_backup_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../routes/app_router.dart';
@@ -65,6 +60,78 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _showExportDataDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final user = ref.read(currentUserProvider);
+    if (user == null) return;
+    try {
+      final transactions = await ref
+          .read(transactionRepositoryProvider)
+          .getAllForUser(user.uid);
+      final budgets = await ref
+          .read(budgetRepositoryProvider)
+          .streamForUser(user.uid)
+          .first;
+      final categories = await ref
+          .read(categoryRepositoryProvider)
+          .streamForUser(user.uid)
+          .first;
+      final emiPlans = await ref
+          .read(emiRepositoryProvider)
+          .getAllPlansForUser(user.uid);
+      final data = {
+        'transactions': transactions
+            .map(
+              (e) => {
+                'id': e.id,
+                'title': e.title,
+                'amount': e.amount,
+                'categoryId': e.categoryId,
+                'date_ms': e.date.millisecondsSinceEpoch,
+                'notes': e.notes,
+              },
+            )
+            .toList(),
+        'budgets': budgets
+            .map(
+              (b) => {
+                'id': b.id,
+                'name': b.name,
+                'allocated': b.allocated,
+                'period': b.period.toString(),
+              },
+            )
+            .toList(),
+        'categories': categories
+            .map((c) => {'id': c.id, 'name': c.name})
+            .toList(),
+        'emiPlans': emiPlans
+            .map(
+              (p) => {
+                'id': p.id,
+                'loanAmount': p.loanAmount,
+                'annualInterestRate': p.annualInterestRate,
+                'tenureMonths': p.tenureMonths,
+                'startDate_ms': p.startDate.millisecondsSinceEpoch,
+                'frequency': p.frequency.toString(),
+                'active': p.active,
+              },
+            )
+            .toList(),
+      };
+      final jsonStr = jsonEncode(data);
+      await Clipboard.setData(ClipboardData(text: jsonStr));
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Export copied to clipboard')),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Export failed: $e')));
+    }
   }
 
   /// Full-width action tile for the Data section.
@@ -152,6 +219,52 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             setState(() {});
           },
         ),
+        // Show the alert threshold slider only when Alerts are enabled.
+        if (prefs.alertsEnabled) ...[
+          const SizedBox(height: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Budget alert threshold',
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Semantics(
+                label: 'Budget alert threshold',
+                value: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
+                child: Slider(
+                  value: (prefs.alertThreshold.clamp(0.5, 1.0)),
+                  min: 0.5,
+                  max: 1.0,
+                  divisions: 10,
+                  label:
+                      '${(prefs.alertThreshold * 100).toStringAsFixed(0)}% threshold',
+                  onChanged: (v) {
+                    prefs.setAlertThreshold(v);
+                    setState(() {});
+                  },
+                  onChangeEnd: (v) async {
+                    await ref.read(analyticsServiceProvider).logEvent(
+                          'alert_threshold_change',
+                          params: {'threshold_percent': (v * 100).round()},
+                        );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
         FutureBuilder<bool>(
           future: ref.read(biometricServiceProvider).isAvailable(),
           builder: (ctx, snap) {
@@ -173,94 +286,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             );
           },
         ),
-        SwitchListTile.adaptive(
-          title: Text(t?.developerOptionsTitle ?? 'Developer Options'),
-          subtitle: Text(
-            t?.developerOptionsSubtitle ??
-                'Show advanced tools like backup/restore',
-          ),
-          contentPadding: EdgeInsets.zero,
-          value: prefs.showDevelopmentSection,
-          onChanged: (v) async {
-            await prefs.setShowDevelopmentSection(v);
-            setState(() {});
-          },
-        ),
-        SwitchListTile.adaptive(
-          title: Text(t?.analyticsTitle ?? 'Analytics & Crash Reporting'),
-          subtitle: Text(
-            t?.analyticsSubtitle ?? 'Help improve Cashlyze by sharing usage data',
-          ),
-          contentPadding: EdgeInsets.zero,
-          value: prefs.analyticsConsentGiven,
-          onChanged: (v) async {
-            await prefs.setAnalyticsConsentGiven(v);
-            await prefs.setCrashlyticsConsentGiven(v);
-            await ref.read(analyticsServiceProvider).updateAnalyticsConsent(v);
-            await ref.read(analyticsServiceProvider).logEvent(
-              'analytics_consent_changed',
-              params: {'enabled': v},
-            );
-            setState(() {});
-          },
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: Semantics(
-                label: 'Budget alert threshold',
-                value: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
-                child: Slider(
-                  value: (prefs.alertThreshold.clamp(0.5, 1.0)),
-                  min: 0.5,
-                  max: 1.0,
-                  divisions: 10,
-                  label:
-                      '${(prefs.alertThreshold * 100).toStringAsFixed(0)}% threshold',
-                  onChanged: (v) {
-                    prefs.setAlertThreshold(v);
-                    setState(() {});
-                  },
-                  onChangeEnd: (v) async {
-                    await ref
-                        .read(analyticsServiceProvider)
-                        .logEvent(
-                          'alert_threshold_change',
-                          params: {'threshold_percent': (v * 100).round()},
-                        );
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text('${(prefs.alertThreshold * 100).toStringAsFixed(0)}%'),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: prefs.alertFrequency,
-                items: const [
-                  DropdownMenuItem(value: 'daily', child: Text('Daily')),
-                  DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
-                  DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
-                ],
-                onChanged: (v) async {
-                  if (v == null) return;
-                  await prefs.setAlertFrequency(v);
-                  setState(() {});
-                },
-                decoration: const InputDecoration(
-                  labelText: 'Alert frequency',
-                  filled: true,
-                ),
-              ),
-            ),
-          ],
-        ),
+        // Developer Options removed from Settings.
         const SizedBox(height: 12),
         Row(
           children: [
@@ -323,45 +349,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       Icons.layers_outlined,
       t?.dataPrivacyTitle ?? 'Data & Privacy',
       [
-        // Export / backup buttons — sectionCard header already labels the section,
-        // so the old nested 📦 container was redundant.
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () async => _showExportDataDialog(context, ref),
-                icon: const Icon(Icons.download_outlined),
-                label: const Text('Export Data'),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () async =>
-                    _backupTransactionsToFile(context, ref),
-                icon: const Icon(Icons.save_outlined),
-                label: const Text('Backup'),
-              ),
-            ),
-          ],
-        ),
-        const Divider(height: 20),
+        // Export / local Backup removed — use Backup to Drive / Restore from Drive instead.
+        const SizedBox(height: 8),
         // Navigation + action tiles — changed from Wrap(width:180) to full-width
         // Column so tiles never clip on narrow phones.
-        _actionTile(
-          icon: Icons.category_outlined,
-          title: t?.categoriesManageTitle ?? 'Categories',
-          subtitle: t?.categoriesManageSubtitle ?? 'Manage categories',
-          onTap: () => GoRouter.of(context).go('/categories'),
-        ),
-        const Divider(height: 1, indent: 52),
-        _actionTile(
-          icon: Icons.school_outlined,
-          title: t?.onboardingTitle ?? 'Onboarding',
-          subtitle: t?.onboardingSubtitle ?? 'Revisit walkthrough',
-          onTap: () => GoRouter.of(context).go('/onboarding_preview'),
-        ),
-        const Divider(height: 1, indent: 52),
+        // Categories and Onboarding removed from Settings per request.
         _actionTile(
           icon: Icons.payments_outlined,
           title: t?.emiTrackerTitle ?? 'EMI Tracker',
@@ -390,31 +382,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           onTap: () async => _restoreTransactionsFromDrive(context, ref),
         ),
         const Divider(height: 1, indent: 52),
-        _actionTile(
-          icon: Icons.link_rounded,
-          title: 'Connect Mock Bank (POC)',
-          subtitle: 'Link a mock bank and import transactions',
-          onTap: () async {
-            final messenger = ScaffoldMessenger.of(context);
-            final user = ref.read(currentUserProvider);
-            if (user == null) {
-              messenger.showSnackBar(const SnackBar(content: Text('Sign in first')));
-              return;
-            }
-            try {
-              final list = await ref.read(bankLinkingServiceProvider).linkBank('mock_bank');
-              int count = 0;
-              for (final c in list) {
-                await ref.read(transactionRepositoryProvider).ingestFromProvider(userId: user.uid, canonical: c);
-                count++;
-              }
-              await ref.read(analyticsServiceProvider).logEvent('transaction_imported', params: {'import_method': 'bank_link', 'provider': 'mock_bank', 'count': count, 'import_duration_ms': 0, 'success': true});
-              messenger.showSnackBar(SnackBar(content: Text('Imported $count transactions from mock bank')));
-            } catch (e) {
-              messenger.showSnackBar(SnackBar(content: Text('Bank link failed: $e')));
-            }
-          },
-        ),
+        // Connect Mock Bank removed from Settings.
         const Divider(height: 1, indent: 52),
         _actionTile(
           icon: Icons.privacy_tip_outlined,
@@ -587,18 +555,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ],
     );
 
-    final developmentSection =
-        sectionCard(Icons.code, t?.developerOptionsTitle ?? 'Development', [
-          ListTile(
-            leading: const Icon(Icons.clear_all, color: Colors.orange),
-            title: Text(t?.clearAllDataTitle ?? 'Clear All Data'),
-            subtitle: Text(
-              t?.clearAllDataSubtitle ??
-                  'Requires typing DELETE and export acknowledgment',
-            ),
-            onTap: () async => _showClearDataDialog(context, ref),
-          ),
-        ]);
+    // Developer tools removed from Settings UI.
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: LayoutBuilder(
@@ -625,7 +582,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       children: [
                         accountSection,
                         const SizedBox(height: 20),
-                        if (prefs.showDevelopmentSection) developmentSection,
+                        // Developer tools removed.
                       ],
                     ),
                   ),
@@ -644,7 +601,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const SizedBox(height: 20),
                 accountSection,
                 const SizedBox(height: 20),
-                if (prefs.showDevelopmentSection) developmentSection,
+                // Developer tools removed.
               ],
             ),
           );
@@ -653,48 +610,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Future<void> _backupTransactionsToFile(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final user = ref.read(currentUserProvider);
-    if (user == null) return;
-    try {
-      final transactions = await ref
-          .read(transactionRepositoryProvider)
-          .getAllForUser(user.uid);
-      final data = {
-        'version': 1,
-        'exported_at_ms': DateTime.now().millisecondsSinceEpoch,
-        'transactions': transactions
-            .map(
-              (e) => {
-                'title': e.title,
-                'amount': e.amount,
-                'categoryId': e.categoryId,
-                'date_ms': e.date.millisecondsSinceEpoch,
-                'notes': e.notes,
-              },
-            )
-            .toList(),
-      };
-      final jsonStr = const JsonEncoder.withIndent('  ').convert(data);
-      final dir = await getTemporaryDirectory();
-      final filename =
-          'cashlyze_transactions_${DateTime.now().toIso8601String().split('T').first}.json';
-      final file = File('${dir.path}/$filename');
-      await file.writeAsString(jsonStr);
-      await Share.shareXFiles([
-        XFile(file.path),
-      ], text: 'Cashlyze transactions backup');
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Backup file ready to share')),
-      );
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Backup failed: $e')));
-    }
-  }
+  
 
   Future<void> _backupTransactionsToDrive(
     BuildContext context,
@@ -703,40 +619,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final user = ref.read(currentUserProvider);
     if (user == null) return;
+    // Show progress dialog while performing backup
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (ctx) => const AlertDialog(
+        content: SizedBox(height: 64, child: Center(child: CircularProgressIndicator())),
+      ),
+    );
     try {
-      final transactions = await ref
-          .read(transactionRepositoryProvider)
-          .getAllForUser(user.uid);
+      final transactions = await ref.read(transactionRepositoryProvider).getAllForUser(user.uid);
       final data = {
         'version': 1,
         'exported_at_ms': DateTime.now().millisecondsSinceEpoch,
         'transactions': transactions
-            .map(
-              (e) => {
-                'title': e.title,
-                'amount': e.amount,
-                'categoryId': e.categoryId,
-                'date_ms': e.date.millisecondsSinceEpoch,
-                'notes': e.notes,
-              },
-            )
+            .map((e) => {
+                  'title': e.title,
+                  'amount': e.amount,
+                  'categoryId': e.categoryId,
+                  'date_ms': e.date.millisecondsSinceEpoch,
+                  'notes': e.notes,
+                })
             .toList(),
       };
       final jsonStr = const JsonEncoder.withIndent('  ').convert(data);
       final filename = 'cashlyze_transactions_${user.uid}.json';
-      await ref
-          .read(driveBackupServiceProvider)
-          .uploadJson(filename: filename, json: jsonStr);
-      await ref
-          .read(analyticsServiceProvider)
-          .logEvent('backup_drive', params: {'items': transactions.length});
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Uploaded to Google Drive')),
-      );
+      final fileId = await ref.read(driveBackupServiceProvider).uploadJson(filename: filename, json: jsonStr);
+      await ref.read(analyticsServiceProvider).logEvent('backup_drive', params: {'items': transactions.length, 'file_id': fileId});
+      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+      messenger.showSnackBar(const SnackBar(content: Text('Uploaded to Google Drive')));
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Drive upload failed: $e')),
-      );
+      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (e is StateError && e.toString().contains('Google Sign-In failed')) {
+        messenger.showSnackBar(const SnackBar(content: Text('Google sign-in failed. Please sign in to continue.')));
+      } else {
+        messenger.showSnackBar(SnackBar(content: Text('Drive upload failed: $e')));
+      }
     }
   }
 
@@ -747,39 +666,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final user = ref.read(currentUserProvider);
     if (user == null) return;
+
+    // Show progress while downloading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        useRootNavigator: true,
+        builder: (ctx) => const AlertDialog(
+          content: SizedBox(height: 64, child: Center(child: CircularProgressIndicator())),
+        ),
+      );
+
     try {
       final filename = 'cashlyze_transactions_${user.uid}.json';
-      final jsonStr = await ref
-          .read(driveBackupServiceProvider)
-          .downloadJson(filename: filename);
+      final jsonStr = await ref.read(driveBackupServiceProvider).downloadJson(filename: filename);
       if (jsonStr == null) {
-        messenger.showSnackBar(
-          const SnackBar(content: Text('No backup found in Drive')),
-        );
+        if (context.mounted) Navigator.of(context).pop();
+        messenger.showSnackBar(const SnackBar(content: Text('No backup found in Drive')));
         return;
       }
+
       final Map<String, dynamic> map = jsonDecode(jsonStr);
       final List txs = (map['transactions'] as List?) ?? const [];
       int count = 0;
       for (final t in txs) {
         if (t is Map) {
-          await ref
-              .read(transactionRepositoryProvider)
-              .create(
+          await ref.read(transactionRepositoryProvider).create(
                 userId: user.uid,
                 title: (t['title'] as String?) ?? 'Imported',
                 amount: ((t['amount'] as num?) ?? 0).toDouble(),
                 categoryId: t['categoryId'] as String?,
-                date: DateTime.fromMillisecondsSinceEpoch(
-                  ((t['date_ms'] as num?) ??
-                          DateTime.now().millisecondsSinceEpoch)
-                      .toInt(),
-                ),
+                date: DateTime.fromMillisecondsSinceEpoch(((t['date_ms'] as num?) ?? DateTime.now().millisecondsSinceEpoch).toInt()),
                 notes: t['notes'] as String?,
               );
           count++;
         }
       }
+
       await ref.read(analyticsServiceProvider).logEvent('restore_drive', params: {'items': count});
       await ref.read(analyticsServiceProvider).logEvent('transaction_imported', params: {
         'import_method': 'drive',
@@ -788,138 +711,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         'import_duration_ms': 0,
         'success': true,
       });
-      messenger.showSnackBar(
-        SnackBar(content: Text('Restored $count transactions from Drive')),
-      );
-    } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Drive restore failed: $e')),
-      );
-    }
-  }
 
-  Future<void> _restoreTransactionsFromFile(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final user = ref.read(currentUserProvider);
-    if (user == null) return;
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['json'],
-      );
-      if (result == null || result.files.isEmpty) return;
-      final path = result.files.single.path;
-      if (path == null) return;
-      final contents = await File(path).readAsString();
-      final Map<String, dynamic> map = jsonDecode(contents);
-      final List txs = (map['transactions'] as List?) ?? const [];
-      int count = 0;
-      for (final t in txs) {
-        if (t is Map) {
-          await ref
-              .read(transactionRepositoryProvider)
-              .create(
-                userId: user.uid,
-                title: (t['title'] as String?) ?? 'Imported',
-                amount: ((t['amount'] as num?) ?? 0).toDouble(),
-                categoryId: t['categoryId'] as String?,
-                date: DateTime.fromMillisecondsSinceEpoch(
-                  ((t['date_ms'] as num?) ??
-                          DateTime.now().millisecondsSinceEpoch)
-                      .toInt(),
-                ),
-                notes: t['notes'] as String?,
-              );
-          count++;
-        }
+      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+      messenger.showSnackBar(SnackBar(content: Text('Restored $count transactions from Drive')));
+    } catch (e) {
+      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (e is StateError && e.toString().contains('Google Sign-In failed')) {
+        messenger.showSnackBar(const SnackBar(content: Text('Google sign-in failed. Please sign in to continue.')));
+      } else {
+        messenger.showSnackBar(SnackBar(content: Text('Drive restore failed: $e')));
       }
-      await ref.read(analyticsServiceProvider).logEvent('transaction_imported', params: {
-        'import_method': 'file_upload',
-        'provider': null,
-        'count': count,
-        'import_duration_ms': 0,
-        'success': true,
-      });
-      messenger.showSnackBar(
-        SnackBar(content: Text('Restored $count transactions')),
-      );
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Restore failed: $e')));
-    }
-  }
-
-  Future<void> _showExportDataDialog(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final user = ref.read(currentUserProvider);
-    if (user == null) return;
-    try {
-      final transactions = await ref
-          .read(transactionRepositoryProvider)
-          .getAllForUser(user.uid);
-      final budgets = await ref
-          .read(budgetRepositoryProvider)
-          .streamForUser(user.uid)
-          .first;
-      final categories = await ref
-          .read(categoryRepositoryProvider)
-          .streamForUser(user.uid)
-          .first;
-      final emiPlans = await ref
-          .read(emiRepositoryProvider)
-          .getAllPlansForUser(user.uid);
-      final data = {
-        'transactions': transactions
-            .map(
-              (e) => {
-                'id': e.id,
-                'title': e.title,
-                'amount': e.amount,
-                'categoryId': e.categoryId,
-                'date_ms': e.date.millisecondsSinceEpoch,
-                'notes': e.notes,
-              },
-            )
-            .toList(),
-        'budgets': budgets
-            .map(
-              (b) => {
-                'id': b.id,
-                'name': b.name,
-                'allocated': b.allocated,
-                'period': b.period.toString(),
-              },
-            )
-            .toList(),
-        'categories': categories
-            .map((c) => {'id': c.id, 'name': c.name})
-            .toList(),
-        'emiPlans': emiPlans
-            .map(
-              (p) => {
-                'id': p.id,
-                'loanAmount': p.loanAmount,
-                'annualInterestRate': p.annualInterestRate,
-                'tenureMonths': p.tenureMonths,
-                'startDate_ms': p.startDate.millisecondsSinceEpoch,
-                'frequency': p.frequency.toString(),
-                'active': p.active,
-              },
-            )
-            .toList(),
-      };
-      final jsonStr = jsonEncode(data);
-      await Clipboard.setData(ClipboardData(text: jsonStr));
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Export copied to clipboard')),
-      );
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Export failed: $e')));
     }
   }
 
@@ -927,6 +728,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final user = ref.read(currentUserProvider);
     if (user == null) return;
+    final theme = Theme.of(context);
+    final prefs = ref.read(sharedPrefsServiceProvider);
 
     final confirm = await showDialog<bool>(
       context: context,
@@ -961,14 +764,49 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     title: const Text('I have exported my data'),
                     contentPadding: EdgeInsets.zero,
                   ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    onChanged: (v) => setState(() => typed = v),
-                    decoration: const InputDecoration(
-                      labelText: 'Type DELETE to confirm',
-                      filled: true,
-                    ),
+                  const SizedBox(height: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Budget alert threshold',
+                            style: theme.textTheme.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Semantics(
+                        label: 'Budget alert threshold',
+                        value: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
+                        child: Slider(
+                          value: (prefs.alertThreshold.clamp(0.5, 1.0)),
+                          min: 0.5,
+                          max: 1.0,
+                          divisions: 10,
+                          label: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}% threshold',
+                          onChanged: (v) {
+                            prefs.setAlertThreshold(v);
+                            setState(() {});
+                          },
+                          onChangeEnd: (v) async {
+                            await ref.read(analyticsServiceProvider).logEvent(
+                                  'alert_threshold_change',
+                                  params: {'threshold_percent': (v * 100).round()},
+                                );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
@@ -982,7 +820,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ? () => Navigator.of(ctx).pop(true)
                     : null,
                 style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Clear All'),
+                child: const Text('Clear All Data'),
               ),
             ],
           ),
@@ -992,9 +830,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     if (confirm == true) {
       try {
-        messenger.showSnackBar(
-          const SnackBar(content: Text('Clearing data...')),
-        );
         await _clearAllUserData(ref, user.uid);
         if (!context.mounted) return;
         messenger.showSnackBar(

@@ -61,3 +61,11 @@ phase0
 .wrangler
 node_modules
 *.md
+
+linux/flutter/
+linux/flutter/generated_plugins.cmake
+macos/Flutter/
+windows/flutter/        
+sentry.properties
+linux/flutter/generated_plugin_registrant.cc
+pubspec.lock

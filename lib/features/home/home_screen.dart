@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/insights_providers.dart';
 import '../../core/providers/transaction_providers.dart';
@@ -11,6 +12,8 @@ import '../../core/widgets/skeleton.dart';
 import '../../core/models/transaction.dart';
 import '../../core/repositories/emi_repository.dart';
 import '../../core/repositories/transaction_repository.dart';
+import '../../core/repositories/budget_repository.dart';
+import '../../core/repositories/category_repository.dart';
 import '../../core/services/realtime_db_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/providers/shared_prefs_provider.dart';
@@ -31,9 +34,14 @@ class HomeScreen extends ConsumerWidget {
     final dbUrl = ref.watch(databaseUrlProvider);
     // Watch EMI list here so we can conditionally render the section.
     final emiAsync = ref.watch(emiUpcomingProvider);
-    final hasEmis = emiAsync.maybeWhen(
-      data: (list) => list.isNotEmpty,
-      orElse: () => false,
+    final plansAsync = ref.watch(userEMIPlansProvider);
+    // Show the EMI section while either the plans or upcoming streams are
+    // loading or when either has data. This reduces flicker when streams
+    // reconnect or are briefly delayed.
+    final hasEmis = (
+      plansAsync.maybeWhen(data: (list) => list.isNotEmpty, loading: () => true, orElse: () => false)
+    ) || (
+      emiAsync.maybeWhen(data: (list) => list.isNotEmpty, loading: () => true, orElse: () => false)
     );
     final t = AppLocalizations.of(context);
     return Scaffold(
@@ -102,12 +110,10 @@ class HomeScreen extends ConsumerWidget {
                 _buildUpcomingEmi(context, ref, currency),
               ],
             const SizedBox(height: 24),
-            Text(
-              t?.recentTransactions ?? 'Recent Transactions',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
+                Text(
+                  t?.recentTransactions ?? 'Recent Transactions',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
             const SizedBox(height: 16),
             _buildRecentTransactions(context, ref, currency, txsAsync),
           ],
@@ -255,10 +261,10 @@ class HomeScreen extends ConsumerWidget {
     final t = AppLocalizations.of(context);
     final actions = [
       {
-        'icon': Icons.send,
-        'label': t?.quickTransfer ?? 'Transfer',
+        'icon': Icons.remove,
+        'label': 'Expense',
         'type': 'Expense',
-        'category': 'Transport',
+        'category': 'General',
       },
       {
         'icon': Icons.add_card,
@@ -266,27 +272,32 @@ class HomeScreen extends ConsumerWidget {
         'type': 'Income',
         'category': 'Income',
       },
+      // Bottom-sheet items brought into the quick actions row
       {
-        'icon': Icons.receipt,
-        'label': t?.quickBill ?? 'Bill',
-        'type': 'Expense',
-        'category': 'General',
+        'icon': Icons.payments,
+        'label': 'Add EMI',
+        'route': '/emi/new',
       },
       {
-        'icon': Icons.more_horiz,
-        'label': t?.quickMore ?? 'More',
-        'route': '/transactions',
+        'icon': Icons.savings,
+        'label': 'Add Budget',
+        'route': '/budgets',
+      },
+      {
+        'icon': Icons.camera_alt,
+        'label': 'Scan',
+        'action': 'scan',
       },
     ];
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: actions.map((action) {
-        final scheme = Theme.of(context).colorScheme;
-        // FIX: label moved INSIDE InkWell — previously it was orphaned below the
-        // tap target, making it a dead zone (no onTap on label tap).
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+
+    final scheme = Theme.of(context).colorScheme;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: actions.map((action) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             child: Semantics(
               label: '${action['label']} action',
               button: true,
@@ -294,12 +305,16 @@ class HomeScreen extends ConsumerWidget {
                 onTap: () {
                   if (action.containsKey('route')) {
                     GoRouter.of(context).go(action['route'] as String);
-                  } else {
+                  } else if (action.containsKey('type')) {
                     _openQuickAdd(
                       context,
                       ref,
                       type: action['type'] as String,
                       category: action['category'] as String,
+                    );
+                  } else if (action['action'] == 'scan') {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Scan receipt not implemented')),
                     );
                   }
                 },
@@ -307,10 +322,8 @@ class HomeScreen extends ConsumerWidget {
                 focusColor: scheme.primary.withValues(alpha: 0.1),
                 hoverColor: scheme.secondary.withValues(alpha: 0.08),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 16,
-                  ),
+                  width: 92,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                   decoration: BoxDecoration(
                     color: scheme.surface,
                     borderRadius: BorderRadius.circular(16),
@@ -346,9 +359,9 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -542,156 +555,214 @@ class HomeScreen extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) {
-        final messenger = ScaffoldMessenger.of(context);
-        final nav = Navigator.of(context);
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 48,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+        // Use a Consumer inside the sheet so it rebuilds when categories/budgets load.
+        return Consumer(builder: (sheetCtx, sheetRef, _) {
+          final messenger = ScaffoldMessenger.of(context);
+          final nav = Navigator.of(context);
+
+          // Build category list from user categories + budgets so Quick Add
+          // uses the same options as the full Transactions screen.
+          final cats = sheetRef.watch(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+          final categoryItems = <DropdownMenuItem<String>>[
+            const DropdownMenuItem(value: 'General', child: Text('General')),
+          ];
+          final addedValues = <String>{'general'};
+          for (final c in cats) {
+            final name = (c.name ?? '').trim();
+            if (name.isEmpty) continue;
+            if (!addedValues.contains(name.toLowerCase())) {
+              categoryItems.add(
+                DropdownMenuItem(
+                  value: name,
+                  child: Row(children: [Expanded(child: Text(name, overflow: TextOverflow.ellipsis))]),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: localType,
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'Expense',
-                            child: Text('Expense'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Income',
-                            child: Text('Income'),
-                          ),
-                        ],
-                        onChanged: (v) => localType = v ?? 'Expense',
-                        decoration: const InputDecoration(
-                          labelText: 'Type',
-                          filled: true,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: localCategory,
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'General',
-                            child: Text('General'),
-                          ),
-                          DropdownMenuItem(value: 'Food', child: Text('Food')),
-                          DropdownMenuItem(
-                            value: 'Entertainment',
-                            child: Text('Entertainment'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Transport',
-                            child: Text('Transport'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Income',
-                            child: Text('Income'),
-                          ),
-                        ],
-                        onChanged: (v) => localCategory = v ?? 'General',
-                        decoration: const InputDecoration(
-                          labelText: 'Category',
-                          filled: true,
-                        ),
-                      ),
-                    ),
-                  ],
+              );
+              addedValues.add(name.toLowerCase());
+            }
+          }
+          final catsList = cats;
+          final idToNameHome = <String, String>{};
+          final nameToIdHome = <String, String>{};
+          for (final c in catsList) {
+            final nm = (c.name ?? '').trim();
+            if (nm.isEmpty) continue;
+            idToNameHome[c.id] = nm;
+            nameToIdHome[nm.toLowerCase()] = c.id;
+          }
+
+          final budgets = sheetRef.watch(userBudgetsProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+          for (final b in budgets) {
+            final catIds = b.categoryIds ?? <String>[];
+            String key = '';
+            if (catIds.isNotEmpty) {
+              final raw = catIds.first.trim();
+              if (raw.isEmpty) {
+                key = (b.name ?? '').trim();
+              } else if (idToNameHome.containsKey(raw)) {
+                key = idToNameHome[raw]!.trim();
+              } else {
+                final mappedId = nameToIdHome[raw.toLowerCase()];
+                if (mappedId != null) key = idToNameHome[mappedId] ?? raw;
+                else key = (b.name ?? raw).trim();
+              }
+            } else {
+              key = (b.name ?? '').trim();
+            }
+            if (key.isEmpty) continue;
+            final keyLower = key.toLowerCase();
+            if (!addedValues.contains(keyLower)) {
+              categoryItems.add(
+                DropdownMenuItem(
+                  value: key,
+                  child: Row(children: [Expanded(child: Text('${(b.name ?? key)} (Budget)', overflow: TextOverflow.ellipsis))]),
                 ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Title',
-                    filled: true,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: amountController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: const InputDecoration(
-                    labelText: 'Amount',
-                    filled: true,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: ctx,
-                            firstDate: DateTime(2000),
-                            lastDate: DateTime(2100),
-                            initialDate: date,
-                          );
-                          if (picked != null) date = picked;
-                        },
-                        child: Text('Date: ${date.toLocal()}'.split(' ').first),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    FilledButton(
-                      onPressed: () async {
-                        final user = ref.read(currentUserProvider);
-                        if (user == null) return;
-                        final amount =
-                            double.tryParse(amountController.text) ?? 0;
-                        final ingest = ref.read(
-                          transactionIngestServiceProvider,
-                        );
-                        try {
-                          await ingest.addManual(
-                            userId: user.uid,
-                            title: titleController.text,
-                            amount: amount,
-                            isIncome: localType == 'Income',
-                            categoryId: localCategory == 'General'
-                                ? null
-                                : localCategory,
-                            date: date,
-                            notes: null,
-                          );
-                          nav.pop(true);
-                          messenger.showSnackBar(
-                            const SnackBar(content: Text('Transaction saved')),
-                          );
-                        } catch (e) {
-                          messenger.showSnackBar(
-                            SnackBar(content: Text('Failed: $e')),
-                          );
-                        }
-                      },
-                      child: const Text('Save'),
-                    ),
-                  ],
-                ),
-              ],
+              );
+              addedValues.add(keyLower);
+            }
+          }
+
+          // Ensure the initially selected category matches exactly one
+          // dropdown item. If it doesn't, fall back to the first item
+          // to avoid Flutter's Dropdown assertion.
+          // Map stored draft/local category id -> display name when possible
+          String displayLocalCategory = (localCategory ?? '').trim();
+          if (displayLocalCategory.isNotEmpty && idToNameHome.containsKey(displayLocalCategory)) {
+            displayLocalCategory = idToNameHome[displayLocalCategory]!.trim();
+          } else {
+            final mappedId = nameToIdHome[displayLocalCategory.toLowerCase()];
+            if (mappedId != null) displayLocalCategory = idToNameHome[mappedId] ?? displayLocalCategory;
+          }
+          final matchingCountHome = categoryItems.where((it) => it.value == displayLocalCategory).length;
+          final effectiveInitialLocalCategory = matchingCountHome == 1
+              ? displayLocalCategory
+              : (categoryItems.isNotEmpty ? (categoryItems.first.value as String?) : null);
+
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
             ),
-          ),
-        );
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: localType,
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'Expense',
+                              child: Text('Expense'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Income',
+                              child: Text('Income'),
+                            ),
+                          ],
+                          onChanged: (v) => localType = v ?? 'Expense',
+                          decoration: const InputDecoration(
+                            labelText: 'Type',
+                            filled: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: effectiveInitialLocalCategory,
+                          isExpanded: true,
+                          items: categoryItems,
+                          onChanged: (v) => localCategory = v ?? 'General',
+                          decoration: const InputDecoration(
+                            labelText: 'Category',
+                            filled: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Title',
+                      filled: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: amountController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Amount',
+                      filled: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: ctx,
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime(2100),
+                              initialDate: date,
+                            );
+                            if (picked != null) date = picked;
+                          },
+                          child: Text('Date: ${date.toLocal()}'.split(' ').first),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      FilledButton(
+                        onPressed: () async {
+                          final user = ref.read(currentUserProvider);
+                          if (user == null) return;
+                          final amount = double.tryParse(amountController.text) ?? 0;
+                          final ingest = ref.read(
+                            transactionIngestServiceProvider,
+                          );
+                          try {
+                            await ingest.addManual(
+                              userId: user.uid,
+                              title: titleController.text,
+                              amount: amount,
+                              isIncome: localType == 'Income',
+                              categoryId: localCategory == 'General' ? null : localCategory,
+                              date: date,
+                              notes: null,
+                            );
+                            nav.pop(true);
+                            messenger.showSnackBar(const SnackBar(content: Text('Transaction saved')));
+                          } catch (e) {
+                            messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                          }
+                        },
+                        child: const Text('Save'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
       },
     );
     final messenger = ScaffoldMessenger.of(context);
@@ -715,6 +786,137 @@ class HomeScreen extends ConsumerWidget {
     // Do not dispose controllers here; they are tied to the bottom
     // sheet lifecycle and disposing them synchronously can race with
     // framework rebuilds and cause "used after dispose" assertions.
+  }
+
+  Future<void> _openQuickActionsMenu(BuildContext context, WidgetRef ref) async {
+    final t = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: true,
+      backgroundColor: theme.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        final nav = Navigator.of(ctx);
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.32,
+          minChildSize: 0.18,
+          maxChildSize: 0.9,
+          builder: (sheetCtx, controller) {
+            return SingleChildScrollView(
+              controller: controller,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          // Add EMI (single)
+                          InkWell(
+                            onTap: () {
+                              nav.pop();
+                              Future.microtask(() => GoRouter.of(context).go('/emi/new'));
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: SizedBox(
+                              width: 92,
+                              child: Column(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.payments, size: 20),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text('Add EMI', textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
+                                ],
+                              ),
+                            ),
+                          ),
+                          // Add Budget
+                          InkWell(
+                            onTap: () {
+                              nav.pop();
+                              Future.microtask(() => GoRouter.of(context).go('/budgets'));
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: SizedBox(
+                              width: 92,
+                              child: Column(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.savings, size: 20),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text('Add Budget', textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
+                                ],
+                              ),
+                            ),
+                          ),
+                          // Scan Receipt (placeholder)
+                          InkWell(
+                            onTap: () {
+                              nav.pop();
+                              Future.microtask(() => ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Scan receipt not implemented')),
+                              ));
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: SizedBox(
+                              width: 92,
+                              child: Column(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.camera_alt, size: 20),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text('Scan', textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Widget _buildUpcomingEmi(
@@ -756,41 +958,22 @@ class HomeScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.08,
-                          ),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.calendar_today, size: 20),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: 0.08,
                       ),
-                      const SizedBox(width: 12),
-                      Text(
-                        AppLocalizations.of(context)?.emiUpcoming ??
-                            'Upcoming EMI',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  FilledButton.tonal(
-                    onPressed: () => GoRouter.of(context).go('/emi'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
+                      shape: BoxShape.circle,
                     ),
-                    child: Text(
-                      AppLocalizations.of(context)?.viewDetails ??
-                          'View Details',
+                    child: const Icon(Icons.calendar_today, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    AppLocalizations.of(context)?.emiUpcoming ?? 'Upcoming EMI',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
@@ -839,95 +1022,119 @@ class HomeScreen extends ConsumerWidget {
                 )
               else ...[
                 for (var i = 0; i < items.take(3).length; i++) ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.05,
+                  Builder(builder: (ctx) {
+                    final e = items[i];
+                    final now = DateTime.now();
+                    final dueDays = e.dueDate.difference(DateTime(now.year, now.month, now.day)).inDays;
+                    Color pillColor;
+                    String pillLabel;
+                    if (dueDays < 0) {
+                      pillColor = Colors.red;
+                      pillLabel = 'Overdue';
+                    } else if (dueDays == 0) {
+                      pillColor = Colors.orange;
+                      pillLabel = 'Due Today';
+                    } else if (dueDays == 1) {
+                      pillColor = Colors.orange;
+                      pillLabel = 'Due Tomorrow';
+                    } else {
+                      pillColor = Colors.green;
+                      pillLabel = 'Due in $dueDays days';
+                    }
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.05,
+                          ),
                         ),
                       ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.credit_card, size: 18),
-                            const SizedBox(width: 8),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Row(
                               children: [
-                                Text(
-                                  'Due: ${items[i].dueDate.toLocal()}'
-                                      .split(' ')
-                                      .first,
-                                  style: theme.textTheme.bodyMedium,
-                                ),
-                                Text(
-                                  formatAmount(items[i].installment, currency),
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                const Icon(Icons.credit_card, size: 18),
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      formatAmount(e.installment, currency),
+                                      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: pillColor.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        pillLabel,
+                                        style: theme.textTheme.bodySmall?.copyWith(color: pillColor),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                        FilledButton.tonal(
-                          onPressed: () async {
-                            final messenger = ScaffoldMessenger.of(context);
-                            final user = ref.read(currentUserProvider);
-                            if (user == null) return;
-                            try {
-                              await ref
-                                  .read(emiRepositoryProvider)
-                                  .markPaid(
-                                    user.uid,
-                                    items[i].planId,
-                                    items[i].id,
-                                  );
-                              await ref
-                                  .read(transactionRepositoryProvider)
-                                  .create(
-                                    userId: user.uid,
-                                    title: 'EMI installment',
-                                    amount: -items[i].installment.abs(),
-                                    categoryId: 'EMI',
-                                    date: items[i].dueDate,
-                                    notes: 'EMI payment recorded from Home',
-                                  );
-                              messenger.showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    AppLocalizations.of(
-                                          context,
-                                        )?.emiMarkedPaidAdded ??
-                                        'EMI marked paid and transaction added',
+                          ),
+                          FilledButton.tonal(
+                            onPressed: () async {
+                              final messenger = ScaffoldMessenger.of(context);
+                              final user = ref.read(currentUserProvider);
+                              if (user == null) return;
+                              HapticFeedback.lightImpact();
+                              try {
+                                await ref
+                                    .read(emiRepositoryProvider)
+                                    .markPaid(
+                                      user.uid,
+                                      e.planId,
+                                      e.id,
+                                    );
+                                await ref
+                                    .read(transactionRepositoryProvider)
+                                    .create(
+                                      userId: user.uid,
+                                      title: 'EMI installment',
+                                      amount: -e.installment.abs(),
+                                      categoryId: 'EMI',
+                                      date: e.dueDate,
+                                      notes: 'EMI payment recorded from Home',
+                                    );
+                                messenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      AppLocalizations.of(
+                                            context,
+                                          )?.emiMarkedPaidAdded ??
+                                          'EMI marked paid and transaction added',
+                                    ),
                                   ),
-                                ),
-                              );
-                            } catch (e) {
-                              messenger.showSnackBar(
-                                SnackBar(content: Text('Failed: $e')),
-                              );
-                            }
-                          },
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
+                                );
+                              } catch (err) {
+                                messenger.showSnackBar(
+                                  SnackBar(content: Text('Failed: $err')),
+                                );
+                              }
+                            },
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
                             ),
+                            child: Text('Pay ${formatAmount(e.installment, currency)}'),
                           ),
-                          child: Text(
-                            AppLocalizations.of(context)?.pay ?? 'Pay',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                        ],
+                      ),
+                    );
+                  }),
                   if (i < items.take(3).length - 1) const SizedBox(height: 12),
                 ],
               ],

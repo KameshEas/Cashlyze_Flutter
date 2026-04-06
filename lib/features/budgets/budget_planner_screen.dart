@@ -225,7 +225,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                       ),
                       confirmDismiss: (dir) async {
                         if (dir == DismissDirection.startToEnd) {
-                          await _openAdjustBudget(context, e.id, e.allocated);
+                          await _openAdjustBudget(context, e.id, e.allocated, e.name);
                           return false;
                         }
                         final messenger = ScaffoldMessenger.of(context);
@@ -390,7 +390,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
             bottom: MediaQuery.of(ctx).viewInsets.bottom,
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
             child: StatefulBuilder(builder: (ctx, setSheetState) => Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -472,6 +472,9 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                     Expanded(
                       child: FilledButton(
                         onPressed: () async {
+                          debugPrint('Budget create: Save pressed');
+                          print('Budget create: Save pressed');
+                          // Visual feedback removed (no blocking dialog).
                           final user = ref.read(currentUserProvider);
                           if (user == null) {
                             // In normal app flow this shouldn't happen because
@@ -516,18 +519,46 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                           }
 
                           try {
-                            await repo.create(
+                            debugPrint('Creating budget (name=$name, allocated=$amount, cats=$selectedCategoryIds');
+                            // Normalize selected category identifiers to canonical
+                            // category IDs where possible before persisting the
+                            // budget. The UI keeps `selectedCategoryIds` as
+                            // readable names for UX; here we convert names -> ids
+                            // using the user's categories so stored budgets are
+                            // consistent.
+                            final catsList = ref.read(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+                            final nameToId = <String, String>{};
+                            for (final c in catsList) {
+                              final nm = (c.name ?? '').trim();
+                              if (nm.isEmpty) continue;
+                              nameToId[nm.toLowerCase()] = c.id;
+                            }
+                            final finalCategoryIds = selectedCategoryIds.map((s) {
+                              final sTrim = (s ?? '').trim();
+                              if (sTrim.isEmpty) return sTrim;
+                              final mapped = nameToId[sTrim.toLowerCase()];
+                              if (mapped != null) return mapped;
+                              // If value already looks like an id that exists,
+                              // keep it as-is.
+                              if (catsList.any((c) => c.id == sTrim)) return sTrim;
+                              // Otherwise persist the original string (legacy).
+                              return sTrim;
+                            }).where((s) => s.isNotEmpty).toList();
+
+                            final created = await repo.create(
                               userId: user.uid,
                               name: name,
                               allocated: amount,
                               period: BudgetPeriod.monthly,
-                              categoryIds: selectedCategoryIds,
+                              categoryIds: finalCategoryIds,
                             );
+                            debugPrint('Budget created id=${created.id}');
                             nav.pop(true);
                             pageMessenger.showSnackBar(
                               const SnackBar(content: Text('Budget created')),
                             );
                           } catch (e) {
+                            debugPrint('Budget create failed: $e');
                             ScaffoldMessenger.of(ctx).showSnackBar(
                               SnackBar(content: Text('Failed: $e')),
                             );
@@ -570,9 +601,11 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     BuildContext context,
     String id,
     double allocated,
+    String currentName,
   ) async {
     final theme = Theme.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final nameController = TextEditingController(text: currentName);
     final amountController = TextEditingController(
       text: allocated.toStringAsFixed(2),
     );
@@ -583,6 +616,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     if (adjustDraft != null) {
       final amt = adjustDraft['newAllocated'];
       if (amt != null) amountController.text = amt.toString();
+      nameController.text = (adjustDraft['name'] as String?) ?? nameController.text;
       noteController.text = (adjustDraft['note'] as String?) ?? '';
     }
     final result = await showModalBottomSheet<bool>(
@@ -600,7 +634,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
             bottom: MediaQuery.of(ctx).viewInsets.bottom,
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -610,6 +644,15 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Budget name',
+                    helperText: 'Edit the budget name',
+                    filled: true,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -654,9 +697,22 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                           final newAlloc =
                               double.tryParse(amountController.text) ??
                               allocated;
+                          final newName = nameController.text.trim();
+                          if (newName.isEmpty) {
+                            pageMessenger.showSnackBar(
+                              const SnackBar(content: Text('Enter a valid name')),
+                            );
+                            return;
+                          }
                           try {
                             final user = ref.read(currentUserProvider);
                             if (user == null) return;
+                            // Update name if changed
+                            if (newName != currentName) {
+                              await ref
+                                  .read(budgetRepositoryProvider)
+                                  .update(id, {'userId': user.uid, 'name': newName});
+                            }
                             await ref
                                 .read(budgetRepositoryProvider)
                                 .addAdjustment(
@@ -692,13 +748,17 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     if (result != true) {
       final hasData =
           amountController.text.trim().isNotEmpty ||
-          noteController.text.trim().isNotEmpty;
+          noteController.text.trim().isNotEmpty ||
+          nameController.text.trim().isNotEmpty;
       if (hasData) {
         await prefs.saveDraft('budget_adjust', {
           'newAllocated': double.tryParse(amountController.text.trim()),
           'note': noteController.text.trim().isEmpty
               ? null
               : noteController.text.trim(),
+          'name': nameController.text.trim().isEmpty
+              ? null
+              : nameController.text.trim(),
         });
         if (mounted)
           messenger.showSnackBar(const SnackBar(content: Text('Draft saved')));

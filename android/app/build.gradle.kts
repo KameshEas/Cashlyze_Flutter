@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
@@ -9,14 +11,31 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Load signing config at top level (accessible to all scopes in Kotlin DSL)
+val signingProps = Properties()
+val envKeystorePassword: String? = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+if (envKeystorePassword != null) {
+    signingProps["storeFile"] = "cashlyze-release.jks"
+    signingProps["storePassword"] = envKeystorePassword
+    signingProps["keyAlias"] = System.getenv("ANDROID_KEY_ALIAS") ?: "cashlyze"
+    signingProps["keyPassword"] = System.getenv("ANDROID_KEY_PASSWORD") ?: envKeystorePassword
+} else {
+    val keystorePropsFile = rootProject.file("key.properties")
+    if (keystorePropsFile.exists()) {
+        keystorePropsFile.reader().use { signingProps.load(it) }
+    }
+}
+
 android {
     namespace = "com.aspiredesignovation.cashlyze"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "26.1.10909125"
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Enable core library desugaring for newer Java APIs used by plugins
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -41,20 +60,12 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("cashlyze-release.jks")
-            // Read signing credentials from environment when available.
-            val keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-            val keyAliasEnv = System.getenv("ANDROID_KEY_ALIAS")
-            val keyPasswordEnv = System.getenv("ANDROID_KEY_PASSWORD")
-
-            if (keystorePassword != null) {
-                storePassword = keystorePassword
-                keyAlias = keyAliasEnv ?: "cashlyze"
-                keyPassword = keyPasswordEnv ?: keystorePassword
-            } else {
-                // No keystore env provided — don't fail during configuration.
-                // CI should set the env vars for release signing; local debug builds
-                // will use the default debug signing config and won't require these.
+            val sf = signingProps.getProperty("storeFile")
+            if (sf != null) {
+                storeFile = file(sf)
+                storePassword = signingProps.getProperty("storePassword")
+                keyAlias = signingProps.getProperty("keyAlias") ?: "cashlyze"
+                keyPassword = signingProps.getProperty("keyPassword")
             }
         }
     }
@@ -96,4 +107,9 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Required for core library desugaring (Java 8+ APIs used by some plugins)
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

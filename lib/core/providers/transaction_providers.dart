@@ -64,9 +64,13 @@ final transactionsCacheProvider =
 
 final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {
   final txsAsync = ref.watch(recentTransactionsProvider);
+  // For Insights we want the filtered list to reflect the selected time
+  // range exactly. Falling back to the full transactions cache while the
+  // stream is loading can surface stale/all-time values in KPIs — avoid
+  // that by treating loading/error as an empty list here.
   final txs = txsAsync.maybeWhen(
     data: (d) => d,
-    orElse: () => ref.watch(transactionsCacheProvider),
+    orElse: () => <TransactionModel>[],
   );
   final range = ref.watch(selectedTimeRangeProvider);
   final selectedCats = ref.watch(selectedCategoriesProvider);
