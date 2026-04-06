@@ -9,6 +9,7 @@ import '../../core/utils/format.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/models/budget.dart';
 import 'package:flutter/services.dart';
+import 'dart:math' as math;
 import '../../core/utils/validation.dart';
 import '../../core/widgets/dialogs.dart';
 import '../../core/repositories/category_repository.dart';
@@ -33,8 +34,11 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       orElse: () => const [],
     );
     final spentMap = ref.watch(budgetsUtilizationProvider);
-    final totalAllocated = budgets.fold<double>(0, (p, e) => p + e.allocated);
-    final totalSpent = budgets.fold<double>(
+    // Exclude the synthetic/read-only 'General' budget from totals so its
+    // infinite allocation doesn't break utilization math.
+    final visibleBudgets = budgets.where((b) => b.id != '__general_budget').toList();
+    final totalAllocated = visibleBudgets.fold<double>(0, (p, e) => p + e.allocated);
+    final totalSpent = visibleBudgets.fold<double>(
       0,
       (p, e) => p + (spentMap[e.id] ?? 0),
     );
@@ -189,6 +193,22 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                     final e = list[i];
                     final spent = spentMap[e.id] ?? 0;
                     final progress = e.allocated == 0 ? 0 : spent / e.allocated;
+                    final allocatedLabel = e.allocated.isFinite
+                      ? formatAmount(e.allocated, currency)
+                      : '∞';
+
+                    final isSynthetic = e.id == '__general_budget';
+                    final budgetCard = _BudgetFlipCard(
+                      budget: e,
+                      spent: spent,
+                      currency: currency,
+                      isSynthetic: isSynthetic,
+                    );
+
+                    if (isSynthetic) {
+                      return budgetCard;
+                    }
+
                     return Dismissible(
                       key: ValueKey('budget_${e.id}'),
                       direction: DismissDirection.horizontal,
@@ -257,50 +277,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                         }
                         return false;
                       },
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.14,
-                            ),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  e.name,
-                                  style: theme.textTheme.titleMedium,
-                                ),
-                                Text(
-                                  '${formatAmount(spent, currency)} / ${formatAmount(e.allocated, currency)}',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            LinearProgressIndicator(
-                              value: progress.clamp(0.0, 1.0).toDouble(),
-                              minHeight: 8,
-                              backgroundColor: theme.colorScheme.onSurface
-                                  .withValues(alpha: 0.1),
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                progress > 1
-                                    ? theme.colorScheme.error
-                                    : theme.colorScheme.secondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      child: budgetCard,
                     );
                   },
                 );
@@ -311,6 +288,10 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       ),
     );
   }
+
+
+
+
 
   /// Stat pill used in the hero budget card (replaces the '\n' text blob).
   Widget _buildBudgetStat(
@@ -372,8 +353,9 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
         selectedCategoryIds = cats.cast<String>();
       }
     }
-    final result = await showModalBottomSheet<bool>(
+    final result = await Future.microtask(() => showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       isDismissible: true,
       backgroundColor: theme.colorScheme.surface,
@@ -574,7 +556,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           ),
         );
       },
-    );
+    ));
     if (result != true) {
       final hasData =
           nameController.text.trim().isNotEmpty ||
@@ -619,8 +601,9 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       nameController.text = (adjustDraft['name'] as String?) ?? nameController.text;
       noteController.text = (adjustDraft['note'] as String?) ?? '';
     }
-    final result = await showModalBottomSheet<bool>(
+    final result = await Future.microtask(() => showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       isDismissible: true,
       backgroundColor: theme.colorScheme.surface,
@@ -744,7 +727,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           ),
         );
       },
-    );
+    ));
     if (result != true) {
       final hasData =
           amountController.text.trim().isNotEmpty ||
@@ -769,5 +752,134 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     // Do not dispose these controllers synchronously; like the create budget
     // sheet, they are short-lived and tied to the bottom sheet lifecycle,
     // and disposing them here can race with framework rebuilds.
+  }
+}
+
+/// Flip card widget for budgets. Tapping toggles front/back showing
+/// remaining allocation. The synthetic 'General' budget should be
+/// rendered read-only (no flip) by passing `isSynthetic: true`.
+class _BudgetFlipCard extends StatefulWidget {
+  final BudgetModel budget;
+  final double spent;
+  final String currency;
+  final bool isSynthetic;
+
+  const _BudgetFlipCard({
+    required this.budget,
+    required this.spent,
+    required this.currency,
+    required this.isSynthetic,
+  });
+
+  @override
+  State<_BudgetFlipCard> createState() => _BudgetFlipCardState();
+}
+
+class _BudgetFlipCardState extends State<_BudgetFlipCard> {
+  bool _showBack = false;
+
+  void _toggle() {
+    if (widget.isSynthetic) return;
+    setState(() => _showBack = !_showBack);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final allocated = widget.budget.allocated;
+    final spent = widget.spent;
+    final progress = allocated.isFinite ? (allocated == 0 ? 0.0 : (spent / allocated)) : 0.0;
+    final allocatedLabel = allocated.isFinite ? formatAmount(allocated, widget.currency) : '∞';
+    final remaining = allocated.isFinite ? (allocated - spent) : double.infinity;
+
+    return GestureDetector(
+      onTap: _toggle,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: _showBack ? math.pi : 0),
+        duration: const Duration(milliseconds: 380),
+        builder: (ctx, angle, child) {
+          final isUnder = angle > (math.pi / 2);
+          Widget face;
+          if (isUnder) {
+            face = Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.rotationY(math.pi),
+              child: _buildBack(theme, remaining),
+            );
+          } else {
+            face = _buildFront(theme, allocatedLabel, spent, progress);
+          }
+          return Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, 0.001)
+              ..rotateY(angle),
+            child: face,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFront(ThemeData theme, String allocatedLabel, double spent, double progress) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.14),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(widget.budget.name, style: theme.textTheme.titleMedium),
+              Text('${formatAmount(spent, widget.currency)} / $allocatedLabel', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: progress.clamp(0.0, 1.0).toDouble(),
+            minHeight: 8,
+            backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+            valueColor: AlwaysStoppedAnimation<Color>(
+              progress > 1 ? theme.colorScheme.error : theme.colorScheme.secondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBack(ThemeData theme, double remaining) {
+    final remLabel = remaining.isFinite ? formatAmount(remaining, widget.currency) : '∞';
+    final over = remaining.isFinite ? remaining < 0 : false;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.14),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Remaining', style: theme.textTheme.titleSmall),
+              Text(remLabel, style: theme.textTheme.titleMedium?.copyWith(color: over ? theme.colorScheme.error : null, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          // Only show the remaining amount on the back of the card.
+        ],
+      ),
+    );
   }
 }

@@ -29,9 +29,48 @@ class BudgetRepository {
   }
 
   Future<void> update(String id, Map<String, dynamic> data) async {
-    data['updated_at_ms'] = DateTime.now().millisecondsSinceEpoch;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     final userId = data['userId'] as String?;
     if (userId == null) throw ArgumentError('userId required for update');
+
+    final newName = (data['name'] as String?)?.trim();
+
+    // If the budget name is changing, update any transactions that stored
+    // the old budget name as their `categoryId` so they reflect the new
+    // budget name. This keeps legacy transactions that stored display
+    // names in sync when a budget is renamed.
+    try {
+      final snap = await _db.get('users/$userId/budgets/$id');
+      String? oldName;
+      if (snap.value is Map) {
+        final map = (snap.value as Map).cast<String, dynamic>();
+        oldName = (map['name'] as String?)?.trim();
+      }
+
+      if (newName != null && oldName != null && newName != oldName) {
+        final txSnap = await _db.get('users/$userId/transactions');
+        if (txSnap.value is Map) {
+          final txMap = (txSnap.value as Map).cast<dynamic, dynamic>();
+          final patch = <String, dynamic>{};
+          txMap.forEach((key, value) {
+            if (value is Map) {
+              final dataMap = value.cast<String, dynamic>();
+              final cat = (dataMap['categoryId'] as String?)?.trim();
+              if (cat == oldName) {
+                patch['users/$userId/transactions/$key/categoryId'] = newName;
+              }
+            }
+          });
+          if (patch.isNotEmpty) {
+            await _db.updateMulti(patch);
+          }
+        }
+      }
+    } catch (_) {
+      // Best-effort migration: ignore failures and continue updating budget.
+    }
+
+    data['updated_at_ms'] = nowMs;
     await _db.update('users/$userId/budgets/$id', data);
   }
 
@@ -84,5 +123,23 @@ final userBudgetsProvider = StreamProvider<List<BudgetModel>>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(<BudgetModel>[]);
   final s = ref.watch(budgetRepositoryProvider).streamForUser(user.uid);
-  return s;
+  return s.map((list) {
+    // Always provide a default constant "General" budget in the UI so
+    // users have a catch-all budget option. Do not override a real
+    // user-created "General" budget if one exists.
+    final hasGeneral = list.any((b) => (b.name ?? '').trim().toLowerCase() == 'general');
+    if (hasGeneral) return list;
+
+    final general = BudgetModel(
+      id: '__general_budget',
+      userId: user.uid,
+      name: 'General',
+      allocated: double.infinity,
+      period: BudgetPeriod.monthly,
+      categoryIds: const [],
+      createdAt: DateTime.fromMillisecondsSinceEpoch(0),
+      updatedAt: null,
+    );
+    return [general, ...list];
+  });
 });

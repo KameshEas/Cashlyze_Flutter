@@ -36,9 +36,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     DateTime.now().year,
     DateTime.now().month,
     1,
-  );
+   );
 
-  // ── Active filter count (shown as badge on the filter button) ───────────
   int get _activeFilterCount {
     int count = 0;
     if (_filter != 'All') count++;
@@ -63,8 +62,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final maxController = TextEditingController(text: _maxAmountText);
     final theme = Theme.of(context);
 
-    showModalBottomSheet<void>(
+    Future.microtask(() => showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
@@ -334,7 +334,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           },
         );
       },
-    );
+    ));
   }
 
   @override
@@ -824,8 +824,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       }
     }
 
-    final result = await showModalBottomSheet<bool>(
+    final result = await Future.microtask(() => showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       isDismissible: true,
       backgroundColor: theme.colorScheme.surface,
@@ -1224,7 +1225,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           },
         );
       },
-    );
+    ));
     if (result != true) {
       final hasData =
           titleController.text.trim().isNotEmpty ||
@@ -1251,8 +1252,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       final prefs = ref.read(sharedPrefsServiceProvider);
       await prefs.clearDraft('transaction_add');
     }
-    titleController.dispose();
-    amountController.dispose();
+    // Intentionally not disposing the controllers here. Disposing them
+    // immediately after the sheet closes can race with framework
+    // rebuilds and trigger "used after dispose" assertions. Let the
+    // bottom sheet widget lifecycle manage its controllers instead.
   }
 
   Future<void> _openEditForm(
@@ -1272,8 +1275,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     String category = categoryId ?? 'General';
     DateTime pickedDate = date;
 
-    await showModalBottomSheet<void>(
+    await Future.microtask(() => showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       isDismissible: false,
       backgroundColor: theme.colorScheme.surface,
@@ -1598,9 +1602,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           },
         );
       },
-    );
-    titleController.dispose();
-    amountController.dispose();
+    ));
+    // Intentionally not disposing the controllers here for the same
+    // reason as above (avoid 'used after dispose' races).
   }
 
   Future<bool?> _openCreateBudgetForCategory(
@@ -1612,8 +1616,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final allocatedController = TextEditingController();
     final pageMessenger = ScaffoldMessenger.of(parentCtx);
 
-    final result = await showModalBottomSheet<bool>(
+    final result = await Future.microtask(() => showModalBottomSheet<bool>(
       context: parentCtx,
+      useRootNavigator: true,
       isScrollControlled: true,
       isDismissible: true,
       backgroundColor: theme.colorScheme.surface,
@@ -1762,8 +1767,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           ),
         );
       },
-    );
-    allocatedController.dispose();
+    ));
+    // Do not dispose allocatedController here; let the sheet's lifecycle
+    // handle it to avoid dispose-after-use races.
     return result;
   }
 }

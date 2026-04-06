@@ -546,8 +546,9 @@ class HomeScreen extends ConsumerWidget {
         if (parsed != null) date = parsed;
       }
     }
-    final result = await showModalBottomSheet<bool>(
+    final result = await Future.microtask(() => showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       isDismissible: true,
       backgroundColor: theme.colorScheme.surface,
@@ -764,7 +765,7 @@ class HomeScreen extends ConsumerWidget {
           );
         });
       },
-    );
+    ));
     final messenger = ScaffoldMessenger.of(context);
     if (result != true) {
       final hasData =
@@ -791,8 +792,9 @@ class HomeScreen extends ConsumerWidget {
   Future<void> _openQuickActionsMenu(BuildContext context, WidgetRef ref) async {
     final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    await showModalBottomSheet<void>(
+    await Future.microtask(() => showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       isDismissible: true,
       backgroundColor: theme.colorScheme.surface,
@@ -916,7 +918,7 @@ class HomeScreen extends ConsumerWidget {
           },
         );
       },
-    );
+    ));
   }
 
   Widget _buildUpcomingEmi(
