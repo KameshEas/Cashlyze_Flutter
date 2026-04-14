@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../core/utils/format.dart';
 import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/repositories/budget_repository.dart';
 import '../../core/repositories/category_repository.dart';
@@ -19,6 +20,9 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
   late String localFilter;
   late String localCategory;
   DateTime? localMonth;
+  DateTime? localFromDate;
+  DateTime? localToDate;
+  late bool localUseDateRange;
   late TextEditingController minController;
   late TextEditingController maxController;
 
@@ -29,6 +33,9 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
     localFilter = f.filter;
     localCategory = f.category;
     localMonth = f.selectedMonth;
+    localFromDate = f.fromDate;
+    localToDate = f.toDate;
+    localUseDateRange = f.useDateRange;
     minController = TextEditingController(text: f.minAmount?.toString() ?? '');
     maxController = TextEditingController(text: f.maxAmount?.toString() ?? '');
   }
@@ -102,6 +109,73 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
             ),
           ),
           const SizedBox(height: 20),
+
+          // Date range
+          Text('Date Range', style: theme.textTheme.labelLarge),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: localFromDate ?? DateTime.now().subtract(const Duration(days: 90)),
+                      firstDate: DateTime.now().subtract(const Duration(days: 180)),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        localFromDate = picked;
+                        localUseDateRange = true;
+                        if (localToDate != null && localFromDate!.isAfter(localToDate!)) localToDate = localFromDate;
+                      });
+                    }
+                  },
+                  child: Text(localUseDateRange && localFromDate != null
+                      ? 'From: ${formatDate(localFromDate!, ref.watch(sharedPrefsServiceProvider).dateFormat)}'
+                      : 'From'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: localToDate ?? DateTime.now(),
+                      firstDate: DateTime.now().subtract(const Duration(days: 180)),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        localToDate = picked;
+                        localUseDateRange = true;
+                        if (localFromDate != null && localToDate!.isBefore(localFromDate!)) localFromDate = localToDate;
+                      });
+                    }
+                  },
+                  child: Text(localUseDateRange && localToDate != null
+                      ? 'To: ${formatDate(localToDate!, ref.watch(sharedPrefsServiceProvider).dateFormat)}'
+                      : 'To'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (localUseDateRange)
+                IconButton(
+                  tooltip: 'Clear date range',
+                  onPressed: () {
+                    setState(() {
+                      localUseDateRange = false;
+                      localFromDate = null;
+                      localToDate = null;
+                    });
+                    ref.read(transactionFilterProvider.notifier).setUseDateRange(false);
+                  },
+                  icon: const Icon(Icons.clear),
+                ),
+            ],
+          ),
 
           // Type
           Text('Type', style: theme.textTheme.labelLarge),
@@ -214,6 +288,14 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
                     notifier.setFilterType(localFilter);
                     notifier.setCategory(localCategory);
                     notifier.setSelectedMonth(localMonth);
+                    notifier.setUseDateRange(localUseDateRange);
+                    if (localUseDateRange) {
+                      notifier.setFromDate(localFromDate);
+                      notifier.setToDate(localToDate);
+                    } else {
+                      notifier.setFromDate(null);
+                      notifier.setToDate(null);
+                    }
                     notifier.setMinAmount(double.tryParse(minController.text));
                     notifier.setMaxAmount(double.tryParse(maxController.text));
                     Navigator.of(context).pop();

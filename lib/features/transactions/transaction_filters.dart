@@ -13,6 +13,9 @@ class TransactionFilterState {
   final String debouncedQuery; // actual query used to filter
   final double? minAmount;
   final double? maxAmount;
+  final DateTime? fromDate;
+  final DateTime? toDate;
+  final bool useDateRange;
   final DateTime? selectedMonth;
   final int page;
   final int pageSize;
@@ -25,9 +28,16 @@ class TransactionFilterState {
     this.minAmount,
     this.maxAmount,
     DateTime? selectedMonth,
+    DateTime? fromDate,
+    DateTime? toDate,
     this.page = 1,
     this.pageSize = 20,
-  }) : selectedMonth = selectedMonth ?? DateTime(DateTime.now().year, DateTime.now().month, 1);
+    bool? useDateRange,
+  }) : selectedMonth = selectedMonth ?? DateTime(DateTime.now().year, DateTime.now().month, 1),
+        // By default don't use a date-range; allow user to enable it.
+        useDateRange = useDateRange ?? false,
+        fromDate = fromDate,
+        toDate = toDate;
 
   TransactionFilterState copyWith({
     String? filter,
@@ -36,9 +46,12 @@ class TransactionFilterState {
     String? debouncedQuery,
     double? minAmount,
     double? maxAmount,
+    DateTime? fromDate,
+    DateTime? toDate,
     DateTime? selectedMonth,
     int? page,
     int? pageSize,
+    bool? useDateRange,
   }) {
     return TransactionFilterState(
       filter: filter ?? this.filter,
@@ -47,9 +60,12 @@ class TransactionFilterState {
       debouncedQuery: debouncedQuery ?? this.debouncedQuery,
       minAmount: minAmount ?? this.minAmount,
       maxAmount: maxAmount ?? this.maxAmount,
+      fromDate: fromDate ?? this.fromDate,
+      toDate: toDate ?? this.toDate,
       selectedMonth: selectedMonth ?? this.selectedMonth,
       page: page ?? this.page,
       pageSize: pageSize ?? this.pageSize,
+      useDateRange: useDateRange ?? this.useDateRange,
     );
   }
 }
@@ -89,6 +105,18 @@ class TransactionFilterNotifier extends Notifier<TransactionFilterState> {
     state = state.copyWith(maxAmount: v, page: 1);
   }
 
+  void setFromDate(DateTime? v) {
+    state = state.copyWith(fromDate: v, page: 1);
+  }
+
+  void setToDate(DateTime? v) {
+    state = state.copyWith(toDate: v, page: 1);
+  }
+
+  void setUseDateRange(bool v) {
+    state = state.copyWith(useDateRange: v, page: 1);
+  }
+
   void setSelectedMonth(DateTime? v) {
     state = state.copyWith(selectedMonth: v, page: 1);
   }
@@ -124,6 +152,8 @@ final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {
       final q = f.debouncedQuery.trim().toLowerCase();
       final monthStart = f.selectedMonth == null ? null : DateTime(f.selectedMonth!.year, f.selectedMonth!.month, 1);
       final monthEnd = f.selectedMonth == null ? null : DateTime(f.selectedMonth!.year, f.selectedMonth!.month + 1, 1);
+      final from = f.fromDate;
+      final to = f.toDate;
       final filtered = items.where((e) {
         final matchesQuery = q.isEmpty || e.title.toLowerCase().contains(q);
         final matchesType = f.filter == 'All' || (f.filter == 'Income' && e.amount > 0) || (f.filter == 'Expense' && e.amount < 0);
@@ -131,8 +161,18 @@ final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {
         final matchesCategory = f.category == 'All' || f.category == catLabel;
         final absAmount = e.amount.abs();
         final matchesAmount = (f.minAmount == null || absAmount >= f.minAmount!) && (f.maxAmount == null || absAmount <= f.maxAmount!);
-        final inMonth = monthStart == null || (e.date.isAtSameMomentAs(monthStart) || e.date.isAfter(monthStart)) && e.date.isBefore(monthEnd!);
-        return matchesQuery && matchesType && matchesCategory && matchesAmount && inMonth;
+        bool inRange;
+        if (f.useDateRange) {
+          // If user enabled date-range but didn't provide endpoints, constrain to last ~6 months by default
+          final effectiveFrom = from ?? DateTime.now().subtract(const Duration(days: 180));
+          final effectiveTo = to ?? DateTime.now();
+          final okFrom = !e.date.isBefore(effectiveFrom);
+          final okTo = !e.date.isAfter(effectiveTo);
+          inRange = okFrom && okTo;
+        } else {
+          inRange = monthStart == null || (e.date.isAtSameMomentAs(monthStart) || e.date.isAfter(monthStart)) && e.date.isBefore(monthEnd!);
+        }
+        return matchesQuery && matchesType && matchesCategory && matchesAmount && inRange;
       }).toList();
       return filtered;
     },

@@ -190,7 +190,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
 
     }
 
-    return Padding(
+    return SingleChildScrollView(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
@@ -210,31 +210,37 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                 decoration: InputDecoration(labelText: t?.typeLabel ?? 'Type', filled: true),
               )),
               const SizedBox(width: 12),
-              Expanded(child: Consumer(builder: (ctx, wref, _) {
-                final catsAsync = wref.watch(userCategoriesProvider);
-                final categoryItems = <DropdownMenuItem<String>>[const DropdownMenuItem(value: 'General', child: Text('General'))];
-                final addedValues = <String>{'general'};
-                catsAsync.when(
-                  loading: () {},
-                  error: (_, __) {},
-                  data: (list) {
-                    for (final c in list) {
-                      final name = c.name.trim();
-                      if (!addedValues.contains(name.toLowerCase())) {
-                        categoryItems.add(DropdownMenuItem(value: name, child: Row(children: [Expanded(child: Text(name, overflow: TextOverflow.ellipsis))])));
-                        addedValues.add(name.toLowerCase());
+              Expanded(
+                child: Consumer(builder: (ctx, wref, _) {
+                  final catsAsync = wref.watch(userCategoriesProvider);
+                  final Map<String, DropdownMenuItem<String>> unique = {};
+                  // Seed with General
+                  unique['general'] = const DropdownMenuItem(value: 'General', child: Text('General'));
+                  catsAsync.when(
+                    loading: () {},
+                    error: (_, __) {},
+                    data: (list) {
+                      for (final c in list) {
+                        final name = (c.name ?? '').trim();
+                        if (name.isEmpty) continue;
+                        final key = name.toLowerCase();
+                        if (!unique.containsKey(key)) {
+                          unique[key] = DropdownMenuItem(value: name, child: Row(children: [Expanded(child: Text(name, overflow: TextOverflow.ellipsis))]));
+                        }
                       }
-                    }
-                  },
-                );
-                return DropdownButtonFormField<String>(
-                  value: category,
-                  isExpanded: true,
-                  items: categoryItems,
-                  onChanged: (v) => setState(() => category = v ?? 'General'),
-                  decoration: InputDecoration(labelText: t?.categoryLabel ?? 'Category', filled: true),
-                );
-              })),
+                    },
+                  );
+                  final categoryItems = unique.values.toList();
+                  final safeValue = categoryItems.any((it) => it.value == category) ? category : (categoryItems.isNotEmpty ? categoryItems.first.value as String : null);
+                  return DropdownButtonFormField<String>(
+                    value: safeValue,
+                    isExpanded: true,
+                    items: categoryItems,
+                    onChanged: (v) => setState(() => category = v ?? 'General'),
+                    decoration: InputDecoration(labelText: t?.categoryLabel ?? 'Category', filled: true),
+                  );
+                }),
+              ),
             ]),
             const SizedBox(height: 12),
             TextFormField(controller: titleController, decoration: InputDecoration(labelText: t?.titleLabel ?? 'Title', filled: true)),

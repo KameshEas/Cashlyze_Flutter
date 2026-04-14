@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/models/transaction.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../core/providers/shared_prefs_provider.dart';
@@ -22,6 +23,8 @@ class TransactionsScreen extends ConsumerStatefulWidget {
 
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   late final ScrollController _scrollController;
+  final Set<String> _selectedIds = {};
+  bool _selectionMode = false;
 
   @override
   void initState() {
@@ -63,12 +66,42 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final txsAsync = ref.watch(userTransactionsProvider);
     final prefs = ref.watch(sharedPrefsServiceProvider);
     final currency = ref.watch(currencyProvider);
+    final allFiltered = ref.watch(filteredTransactionsProvider);
     final datePattern = prefs.dateFormat;
 
     final t = AppLocalizations.of(context);
     final filterState = ref.watch(transactionFilterProvider);
     return Scaffold(
-      appBar: AppBar(title: Text(t?.transactions ?? 'Transactions')),
+      appBar: _selectionMode
+          ? AppBar(
+              leading: IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => setState(() {
+                  _selectionMode = false;
+                  _selectedIds.clear();
+                }),
+              ),
+              title: Text('${_selectedIds.length}'),
+              actions: [
+                IconButton(
+                  tooltip: 'Select all',
+                  icon: const Icon(Icons.select_all),
+                  onPressed: () => setState(() {
+                    if (_selectedIds.length == allFiltered.length) {
+                      _selectedIds.clear();
+                    } else {
+                      _selectedIds.addAll(allFiltered.map((e) => e.id));
+                    }
+                  }),
+                ),
+                IconButton(
+                  tooltip: 'Delete selected',
+                  icon: const Icon(Icons.delete_forever),
+                  onPressed: () => _deleteSelected(context),
+                ),
+              ],
+            )
+          : AppBar(title: Text(t?.transactions ?? 'Transactions')),
       floatingActionButton: Tooltip(
         message: t?.addTransaction ?? 'Add transaction',
         child: FloatingActionButton.extended(
@@ -272,7 +305,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       final isIncome = e.amount > 0;
                       return Dismissible(
                         key: ValueKey('tx_${e.id}'),
-                        direction: DismissDirection.horizontal,
+                        direction: _selectionMode ? DismissDirection.none : DismissDirection.horizontal,
                         background: Container(
                           alignment: Alignment.centerLeft,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -348,7 +381,40 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           }
                           return false;
                         },
-                        child: TransactionListItem(tx: e, currency: currency, datePattern: datePattern),
+                        child: TransactionListItem(
+                          tx: e,
+                          currency: currency,
+                          datePattern: datePattern,
+                          selectionMode: _selectionMode,
+                          selected: _selectedIds.contains(e.id),
+                          onSelectedChanged: (v) => setState(() {
+                            if (v) {
+                              _selectedIds.add(e.id);
+                              _selectionMode = true;
+                            } else {
+                              _selectedIds.remove(e.id);
+                              if (_selectedIds.isEmpty) _selectionMode = false;
+                            }
+                          }),
+                          onLongPress: () => setState(() {
+                            _selectionMode = true;
+                            _selectedIds.add(e.id);
+                          }),
+                          onTap: () {
+                            if (_selectionMode) {
+                              setState(() {
+                                if (_selectedIds.contains(e.id)) {
+                                  _selectedIds.remove(e.id);
+                                  if (_selectedIds.isEmpty) _selectionMode = false;
+                                } else {
+                                  _selectedIds.add(e.id);
+                                }
+                              });
+                            } else {
+                              _openEditForm(context, e.id, e.title, e.amount, e.categoryId, e.date);
+                            }
+                          },
+                        ),
                       );
                     },
                     separatorBuilder: (sepCtx, i) => const SizedBox(height: 16),
@@ -416,6 +482,68 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       final messenger = ScaffoldMessenger.of(context);
       messenger.clearSnackBars();
       messenger.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)?.transactionUpdated ?? 'Transaction updated')));
+    }
+  }
+
+  Future<void> _deleteSelected(BuildContext context) async {
+    if (_selectedIds.isEmpty) return;
+    final t = AppLocalizations.of(context);
+    final confirm = await showConfirmDialog(
+      context,
+      title: t?.deleteTransactionTitle ?? 'Delete transactions',
+      content: 'Are you sure you want to delete ${_selectedIds.length} transactions?',
+      confirmLabel: t?.delete ?? 'Delete',
+      cancelLabel: t?.cancel ?? 'Cancel',
+    );
+    if (confirm != true) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final user = ref.read(currentUserProvider);
+    if (user == null) return;
+
+    // Capture payloads for undo
+    final all = ref.read(filteredTransactionsProvider);
+    final payloads = <String, TransactionModel>{};
+    for (final id in _selectedIds) {
+      final found = all.where((x) => x.id == id).toList();
+      if (found.isNotEmpty) payloads[id] = found.first;
+    }
+
+    try {
+      for (final id in _selectedIds.toList()) {
+        await ref.read(transactionRepositoryProvider).deleteForUser(user.uid, id);
+      }
+      messenger.clearSnackBars();
+      final snack = SnackBar(
+        content: Text('${_selectedIds.length} deleted'),
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () async {
+            for (final tx in payloads.values) {
+              try {
+                await ref.read(transactionRepositoryProvider).create(
+                      userId: user.uid,
+                      title: tx.title,
+                      amount: tx.amount,
+                      categoryId: tx.categoryId,
+                      date: tx.date,
+                      notes: tx.notes,
+                    );
+              } catch (_) {}
+            }
+            ref.invalidate(userTransactionsProvider);
+          },
+        ),
+      );
+      messenger.showSnackBar(snack);
+      setState(() {
+        _selectedIds.clear();
+        _selectionMode = false;
+      });
+      ref.invalidate(userTransactionsProvider);
+    } catch (err) {
+      showRepoErrorSnackBar(messenger, err);
     }
   }
 
