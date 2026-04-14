@@ -16,6 +16,9 @@ import '../../core/repositories/recurring_repository.dart';
 import '../../core/models/recurring.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/widgets/dialogs.dart';
+import 'transaction_list_item.dart';
+import 'transaction_filter_sheet.dart';
+import 'transaction_filters.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
@@ -25,44 +28,31 @@ class TransactionsScreen extends ConsumerStatefulWidget {
 }
 
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
-  String _filter = 'All';
-  String _categoryFilter = 'All';
-  String _query = '';
-  String _minAmountText = '';
-  String _maxAmountText = '';
-  // null means "All time" — no month filter applied.
-  // Default is current month so users first see recent spend.
-  DateTime? _selectedMonth = DateTime(
-    DateTime.now().year,
-    DateTime.now().month,
-    1,
-   );
+  late final ScrollController _scrollController;
 
-  int get _activeFilterCount {
-    int count = 0;
-    if (_filter != 'All') count++;
-    if (_categoryFilter != 'All') count++;
-    if (_minAmountText.isNotEmpty) count++;
-    if (_maxAmountText.isNotEmpty) count++;
-    if (_selectedMonth != null) count++;
-    return count;
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(() {
+      try {
+        if (_scrollController.position.extentAfter < 300) {
+          ref.read(transactionFilterProvider.notifier).loadMore();
+        }
+      } catch (_) {}
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   // ── Filter bottom sheet ─────────────────────────────────────────────────
-  void _openFilterSheet(
-    BuildContext context,
-    dynamic t,
-    AsyncValue catsAsync,
-  ) {
-    // Local copies — applied on "Apply" tap, discarded on dismiss.
-    String localFilter = _filter;
-    String localCategory = _categoryFilter;
-    DateTime? localMonth = _selectedMonth;
-    final minController = TextEditingController(text: _minAmountText);
-    final maxController = TextEditingController(text: _maxAmountText);
+  void _openFilterSheet(BuildContext context) {
     final theme = Theme.of(context);
-
-    Future.microtask(() => showModalBottomSheet<void>(
+    showModalBottomSheet<void>(
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
@@ -70,284 +60,20 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (sheetCtx) {
-        return StatefulBuilder(
-          builder: (ctx, setSheetState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-                top: 16,
-                left: 12,
-                right: 12,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Handle
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.2,
-                        ),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Filter Transactions',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.of(ctx).pop(),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ── Period ────────────────────────────────────────────
-                  Text('Period', style: theme.textTheme.labelLarge),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 40,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      // 1 extra item at index 0 for "All time"
-                      itemCount: 13,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
-                      itemBuilder: (_, i) {
-                        if (i == 0) {
-                          return FilterChip(
-                            label: const Text('All time'),
-                            selected: localMonth == null,
-                            onSelected: (_) =>
-                                setSheetState(() => localMonth = null),
-                          );
-                        }
-                        final now = DateTime.now();
-                        final m = DateTime(now.year, now.month - (i - 1), 1);
-                        final label =
-                            '${m.year}-${m.month.toString().padLeft(2, '0')}';
-                        final isSelected = localMonth != null &&
-                            localMonth!.year == m.year &&
-                            localMonth!.month == m.month;
-                        return FilterChip(
-                          label: Text(label),
-                          selected: isSelected,
-                          onSelected: (_) =>
-                              setSheetState(() => localMonth = m),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // ── Type ──────────────────────────────────────────────
-                  Text('Type', style: theme.textTheme.labelLarge),
-                  const SizedBox(height: 8),
-                  SegmentedButton<String>(
-                    segments: [
-                      ButtonSegment(
-                        value: 'All',
-                        label: Text(t?.filterAll ?? 'All'),
-                      ),
-                      ButtonSegment(
-                        value: 'Income',
-                        label: Text(t?.filterIncome ?? 'Income'),
-                        icon: const Icon(Icons.arrow_downward, size: 14),
-                      ),
-                      ButtonSegment(
-                        value: 'Expense',
-                        label: Text(t?.filterExpense ?? 'Expense'),
-                        icon: const Icon(Icons.arrow_upward, size: 14),
-                      ),
-                    ],
-                    selected: {localFilter},
-                    onSelectionChanged: (v) =>
-                        setSheetState(() => localFilter = v.first),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // ── Category ──────────────────────────────────────────
-                  Text('Category', style: theme.textTheme.labelLarge),
-                  const SizedBox(height: 8),
-                  catsAsync.when(
-                    loading: () => const LinearProgressIndicator(),
-                    error: (_, __) => const SizedBox.shrink(),
-                    data: (list) {
-                      // Start with explicit options
-                      final cats = <String>['All', 'Uncategorized'];
-                      final seenLower = <String>{'all', 'uncategorized'};
-                      for (final c in list) {
-                        final nm = (c.name ?? '').trim();
-                        if (nm.isEmpty) continue;
-                        final nl = nm.toLowerCase();
-                        if (!seenLower.contains(nl)) {
-                          cats.add(nm);
-                          seenLower.add(nl);
-                        }
-                      }
-
-                      // Append budget-claimed category names (map ids -> names
-                      // or use budget name if no categoryIds present). Avoid
-                      // duplicates using lowercase set.
-                      final budgets = ref.watch(userBudgetsProvider).maybeWhen(data: (d) => d, orElse: () => const []);
-                      final idToName = <String, String>{};
-                      for (final c in list) {
-                        final nm = (c.name ?? '').trim();
-                        if (nm.isNotEmpty) idToName[c.id] = nm;
-                      }
-                      for (final b in budgets) {
-                        final catIds = b.categoryIds ?? <String>[];
-                        String key = '';
-                        if (catIds.isNotEmpty) {
-                          final raw = catIds.first.trim();
-                          if (raw.isEmpty) {
-                            key = (b.name ?? '').trim();
-                          } else if (idToName.containsKey(raw)) key = idToName[raw]!.trim();
-                          else key = (b.name ?? raw).trim();
-                        } else {
-                          key = (b.name ?? '').trim();
-                        }
-                        if (key.isEmpty) continue;
-                        final kl = key.toLowerCase();
-                        if (!seenLower.contains(kl)) {
-                          cats.add(key);
-                          seenLower.add(kl);
-                        }
-                      }
-
-                      return Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: cats
-                            .map(
-                              (c) => FilterChip(
-                                label: Text(c),
-                                selected: localCategory == c,
-                                onSelected: (_) =>
-                                    setSheetState(() => localCategory = c),
-                              ),
-                            )
-                            .toList(),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 20),
-
-                  // ── Amount range ──────────────────────────────────────
-                  Text('Amount Range', style: theme.textTheme.labelLarge),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: minController,
-                          decoration: const InputDecoration(
-                            labelText: 'Min',
-                            filled: true,
-                          ),
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'^\d*\.?\d{0,2}'),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: maxController,
-                          decoration: const InputDecoration(
-                            labelText: 'Max',
-                            filled: true,
-                          ),
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'^\d*\.?\d{0,2}'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // ── Actions ───────────────────────────────────────────
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            final now = DateTime.now();
-                            final currentMonthStart =
-                                DateTime(now.year, now.month, 1);
-                            setState(() {
-                              _filter = 'All';
-                              _categoryFilter = 'All';
-                              _minAmountText = '';
-                              _maxAmountText = '';
-                              // Reset to default view: current month only.
-                              _selectedMonth = currentMonthStart;
-                            });
-                            Navigator.of(ctx).pop();
-                          },
-                          child: const Text('Clear'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: () {
-                            setState(() {
-                              _filter = localFilter;
-                              _categoryFilter = localCategory;
-                              _selectedMonth = localMonth;
-                              _minAmountText = minController.text;
-                              _maxAmountText = maxController.text;
-                            });
-                            Navigator.of(ctx).pop();
-                          },
-                          child: const Text('Apply'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    ));
+      builder: (sheetCtx) => const TransactionFilterSheet(),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final txsAsync = ref.watch(userTransactionsProvider);
-    final catsAsync = ref.watch(userCategoriesProvider);
     final prefs = ref.watch(sharedPrefsServiceProvider);
     final currency = ref.watch(currencyProvider);
     final datePattern = prefs.dateFormat;
 
     final t = AppLocalizations.of(context);
+    final filterState = ref.watch(transactionFilterProvider);
     return Scaffold(
       appBar: AppBar(title: Text(t?.transactions ?? 'Transactions')),
       floatingActionButton: Tooltip(
@@ -381,15 +107,15 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         // Inline clear button
-                        suffixIcon: _query.isNotEmpty
+                        suffixIcon: filterState.query.isNotEmpty
                             ? IconButton(
                                 icon: const Icon(Icons.close, size: 18),
                                 tooltip: 'Clear search',
-                                onPressed: () => setState(() => _query = ''),
+                                onPressed: () => ref.read(transactionFilterProvider.notifier).setQueryImmediate(''),
                               )
                             : null,
                       ),
-                      onChanged: (v) => setState(() => _query = v),
+                      onChanged: (v) => ref.read(transactionFilterProvider.notifier).setQueryImmediate(v),
                     ),
                   ),
                 ),
@@ -398,14 +124,20 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 Tooltip(
                   message: 'Filter & sort',
                   child: InkWell(
-                    onTap: () => _openFilterSheet(context, t, catsAsync),
+                    onTap: () => _openFilterSheet(context),
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: _activeFilterCount > 0
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.surface,
+                        color: (() {
+                          int c = 0;
+                          if (filterState.filter != 'All') c++;
+                          if (filterState.category != 'All') c++;
+                          if (filterState.minAmount != null) c++;
+                          if (filterState.maxAmount != null) c++;
+                          if (filterState.selectedMonth != null) c++;
+                          return c > 0 ? theme.colorScheme.primary : theme.colorScheme.surface;
+                        })(),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: theme.colorScheme.onSurface.withValues(
@@ -414,14 +146,35 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         ),
                       ),
                       child: Badge(
-                        isLabelVisible: _activeFilterCount > 0,
-                        label: Text('$_activeFilterCount'),
+                        isLabelVisible: (() {
+                          int c = 0;
+                          if (filterState.filter != 'All') c++;
+                          if (filterState.category != 'All') c++;
+                          if (filterState.minAmount != null) c++;
+                          if (filterState.maxAmount != null) c++;
+                          if (filterState.selectedMonth != null) c++;
+                          return c > 0;
+                        })(),
+                        label: Text(() {
+                          int c = 0;
+                          if (filterState.filter != 'All') c++;
+                          if (filterState.category != 'All') c++;
+                          if (filterState.minAmount != null) c++;
+                          if (filterState.maxAmount != null) c++;
+                          if (filterState.selectedMonth != null) c++;
+                          return '$c';
+                        }()),
                         child: Icon(
                           Icons.tune,
                           size: 20,
-                          color: _activeFilterCount > 0
-                              ? Colors.white
-                              : theme.colorScheme.onSurface,
+                          color: (() {
+                            int c = 0;
+                            if (filterState.filter != 'All') c++;
+                            if (filterState.category != 'All') c++;
+                            if (filterState.minAmount != null) c++;
+                            if (filterState.maxAmount != null) c++;
+                              return c > 0 ? Colors.white : theme.colorScheme.onSurface;
+                          })(),
                         ),
                       ),
                     ),
@@ -432,205 +185,138 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           ),
           const SizedBox(height: 4),
           Expanded(
-            child: txsAsync.when(
-              loading: () => RefreshIndicator(
-                onRefresh: () async {
-                  ref.invalidate(userTransactionsProvider);
-                  await Future.delayed(const Duration(milliseconds: 150));
-                },
-                child: ListView.separated(
-                  padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 88),
-                  itemBuilder: (listCtx, i) => const SkeletonListTile(),
-                  separatorBuilder: (sepCtx, i) => const SizedBox(height: 12),
-                  itemCount: 6,
-                ),
-              ),
-              error: (e, _) => Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.error.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: theme.colorScheme.error.withValues(alpha: 0.3),
-                    ),
+            child: Builder(builder: (ctx) {
+              final filterState = ref.watch(transactionFilterProvider);
+              if (txsAsync.isLoading) {
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(userTransactionsProvider);
+                    await Future.delayed(const Duration(milliseconds: 150));
+                  },
+                  child: ListView.separated(
+                    padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 88),
+                    itemBuilder: (listCtx, i) => const SkeletonListTile(),
+                    separatorBuilder: (sepCtx, i) => const SizedBox(height: 12),
+                    itemCount: 6,
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error_outline, color: Colors.red),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text('Failed to load: $e')),
-                      TextButton(
-                        onPressed: () => ref.refresh(userTransactionsProvider),
-                        child: Text(
-                          AppLocalizations.of(context)?.retry ?? 'Retry',
-                        ),
+                );
+              }
+              if (txsAsync.hasError) {
+                final e = txsAsync.error;
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.error.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: theme.colorScheme.error.withOpacity(0.3),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              data: (items) {
-                // _selectedMonth == null → show all transactions (no date filter)
-                final monthStart = _selectedMonth == null
-                    ? null
-                    : DateTime(_selectedMonth!.year, _selectedMonth!.month, 1);
-                final monthEnd = _selectedMonth == null
-                    ? null
-                    : DateTime(
-                        _selectedMonth!.year,
-                        _selectedMonth!.month + 1,
-                        1,
-                      );
-                final filtered = items.where((e) {
-                  final matchesQuery =
-                      _query.isEmpty ||
-                      e.title.toLowerCase().contains(_query.toLowerCase());
-                  final matchesType =
-                      _filter == 'All' ||
-                      (_filter == 'Income' && e.amount > 0) ||
-                      (_filter == 'Expense' && e.amount < 0);
-                  final catLabel = e.categoryId ?? 'Uncategorized';
-                  final matchesCategory =
-                      _categoryFilter == 'All' || _categoryFilter == catLabel;
-                  final minAmt = double.tryParse(_minAmountText);
-                  final maxAmt = double.tryParse(_maxAmountText);
-                  final absAmount = e.amount.abs();
-                  final matchesAmount =
-                      (minAmt == null || absAmount >= minAmt) &&
-                      (maxAmt == null || absAmount <= maxAmt);
-                  final inMonth = monthStart == null ||
-                      (e.date.isAfter(
-                            monthStart.subtract(const Duration(seconds: 1)),
-                          ) &&
-                          e.date.isBefore(monthEnd!));
-                  return matchesQuery &&
-                      matchesType &&
-                      matchesCategory &&
-                      matchesAmount &&
-                      inMonth;
-                }).toList();
-                final reduceMotion = MediaQuery.of(context).disableAnimations;
-                final duration = reduceMotion
-                    ? Duration.zero
-                    : const Duration(milliseconds: 180);
-                Widget listChild;
-                if (filtered.isEmpty) {
-                  listChild = Center(
-                    key: const ValueKey('tx_empty'),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    ),
+                    child: Row(
                       children: [
-                        Semantics(
-                          label: 'No transactions illustration',
-                          child: Icon(
-                            Icons.receipt_long,
-                            size: 72,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          t?.noTransactions ?? 'No transactions',
-                          style: theme.textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        FilledButton(
-                          onPressed: () => _openAddForm(context),
-                          child: Text(t?.addTransaction ?? 'Add transaction'),
+                        const Icon(Icons.error_outline, color: Colors.red),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text('Failed to load: $e')),
+                        TextButton(
+                          onPressed: () => ref.refresh(userTransactionsProvider),
+                          child: Text(AppLocalizations.of(context)?.retry ?? 'Retry'),
                         ),
                       ],
                     ),
-                  );
-                } else {
-                  listChild = RefreshIndicator(
-                    key: const ValueKey('tx_list'),
-                    onRefresh: () async {
-                      ref.invalidate(userTransactionsProvider);
-                      await Future.delayed(const Duration(milliseconds: 150));
-                    },
-                    child: ListView.separated(
-                      padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 88),
-                      itemBuilder: (ctx, i) {
-                        final e = filtered[i];
-                        final isIncome = e.amount > 0;
-                        return Dismissible(
-                          key: ValueKey('tx_${e.id}'),
+                  ),
+                );
+              }
+
+              final allFiltered = ref.watch(filteredTransactionsProvider);
+              final paged = ref.watch(paginatedTransactionsProvider);
+              final hasMore = ref.watch(transactionsHasMoreProvider);
+
+              final reduceMotion = MediaQuery.of(context).disableAnimations;
+              final duration = reduceMotion ? Duration.zero : const Duration(milliseconds: 180);
+
+              Widget listChild;
+              if (allFiltered.isEmpty) {
+                listChild = Center(
+                  key: const ValueKey('tx_empty'),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Semantics(
+                        label: 'No transactions illustration',
+                        child: Icon(Icons.receipt_long, size: 72, color: theme.colorScheme.primary),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(t?.noTransactions ?? 'No transactions', style: theme.textTheme.titleMedium),
+                      const SizedBox(height: 8),
+                      FilledButton(onPressed: () => _openAddForm(context), child: Text(t?.addTransaction ?? 'Add transaction')),
+                    ],
+                  ),
+                );
+              } else {
+                listChild = RefreshIndicator(
+                  key: const ValueKey('tx_list'),
+                  onRefresh: () async {
+                    ref.invalidate(userTransactionsProvider);
+                    await Future.delayed(const Duration(milliseconds: 150));
+                  },
+                  child: ListView.separated(
+                    controller: _scrollController,
+                    padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 88),
+                    itemCount: paged.length + (hasMore ? 1 : 0),
+                    addAutomaticKeepAlives: true,
+                    itemBuilder: (ctx, i) {
+                      if (i >= paged.length) {
+                        // load more indicator
+                        ref.read(transactionFilterProvider.notifier).loadMore();
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))),
+                        );
+                      }
+                      final e = paged[i];
+                      final isIncome = e.amount > 0;
+                      return Dismissible(
+                        key: ValueKey('tx_${e.id}'),
                         direction: DismissDirection.horizontal,
                         background: Container(
                           alignment: Alignment.centerLeft,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.15),
+                            color: Colors.green.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.edit, color: Colors.green),
-                              const SizedBox(width: 8),
-                              Text(t?.edit ?? 'Edit'),
-                            ],
-                          ),
+                          child: Row(children: [const Icon(Icons.edit, color: Colors.green), const SizedBox(width: 8), Text(t?.edit ?? 'Edit')]),
                         ),
                         secondaryBackground: Container(
                           alignment: Alignment.centerRight,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
-                            color: Colors.red.withValues(alpha: 0.15),
+                            color: Colors.red.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Text(t?.delete ?? 'Delete'),
-                              const SizedBox(width: 8),
-                              const Icon(Icons.delete, color: Colors.red),
-                            ],
-                          ),
+                          child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [Text(t?.delete ?? 'Delete'), const SizedBox(width: 8), const Icon(Icons.delete, color: Colors.red)]),
                         ),
                         confirmDismiss: (dir) async {
                           if (dir == DismissDirection.startToEnd) {
-                            await _openEditForm(
-                              context,
-                              e.id,
-                              e.title,
-                              e.amount,
-                              e.categoryId,
-                              e.date,
-                            );
+                            await _openEditForm(context, e.id, e.title, e.amount, e.categoryId, e.date);
                             return false;
                           }
                           final messenger = ScaffoldMessenger.of(context);
                           final confirm = await showConfirmDialog(
                             context,
-                            title:
-                                AppLocalizations.of(
-                                  context,
-                                )?.deleteTransactionTitle ??
-                                'Delete transaction',
-                            content:
-                                'Are you sure you want to delete this transaction?',
-                            confirmLabel:
-                                AppLocalizations.of(context)?.delete ??
-                                'Delete',
-                            cancelLabel:
-                                AppLocalizations.of(context)?.cancel ??
-                                'Cancel',
+                            title: AppLocalizations.of(context)?.deleteTransactionTitle ?? 'Delete transaction',
+                            content: 'Are you sure you want to delete this transaction?',
+                            confirmLabel: AppLocalizations.of(context)?.delete ?? 'Delete',
+                            cancelLabel: AppLocalizations.of(context)?.cancel ?? 'Cancel',
                           );
                           if (confirm == true) {
                             try {
-                              final payload = {
-                                'title': e.title,
-                                'amount': e.amount,
-                                'categoryId': e.categoryId,
-                                'date': e.date,
-                              };
+                              final payload = {'title': e.title, 'amount': e.amount, 'categoryId': e.categoryId, 'date': e.date};
                               final user = ref.read(currentUserProvider);
                               if (user == null) return false;
-                              await ref
-                                  .read(transactionRepositoryProvider)
-                                  .deleteForUser(user.uid, e.id);
+                              await ref.read(transactionRepositoryProvider).deleteForUser(user.uid, e.id);
                               messenger.clearSnackBars();
                               final snack = SnackBar(
                                 content: Text(t?.deleted ?? 'Deleted'),
@@ -639,19 +325,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                 action: SnackBarAction(
                                   label: 'Undo',
                                   onPressed: () async {
-                                    final user = ref.read(
-                                      currentUserProvider,
-                                    );
+                                    final user = ref.read(currentUserProvider);
                                     if (user == null) return;
                                     try {
-                                      await ref
-                                          .read(transactionRepositoryProvider)
-                                          .create(
+                                      await ref.read(transactionRepositoryProvider).create(
                                             userId: user.uid,
                                             title: payload['title'] as String,
                                             amount: payload['amount'] as double,
-                                            categoryId:
-                                                payload['categoryId'] as String?,
+                                            categoryId: payload['categoryId'] as String?,
                                             date: payload['date'] as DateTime,
                                             notes: null,
                                           );
@@ -660,9 +341,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                 ),
                               );
                               final controller = messenger.showSnackBar(snack);
-                              // As a defensive fallback ensure the snackbar is closed
-                              // shortly after its duration in case platform/overlay
-                              // issues prevent it from auto-dismissing.
                               Future.delayed(snack.duration + const Duration(milliseconds: 200), () {
                                 try {
                                   controller.close();
@@ -671,125 +349,21 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               return true;
                             } catch (err) {
                               messenger.clearSnackBars();
-                              messenger.showSnackBar(
-                                SnackBar(
-                                  content: Text('Failed: $err'),
-                                  duration: const Duration(seconds: 4),
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
+                              messenger.showSnackBar(SnackBar(content: Text('Failed: $err'), duration: const Duration(seconds: 4), behavior: SnackBarBehavior.floating));
                               return false;
                             }
                           }
                           return false;
                         },
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: theme.colorScheme.onSurface.withValues(
-                                alpha: 0.14,
-                              ),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.onSurface.withValues(
-                                    alpha: 0.06,
-                                  ),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  isIncome
-                                      ? Icons.arrow_downward
-                                      : Icons.arrow_upward,
-                                  color: isIncome ? Colors.green : Colors.red,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      e.title,
-                                      style: theme.textTheme.bodyLarge
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Row(
-                                      children: [
-                                        Flexible(
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: theme.colorScheme.onSurface
-                                                  .withValues(alpha: 0.08),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            child: Text(
-                                              e.categoryId ??
-                                                  (t?.uncategorized ??
-                                                      'Uncategorized'),
-                                              style: theme.textTheme.bodySmall,
-                                              overflow: TextOverflow.ellipsis,
-                                              maxLines: 1,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          formatDate(e.date, datePattern),
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color: theme
-                                                    .colorScheme
-                                                    .onSurface
-                                                    .withValues(alpha: 0.7),
-                                              ),
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines: 1,
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Text(
-                                formatAmount(e.amount, currency),
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: isIncome ? Colors.green : Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        child: TransactionListItem(tx: e, currency: currency, datePattern: datePattern),
                       );
                     },
                     separatorBuilder: (sepCtx, i) => const SizedBox(height: 16),
-                    itemCount: filtered.length,
-                    ),
-                  );
-                }
-                return AnimatedSwitcher(
-                  duration: duration,
-                  child: listChild,
+                  ),
                 );
-              },
-            ),
+              }
+              return AnimatedSwitcher(duration: duration, child: listChild);
+            }),
           ),
         ],
       ),
