@@ -562,8 +562,8 @@ class HomeScreen extends ConsumerWidget {
           // Use a Consumer inside the StatefulBuilder so it rebuilds when
           // categories/budgets load while still allowing local state updates.
           return Consumer(builder: (sheetCtx, sheetRef, _) {
-            final messenger = ScaffoldMessenger.of(context);
-            final nav = Navigator.of(context);
+            final messenger = ScaffoldMessenger.of(sheetCtx);
+            final nav = Navigator.of(sheetCtx);
 
           // Build category list from user categories + budgets so Quick Add
           // uses the same options as the full Transactions screen.
@@ -758,9 +758,10 @@ class HomeScreen extends ConsumerWidget {
                               date: date,
                               notes: null,
                             );
+                            // Pop the sheet and let the caller show the success snackbar
                             nav.pop(true);
-                            messenger.showSnackBar(const SnackBar(content: Text('Transaction saved')));
                           } catch (e) {
+                            // Show failures immediately
                             messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
                           }
                         },
@@ -777,7 +778,11 @@ class HomeScreen extends ConsumerWidget {
       },
     ));
     final messenger = ScaffoldMessenger.of(context);
-    if (result != true) {
+    if (result == true) {
+      await prefs.clearDraft('home_quick_add');
+      messenger.clearSnackBars();
+      messenger.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)?.transactionSaved ?? 'Transaction saved')));
+    } else {
       final hasData =
           titleController.text.trim().isNotEmpty ||
           amountController.text.trim().isNotEmpty;
@@ -791,8 +796,6 @@ class HomeScreen extends ConsumerWidget {
         });
         messenger.showSnackBar(const SnackBar(content: Text('Draft saved')));
       }
-    } else {
-      await prefs.clearDraft('home_quick_add');
     }
     // Do not dispose controllers here; they are tied to the bottom
     // sheet lifecycle and disposing them synchronously can race with

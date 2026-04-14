@@ -306,7 +306,6 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     }
                     if (!mounted) return;
                     nav.pop(true);
-                    messenger.showSnackBar(SnackBar(content: Text(t?.transactionSaved ?? 'Transaction saved')));
                   } else {
                     // Edit
                     final user = ref.read(currentUserProvider);
@@ -319,11 +318,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     });
                     if (!mounted) return;
                     nav.pop(true);
-                    messenger.showSnackBar(SnackBar(content: Text(t?.transactionUpdated ?? 'Transaction updated')));
                   }
                 } catch (e) {
                   if (!mounted) return;
-                  showRepoErrorSnackBar(ScaffoldMessenger.of(context), e);
+                  showRepoErrorSnackBar(messenger, e);
                 }
               }, child: Text(t?.save ?? 'Save')),
             ]),

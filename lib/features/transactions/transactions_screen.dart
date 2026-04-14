@@ -365,7 +365,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
   Future<void> _openAddForm(BuildContext context) async {
     final theme = Theme.of(context);
-    final result = await showModalBottomSheet<bool>(
+    final result = await showModalBottomSheet<bool?>(
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
@@ -375,7 +375,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       ),
       builder: (ctx) => const TransactionFormSheet.create(),
     );
-    // Draft saving is handled inside the form sheet; nothing to do here.
+    // If the sheet indicated a successful save, refresh and show feedback.
+    if (result == true) {
+      ref.invalidate(userTransactionsProvider);
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.clearSnackBars();
+      messenger.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)?.transactionSaved ?? 'Transaction saved')));
+    }
     return;
   }
 
@@ -388,7 +394,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     DateTime date,
   ) async {
     final theme = Theme.of(context);
-    await showModalBottomSheet<void>(
+    final result = await showModalBottomSheet<bool?>(
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
@@ -405,6 +411,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         initialDate: date,
       ),
     );
+    if (result == true) {
+      ref.invalidate(userTransactionsProvider);
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.clearSnackBars();
+      messenger.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)?.transactionUpdated ?? 'Transaction updated')));
+    }
   }
 
   // Budget creation helper moved into TransactionFormSheet to keep modal logic colocated.
