@@ -1,5 +1,4 @@
 import 'package:cashlyze/core/models/transaction.dart';
-import 'package:cashlyze/core/providers/transaction_providers.dart';
 import 'package:cashlyze/core/repositories/transaction_repository.dart';
 import 'package:cashlyze/core/services/auth_service.dart';
 import 'package:cashlyze/features/transactions/transactions_screen.dart';

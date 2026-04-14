@@ -223,7 +223,7 @@ class _PlanCard extends ConsumerWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${pending} EMIs left • ${plan.tenureMonths} months • ${plan.annualInterestRate.toStringAsFixed(2)}% interest',
+                              '$pending EMIs left • ${plan.tenureMonths} months • ${plan.annualInterestRate.toStringAsFixed(2)}% interest',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ],

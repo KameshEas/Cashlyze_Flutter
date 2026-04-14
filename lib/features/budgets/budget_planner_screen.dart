@@ -13,6 +13,7 @@ import 'dart:math' as math;
 import '../../core/utils/validation.dart';
 import '../../core/widgets/dialogs.dart';
 import '../../core/repositories/category_repository.dart';
+import '../../core/ui/constants.dart';
 
 class BudgetPlannerScreen extends ConsumerStatefulWidget {
   const BudgetPlannerScreen({super.key});
@@ -37,12 +38,12 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     // Exclude the synthetic/read-only 'General' budget from totals so its
     // infinite allocation doesn't break utilization math.
     final visibleBudgets = budgets.where((b) => b.id != '__general_budget').toList();
-    final totalAllocated = visibleBudgets.fold<double>(0, (p, e) => p + e.allocated);
+    final totalAllocated = visibleBudgets.fold<double>(0.0, (p, e) => p + e.allocated);
     final totalSpent = visibleBudgets.fold<double>(
-      0,
-      (p, e) => p + (spentMap[e.id] ?? 0),
+      0.0,
+      (p, e) => p + (spentMap[e.id] ?? 0.0),
     );
-    final utilization = totalAllocated == 0 ? 0 : totalSpent / totalAllocated;
+    final double utilization = totalAllocated == 0.0 ? 0.0 : totalSpent / totalAllocated;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Budgets')),
@@ -87,67 +88,17 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                 ),
               ),
             const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    theme.colorScheme.primary,
-                    theme.colorScheme.secondary.withValues(alpha: 0.6),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Monthly Budget',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.8),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // FIX: was a single Text with '\n' — no typographic hierarchy.
-                  // Now two rows with label + amount, matching the home card pattern.
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildBudgetStat(
-                        context,
-                        label: 'Allocated',
-                        value: formatAmount(totalAllocated, currency),
-                        icon: Icons.account_balance_wallet_outlined,
-                      ),
-                      _buildBudgetStat(
-                        context,
-                        label: 'Spent',
-                        value: formatAmount(totalSpent, currency),
-                        icon: Icons.trending_up_rounded,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  LinearProgressIndicator(
-                    value: utilization.clamp(0.0, 1.0).toDouble(),
-                    minHeight: 8,
-                    backgroundColor: Colors.white.withValues(alpha: 0.2),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      utilization > 1 ? Colors.redAccent : Colors.greenAccent,
-                    ),
-                  ),
-                ],
-              ),
+            _BudgetsHeroCard(
+              totalAllocated: totalAllocated,
+              totalSpent: totalSpent,
+              utilization: utilization,
+              currency: currency,
+              isLoading: budgetsAsync.isLoading,
             ),
             const SizedBox(height: 24),
-            Text(
-              'Category Budgets',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+            const _SectionHeader(
+              title: 'Category Budgets',
+              icon: Icons.donut_large_rounded,
             ),
             const SizedBox(height: 12),
             budgetsAsync.when(
@@ -164,24 +115,21 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                   Center(child: Text('Failed to load budgets: $e')),
               data: (list) {
                 if (list.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.account_balance_wallet,
-                          size: 72,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(height: 12),
-                        Text('No budgets', style: theme.textTheme.titleMedium),
-                        const SizedBox(height: 8),
-                        FilledButton(
+                  return Column(
+                    children: [
+                      const SizedBox(height: AppSpacing.s8),
+                      const _EmptyState(
+                        message: 'No budgets',
+                        icon: Icons.account_balance_wallet,
+                      ),
+                      const SizedBox(height: AppSpacing.s12),
+                      Center(
+                        child: FilledButton(
                           onPressed: () => _openCreateBudget(context),
                           child: const Text('Create budget'),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   );
                 }
                 return ListView.separated(
@@ -191,11 +139,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                   separatorBuilder: (sepCtx, i) => const SizedBox(height: 12),
                   itemBuilder: (ctx, i) {
                     final e = list[i];
-                    final spent = spentMap[e.id] ?? 0;
-                    final progress = e.allocated == 0 ? 0 : spent / e.allocated;
-                    final allocatedLabel = e.allocated.isFinite
-                      ? formatAmount(e.allocated, currency)
-                      : '∞';
+                    final spent = spentMap[e.id] ?? 0.0;
 
                     final isSynthetic = e.id == '__general_budget';
                     final budgetCard = _BudgetFlipCard(
@@ -293,46 +237,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
 
 
 
-  /// Stat pill used in the hero budget card (replaces the '\n' text blob).
-  Widget _buildBudgetStat(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required IconData icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.white, size: 16),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.85),
-                ),
-              ),
-              Text(
-                value,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  
 
   Future<void> _openCreateBudget(BuildContext context) async {
     final theme = Theme.of(context);
@@ -567,8 +472,9 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           'allocated': double.tryParse(allocatedController.text.trim()),
           'categoryIds': selectedCategoryIds,
         });
-        if (mounted)
+        if (mounted) {
           messenger.showSnackBar(const SnackBar(content: Text('Draft saved')));
+        }
       }
     } else {
       await prefs.clearDraft('budget_create');
@@ -743,8 +649,9 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
               ? null
               : nameController.text.trim(),
         });
-        if (mounted)
+        if (mounted) {
           messenger.showSnackBar(const SnackBar(content: Text('Draft saved')));
+        }
       }
     } else {
       await prefs.clearDraft('budget_adjust');
@@ -752,6 +659,169 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     // Do not dispose these controllers synchronously; like the create budget
     // sheet, they are short-lived and tied to the bottom sheet lifecycle,
     // and disposing them here can race with framework rebuilds.
+  }
+}
+
+// Shared small UI primitives (visual parity with Insights)
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  const _SectionHeader({required this.title, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Icon(icon, size: 17, color: theme.colorScheme.primary),
+        const SizedBox(width: AppSpacing.s8),
+        Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BaseCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsets? padding;
+  const _BaseCard({required this.child, this.padding});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: padding ?? const EdgeInsets.all(AppSpacing.cardPadding),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: AppRadius.lgAll,
+        border: Border.all(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.07),
+        ),
+        boxShadow: AppShadow.card,
+      ),
+      child: child,
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final String message;
+  final IconData icon;
+  const _EmptyState({required this.message, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return _BaseCard(
+      child: SizedBox(
+        height: 100,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 36, color: theme.colorScheme.primary),
+            const SizedBox(width: AppSpacing.s12),
+            Text(
+              message,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BudgetsHeroCard extends StatelessWidget {
+  final double totalAllocated;
+  final double totalSpent;
+  final double utilization;
+  final String currency;
+  final bool isLoading;
+  const _BudgetsHeroCard({
+    required this.totalAllocated,
+    required this.totalSpent,
+    required this.utilization,
+    required this.currency,
+    required this.isLoading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.primary;
+    final over = utilization > 1.0;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.cardPadding),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withValues(alpha: 0.16),
+            color.withValues(alpha: 0.02),
+          ],
+        ),
+        borderRadius: AppRadius.lgAll,
+        border: Border.all(color: color.withValues(alpha: 0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Monthly Budget',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s8),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Allocated', style: theme.textTheme.labelSmall),
+                    const SizedBox(height: AppSpacing.s4),
+                    Text(formatAmount(totalAllocated, currency), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Spent', style: theme.textTheme.labelSmall),
+                    const SizedBox(height: AppSpacing.s4),
+                    Text(formatAmount(totalSpent, currency), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.s12),
+          LinearProgressIndicator(
+            value: utilization.clamp(0.0, 1.0).toDouble(),
+            minHeight: 8,
+            backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+            valueColor: AlwaysStoppedAnimation<Color>(
+              over ? AppColors.error : AppColors.success,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

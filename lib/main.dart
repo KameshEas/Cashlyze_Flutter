@@ -125,15 +125,15 @@ void main() async {
   // Resolve DSN from .env first then compile-time env. If provided,
   // initialize Sentry asynchronously (do not await) so the app UI is not
   // blocked by Sentry init. Once ready, update error forwarding.
-  String? _sentryFromDotenv;
+  String? sentryFromDotenv;
   try {
-    _sentryFromDotenv = dotenv.env['SENTRY_DSN'];
+    sentryFromDotenv = dotenv.env['SENTRY_DSN'];
   } catch (_) {
-    _sentryFromDotenv = null;
+    sentryFromDotenv = null;
   }
 
-  final sentryDsn = (_sentryFromDotenv != null && _sentryFromDotenv.isNotEmpty)
-      ? _sentryFromDotenv
+  final sentryDsn = (sentryFromDotenv != null && sentryFromDotenv.isNotEmpty)
+      ? sentryFromDotenv
       : const String.fromEnvironment(
           'SENTRY_DSN',
           defaultValue:

@@ -212,8 +212,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         String key = '';
                         if (catIds.isNotEmpty) {
                           final raw = catIds.first.trim();
-                          if (raw.isEmpty) key = (b.name ?? '').trim();
-                          else if (idToName.containsKey(raw)) key = idToName[raw]!.trim();
+                          if (raw.isEmpty) {
+                            key = (b.name ?? '').trim();
+                          } else if (idToName.containsKey(raw)) key = idToName[raw]!.trim();
                           else key = (b.name ?? raw).trim();
                         } else {
                           key = (b.name ?? '').trim();
@@ -926,7 +927,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             final matchingCount = categoryItems.where((it) => it.value == displayCategory).length;
             final effectiveInitialCategory = matchingCount == 1
                 ? displayCategory
-                : (categoryItems.isNotEmpty ? (categoryItems.first.value as String?) : null);
+                : (categoryItems.isNotEmpty ? categoryItems.first.value : null);
             return Padding(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(ctx).viewInsets.bottom,
@@ -1326,12 +1327,16 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               String key = '';
               if (catIds.isNotEmpty) {
                 final raw = catIds.first.trim();
-                if (raw.isEmpty) key = (b.name ?? '').trim();
-                else if (idToNameEdit.containsKey(raw)) key = idToNameEdit[raw]!.trim();
+                if (raw.isEmpty) {
+                  key = (b.name ?? '').trim();
+                } else if (idToNameEdit.containsKey(raw)) key = idToNameEdit[raw]!.trim();
                 else {
                   final mappedId = nameToIdEdit[raw.toLowerCase()];
-                  if (mappedId != null) key = idToNameEdit[mappedId] ?? raw;
-                  else key = (b.name ?? raw).trim();
+                  if (mappedId != null) {
+                    key = idToNameEdit[mappedId] ?? raw;
+                  } else {
+                    key = (b.name ?? raw).trim();
+                  }
                 }
               } else {
                 key = (b.name ?? '').trim();
@@ -1358,7 +1363,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             final matchingCountEdit = categoryItems.where((it) => it.value == displayCategoryEdit).length;
             final effectiveInitialCategoryEdit = matchingCountEdit == 1
                 ? displayCategoryEdit
-                : (categoryItems.isNotEmpty ? (categoryItems.first.value as String?) : null);
+                : (categoryItems.isNotEmpty ? categoryItems.first.value : null);
             return Padding(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(ctx).viewInsets.bottom,

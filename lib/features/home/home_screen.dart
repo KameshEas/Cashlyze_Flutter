@@ -607,8 +607,11 @@ class HomeScreen extends ConsumerWidget {
                 key = idToNameHome[raw]!.trim();
               } else {
                 final mappedId = nameToIdHome[raw.toLowerCase()];
-                if (mappedId != null) key = idToNameHome[mappedId] ?? raw;
-                else key = (b.name ?? raw).trim();
+                if (mappedId != null) {
+                  key = idToNameHome[mappedId] ?? raw;
+                } else {
+                  key = (b.name ?? raw).trim();
+                }
               }
             } else {
               key = (b.name ?? '').trim();
@@ -640,7 +643,7 @@ class HomeScreen extends ConsumerWidget {
           final matchingCountHome = categoryItems.where((it) => it.value == displayLocalCategory).length;
           final effectiveInitialLocalCategory = matchingCountHome == 1
               ? displayLocalCategory
-              : (categoryItems.isNotEmpty ? (categoryItems.first.value as String?) : null);
+              : (categoryItems.isNotEmpty ? categoryItems.first.value : null);
 
           return Padding(
             padding: EdgeInsets.only(

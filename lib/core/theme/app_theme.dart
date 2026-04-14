@@ -40,7 +40,7 @@ class AppTheme {
       appBarTheme: AppBarTheme(
         backgroundColor: darkBackground,
         elevation: 0,
-        centerTitle: true,
+        centerTitle: false,
         titleTextStyle: GoogleFonts.inter(
           fontSize: AppType.h3,    // 20 from scale — no more magic number
           fontWeight: FontWeight.w700,
@@ -153,7 +153,7 @@ class AppTheme {
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.neutral100,
         elevation: 0,
-        centerTitle: true,
+        centerTitle: false,
         titleTextStyle: GoogleFonts.inter(
           fontSize: AppType.h3,
           fontWeight: FontWeight.w700,
