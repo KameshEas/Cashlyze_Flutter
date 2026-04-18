@@ -124,6 +124,9 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildBalanceCard(BuildContext context, String currency, Kpis kpis) {
+    final balanceStatus = getBalanceStatus(kpis.net, currency);
+    final isPositive = balanceStatus.isPositive;
+    
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -148,6 +151,7 @@ class HomeScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header Row: Title + Period
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -166,23 +170,66 @@ class HomeScreen extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
+          
+          // Primary Status Message (Animated)
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             switchInCurve: Curves.easeOut,
             switchOutCurve: Curves.easeIn,
             transitionBuilder: (child, animation) =>
                 ScaleTransition(scale: animation, child: child),
-            child: Text(
-              formatAmount(kpis.net, currency),
+            child: Column(
               key: ValueKey(kpis.net),
-              style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-              ),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Status message row with indicator
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        balanceStatus.message,
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    // Status indicator circle (green/red)
+                    Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isPositive ? Colors.greenAccent : Colors.redAccent,
+                        boxShadow: [
+                          BoxShadow(
+                            color: isPositive 
+                                ? Colors.greenAccent.withValues(alpha: 0.5)
+                                : Colors.redAccent.withValues(alpha: 0.5),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                // Secondary: Net balance (small text)
+                Text(
+                  'Net: ${formatAmount(kpis.net, currency)}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.65),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
+          
           const SizedBox(height: 24),
+          
+          // Income & Expense Breakdown (existing, unchanged)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
