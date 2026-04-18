@@ -10,7 +10,7 @@ import '../../core/repositories/category_repository.dart';
 import 'transaction_filters.dart';
 
 class TransactionFilterSheet extends ConsumerStatefulWidget {
-  const TransactionFilterSheet({Key? key}) : super(key: key);
+  const TransactionFilterSheet({super.key});
 
   @override
   ConsumerState<TransactionFilterSheet> createState() => _TransactionFilterSheetState();

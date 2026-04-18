@@ -278,186 +278,189 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            child: StatefulBuilder(builder: (ctx, setSheetState) => Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 48,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
-                    filled: true,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: allocatedController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                      RegExp(r'^\d*\.?\d{0,2}'),
+            child: StatefulBuilder(builder: (ctx, setSheetState) => Consumer(builder: (cctx, wref, _) {
+              final categories = wref.watch(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                  ],
-                  decoration: const InputDecoration(
-                    labelText: 'Allocated',
-                    helperText: 'e.g., 500.00',
-                    filled: true,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (categories.isNotEmpty) ...[
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Categories (optional)',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final c in categories)
-                        FilterChip(
-                          label: Text(c.name),
-                          // Store & compare by name — transactions also store
-                          // categoryId as the category name string, not the
-                          // RTDB key, so this must match.
-                          selected: selectedCategoryIds.contains(c.name),
-                          onSelected: (sel) {
-                            setSheetState(() {
-                              if (sel) {
-                                selectedCategoryIds = [
-                                  ...selectedCategoryIds,
-                                  c.name,
-                                ];
-                              } else {
-                                selectedCategoryIds = selectedCategoryIds
-                                    .where((n) => n != c.name)
-                                    .toList();
-                              }
-                            });
-                          },
-                        ),
-                    ],
                   ),
                   const SizedBox(height: 12),
-                ],
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: () async {
-                          debugPrint('Budget create: Save pressed');
-                          print('Budget create: Save pressed');
-                          // Visual feedback removed (no blocking dialog).
-                          final user = ref.read(currentUserProvider);
-                          if (user == null) {
-                            // In normal app flow this shouldn't happen because
-                            // the Budgets page requires an authenticated user.
-                            // If it does, just no-op instead of showing a
-                            // confusing snackbar.
-                            return;
-                          }
-
-                          final repo = ref.read(budgetRepositoryProvider);
-                          final name = nameController.text.trim();
-                          if (name.isEmpty) {
-                            // Use the sheet's own ScaffoldMessenger so the
-                            // snackbar appears INSIDE/ABOVE the modal, not
-                            // hidden behind it on the page underneath.
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              const SnackBar(content: Text('Enter a name')),
-                            );
-                            return;
-                          }
-
-                          final amountText = allocatedController.text.trim();
-                          if (!validateAmount(amountText)) {
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              const SnackBar(
-                                content: Text('Enter a valid amount'),
-                              ),
-                            );
-                            return;
-                          }
-
-                          final amount = double.tryParse(amountText) ?? 0;
-                          if (amount <= 0) {
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Amount must be greater than zero',
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-
-                          try {
-                            debugPrint('Creating budget (name=$name, allocated=$amount, cats=$selectedCategoryIds');
-                            // Normalize selected category identifiers to canonical
-                            // category IDs where possible before persisting the
-                            // budget. The UI keeps `selectedCategoryIds` as
-                            // readable names for UX; here we convert names -> ids
-                            // using the user's categories so stored budgets are
-                            // consistent.
-                            final catsList = ref.read(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
-                            final nameToId = <String, String>{};
-                            for (final c in catsList) {
-                              final nm = (c.name ?? '').trim();
-                              if (nm.isEmpty) continue;
-                              nameToId[nm.toLowerCase()] = c.id;
-                            }
-                            final finalCategoryIds = selectedCategoryIds.map((s) {
-                              final sTrim = (s ?? '').trim();
-                              if (sTrim.isEmpty) return sTrim;
-                              final mapped = nameToId[sTrim.toLowerCase()];
-                              if (mapped != null) return mapped;
-                              // If value already looks like an id that exists,
-                              // keep it as-is.
-                              if (catsList.any((c) => c.id == sTrim)) return sTrim;
-                              // Otherwise persist the original string (legacy).
-                              return sTrim;
-                            }).where((s) => s.isNotEmpty).toList();
-
-                            final created = await repo.create(
-                              userId: user.uid,
-                              name: name,
-                              allocated: amount,
-                              period: BudgetPeriod.monthly,
-                              categoryIds: finalCategoryIds,
-                            );
-                            debugPrint('Budget created id=${created.id}');
-                            nav.pop(true);
-                            pageMessenger.showSnackBar(
-                              const SnackBar(content: Text('Budget created')),
-                            );
-                          } catch (e) {
-                            debugPrint('Budget create failed: $e');
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              SnackBar(content: Text('Failed: $e')),
-                            );
-                          }
-                        },
-                        child: const Text('Save'),
+                  TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Name',
+                      filled: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: allocatedController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d*\.?\d{0,2}'),
+                      ),
+                    ],
+                    decoration: const InputDecoration(
+                      labelText: 'Allocated',
+                      helperText: 'e.g., 500.00',
+                      filled: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (categories.isNotEmpty) ...[
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Categories (optional)',
+                        style: theme.textTheme.bodyMedium,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final c in categories)
+                          FilterChip(
+                            label: Text(c.name),
+                            // Store & compare by name — transactions also store
+                            // categoryId as the category name string, not the
+                            // RTDB key, so this must match.
+                            selected: selectedCategoryIds.contains(c.name),
+                            onSelected: (sel) {
+                              setSheetState(() {
+                                if (sel) {
+                                  selectedCategoryIds = [
+                                    ...selectedCategoryIds,
+                                    c.name,
+                                  ];
+                                } else {
+                                  selectedCategoryIds = selectedCategoryIds
+                                      .where((n) => n != c.name)
+                                      .toList();
+                                }
+                              });
+                            },
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                   ],
-                ),
-              ],
-            )),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () async {
+                            debugPrint('Budget create: Save pressed');
+                            print('Budget create: Save pressed');
+                            // Visual feedback removed (no blocking dialog).
+                            final user = ref.read(currentUserProvider);
+                            if (user == null) {
+                              // In normal app flow this shouldn't happen because
+                              // the Budgets page requires an authenticated user.
+                              // If it does, just no-op instead of showing a
+                              // confusing snackbar.
+                              return;
+                            }
+
+                            final repo = ref.read(budgetRepositoryProvider);
+                            final name = nameController.text.trim();
+                            if (name.isEmpty) {
+                              // Use the sheet's own ScaffoldMessenger so the
+                              // snackbar appears INSIDE/ABOVE the modal, not
+                              // hidden behind it on the page underneath.
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                const SnackBar(content: Text('Enter a name')),
+                              );
+                              return;
+                            }
+
+                            final amountText = allocatedController.text.trim();
+                            if (!validateAmount(amountText)) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Enter a valid amount'),
+                                ),
+                              );
+                              return;
+                            }
+
+                            final amount = double.tryParse(amountText) ?? 0;
+                            if (amount <= 0) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Amount must be greater than zero',
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
+
+                            try {
+                              debugPrint('Creating budget (name=$name, allocated=$amount, cats=$selectedCategoryIds');
+                              // Normalize selected category identifiers to canonical
+                              // category IDs where possible before persisting the
+                              // budget. The UI keeps `selectedCategoryIds` as
+                              // readable names for UX; here we convert names -> ids
+                              // using the user's categories so stored budgets are
+                              // consistent.
+                              final catsList = ref.read(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+                              final nameToId = <String, String>{};
+                              for (final c in catsList) {
+                                final nm = (c.name ?? '').trim();
+                                if (nm.isEmpty) continue;
+                                nameToId[nm.toLowerCase()] = c.id;
+                              }
+                              final finalCategoryIds = selectedCategoryIds.map((s) {
+                                final sTrim = (s ?? '').trim();
+                                if (sTrim.isEmpty) return sTrim;
+                                final mapped = nameToId[sTrim.toLowerCase()];
+                                if (mapped != null) return mapped;
+                                // If value already looks like an id that exists,
+                                // keep it as-is.
+                                if (catsList.any((c) => c.id == sTrim)) return sTrim;
+                                // Otherwise persist the original string (legacy).
+                                return sTrim;
+                              }).where((s) => s.isNotEmpty).toList();
+
+                              final created = await repo.create(
+                                userId: user.uid,
+                                name: name,
+                                allocated: amount,
+                                period: BudgetPeriod.monthly,
+                                categoryIds: finalCategoryIds,
+                              );
+                              debugPrint('Budget created id=${created.id}');
+                              nav.pop(true);
+                              pageMessenger.showSnackBar(
+                                const SnackBar(content: Text('Budget created')),
+                              );
+                            } catch (e) {
+                              debugPrint('Budget create failed: $e');
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                SnackBar(content: Text('Failed: $e')),
+                              );
+                            }
+                          },
+                          child: const Text('Save'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            })),
           ),
         );
       },
@@ -690,7 +693,7 @@ class _SectionHeader extends StatelessWidget {
 class _BaseCard extends StatelessWidget {
   final Widget child;
   final EdgeInsets? padding;
-  const _BaseCard({required this.child, this.padding});
+  const _BaseCard({Key? key, required this.child, this.padding}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

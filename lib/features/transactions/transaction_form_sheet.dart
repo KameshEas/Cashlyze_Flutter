@@ -30,24 +30,22 @@ class TransactionFormSheet extends ConsumerStatefulWidget {
   final DateTime? initialDate;
 
   const TransactionFormSheet.create({
-    Key? key,
+    super.key,
     this.initialTitle,
     this.initialAmount,
     this.initialCategory,
     this.initialDate,
   })  : mode = TransactionFormMode.create,
-        id = null,
-        super(key: key);
+        id = null;
 
   const TransactionFormSheet.edit({
-    Key? key,
+    super.key,
     required this.id,
     this.initialTitle,
     this.initialAmount,
     this.initialCategory,
     this.initialDate,
-  })  : mode = TransactionFormMode.edit,
-        super(key: key);
+  })  : mode = TransactionFormMode.edit;
 
   @override
   ConsumerState<TransactionFormSheet> createState() => _TransactionFormSheetState();
@@ -201,7 +199,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
             const SizedBox(height: 12),
             Row(children: [
               Expanded(child: DropdownButtonFormField<String>(
-                value: type,
+                initialValue: type,
                 items: [
                   DropdownMenuItem(value: 'Expense', child: Text(t?.expense ?? 'Expense')),
                   DropdownMenuItem(value: 'Income', child: Text(t?.income ?? 'Income')),
@@ -213,6 +211,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               Expanded(
                 child: Consumer(builder: (ctx, wref, _) {
                   final catsAsync = wref.watch(userCategoriesProvider);
+                  final budgetsAsync = wref.watch(userBudgetsProvider);
                   final Map<String, DropdownMenuItem<String>> unique = {};
                   // Seed with General
                   unique['general'] = const DropdownMenuItem(value: 'General', child: Text('General'));
@@ -230,10 +229,24 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                       }
                     },
                   );
+                  budgetsAsync.when(
+                    loading: () {},
+                    error: (_, __) {},
+                    data: (list) {
+                      for (final b in list) {
+                        final name = (b.name ?? '').trim();
+                        if (name.isEmpty) continue;
+                        final key = name.toLowerCase();
+                        if (!unique.containsKey(key)) {
+                          unique[key] = DropdownMenuItem(value: name, child: Row(children: [Expanded(child: Text(name, overflow: TextOverflow.ellipsis))]));
+                        }
+                      }
+                    },
+                  );
                   final categoryItems = unique.values.toList();
                   final safeValue = categoryItems.any((it) => it.value == category) ? category : (categoryItems.isNotEmpty ? categoryItems.first.value as String : null);
                   return DropdownButtonFormField<String>(
-                    value: safeValue,
+                    initialValue: safeValue,
                     isExpanded: true,
                     items: categoryItems,
                     onChanged: (v) => setState(() => category = v ?? 'General'),
@@ -336,7 +349,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
             if (repeatEnabled) const SizedBox(height: 8),
             if (repeatEnabled)
               DropdownButtonFormField<String>(
-                value: repeatFreq,
+                initialValue: repeatFreq,
                 items: [
                   DropdownMenuItem(value: 'Monthly', child: Text(t?.monthlyLabel ?? 'Monthly')),
                   DropdownMenuItem(value: 'Weekly', child: Text(t?.weeklyLabel ?? 'Weekly')),

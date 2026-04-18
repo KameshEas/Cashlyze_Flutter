@@ -15,7 +15,7 @@ class TransactionListItem extends ConsumerWidget {
   final VoidCallback? onTap;
 
   const TransactionListItem({
-    Key? key,
+    super.key,
     required this.tx,
     required this.currency,
     required this.datePattern,
@@ -24,7 +24,7 @@ class TransactionListItem extends ConsumerWidget {
     this.onSelectedChanged,
     this.onLongPress,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
