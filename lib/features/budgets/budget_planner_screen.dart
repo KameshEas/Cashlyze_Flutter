@@ -14,6 +14,8 @@ import '../../core/utils/validation.dart';
 import '../../core/widgets/dialogs.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/ui/constants.dart';
+import '../../core/widgets/animated_progress_indicator.dart';
+import '../../core/widgets/animated_progress_text.dart';
 
 class BudgetPlannerScreen extends ConsumerStatefulWidget {
   const BudgetPlannerScreen({super.key});
@@ -691,7 +693,10 @@ class _SectionHeader extends StatelessWidget {
 class _BaseCard extends StatelessWidget {
   final Widget child;
   final EdgeInsets? padding;
-  const _BaseCard({super.key, required this.child});
+  const _BaseCard({
+    required this.child,
+    this.padding,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -815,33 +820,19 @@ class _BudgetsHeroCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: LinearProgressIndicator(
-                  value: utilization.clamp(0.0, 1.0).toDouble(),
+                child: AnimatedProgressIndicator(
+                  progress: utilization.clamp(0.0, double.infinity),
                   minHeight: 8,
                   backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    over ? AppColors.error : AppColors.success,
-                  ),
                 ),
               ),
               const SizedBox(width: AppSpacing.s8),
-              Builder(builder: (pctCtx) {
-                final label = totalAllocated.isFinite
-                    ? (totalAllocated == 0.0
-                        ? '0%'
-                        : () {
-                            final p = utilization * 100.0;
-                            return p >= 10 ? '${p.round()}%' : '${p.toStringAsFixed(1)}%';
-                          }())
-                    : '∞';
-                return Text(
-                  label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: over ? theme.colorScheme.error : null,
-                  ),
-                );
-              }),
+              AnimatedProgressText(
+                progress: utilization.clamp(0.0, 1.0),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
         ],

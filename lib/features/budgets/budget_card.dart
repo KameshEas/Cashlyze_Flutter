@@ -7,6 +7,8 @@ import '../../core/models/budget.dart';
 import '../../core/providers/budget_providers.dart';
 import '../../core/utils/format.dart';
 import '../../core/ui/constants.dart';
+import '../../core/widgets/animated_progress_indicator.dart';
+import '../../core/widgets/animated_progress_text.dart';
 
 class BudgetCard extends ConsumerStatefulWidget {
   final BudgetModel budget;
@@ -96,32 +98,19 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
           Row(
             children: [
               Expanded(
-                child: LinearProgressIndicator(
-                  value: progress.clamp(0.0, 1.0).toDouble(),
+                child: AnimatedProgressIndicator(
+                  progress: progress.clamp(0.0, double.infinity),
                   minHeight: 8,
                   backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    progress > 1 ? theme.colorScheme.error : theme.colorScheme.secondary,
-                  ),
                 ),
               ),
               const SizedBox(width: AppSpacing.s8),
-              Builder(builder: (pctCtx) {
-                final label = allocatedLabel == '∞'
-                    ? '∞'
-                    : (() {
-                        if (widget.budget.allocated == 0.0) return '0%';
-                        final p = (spent / widget.budget.allocated) * 100.0;
-                        return p >= 10 ? '${p.round()}%' : '${p.toStringAsFixed(1)}%';
-                      })();
-                return Text(
-                  label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: progress > 1 ? theme.colorScheme.error : null,
-                  ),
-                );
-              }),
+              AnimatedProgressText(
+                progress: progress.clamp(0.0, 1.0),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
         ],

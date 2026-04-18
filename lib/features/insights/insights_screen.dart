@@ -9,6 +9,7 @@ import '../../core/providers/onboarding_provider.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../core/ui/constants.dart';
+import '../../core/widgets/animated_progress_indicator.dart';
 
 const List<Color> _kPalette = [
   AppColors.emerald600,
@@ -998,11 +999,10 @@ class _MerchantsCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.s8),
                 ClipRRect(
                   borderRadius: AppRadius.fullAll,
-                  child: LinearProgressIndicator(
-                    value: fill,
+                  child: AnimatedProgressIndicator(
+                    progress: fill,
                     minHeight: 4,
                     backgroundColor: color.withValues(alpha: 0.10),
-                    valueColor: AlwaysStoppedAnimation(color),
                   ),
                 ),
               ],

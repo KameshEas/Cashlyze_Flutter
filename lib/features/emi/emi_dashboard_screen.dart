@@ -7,6 +7,7 @@ import '../../core/providers/onboarding_provider.dart';
 import '../../core/services/auth_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
+import '../../core/widgets/animated_progress_indicator.dart';
 import 'emi_form_screen.dart';
 
 class EMIDashboardScreen extends ConsumerWidget {
@@ -274,13 +275,10 @@ class _PlanCard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   // Progress
-                  LinearProgressIndicator(
-                    value: progress.clamp(0.0, 1.0),
+                  AnimatedProgressIndicator(
+                    progress: progress.clamp(0.0, double.infinity),
                     minHeight: 8,
                     backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      progress >= 1 ? Colors.green : Theme.of(context).colorScheme.secondary,
-                    ),
                   ),
                   const SizedBox(height: 8),
                   Text('$paidCount of $total paid', style: Theme.of(context).textTheme.bodySmall),
