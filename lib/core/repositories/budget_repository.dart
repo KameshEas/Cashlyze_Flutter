@@ -22,7 +22,6 @@ class BudgetRepository {
 
     final List<String> resolved = [];
     for (final raw in rawCategoryKeys) {
-      if (raw == null) continue;
       final key = raw.trim();
       if (key.isEmpty) continue;
       // Skip pseudo or generic budgets
