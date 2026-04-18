@@ -16,6 +16,7 @@ import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/utils/format.dart';
 import '../../core/utils/validation.dart';
 import '../../core/widgets/dialogs.dart';
+import '../../core/widgets/category_picker_field.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/utils/repo_error_handler.dart';
 
@@ -209,50 +210,11 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               )),
               const SizedBox(width: 12),
               Expanded(
-                child: Consumer(builder: (ctx, wref, _) {
-                  final catsAsync = wref.watch(userCategoriesProvider);
-                  final budgetsAsync = wref.watch(userBudgetsProvider);
-                  final Map<String, DropdownMenuItem<String>> unique = {};
-                  // Seed with General
-                  unique['general'] = const DropdownMenuItem(value: 'General', child: Text('General'));
-                  catsAsync.when(
-                    loading: () {},
-                    error: (_, __) {},
-                    data: (list) {
-                      for (final c in list) {
-                        final name = (c.name ?? '').trim();
-                        if (name.isEmpty) continue;
-                        final key = name.toLowerCase();
-                        if (!unique.containsKey(key)) {
-                          unique[key] = DropdownMenuItem(value: name, child: Row(children: [Expanded(child: Text(name, overflow: TextOverflow.ellipsis))]));
-                        }
-                      }
-                    },
-                  );
-                  budgetsAsync.when(
-                    loading: () {},
-                    error: (_, __) {},
-                    data: (list) {
-                      for (final b in list) {
-                        final name = (b.name ?? '').trim();
-                        if (name.isEmpty) continue;
-                        final key = name.toLowerCase();
-                        if (!unique.containsKey(key)) {
-                          unique[key] = DropdownMenuItem(value: name, child: Row(children: [Expanded(child: Text(name, overflow: TextOverflow.ellipsis))]));
-                        }
-                      }
-                    },
-                  );
-                  final categoryItems = unique.values.toList();
-                  final safeValue = categoryItems.any((it) => it.value == category) ? category : (categoryItems.isNotEmpty ? categoryItems.first.value as String : null);
-                  return DropdownButtonFormField<String>(
-                    initialValue: safeValue,
-                    isExpanded: true,
-                    items: categoryItems,
-                    onChanged: (v) => setState(() => category = v ?? 'General'),
-                    decoration: InputDecoration(labelText: t?.categoryLabel ?? 'Category', filled: true),
-                  );
-                }),
+                child: CategoryPickerField(
+                  value: category,
+                  onChanged: (v) => setState(() => category = v),
+                  label: t?.categoryLabel ?? 'Category',
+                ),
               ),
             ]),
             const SizedBox(height: 12),

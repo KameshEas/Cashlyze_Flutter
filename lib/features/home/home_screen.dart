@@ -9,6 +9,7 @@ import '../../core/services/transaction_ingest_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/skeleton.dart';
+import '../../core/widgets/category_picker_field.dart';
 import '../../core/models/transaction.dart';
 import '../../core/repositories/emi_repository.dart';
 import '../../core/repositories/transaction_repository.dart';
@@ -688,15 +689,10 @@ class HomeScreen extends ConsumerWidget {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: DropdownButtonFormField<String>(
-                          initialValue: effectiveInitialLocalCategory,
-                          isExpanded: true,
-                          items: categoryItems,
-                          onChanged: (v) => setSheetState(() => localCategory = v ?? 'General'),
-                          decoration: const InputDecoration(
-                            labelText: 'Category',
-                            filled: true,
-                          ),
+                        child: CategoryPickerField(
+                          value: effectiveInitialLocalCategory ?? (localCategory ?? 'General'),
+                          onChanged: (v) => setSheetState(() => localCategory = v),
+                          label: 'Category',
                         ),
                       ),
                     ],
