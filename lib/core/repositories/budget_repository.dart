@@ -2,10 +2,64 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/realtime_db_service.dart';
 import '../services/auth_service.dart';
 import '../models/budget.dart';
+import 'category_repository.dart';
 
 class BudgetRepository {
   final RealtimeDbService _db;
   BudgetRepository(this._db);
+
+  Future<List<String>> _resolveOrCreateCategoryIds(String userId, List<String>? rawCategoryKeys) async {
+    if (rawCategoryKeys == null || rawCategoryKeys.isEmpty) return const [];
+    final catRepo = CategoryRepository(_db);
+    final existing = await catRepo.getAllForUser(userId);
+    final Map<String, String> nameToId = {};
+    final Set<String> idSet = {};
+    for (final c in existing) {
+      final n = (c.name ?? '').trim();
+      if (n.isNotEmpty) nameToId[n.toLowerCase()] = c.id;
+      idSet.add(c.id);
+    }
+
+    final List<String> resolved = [];
+    for (final raw in rawCategoryKeys) {
+      if (raw == null) continue;
+      final key = raw.trim();
+      if (key.isEmpty) continue;
+      // Skip pseudo or generic budgets
+      if (key == '__general_budget' || key.toLowerCase() == 'general') continue;
+
+      // If it looks like an id already, keep it
+      if (idSet.contains(key)) {
+        resolved.add(key);
+        continue;
+      }
+
+      // If a category with that name exists, use its id
+      final lower = key.toLowerCase();
+      if (nameToId.containsKey(lower)) {
+        resolved.add(nameToId[lower]!);
+        continue;
+      }
+
+      // Otherwise, create a new category (best-effort)
+      try {
+        final created = await catRepo.create(userId: userId, name: key);
+        resolved.add(created.id);
+      } catch (_) {
+        // If creation fails, fallback to storing the original string
+        resolved.add(key);
+      }
+    }
+
+    // Deduplicate while preserving order
+    final seen = <String>{};
+    final dedup = <String>[];
+    for (final r in resolved) {
+      if (r.isEmpty) continue;
+      if (seen.add(r)) dedup.add(r);
+    }
+    return dedup;
+  }
 
   Future<BudgetModel> create({
     required String userId,
@@ -15,12 +69,16 @@ class BudgetRepository {
     List<String> categoryIds = const [],
   }) async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
+
+    // Resolve category ids (create categories if necessary)
+    final resolvedCategoryIds = await _resolveOrCreateCategoryIds(userId, categoryIds);
+
     final data = {
       'userId': userId,
       'name': name.trim(),
       'allocated': allocated,
       'period': period.name,
-      'categoryIds': categoryIds,
+      'categoryIds': resolvedCategoryIds,
       'created_at_ms': nowMs,
       'updated_at_ms': nowMs,
     };
@@ -32,6 +90,19 @@ class BudgetRepository {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final userId = data['userId'] as String?;
     if (userId == null) throw ArgumentError('userId required for update');
+
+    // If caller supplied categoryIds, resolve them (create categories when needed)
+    if (data.containsKey('categoryIds')) {
+      final raw = data['categoryIds'] as List?;
+      if (raw != null) {
+        try {
+          final resolved = await _resolveOrCreateCategoryIds(userId, raw.cast<String>());
+          data['categoryIds'] = resolved;
+        } catch (_) {
+          // Best-effort: leave provided values unchanged on failure
+        }
+      }
+    }
 
     final newName = (data['name'] as String?)?.trim();
 
