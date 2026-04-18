@@ -814,13 +814,37 @@ class _BudgetsHeroCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.s12),
-          LinearProgressIndicator(
-            value: utilization.clamp(0.0, 1.0).toDouble(),
-            minHeight: 8,
-            backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-            valueColor: AlwaysStoppedAnimation<Color>(
-              over ? AppColors.error : AppColors.success,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: LinearProgressIndicator(
+                  value: utilization.clamp(0.0, 1.0).toDouble(),
+                  minHeight: 8,
+                  backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    over ? AppColors.error : AppColors.success,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s8),
+              Builder(builder: (pctCtx) {
+                final label = totalAllocated.isFinite
+                    ? (totalAllocated == 0.0
+                        ? '0%'
+                        : () {
+                            final p = utilization * 100.0;
+                            return p >= 10 ? '${p.round()}%' : '${p.toStringAsFixed(1)}%';
+                          }())
+                    : '∞';
+                return Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: over ? theme.colorScheme.error : null,
+                  ),
+                );
+              }),
+            ],
           ),
         ],
       ),
@@ -915,13 +939,36 @@ class _BudgetFlipCardState extends State<_BudgetFlipCard> {
             ],
           ),
           const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: progress.clamp(0.0, 1.0).toDouble(),
-            minHeight: 8,
-            backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-            valueColor: AlwaysStoppedAnimation<Color>(
-              progress > 1 ? theme.colorScheme.error : theme.colorScheme.secondary,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: LinearProgressIndicator(
+                  value: progress.clamp(0.0, 1.0).toDouble(),
+                  minHeight: 8,
+                  backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    progress > 1 ? theme.colorScheme.error : theme.colorScheme.secondary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s8),
+              Builder(builder: (pctCtx) {
+                final label = allocatedLabel == '∞'
+                    ? '∞'
+                    : (() {
+                        if (widget.budget.allocated == 0.0) return '0%';
+                        final p = (spent / widget.budget.allocated) * 100.0;
+                        return p >= 10 ? '${p.round()}%' : '${p.toStringAsFixed(1)}%';
+                      })();
+                return Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: progress > 1 ? theme.colorScheme.error : null,
+                  ),
+                );
+              }),
+            ],
           ),
         ],
       ),
