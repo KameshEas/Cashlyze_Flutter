@@ -86,7 +86,7 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
             _buildBalanceCard(context, currency, kpis),
-            const SizedBox(height: 24),
+            const SizedBox(height: 40),
             Text(
               t?.quickActions ?? 'Quick Actions',
               style: Theme.of(
@@ -479,7 +479,7 @@ class HomeScreen extends ConsumerWidget {
             ),
           );
         }
-        final list = monthItems.take(3).toList();
+        final list = monthItems.take(2).toList();
         return Column(
           children: [
             for (var i = 0; i < list.length; i++) ...[

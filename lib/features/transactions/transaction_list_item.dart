@@ -30,6 +30,8 @@ class TransactionListItem extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isIncome = tx.amount > 0;
+    final accentColor = isIncome ? Colors.green : Colors.red;
+    
     return InkWell(
       onTap: selectionMode
           ? () => onSelectedChanged?.call(!selected)
@@ -42,6 +44,16 @@ class TransactionListItem extends ConsumerWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: theme.colorScheme.onSurface.withOpacity(0.14),
+          ),
+        ),
+        // Left accent bar for income/expense distinction
+        foregroundDecoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border(
+            left: BorderSide(
+              color: accentColor,
+              width: 4,
+            ),
           ),
         ),
         child: Row(

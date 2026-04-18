@@ -100,7 +100,7 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
               Expanded(
                 child: AnimatedProgressIndicator(
                   progress: progress.clamp(0.0, double.infinity),
-                  minHeight: 8,
+                  minHeight: 10,
                   backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.1),
                 ),
               ),

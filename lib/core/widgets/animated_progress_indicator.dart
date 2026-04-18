@@ -45,16 +45,17 @@ class _AnimatedProgressIndicatorState extends State<AnimatedProgressIndicator> {
   }
 
   /// Determines the color based on progress value.
-  /// Green (under budget) when progress < 1.0
-  /// Red (over budget) when progress >= 1.0
+  /// - Green (0-90%): Safe spending
+  /// - Orange (90-100%): Warning threshold
+  /// - Red (≥100%): Overspent state - clear red indication
   Color _getProgressColor(double progress) {
     if (progress >= 1.0) {
-      return Colors.red; // Over budget
+      return Colors.red; // Over budget - bold red for overspend
     }
     if (progress >= 0.9) {
-      return Colors.orange; // Warning: approaching limit
+      return Colors.orange; // Warning: approaching limit (90-100%)
     }
-    return Colors.green; // Under budget
+    return Colors.green; // Under budget (0-90%)
   }
 
   @override

@@ -193,3 +193,48 @@ final transactionsHasMoreProvider = Provider<bool>((ref) {
   final f = ref.watch(transactionFilterProvider);
   return filtered.length > f.page * f.pageSize;
 });
+
+/// Computes the active filter count (extracted for performance)
+/// Prevents quadruple computation in UI layer
+final activeFilterCountProvider = Provider<int>((ref) {
+  final state = ref.watch(transactionFilterProvider);
+  int count = 0;
+  if (state.filter != 'All') count++;
+  if (state.category != 'All') count++;
+  if (state.minAmount != null) count++;
+  if (state.maxAmount != null) count++;
+  if (state.selectedMonth != null && state.selectedMonth != DateTime(DateTime.now().year, DateTime.now().month, 1)) count++;
+  return count;
+});
+
+/// Groups transactions by relative date (Today, Yesterday, This Week, etc.)
+Map<String, List<TransactionModel>> groupTransactionsByDate(List<TransactionModel> transactions) {
+  final grouped = <String, List<TransactionModel>>{};
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final yesterday = today.subtract(const Duration(days: 1));
+  final weekStart = today.subtract(Duration(days: today.weekday - 1));
+
+  for (final tx in transactions) {
+    final txDate = DateTime(tx.date.year, tx.date.month, tx.date.day);
+    late String group;
+
+    if (txDate == today) {
+      group = 'Today';
+    } else if (txDate == yesterday) {
+      group = 'Yesterday';
+    } else if (txDate.isAfter(weekStart) && txDate.isBefore(today)) {
+      group = 'This Week';
+    } else if (txDate.year == today.year && txDate.month == today.month) {
+      group = 'This Month';
+    } else if (txDate.year == today.year && txDate.month == today.month - 1) {
+      group = 'Last Month';
+    } else {
+      group = 'Older';
+    }
+
+    grouped.putIfAbsent(group, () => []).add(tx);
+  }
+
+  return grouped;
+}

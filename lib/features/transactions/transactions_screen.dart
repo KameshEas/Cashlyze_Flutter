@@ -12,6 +12,7 @@ import 'transaction_list_item.dart';
 import 'transaction_filter_sheet.dart';
 import 'transaction_filters.dart';
 import 'transaction_form_sheet.dart';
+import 'transaction_group_list.dart';
 import '../../core/utils/repo_error_handler.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
@@ -152,57 +153,35 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   child: InkWell(
                     onTap: () => _openFilterSheet(context),
                     borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: (() {
-                          int c = 0;
-                          if (filterState.filter != 'All') c++;
-                          if (filterState.category != 'All') c++;
-                          if (filterState.minAmount != null) c++;
-                          if (filterState.maxAmount != null) c++;
-                          if (filterState.selectedMonth != null) c++;
-                          return c > 0 ? theme.colorScheme.primary : theme.colorScheme.surface;
-                        })(),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.1,
+                    child: Consumer(
+                      builder: (ctx, consumerRef, _) {
+                        final activeCount = consumerRef.watch(activeFilterCountProvider);
+                        return Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: activeCount > 0
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.1,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      child: Badge(
-                        isLabelVisible: (() {
-                          int c = 0;
-                          if (filterState.filter != 'All') c++;
-                          if (filterState.category != 'All') c++;
-                          if (filterState.minAmount != null) c++;
-                          if (filterState.maxAmount != null) c++;
-                          if (filterState.selectedMonth != null) c++;
-                          return c > 0;
-                        })(),
-                        label: Text(() {
-                          int c = 0;
-                          if (filterState.filter != 'All') c++;
-                          if (filterState.category != 'All') c++;
-                          if (filterState.minAmount != null) c++;
-                          if (filterState.maxAmount != null) c++;
-                          if (filterState.selectedMonth != null) c++;
-                          return '$c';
-                        }()),
-                        child: Icon(
-                          Icons.tune,
-                          size: 20,
-                          color: (() {
-                            int c = 0;
-                            if (filterState.filter != 'All') c++;
-                            if (filterState.category != 'All') c++;
-                            if (filterState.minAmount != null) c++;
-                            if (filterState.maxAmount != null) c++;
-                              return c > 0 ? Colors.white : theme.colorScheme.onSurface;
-                          })(),
-                        ),
-                      ),
+                          child: Badge(
+                            isLabelVisible: activeCount > 0,
+                            label: Text('$activeCount'),
+                            child: Icon(
+                              Icons.tune,
+                              size: 20,
+                              color: activeCount > 0
+                                  ? Colors.white
+                                  : theme.colorScheme.onSurface,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -281,30 +260,47 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   ),
                 );
               } else {
-                listChild = RefreshIndicator(
-                  key: const ValueKey('tx_list'),
-                  onRefresh: () async {
-                    ref.invalidate(userTransactionsProvider);
-                    await Future.delayed(const Duration(milliseconds: 150));
-                  },
-                  child: ListView.separated(
-                    controller: _scrollController,
-                    padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 88),
-                    itemCount: paged.length + (hasMore ? 1 : 0),
-                    addAutomaticKeepAlives: true,
-                    itemBuilder: (ctx, i) {
-                      if (i >= paged.length) {
-                        // load more indicator
-                        ref.read(transactionFilterProvider.notifier).loadMore();
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          child: Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))),
-                        );
-                      }
-                      final e = paged[i];
-                      final isIncome = e.amount > 0;
-                      return Dismissible(
-                        key: ValueKey('tx_${e.id}'),
+                // Group transactions by date for better UX
+                final grouped = groupTransactionsByDate(paged);
+                final groupOrder = ['Today', 'Yesterday', 'This Week', 'This Month', 'Last Month', 'Older'];
+                final activeGroups = groupOrder.where((g) => grouped.containsKey(g)).toList();
+                
+                // Build flat list with headers: [Header, Item, Item, Header, Item, ...]
+                final listItems = <Widget>[];
+                for (final groupKey in activeGroups) {
+                  final transactions = grouped[groupKey] ?? [];
+                  
+                  // Add group header
+                  listItems.add(
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                      child: Row(
+                        children: [
+                          Text(
+                            groupKey,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Container(
+                              height: 1,
+                              color: theme.colorScheme.onSurface.withOpacity(0.12),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                  
+                  // Add transactions for this group
+                  for (final tx in transactions) {
+                    listItems.add(
+                      Dismissible(
+                        key: ValueKey('tx_${tx.id}'),
                         direction: _selectionMode ? DismissDirection.none : DismissDirection.horizontal,
                         background: Container(
                           alignment: Alignment.centerLeft,
@@ -326,7 +322,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         ),
                         confirmDismiss: (dir) async {
                           if (dir == DismissDirection.startToEnd) {
-                            await _openEditForm(context, e.id, e.title, e.amount, e.categoryId, e.date);
+                            await _openEditForm(context, tx.id, tx.title, tx.amount, tx.categoryId, tx.date);
                             return false;
                           }
                           final messenger = ScaffoldMessenger.of(context);
@@ -339,10 +335,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           );
                           if (confirm == true) {
                             try {
-                              final payload = {'title': e.title, 'amount': e.amount, 'categoryId': e.categoryId, 'date': e.date};
+                              final payload = {'title': tx.title, 'amount': tx.amount, 'categoryId': tx.categoryId, 'date': tx.date};
                               final user = ref.read(currentUserProvider);
                               if (user == null) return false;
-                              await ref.read(transactionRepositoryProvider).deleteForUser(user.uid, e.id);
+                              await ref.read(transactionRepositoryProvider).deleteForUser(user.uid, tx.id);
                               messenger.clearSnackBars();
                               final snack = SnackBar(
                                 content: Text(t?.deleted ?? 'Deleted'),
@@ -382,42 +378,72 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           return false;
                         },
                         child: TransactionListItem(
-                          tx: e,
+                          tx: tx,
                           currency: currency,
                           datePattern: datePattern,
                           selectionMode: _selectionMode,
-                          selected: _selectedIds.contains(e.id),
+                          selected: _selectedIds.contains(tx.id),
                           onSelectedChanged: (v) => setState(() {
                             if (v) {
-                              _selectedIds.add(e.id);
+                              _selectedIds.add(tx.id);
                               _selectionMode = true;
                             } else {
-                              _selectedIds.remove(e.id);
+                              _selectedIds.remove(tx.id);
                               if (_selectedIds.isEmpty) _selectionMode = false;
                             }
                           }),
                           onLongPress: () => setState(() {
                             _selectionMode = true;
-                            _selectedIds.add(e.id);
+                            _selectedIds.add(tx.id);
                           }),
                           onTap: () {
                             if (_selectionMode) {
                               setState(() {
-                                if (_selectedIds.contains(e.id)) {
-                                  _selectedIds.remove(e.id);
+                                if (_selectedIds.contains(tx.id)) {
+                                  _selectedIds.remove(tx.id);
                                   if (_selectedIds.isEmpty) _selectionMode = false;
                                 } else {
-                                  _selectedIds.add(e.id);
+                                  _selectedIds.add(tx.id);
                                 }
                               });
                             } else {
-                              _openEditForm(context, e.id, e.title, e.amount, e.categoryId, e.date);
+                              _openEditForm(context, tx.id, tx.title, tx.amount, tx.categoryId, tx.date);
                             }
                           },
                         ),
-                      );
-                    },
-                    separatorBuilder: (sepCtx, i) => const SizedBox(height: 16),
+                      ),
+                    );
+                  }
+                }
+                
+                // Add load more indicator if needed
+                if (hasMore) {
+                  listItems.add(
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Center(
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                
+                listChild = RefreshIndicator(
+                  key: const ValueKey('tx_list'),
+                  onRefresh: () async {
+                    ref.invalidate(userTransactionsProvider);
+                    await Future.delayed(const Duration(milliseconds: 150));
+                  },
+                  child: ListView.separated(
+                    controller: _scrollController,
+                    padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 88),
+                    itemCount: listItems.length,
+                    separatorBuilder: (ctx, i) => const SizedBox(height: 12),
+                    itemBuilder: (ctx, i) => listItems[i],
                   ),
                 );
               }

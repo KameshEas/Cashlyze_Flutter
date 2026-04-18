@@ -9,12 +9,15 @@ import '../../core/repositories/category_repository.dart';
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/repositories/budget_repository.dart';
 import '../../core/repositories/emi_repository.dart';
-import '../../core/services/biometric_service.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
+import 'dart:async';
 import '../../core/services/drive_backup_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../routes/app_router.dart';
+import 'settings_providers.dart';
+import 'widgets/extracted_dialogs.dart';
+import 'widgets/enhanced_progress_dialog.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -265,10 +268,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ],
           ),
         ],
-        FutureBuilder<bool>(
-          future: ref.read(biometricServiceProvider).isAvailable(),
-          builder: (ctx, snap) {
-            final available = snap.data ?? false;
+        // Use cached biometric provider instead of FutureBuilder
+        ref.watch(biometricAvailableProvider).when(
+          data: (available) {
             if (!available) return const SizedBox.shrink();
             return SwitchListTile.adaptive(
               title: Text(
@@ -285,6 +287,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               },
             );
           },
+          loading: () => SwitchListTile.adaptive(
+            title: Text(t?.biometricRequireTitle ?? 'Require biometric to unlock'),
+            value: false,
+            onChanged: null,
+          ),
+          error: (_, __) => const SizedBox.shrink(),
         ),
         // Developer Options removed from Settings.
         const SizedBox(height: 12),
@@ -471,7 +479,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           title: const Text('Delete Account', style: TextStyle(color: Colors.red)),
           subtitle: const Text('Delete all data & account'),
           onTap: () async {
-            final confirm = await _showDeleteAccountDialog(context, ref);
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => DeleteAccountDialog(
+                userEmail: ref.read(currentUserProvider)?.email,
+                onExportPressed: () async {
+                  Navigator.pop(ctx);
+                  await _showExportDataDialog(context, ref);
+                },
+                onConfirm: (_) {},
+              ),
+            );
             if (confirm == true) {
               try {
                 // First delete all user data
@@ -619,17 +637,40 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final user = ref.read(currentUserProvider);
     if (user == null) return;
-    // Show progress dialog while performing backup
-    showDialog(
+
+    final progressController = StreamController<({String phase, double progress, String? errorMessage})>();
+
+    // Show enhanced progress dialog
+    EnhancedProgressDialog.show(
       context: context,
-      barrierDismissible: false,
-      useRootNavigator: true,
-      builder: (ctx) => const AlertDialog(
-        content: SizedBox(height: 64, child: Center(child: CircularProgressIndicator())),
-      ),
+      title: 'Backup to Drive',
+      subtitle: 'Uploading transactions...',
+      type: ProgressDialogType.backup,
+      progressStream: progressController.stream,
+      onCancel: () {
+        progressController.close();
+      },
+      canCancel: true,
     );
+
     try {
-      final transactions = await ref.read(transactionRepositoryProvider).getAllForUser(user.uid);
+      // Phase 1: Fetch transactions
+      progressController.add((
+        phase: 'Fetching transactions...',
+        progress: 0.2,
+        errorMessage: null,
+      ));
+
+      final transactions =
+          await ref.read(transactionRepositoryProvider).getAllForUser(user.uid);
+
+      // Phase 2: Prepare data
+      progressController.add((
+        phase: 'Preparing backup file...',
+        progress: 0.5,
+        errorMessage: null,
+      ));
+
       final data = {
         'version': 1,
         'exported_at_ms': DateTime.now().millisecondsSinceEpoch,
@@ -644,18 +685,57 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             .toList(),
       };
       final jsonStr = const JsonEncoder.withIndent('  ').convert(data);
+
+      // Phase 3: Upload to Drive
+      progressController.add((
+        phase: 'Uploading to Google Drive...',
+        progress: 0.7,
+        errorMessage: null,
+      ));
+
       final filename = 'cashlyze_transactions_${user.uid}.json';
-      final fileId = await ref.read(driveBackupServiceProvider).uploadJson(filename: filename, json: jsonStr);
-      await ref.read(analyticsServiceProvider).logEvent('backup_drive', params: {'items': transactions.length, 'file_id': fileId});
-      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
-      messenger.showSnackBar(const SnackBar(content: Text('Uploaded to Google Drive')));
-    } catch (e) {
-      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
-      if (e is StateError && e.toString().contains('Google Sign-In failed')) {
-        messenger.showSnackBar(const SnackBar(content: Text('Google sign-in failed. Please sign in to continue.')));
-      } else {
-        messenger.showSnackBar(SnackBar(content: Text('Drive upload failed: $e')));
+      final fileId = await ref
+          .read(driveBackupServiceProvider)
+          .uploadJson(filename: filename, json: jsonStr);
+
+      // Phase 4: Complete
+      progressController.add((
+        phase: 'Backup completed successfully',
+        progress: 1.0,
+        errorMessage: null,
+      ));
+
+      await ref.read(analyticsServiceProvider).logEvent('backup_drive',
+          params: {'items': transactions.length, 'file_id': fileId});
+
+      if (context.mounted) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Uploaded to Google Drive'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
+    } catch (e) {
+      String errorMsg = 'Drive upload failed';
+      if (e is StateError &&
+          e.toString().contains('Google Sign-In failed')) {
+        errorMsg = 'Google sign-in failed. Please sign in to continue.';
+      } else {
+        errorMsg = 'Upload failed: $e';
+      }
+
+      progressController.add((
+        phase: 'Backup failed',
+        progress: 1.0,
+        errorMessage: errorMsg,
+      ));
+
+      if (context.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text(errorMsg)));
+      }
+    } finally {
+      progressController.close();
     }
   }
 
@@ -667,28 +747,66 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final user = ref.read(currentUserProvider);
     if (user == null) return;
 
-    // Show progress while downloading
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        useRootNavigator: true,
-        builder: (ctx) => const AlertDialog(
-          content: SizedBox(height: 64, child: Center(child: CircularProgressIndicator())),
-        ),
-      );
+    final progressController = StreamController<({String phase, double progress, String? errorMessage})>();
+
+    // Show enhanced progress dialog
+    EnhancedProgressDialog.show(
+      context: context,
+      title: 'Restore from Drive',
+      subtitle: 'Downloading transactions...',
+      type: ProgressDialogType.restore,
+      progressStream: progressController.stream,
+      onCancel: () {
+        progressController.close();
+      },
+      canCancel: true,
+    );
 
     try {
+      // Phase 1: Download from Drive
+      progressController.add((
+        phase: 'Downloading from Google Drive...',
+        progress: 0.2,
+        errorMessage: null,
+      ));
+
       final filename = 'cashlyze_transactions_${user.uid}.json';
-      final jsonStr = await ref.read(driveBackupServiceProvider).downloadJson(filename: filename);
+      final jsonStr =
+          await ref.read(driveBackupServiceProvider).downloadJson(filename: filename);
+
       if (jsonStr == null) {
-        if (context.mounted) Navigator.of(context).pop();
-        messenger.showSnackBar(const SnackBar(content: Text('No backup found in Drive')));
+        progressController.add((
+          phase: 'No backup found',
+          progress: 1.0,
+          errorMessage: 'No backup found in Drive',
+        ));
+        if (context.mounted) {
+          messenger.showSnackBar(
+              const SnackBar(content: Text('No backup found in Drive')));
+        }
         return;
       }
 
+      // Phase 2: Parse backup file
+      progressController.add((
+        phase: 'Parsing backup file...',
+        progress: 0.4,
+        errorMessage: null,
+      ));
+
       final Map<String, dynamic> map = jsonDecode(jsonStr);
       final List txs = (map['transactions'] as List?) ?? const [];
+
+      // Phase 3: Importing transactions
+      progressController.add((
+        phase: 'Importing transactions (0/${txs.length})...',
+        progress: 0.5,
+        errorMessage: null,
+      ));
+
       int count = 0;
+      final total = txs.length;
+
       for (final t in txs) {
         if (t is Map) {
           await ref.read(transactionRepositoryProvider).create(
@@ -696,153 +814,69 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 title: (t['title'] as String?) ?? 'Imported',
                 amount: ((t['amount'] as num?) ?? 0).toDouble(),
                 categoryId: t['categoryId'] as String?,
-                date: DateTime.fromMillisecondsSinceEpoch(((t['date_ms'] as num?) ?? DateTime.now().millisecondsSinceEpoch).toInt()),
+                date: DateTime.fromMillisecondsSinceEpoch(
+                    (((t['date_ms'] as num?) ?? DateTime.now().millisecondsSinceEpoch)
+                        .toInt())),
                 notes: t['notes'] as String?,
               );
           count++;
+
+          // Update progress
+          final progress = 0.5 + (count / total) * 0.4;
+          progressController.add((
+            phase: 'Importing transactions ($count/$total)...',
+            progress: progress,
+            errorMessage: null,
+          ));
         }
       }
 
-      await ref.read(analyticsServiceProvider).logEvent('restore_drive', params: {'items': count});
-      await ref.read(analyticsServiceProvider).logEvent('transaction_imported', params: {
-        'import_method': 'drive',
-        'provider': null,
-        'count': count,
-        'import_duration_ms': 0,
-        'success': true,
-      });
+      // Phase 4: Complete
+      progressController.add((
+        phase: 'Restore completed successfully',
+        progress: 1.0,
+        errorMessage: null,
+      ));
 
-      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
-      messenger.showSnackBar(SnackBar(content: Text('Restored $count transactions from Drive')));
-    } catch (e) {
-      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
-      if (e is StateError && e.toString().contains('Google Sign-In failed')) {
-        messenger.showSnackBar(const SnackBar(content: Text('Google sign-in failed. Please sign in to continue.')));
-      } else {
-        messenger.showSnackBar(SnackBar(content: Text('Drive restore failed: $e')));
-      }
-    }
-  }
+      await ref.read(analyticsServiceProvider).logEvent('restore_drive',
+          params: {'items': count});
+      await ref.read(analyticsServiceProvider).logEvent('transaction_imported',
+          params: {
+            'import_method': 'drive',
+            'provider': null,
+            'count': count,
+            'import_duration_ms': 0,
+            'success': true,
+          });
 
-  Future<void> _showClearDataDialog(BuildContext context, WidgetRef ref) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final user = ref.read(currentUserProvider);
-    if (user == null) return;
-    final theme = Theme.of(context);
-    final prefs = ref.read(sharedPrefsServiceProvider);
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) {
-        String typed = '';
-        bool acknowledged = false;
-        return StatefulBuilder(
-          builder: (ctx, setState) => AlertDialog(
-            title: const Text('Clear All Data'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'This will permanently delete all your data including:\n\n'
-                    '• All transactions\n'
-                    '• All budgets\n'
-                    '• All categories\n'
-                    '• All EMI plans\n\n'
-                    'This action cannot be undone.',
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: () async => _showExportDataDialog(context, ref),
-                    icon: const Icon(Icons.download_outlined),
-                    label: const Text('Copy Export (JSON)'),
-                  ),
-                  CheckboxListTile(
-                    value: acknowledged,
-                    onChanged: (v) => setState(() => acknowledged = v ?? false),
-                    title: const Text('I have exported my data'),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  const SizedBox(height: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Budget alert threshold',
-                            style: theme.textTheme.bodyMedium
-                                ?.copyWith(fontWeight: FontWeight.w600),
-                          ),
-                          Text(
-                            '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Semantics(
-                        label: 'Budget alert threshold',
-                        value: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
-                        child: Slider(
-                          value: (prefs.alertThreshold.clamp(0.5, 1.0)),
-                          min: 0.5,
-                          max: 1.0,
-                          divisions: 10,
-                          label: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}% threshold',
-                          onChanged: (v) {
-                            prefs.setAlertThreshold(v);
-                            setState(() {});
-                          },
-                          onChangeEnd: (v) async {
-                            await ref.read(analyticsServiceProvider).logEvent(
-                                  'alert_threshold_change',
-                                  params: {'threshold_percent': (v * 100).round()},
-                                );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: (acknowledged && typed == 'DELETE')
-                    ? () => Navigator.of(ctx).pop(true)
-                    : null,
-                style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Clear All Data'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (confirm == true) {
-      try {
-        await _clearAllUserData(ref, user.uid);
-        if (!context.mounted) return;
+      if (context.mounted) {
         messenger.showSnackBar(
-          const SnackBar(
-            content: Text('All data cleared successfully'),
+          SnackBar(
+            content: Text('Restored $count transactions from Drive'),
             backgroundColor: Colors.green,
           ),
         );
-      } catch (e) {
-        messenger.showSnackBar(
-          SnackBar(content: Text('Failed to clear data: $e')),
-        );
       }
+    } catch (e) {
+      String errorMsg = 'Drive restore failed';
+      if (e is StateError &&
+          e.toString().contains('Google Sign-In failed')) {
+        errorMsg = 'Google sign-in failed. Please sign in to continue.';
+      } else {
+        errorMsg = 'Restore failed: $e';
+      }
+
+      progressController.add((
+        phase: 'Restore failed',
+        progress: 1.0,
+        errorMessage: errorMsg,
+      ));
+
+      if (context.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text(errorMsg)));
+      }
+    } finally {
+      progressController.close();
     }
   }
 
@@ -905,101 +939,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Future<bool?> _showDeleteAccountDialog(BuildContext context, WidgetRef ref) async {
-    final user = ref.read(currentUserProvider);
-    if (user == null) return false;
 
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) {
-        String typed = '';
-        bool exportAcknowledged = false;
-        return StatefulBuilder(
-          builder: (ctx, setState) => AlertDialog(
-            title: const Row(
-              children: [
-                Icon(Icons.warning, color: Colors.red),
-                SizedBox(width: 8),
-                Text('Delete Account', style: TextStyle(color: Colors.red)),
-              ],
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '⚠️ This action is IRREVERSIBLE!\n\n'
-                    'Deleting your account will permanently remove:\n\n'
-                    '• Your account and login credentials\n'
-                    '• All transactions\n'
-                    '• All budgets\n'
-                    '• All categories\n'
-                    '• All EMI plans\n'
-                    '• All preferences\n\n'
-                    'Your cloud backups will become orphaned.',
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.info, color: Colors.orange, size: 20),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Export your data before deleting to keep a backup.',
-                            style: TextStyle(fontSize: 13),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: () async => _showExportDataDialog(context, ref),
-                    icon: const Icon(Icons.download),
-                    label: const Text('Export All Data First'),
-                  ),
-                  CheckboxListTile(
-                    value: exportAcknowledged,
-                    onChanged: (v) => setState(() => exportAcknowledged = v ?? false),
-                    title: const Text('I have exported my data'),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    onChanged: (v) => setState(() => typed = v),
-                    decoration: const InputDecoration(
-                      labelText: 'Type DELETE to confirm',
-                      filled: true,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: (exportAcknowledged && typed == 'DELETE')
-                    ? () => Navigator.of(ctx).pop(true)
-                    : null,
-                style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Delete Everything'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   Future<void> _clearAllUserData(WidgetRef ref, String userId) async {
     // Clear transactions
