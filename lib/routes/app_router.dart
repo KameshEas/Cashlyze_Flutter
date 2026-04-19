@@ -17,6 +17,7 @@ import '../features/auth/otp_screen.dart';
 import '../features/categories/categories_screen.dart';
 import '../features/emi/emi_form_screen.dart';
 import '../features/emi/emi_dashboard_screen.dart';
+import '../features/onboarding/help_center_screen.dart';
 
 // Root navigator key for accessing Navigator context from anywhere
 final rootNavigatorKeyProvider = Provider<GlobalKey<NavigatorState>>((ref) {
@@ -314,6 +315,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const OnboardingScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+              FadeTransition(opacity: animation, child: child),
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
+        ),
+      ),
+      GoRoute(
+        path: '/help_center',
+        name: 'help_center',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const HelpCenterScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) =>
               FadeTransition(opacity: animation, child: child),
           transitionDuration: MediaQuery.of(context).disableAnimations

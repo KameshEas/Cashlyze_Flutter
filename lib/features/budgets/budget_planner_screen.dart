@@ -16,6 +16,8 @@ import '../../core/repositories/category_repository.dart';
 import '../../core/ui/constants.dart';
 import '../../core/widgets/animated_progress_indicator.dart';
 import '../../core/widgets/animated_progress_text.dart';
+import '../onboarding/budget_tutorial_overlay.dart';
+import '../../core/providers/first_time_feature_provider.dart';
 
 class BudgetPlannerScreen extends ConsumerStatefulWidget {
   const BudgetPlannerScreen({super.key});
@@ -26,6 +28,8 @@ class BudgetPlannerScreen extends ConsumerStatefulWidget {
 }
 
 class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
+  bool _showBudgetTutorial = false;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -50,22 +54,25 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     // Watch ordered and filtered budgets
     final orderedBudgets = ref.watch(orderedBudgetsProvider);
     final selectedPeriodFilter = ref.watch(periodFilterProvider);
+    final showTutorial = _showBudgetTutorial && ref.watch(firstTimeBudgetProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Budgets')),
-      floatingActionButton: Tooltip(
-        message: 'Create budget',
-        child: FloatingActionButton.extended(
-          onPressed: () => _openCreateBudget(context),
-          icon: const Icon(Icons.add),
-          label: const Text('Create'),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: AppBar(title: const Text('Budgets')),
+          floatingActionButton: Tooltip(
+            message: 'Create budget',
+            child: FloatingActionButton.extended(
+              onPressed: () => _openCreateBudget(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Create'),
+            ),
+          ),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (prefs.alertsEnabled && utilization > 0.9)
               Container(
@@ -197,6 +204,15 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
         ),
         ),
       ),
+    ),
+        // Tutorial overlay
+        if (showTutorial)
+          BudgetTutorialOverlay(
+            onComplete: () {
+              setState(() => _showBudgetTutorial = false);
+            },
+          ),
+      ],
     );
   }
 
@@ -717,7 +733,12 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
         );
       },
     ));
-    if (result != true) {
+    if (result == true) {
+      // Show tutorial on first budget creation
+      if (mounted) {
+        setState(() => _showBudgetTutorial = true);
+      }
+    } else if (result != true) {
       final hasData =
           nameController.text.trim().isNotEmpty ||
           allocatedController.text.trim().isNotEmpty;
