@@ -18,8 +18,6 @@ import '../features/categories/categories_screen.dart';
 import '../features/emi/emi_form_screen.dart';
 import '../features/emi/emi_dashboard_screen.dart';
 import '../features/onboarding/help_center_screen.dart';
-import '../features/scan/scan_receipt_screen.dart';
-import '../features/scan/scan_result_screen.dart';
 
 // Root navigator key for accessing Navigator context from anywhere
 final rootNavigatorKeyProvider = Provider<GlobalKey<NavigatorState>>((ref) {
@@ -337,34 +335,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               : kRouteFadeDuration,
         ),
       ),
-      GoRoute(
-        path: '/scan',
-        name: 'scan',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const ScanReceiptScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-              FadeTransition(opacity: animation, child: child),
-          transitionDuration: MediaQuery.of(context).disableAnimations
-              ? Duration.zero
-              : kRouteFadeDuration,
-        ),
-        routes: [
-          GoRoute(
-            path: 'result',
-            name: 'scan_result',
-            pageBuilder: (context, state) => CustomTransitionPage(
-              key: state.pageKey,
-              child: const ScanResultScreen(),
-              transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-                  FadeTransition(opacity: animation, child: child),
-              transitionDuration: MediaQuery.of(context).disableAnimations
-                  ? Duration.zero
-                  : kRouteFadeDuration,
-            ),
-          ),
-        ],
-      ),
+
     ],
     redirect: (context, state) {
       final isOnboarding = state.matchedLocation == '/onboarding';
