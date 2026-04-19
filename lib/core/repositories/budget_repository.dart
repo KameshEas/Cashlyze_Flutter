@@ -183,6 +183,18 @@ class BudgetRepository {
       'updated_at_ms': DateTime.now().millisecondsSinceEpoch,
     });
   }
+
+  Future<void> undoAdjustment({
+    required String userId,
+    required String id,
+    required double previousAllocated,
+  }) async {
+    // Restore the budget to the previous allocation amount
+    await _db.update('users/$userId/budgets/$id', {
+      'allocated': previousAllocated,
+      'updated_at_ms': DateTime.now().millisecondsSinceEpoch,
+    });
+  }
 }
 
 final budgetRepositoryProvider = Provider<BudgetRepository>((ref) {

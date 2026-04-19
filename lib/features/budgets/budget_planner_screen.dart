@@ -47,6 +47,10 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     );
     final double utilization = totalAllocated == 0.0 ? 0.0 : totalSpent / totalAllocated;
 
+    // Watch ordered and filtered budgets
+    final orderedBudgets = ref.watch(orderedBudgetsProvider);
+    final selectedPeriodFilter = ref.watch(periodFilterProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Budgets')),
       floatingActionButton: Tooltip(
@@ -104,6 +108,28 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
               icon: Icons.donut_large_rounded,
             ),
             const SizedBox(height: 12),
+            // Period filter chips
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final period in ['All', 'Daily', 'Weekly', 'Monthly'])
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(period),
+                        selected: selectedPeriodFilter == period,
+                        onSelected: (selected) {
+                          if (selected) {
+                            ref.read(periodFilterProvider.notifier).setFilter(period);
+                          }
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
             budgetsAsync.when(
               loading: () => ListView.separated(
                 shrinkWrap: true,
@@ -117,7 +143,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
               error: (e, _) =>
                   Center(child: Text('Failed to load budgets: $e')),
               data: (list) {
-                if (list.isEmpty) {
+                if (orderedBudgets.isEmpty) {
                   return Column(
                     children: [
                       const SizedBox(height: AppSpacing.s8),
@@ -135,102 +161,35 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                     ],
                   );
                 }
-                return ListView.separated(
+                return ReorderableListView(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: list.length,
-                  separatorBuilder: (sepCtx, i) => const SizedBox(height: 12),
-                  itemBuilder: (ctx, i) {
-                    final e = list[i];
-
-                    final isSynthetic = e.id == '__general_budget';
-                    final budgetCard = BudgetCard(
-                      budget: e,
-                      currency: currency,
-                      isSynthetic: isSynthetic,
-                      onAdjust: () => _openAdjustBudget(
-                        context,
-                        e.id,
-                        e.allocated,
-                        e.name,
-                      ),
-                    );
-
-                    if (isSynthetic) {
-                      return budgetCard;
+                  onReorder: (oldIndex, newIndex) {
+                    final newOrderedList = [...orderedBudgets];
+                    if (oldIndex < newIndex) {
+                      newIndex -= 1;
                     }
+                    final item = newOrderedList.removeAt(oldIndex);
+                    newOrderedList.insert(newIndex, item);
 
-                    return Dismissible(
-                      key: ValueKey('budget_${e.id}'),
-                      direction: DismissDirection.horizontal,
-                      background: Container(
-                        alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          children: const [
-                            Icon(Icons.edit, color: Colors.green),
-                            SizedBox(width: 8),
-                            Text('Adjust'),
-                          ],
-                        ),
-                      ),
-                      secondaryBackground: Container(
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: const [
-                            Text('Delete'),
-                            SizedBox(width: 8),
-                            Icon(Icons.delete, color: Colors.red),
-                          ],
-                        ),
-                      ),
-                      confirmDismiss: (dir) async {
-                        if (dir == DismissDirection.startToEnd) {
-                          await _openAdjustBudget(context, e.id, e.allocated, e.name);
-                          return false;
-                        }
-                        final messenger = ScaffoldMessenger.of(context);
-                        final confirm = await showConfirmDialog(
-                          context,
-                          title: 'Delete budget',
-                          content:
-                              'Are you sure you want to delete this budget?',
-                          confirmLabel: 'Delete',
-                          cancelLabel: 'Cancel',
-                        );
-                        if (confirm == true) {
-                          try {
-                            final user = ref.read(currentUserProvider);
-                            if (user == null) return false;
-                            await ref
-                                .read(budgetRepositoryProvider)
-                                .delete(user.uid, e.id);
-                            messenger.showSnackBar(
-                              const SnackBar(content: Text('Deleted')),
-                            );
-                            return true;
-                          } catch (err) {
-                            messenger.showSnackBar(
-                              SnackBar(content: Text('Failed: $err')),
-                            );
-                            return false;
-                          }
-                        }
-                        return false;
-                      },
-                      child: budgetCard,
-                    );
+                    // Extract IDs for persistence (including General budget)
+                    final orderToSave = newOrderedList.map((b) => b.id).toList();
+
+                    ref.read(budgetOrderProvider.notifier).updateOrder(orderToSave);
                   },
+                  children: [
+                    for (int i = 0; i < orderedBudgets.length; i++)
+                      Padding(
+                        key: ValueKey('budget_padding_${orderedBudgets[i].id}'),
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildBudgetItem(
+                          context,
+                          orderedBudgets[i],
+                          currency,
+                          i,
+                        ),
+                      ),
+                  ],
                 );
               },
             ),
@@ -238,6 +197,255 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
         ),
         ),
       ),
+    );
+  }
+
+  Widget _buildBudgetItem(
+    BuildContext context,
+    BudgetModel budget,
+    String currency,
+    int index,
+  ) {
+    final theme = Theme.of(context);
+    final isSynthetic = budget.id == '__general_budget';
+
+    final budgetCard = BudgetCard(
+      key: ValueKey('budget_${budget.id}'),
+      budget: budget,
+      currency: currency,
+      isSynthetic: isSynthetic,
+      onAdjust: () => _openAdjustBudget(
+        context,
+        budget.id,
+        budget.allocated,
+        budget.name,
+      ),
+    );
+
+    // Wrap with drag listener to enable reordering (works with or without Dismissible)
+    final cardWithDrag = ReorderableDragStartListener(
+      index: index,
+      child: budgetCard,
+    );
+
+    // General budget can be reordered but not swiped
+    if (isSynthetic) {
+      return cardWithDrag;
+    }
+
+    return Dismissible(
+      key: ValueKey('budget_dismissible_${budget.id}'),
+      direction: DismissDirection.horizontal,
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.green.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: const [
+            Icon(Icons.edit, color: Colors.green),
+            SizedBox(width: 8),
+            Text('Adjust'),
+          ],
+        ),
+      ),
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.red.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: const [
+            Text('Delete'),
+            SizedBox(width: 8),
+            Icon(Icons.delete, color: Colors.red),
+          ],
+        ),
+      ),
+      confirmDismiss: (dir) async {
+        if (dir == DismissDirection.startToEnd) {
+          await _openAdjustBudget(context, budget.id, budget.allocated, budget.name);
+          return false;
+        }
+        // For delete (right swipe), show confirmation dialog
+        if (!context.mounted) return false;
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Delete Budget?'),
+            content: Text('Are you sure you want to delete "${budget.name}"? You can undo this within 8 seconds.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Delete', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+        ) ?? false;
+        
+        if (!confirmed) return false;
+        
+        // For delete (right swipe), perform soft delete with undo
+        try {
+          final user = ref.read(currentUserProvider);
+          if (user == null) return false;
+
+          // Store the deleted budget for recovery
+          ref.read(lastDeletedBudgetProvider.notifier).setDeleted(DeletedBudgetRecord(
+            budget: budget,
+            timestamp: DateTime.now(),
+          ));
+
+          // Perform the deletion
+          await ref.read(budgetRepositoryProvider).delete(user.uid, budget.id);
+
+          // Show undo SnackBar
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Budget deleted'),
+                duration: const Duration(seconds: 8),
+                action: SnackBarAction(
+                  label: 'Undo',
+                  onPressed: () async {
+                    try {
+                      // Restore the budget
+                      final restored = await ref.read(budgetRepositoryProvider).create(
+                        userId: user.uid,
+                        name: budget.name,
+                        allocated: budget.allocated,
+                        period: budget.period,
+                        categoryIds: budget.categoryIds,
+                      );
+                      // Clear the deletion record
+                      ref.read(lastDeletedBudgetProvider.notifier).clear();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Budget restored')),
+                        );
+                      }
+                    } catch (err) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to restore: $err')),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ),
+            );
+          }
+          return true;
+        } catch (err) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed: $err')),
+            );
+          }
+          return false;
+        }
+      },
+      child: cardWithDrag,
+    );
+  }
+
+  Widget _buildBudgetListItem(BuildContext context, BudgetModel e, String currency) {
+    final isSynthetic = e.id == '__general_budget';
+    final budgetCard = BudgetCard(
+      budget: e,
+      currency: currency,
+      isSynthetic: isSynthetic,
+      onAdjust: () => _openAdjustBudget(
+        context,
+        e.id,
+        e.allocated,
+        e.name,
+      ),
+    );
+
+    if (isSynthetic) {
+      return budgetCard;
+    }
+
+    return Dismissible(
+      key: ValueKey('budget_${e.id}'),
+      direction: DismissDirection.horizontal,
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.green.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: const [
+            Icon(Icons.edit, color: Colors.green),
+            SizedBox(width: 8),
+            Text('Adjust'),
+          ],
+        ),
+      ),
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.red.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: const [
+            Text('Delete'),
+            SizedBox(width: 8),
+            Icon(Icons.delete, color: Colors.red),
+          ],
+        ),
+      ),
+      confirmDismiss: (dir) async {
+        if (dir == DismissDirection.startToEnd) {
+          await _openAdjustBudget(context, e.id, e.allocated, e.name);
+          return false;
+        }
+        final messenger = ScaffoldMessenger.of(context);
+        final confirm = await showConfirmDialog(
+          context,
+          title: 'Delete budget',
+          content:
+              'Are you sure you want to delete this budget?',
+          confirmLabel: 'Delete',
+          cancelLabel: 'Cancel',
+        );
+        if (confirm == true) {
+          try {
+            final user = ref.read(currentUserProvider);
+            if (user == null) return false;
+            await ref
+                .read(budgetRepositoryProvider)
+                .delete(user.uid, e.id);
+            messenger.showSnackBar(
+              const SnackBar(content: Text('Deleted')),
+            );
+            return true;
+          } catch (err) {
+            messenger.showSnackBar(
+              SnackBar(content: Text('Failed: $err')),
+            );
+            return false;
+          }
+        }
+        return false;
+      },
+      child: budgetCard,
     );
   }
 
@@ -254,6 +462,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     final allocatedController = TextEditingController();
     final pageMessenger = ScaffoldMessenger.of(context);
     List<String> selectedCategoryIds = <String>[];
+    BudgetPeriod selectedPeriod = BudgetPeriod.monthly;
 
     final prefs = ref.read(sharedPrefsServiceProvider);
     final draft = prefs.getDraft('budget_create');
@@ -264,6 +473,16 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       final cats = draft['categoryIds'];
       if (cats is List) {
         selectedCategoryIds = cats.cast<String>();
+      }
+      final periodStr = draft['period'] as String?;
+      if (periodStr != null) {
+        try {
+          selectedPeriod = BudgetPeriod.values.firstWhere(
+            (p) => p.toString() == 'BudgetPeriod.$periodStr',
+          );
+        } catch (_) {
+          selectedPeriod = BudgetPeriod.monthly;
+        }
       }
     }
     final result = await Future.microtask(() => showModalBottomSheet<bool>(
@@ -323,6 +542,37 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                       helperText: 'e.g., 500.00',
                       filled: true,
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Budget Period',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SegmentedButton<BudgetPeriod>(
+                    segments: const [
+                      ButtonSegment(
+                        value: BudgetPeriod.daily,
+                        label: Text('Daily'),
+                      ),
+                      ButtonSegment(
+                        value: BudgetPeriod.weekly,
+                        label: Text('Weekly'),
+                      ),
+                      ButtonSegment(
+                        value: BudgetPeriod.monthly,
+                        label: Text('Monthly'),
+                      ),
+                    ],
+                    selected: <BudgetPeriod>{selectedPeriod},
+                    onSelectionChanged: (Set<BudgetPeriod> newSelection) {
+                      setSheetState(() {
+                        selectedPeriod = newSelection.first;
+                      });
+                    },
                   ),
                   const SizedBox(height: 12),
                   if (categories.isNotEmpty) ...[
@@ -446,7 +696,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                                 userId: user.uid,
                                 name: name,
                                 allocated: amount,
-                                period: BudgetPeriod.monthly,
+                                period: selectedPeriod,
                                 categoryIds: finalCategoryIds,
                               );
                               debugPrint('Budget created id=${created.id}');
@@ -482,6 +732,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           'name': nameController.text.trim(),
           'allocated': double.tryParse(allocatedController.text.trim()),
           'categoryIds': selectedCategoryIds,
+          'period': selectedPeriod.name,
         });
         if (mounted) {
           messenger.showSnackBar(const SnackBar(content: Text('Draft saved')));
@@ -607,6 +858,17 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                           try {
                             final user = ref.read(currentUserProvider);
                             if (user == null) return;
+                            
+                            // Store the old allocation for undo
+                            ref.read(lastBudgetAdjustmentProvider.notifier).setAdjustment(
+                              BudgetAdjustmentRecord(
+                                budgetId: id,
+                                oldAllocated: allocated,
+                                newAllocated: newAlloc,
+                                timestamp: DateTime.now(),
+                              ),
+                            );
+
                             // Update name if changed
                             if (newName != currentName) {
                               await ref
@@ -625,8 +887,36 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                                   oldAllocated: allocated,
                                 );
                             nav.pop(true);
+                            
+                            // Show undo SnackBar
                             pageMessenger.showSnackBar(
-                              const SnackBar(content: Text('Budget adjusted')),
+                              SnackBar(
+                                content: const Text('Budget adjusted'),
+                                duration: const Duration(seconds: 5),
+                                action: SnackBarAction(
+                                  label: 'Undo',
+                                  onPressed: () async {
+                                    try {
+                                      await ref
+                                          .read(budgetRepositoryProvider)
+                                          .undoAdjustment(
+                                            userId: user.uid,
+                                            id: id,
+                                            previousAllocated: allocated,
+                                          );
+                                      // Clear the adjustment record
+                                      ref.read(lastBudgetAdjustmentProvider.notifier).clear();
+                                      pageMessenger.showSnackBar(
+                                        const SnackBar(content: Text('Adjustment undone')),
+                                      );
+                                    } catch (err) {
+                                      pageMessenger.showSnackBar(
+                                        SnackBar(content: Text('Failed to undo: $err')),
+                                      );
+                                    }
+                                  },
+                                ),
+                              ),
                             );
                           } catch (e) {
                             pageMessenger.showSnackBar(

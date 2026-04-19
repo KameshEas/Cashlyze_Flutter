@@ -36,6 +36,28 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
     setState(() => _showBack = !_showBack);
   }
 
+  String _getPeriodLabel(BudgetPeriod period) {
+    switch (period) {
+      case BudgetPeriod.daily:
+        return 'Daily';
+      case BudgetPeriod.weekly:
+        return 'Weekly';
+      case BudgetPeriod.monthly:
+        return 'Monthly';
+    }
+  }
+
+  Color _getPeriodColor(ThemeData theme, BudgetPeriod period) {
+    switch (period) {
+      case BudgetPeriod.daily:
+        return Colors.green;
+      case BudgetPeriod.weekly:
+        return Colors.orange;
+      case BudgetPeriod.monthly:
+        return Colors.blue;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -77,6 +99,9 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
   }
 
   Widget _buildFront(ThemeData theme, String allocatedLabel, double spent, double progress) {
+    final periodLabel = _getPeriodLabel(widget.budget.period);
+    final periodColor = _getPeriodColor(theme, widget.budget.period);
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -92,7 +117,30 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(widget.budget.name, style: theme.textTheme.titleMedium),
+              Expanded(
+                child: Text(widget.budget.name, style: theme.textTheme.titleMedium),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: periodColor.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: periodColor.withValues(alpha: 0.5)),
+                ),
+                child: Text(
+                  periodLabel,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: periodColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
               Text('${formatAmount(spent, widget.currency)} / $allocatedLabel', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
             ],
           ),
