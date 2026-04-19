@@ -361,9 +361,7 @@ class HomeScreen extends ConsumerWidget {
                       category: action['category'] as String,
                     );
                   } else if (action['action'] == 'scan') {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Scan receipt not implemented')),
-                    );
+                    GoRouter.of(context).push('/scan');
                   }
                 },
                 borderRadius: BorderRadius.circular(16),
@@ -940,9 +938,7 @@ class HomeScreen extends ConsumerWidget {
                           InkWell(
                             onTap: () {
                               nav.pop();
-                              Future.microtask(() => ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Scan receipt not implemented')),
-                              ));
+                              GoRouter.of(context).push('/scan');
                             },
                             borderRadius: BorderRadius.circular(12),
                             child: SizedBox(
