@@ -64,8 +64,6 @@
   "preferencesTitle": "Preferences",
   "alertsTitle": "Alerts",
   "alertsSubtitle": "Notify when budgets approach thresholds",
-  "biometricRequireTitle": "Require biometric to unlock",
-  "biometricRequireSubtitle": "Prompt biometric on app launch",
   "developerOptionsTitle": "Developer Options",
   "developerOptionsSubtitle": "Show advanced tools like backup/restore",
   "dataPrivacyTitle": "Data & Privacy",

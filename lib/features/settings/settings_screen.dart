@@ -417,42 +417,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ],
         
-        // Biometric setting
-        ref.watch(biometricAvailableProvider).when(
-          data: (available) {
-            if (!available) return const SizedBox.shrink();
-            return _preferenceRow(
-              icon: Icons.fingerprint,
-              title: t?.biometricRequireTitle ?? 'Biometric Lock',
-              description: t?.biometricRequireSubtitle ?? 'Unlock with fingerprint',
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _statusBadge(prefs.biometricEnabled),
-                  const SizedBox(width: 8),
-                  SwitchListTile.adaptive(
-                    title: const SizedBox.shrink(),
-                    contentPadding: EdgeInsets.zero,
-                    value: prefs.biometricEnabled,
-                    onChanged: (v) async {
-                      await prefs.setBiometricEnabled(v);
-                      setState(() {});
-                    },
-                  ),
-                ],
-              ),
-              showDivider: true,
-            );
-          },
-          loading: () => _preferenceRow(
-            icon: Icons.fingerprint,
-            title: t?.biometricRequireTitle ?? 'Biometric Lock',
-            description: 'Loading...',
-            trailing: const SizedBox.shrink(),
-          ),
-          error: (_, _) => const SizedBox.shrink(),
-        ),
-        
         // Currency setting
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),

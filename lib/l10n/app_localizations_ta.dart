@@ -202,12 +202,6 @@ class AppLocalizationsTa extends AppLocalizations {
   String get alertsSubtitle => 'பட்ஜெட் வரம்பை அணுகும்போது அறிவிக்க';
 
   @override
-  String get biometricRequireTitle => 'திறக்க பயோமெட்ரிக் தேவை';
-
-  @override
-  String get biometricRequireSubtitle => 'ஆப் தொடக்கத்தில் பயோமெட்ரிக் கேட்க';
-
-  @override
   String get developerOptionsTitle => 'டெவலப்பர் விருப்பங்கள்';
 
   @override

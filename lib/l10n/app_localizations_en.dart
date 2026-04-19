@@ -202,12 +202,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alertsSubtitle => 'Notify when budgets approach thresholds';
 
   @override
-  String get biometricRequireTitle => 'Require biometric to unlock';
-
-  @override
-  String get biometricRequireSubtitle => 'Prompt biometric on app launch';
-
-  @override
   String get developerOptionsTitle => 'Developer Options';
 
   @override

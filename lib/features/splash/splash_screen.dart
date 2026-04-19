@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/shared_prefs_provider.dart';
-import '../../core/services/biometric_service.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   final Duration duration;
@@ -53,22 +52,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     String target = !onboardingCompleted
         ? '/onboarding'
         : (user == null ? '/login' : '/');
-
-    if (target == '/' && prefs.biometricEnabled) {
-      _navigated = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        final ok = await ref
-            .read(biometricServiceProvider)
-            .authenticate(reason: 'Unlock Cashlyze');
-        if (!mounted) return;
-        if (ok) {
-          context.go('/');
-        } else {
-          context.go('/login');
-        }
-      });
-      return;
-    }
 
     _navigated = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {

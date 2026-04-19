@@ -63,8 +63,6 @@
   "preferencesTitle": "விருப்பங்கள்",
   "alertsTitle": "எச்சரிக்கைகள்",
   "alertsSubtitle": "பட்ஜெட் வரம்பை அணுகும்போது அறிவிக்க",
-  "biometricRequireTitle": "திறக்க பயோமெட்ரிக் தேவை",
-  "biometricRequireSubtitle": "ஆப் தொடக்கத்தில் பயோமெட்ரிக் கேட்க",
   "developerOptionsTitle": "டெவலப்பர் விருப்பங்கள்",
   "developerOptionsSubtitle": "மேம்பட்ட கருவிகளை காட்ட (பேக்கப்/ரிஸ்டோர்)",
   "dataPrivacyTitle": "தரவு & தனியுரிமை",

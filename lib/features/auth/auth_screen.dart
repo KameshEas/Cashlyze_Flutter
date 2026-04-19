@@ -4,9 +4,7 @@ import '../../core/services/auth_service.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/repositories/user_repository.dart';
 import '../../core/services/analytics_service.dart';
-import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/providers/otp_pending_provider.dart';
-import '../../core/services/biometric_service.dart';
 import '../../core/utils/error_messages.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -26,7 +24,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   String? _errorMessage;
-  bool _canUseBiometrics = false;
   // Guards the finally-block setState when we navigate away mid-async.
   bool _navigatedAway = false;
 
@@ -41,14 +38,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   void initState() {
     super.initState();
     _isLogin = widget.initialIsLogin;
-    // Only check biometric availability — the toggle to enable/disable
-    // biometrics lives in Settings, not here.
-    Future(() async {
-      final bio = await ref.read(biometricServiceProvider).isAvailable();
-      if (mounted) {
-        setState(() => _canUseBiometrics = bio);
-      }
-    });
   }
 
   Future<void> _submit() async {
@@ -344,33 +333,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             }
                           },
                           child: const Text('Forgot Password?'),
-                        ),
-                      if (_isLogin && _canUseBiometrics &&
-                          ref.read(sharedPrefsServiceProvider).biometricEnabled)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: OutlinedButton.icon(
-                            onPressed: () async {
-                              final router = GoRouter.of(context);
-                              final messenger = ScaffoldMessenger.of(context);
-                              final ok = await ref
-                                  .read(biometricServiceProvider)
-                                  .authenticate(reason: 'Unlock Cashlyze');
-                              if (ok) {
-                                if (mounted) router.go('/');
-                              } else {
-                                if (mounted) {
-                                  messenger.showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Biometric failed'),
-                                    ),
-                                  );
-                                }
-                              }
-                            },
-                            icon: const Icon(Icons.fingerprint),
-                            label: const Text('Use biometrics'),
-                          ),
                         ),
                     ],
                   ),
