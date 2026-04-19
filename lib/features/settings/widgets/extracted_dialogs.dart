@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// A reusable delete account confirmation dialog.
 class DeleteAccountDialog extends StatefulWidget {
   final String? userEmail;
-  final VoidCallback? onExportPressed;
+  final Future<void> Function()? onExportPressed;
   final Function(bool) onConfirm;
 
   const DeleteAccountDialog({
@@ -20,7 +20,7 @@ class DeleteAccountDialog extends StatefulWidget {
   static Future<bool?> show(
     BuildContext context, {
     String? userEmail,
-    VoidCallback? onExportPressed,
+    Future<void> Function()? onExportPressed,
     required Function(bool) onConfirm,
   }) {
     return showDialog<bool>(
@@ -43,6 +43,7 @@ class DeleteAccountDialog extends StatefulWidget {
 class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
   String typed = '';
   bool exportAcknowledged = false;
+  bool _isExporting = false;
 
   @override
   Widget build(BuildContext context) {
@@ -94,9 +95,29 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
             ),
             const SizedBox(height: 16),
             OutlinedButton.icon(
-              onPressed: widget.onExportPressed,
-              icon: const Icon(Icons.download),
-              label: const Text('Export All Data First'),
+              onPressed: _isExporting
+                  ? null
+                  : () async {
+                      setState(() => _isExporting = true);
+                      try {
+                        await widget.onExportPressed?.call();
+                      } finally {
+                        if (mounted) {
+                          setState(() {
+                            _isExporting = false;
+                            exportAcknowledged = true;
+                          });
+                        }
+                      }
+                    },
+              icon: _isExporting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.download),
+              label: Text(_isExporting ? 'Exporting...' : 'Export All Data First'),
             ),
             CheckboxListTile(
               value: exportAcknowledged,

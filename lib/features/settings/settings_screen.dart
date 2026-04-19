@@ -27,13 +27,12 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  // ── Extracted from build() closure — was recreated on every setState call.
-  // Now defined once as a class method: stable across rebuilds.
-  Widget sectionCard(IconData icon, String title, List<Widget> children) {
+  /// Enhanced section card with better visual hierarchy, spacing, and icons
+  Widget sectionCard(IconData icon, String title, List<Widget> children, {String? description}) {
     final theme = Theme.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
@@ -44,23 +43,137 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Enhanced header with larger icon and better typography
           Row(
             children: [
-              Icon(icon, size: 20, color: theme.colorScheme.primary),
-              const SizedBox(width: 8),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 24, color: theme.colorScheme.primary),
+              ),
+              const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  title,
-                  style: theme.textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w600),
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (description != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        description,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           ...children,
         ],
+      ),
+    );
+  }
+
+  /// Enhanced preference row with icon, status indicator, and better styling
+  Widget _preferenceRow({
+    required IconData icon,
+    required String title,
+    String? description,
+    required Widget trailing,
+    bool showDivider = false,
+    Color? iconColor,
+  }) {
+    final theme = Theme.of(context);
+    final bgColor = iconColor ?? theme.colorScheme.primary;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: bgColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 18, color: bgColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (description != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        description,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              trailing,
+            ],
+          ),
+        ),
+        if (showDivider)
+          Divider(
+            height: 1,
+            indent: 0,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+          ),
+      ],
+    );
+  }
+
+  /// Status badge widget for showing active/inactive states
+  Widget _statusBadge(bool isActive) {
+    final theme = Theme.of(context);
+    final color = isActive ? Colors.green : Colors.grey;
+    final text = isActive ? 'Active' : 'Inactive';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        text,
+        style: theme.textTheme.bodySmall?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
       ),
     );
   }
@@ -137,23 +250,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  /// Full-width action tile for the Data section.
-  /// Extracted from build() closure so it is stable across redraws and
-  /// no longer has a hard-coded width:180 that clips on narrow screens.
+  /// Enhanced action tile with better visual hierarchy and hover effects
   Widget _actionTile({
     required IconData icon,
     required String title,
     String? subtitle,
     required VoidCallback onTap,
     Color? color,
+    bool isDangerous = false,
   }) {
     final theme = Theme.of(context);
-    final iconColor = color ?? theme.colorScheme.primary;
+    final iconColor = isDangerous ? Colors.red : (color ?? theme.colorScheme.primary);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
         child: Row(
           children: [
             Container(
@@ -170,17 +282,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: theme.textTheme.bodyMedium),
-                  if (subtitle != null)
+                  Text(
+                    title,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isDangerous ? Colors.red : null,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
                     Text(
                       subtitle,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                  ],
                 ],
               ),
             ),
@@ -210,158 +329,254 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       Icons.tune,
       t?.preferencesTitle ?? 'Preferences',
       [
-        SwitchListTile.adaptive(
-          title: Text(t?.alertsTitle ?? 'Alerts'),
-          subtitle: Text(
-            t?.alertsSubtitle ?? 'Notify when budgets approach thresholds',
-          ),
-          contentPadding: EdgeInsets.zero,
-          value: alertsEnabled,
-          onChanged: (v) async {
-            await prefs.setAlertsEnabled(v);
-            setState(() {});
-          },
-        ),
-        // Show the alert threshold slider only when Alerts are enabled.
-        if (prefs.alertsEnabled) ...[
-          const SizedBox(height: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        // Alerts setting with icon and status
+        _preferenceRow(
+          icon: Icons.notifications_outlined,
+          title: t?.alertsTitle ?? 'Alerts',
+          description: t?.alertsSubtitle ?? 'Budget threshold notifications',
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Budget alert threshold',
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
+              _statusBadge(alertsEnabled),
+              const SizedBox(width: 8),
+              SwitchListTile.adaptive(
+                title: const SizedBox.shrink(),
+                contentPadding: EdgeInsets.zero,
+                value: alertsEnabled,
+                onChanged: (v) async {
+                  await prefs.setAlertsEnabled(v);
+                  setState(() {});
+                },
+              ),
+            ],
+          ),
+          showDivider: true,
+        ),
+        
+        // Alert threshold slider (shown when enabled)
+        if (prefs.alertsEnabled) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Alert Threshold',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Semantics(
+                  label: 'Budget alert threshold',
+                  value: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
+                  child: Slider(
+                    value: (prefs.alertThreshold.clamp(0.5, 1.0)),
+                    min: 0.5,
+                    max: 1.0,
+                    divisions: 10,
+                    label: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}% threshold',
+                    onChanged: (v) {
+                      prefs.setAlertThreshold(v);
+                      setState(() {});
+                    },
+                    onChangeEnd: (v) async {
+                      await ref.read(analyticsServiceProvider).logEvent(
+                        'alert_threshold_change',
+                        params: {'threshold_percent': (v * 100).round()},
+                      );
+                    },
                   ),
-                  Text(
-                    '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
-                    style: theme.textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+          Divider(
+            height: 1,
+            indent: 0,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+          ),
+        ],
+        
+        // Biometric setting
+        ref.watch(biometricAvailableProvider).when(
+          data: (available) {
+            if (!available) return const SizedBox.shrink();
+            return _preferenceRow(
+              icon: Icons.fingerprint,
+              title: t?.biometricRequireTitle ?? 'Biometric Lock',
+              description: t?.biometricRequireSubtitle ?? 'Unlock with fingerprint',
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _statusBadge(prefs.biometricEnabled),
+                  const SizedBox(width: 8),
+                  SwitchListTile.adaptive(
+                    title: const SizedBox.shrink(),
+                    contentPadding: EdgeInsets.zero,
+                    value: prefs.biometricEnabled,
+                    onChanged: (v) async {
+                      await prefs.setBiometricEnabled(v);
+                      setState(() {});
+                    },
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Semantics(
-                label: 'Budget alert threshold',
-                value: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
-                child: Slider(
-                  value: (prefs.alertThreshold.clamp(0.5, 1.0)),
-                  min: 0.5,
-                  max: 1.0,
-                  divisions: 10,
-                  label:
-                      '${(prefs.alertThreshold * 100).toStringAsFixed(0)}% threshold',
-                  onChanged: (v) {
-                    prefs.setAlertThreshold(v);
-                    setState(() {});
+              showDivider: true,
+            );
+          },
+          loading: () => _preferenceRow(
+            icon: Icons.fingerprint,
+            title: t?.biometricRequireTitle ?? 'Biometric Lock',
+            description: 'Loading...',
+            trailing: const SizedBox.shrink(),
+          ),
+          error: (_, _) => const SizedBox.shrink(),
+        ),
+        
+        // Currency setting
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.secondary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.currency_exchange, size: 18, color: theme.colorScheme.secondary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Currency',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 100,
+                child: DropdownButtonFormField<String>(
+                  initialValue: currency,
+                  items: const [
+                    DropdownMenuItem(value: 'USD', child: Text('USD')),
+                    DropdownMenuItem(value: 'EUR', child: Text('EUR')),
+                    DropdownMenuItem(value: 'INR', child: Text('INR')),
+                  ],
+                  onChanged: (v) async {
+                    if (v == null) return;
+                    await ref.read(currencyProvider.notifier).set(v);
                   },
-                  onChangeEnd: (v) async {
-                    await ref.read(analyticsServiceProvider).logEvent(
-                          'alert_threshold_change',
-                          params: {'threshold_percent': (v * 100).round()},
-                        );
-                  },
+                  decoration: InputDecoration(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    filled: true,
+                  ),
+                  isDense: true,
                 ),
               ),
             ],
           ),
-        ],
-        // Use cached biometric provider instead of FutureBuilder
-        ref.watch(biometricAvailableProvider).when(
-          data: (available) {
-            if (!available) return const SizedBox.shrink();
-            return SwitchListTile.adaptive(
-              title: Text(
-                t?.biometricRequireTitle ?? 'Require biometric to unlock',
+        ),
+        Divider(
+          height: 1,
+          indent: 0,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+        ),
+        
+        // Date format setting
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.secondary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.calendar_today, size: 18, color: theme.colorScheme.secondary),
               ),
-              subtitle: Text(
-                t?.biometricRequireSubtitle ?? 'Prompt biometric on app launch',
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Date Format',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              contentPadding: EdgeInsets.zero,
-              value: prefs.biometricEnabled,
-              onChanged: (v) async {
-                await prefs.setBiometricEnabled(v);
-                setState(() {});
-              },
-            );
-          },
-          loading: () => SwitchListTile.adaptive(
-            title: Text(t?.biometricRequireTitle ?? 'Require biometric to unlock'),
-            value: false,
-            onChanged: null,
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 140,
+                child: DropdownButtonFormField<String>(
+                  initialValue: dateFormat,
+                  items: const [
+                    DropdownMenuItem(value: 'yyyy-MM-dd', child: Text('yyyy-MM-dd')),
+                    DropdownMenuItem(value: 'dd/MM/yyyy', child: Text('dd/MM/yyyy')),
+                    DropdownMenuItem(value: 'MM/dd/yyyy', child: Text('MM/dd/yyyy')),
+                  ],
+                  onChanged: (v) async {
+                    if (v == null) return;
+                    await prefs.setDateFormat(v);
+                    setState(() {});
+                  },
+                  decoration: InputDecoration(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    filled: true,
+                  ),
+                  isDense: true,
+                ),
+              ),
+            ],
           ),
-          error: (_, __) => const SizedBox.shrink(),
-        ),
-        // Developer Options removed from Settings.
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: currency,
-                items: const [
-                  DropdownMenuItem(value: 'USD', child: Text('USD')),
-                  DropdownMenuItem(value: 'EUR', child: Text('EUR')),
-                  DropdownMenuItem(value: 'INR', child: Text('INR')),
-                ],
-                onChanged: (v) async {
-                  if (v == null) return;
-                  await ref.read(currencyProvider.notifier).set(v);
-                },
-                decoration: const InputDecoration(
-                  labelText: 'Currency',
-                  filled: true,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: dateFormat,
-                items: const [
-                  DropdownMenuItem(
-                    value: 'yyyy-MM-dd',
-                    child: Text('yyyy-MM-dd'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'dd/MM/yyyy',
-                    child: Text('dd/MM/yyyy'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'MM/dd/yyyy',
-                    child: Text('MM/dd/yyyy'),
-                  ),
-                ],
-                onChanged: (v) async {
-                  if (v == null) return;
-                  await prefs.setDateFormat(v);
-                  setState(() {});
-                },
-                decoration: const InputDecoration(
-                  labelText: 'Date format',
-                  filled: true,
-                ),
-              ),
-            ),
-          ],
         ),
       ],
     );
     final dataSection = sectionCard(
-      Icons.layers_outlined,
+      Icons.cloud_outlined,
       t?.dataPrivacyTitle ?? 'Data & Privacy',
       [
-        // Export / local Backup removed — use Backup to Drive / Restore from Drive instead.
         const SizedBox(height: 8),
-        // Navigation + action tiles — changed from Wrap(width:180) to full-width
-        // Column so tiles never clip on narrow phones.
-        // Categories and Onboarding removed from Settings per request.
         _actionTile(
           icon: Icons.payments_outlined,
           title: t?.emiTrackerTitle ?? 'EMI Tracker',
@@ -408,25 +623,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     // Account section — ListTile leading icons now use the same 36×36 rounded
     // pill container as _actionTile for visual consistency.
     final accountSection = sectionCard(
-      Icons.lock_outline,
+      Icons.security,
       'Account & Security',
       [
-        ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-          leading: Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              Icons.lock_reset,
-              size: 18,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-          title: const Text('Change Password'),
+        // Change Password
+        _actionTile(
+          icon: Icons.lock_reset,
+          title: 'Change Password',
+          subtitle: 'Update your password',
           onTap: () async {
             final controller = TextEditingController();
             final confirm = await showDialog<bool>(
@@ -452,9 +656,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             );
             if (confirm == true) {
               try {
-                await ref
-                    .read(authServiceProvider)
-                    .updatePassword(controller.text.trim());
+                await ref.read(authServiceProvider).updatePassword(controller.text.trim());
                 messenger.showSnackBar(
                   const SnackBar(content: Text('Password updated')),
                 );
@@ -465,19 +667,63 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             controller.dispose();
           },
         ),
-        ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-          leading: Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.delete_forever, size: 18, color: Colors.red),
-          ),
-          title: const Text('Delete Account', style: TextStyle(color: Colors.red)),
-          subtitle: const Text('Delete all data & account'),
+        const Divider(height: 1, indent: 52),
+        
+        // Sign out
+        _actionTile(
+          icon: Icons.logout,
+          title: 'Sign Out',
+          subtitle: 'End your session',
+          onTap: () async {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (ctx) {
+                return AlertDialog(
+                  title: const Text('Sign Out'),
+                  content: const Text('Are you sure you want to sign out?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text('Sign Out'),
+                    ),
+                  ],
+                );
+              },
+            );
+            if (confirm == true) {
+              await ref.read(authServiceProvider).signOut();
+              await ref.read(analyticsServiceProvider).logEvent('sign_out');
+              ref.invalidate(authStateChangesProvider);
+              ref.invalidate(currentUserProvider);
+              ref.invalidate(userTransactionsProvider);
+              ref.invalidate(transactionRepositoryProvider);
+
+              messenger.showSnackBar(
+                const SnackBar(
+                  content: Text('Signed out successfully'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              try {
+                ref.read(appRouterProvider).go('/login');
+              } catch (_) {
+                router.go('/login');
+              }
+            }
+          },
+        ),
+        const Divider(height: 1, indent: 52),
+        
+        // Delete Account (Danger Zone)
+        _actionTile(
+          icon: Icons.delete_forever,
+          title: 'Delete Account',
+          subtitle: 'Delete all data & account',
+          isDangerous: true,
           onTap: () async {
             final confirm = await showDialog<bool>(
               context: context,
@@ -492,12 +738,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             );
             if (confirm == true) {
               try {
-                // First delete all user data
                 final user = ref.read(currentUserProvider);
                 if (user != null) {
                   await _clearAllUserData(ref, user.uid);
                 }
-                // Then delete the account
                 await ref.read(authServiceProvider).deleteAccount();
                 messenger.showSnackBar(
                   const SnackBar(content: Text('Account and all data deleted')),
@@ -505,67 +749,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 router.go('/login');
               } catch (e) {
                 messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
-              }
-            }
-          },
-        ),
-        ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-          leading: Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              Icons.logout,
-              size: 18,
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
-          title: const Text('Sign out'),
-          onTap: () async {
-            final confirm = await showDialog<bool>(
-              context: context,
-              builder: (ctx) {
-                return AlertDialog(
-                  title: const Text('Sign out'),
-                  content: const Text('Are you sure you want to sign out?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(false),
-                      child: const Text('Cancel'),
-                    ),
-                    FilledButton(
-                      onPressed: () => Navigator.of(ctx).pop(true),
-                      child: const Text('Sign out'),
-                    ),
-                  ],
-                );
-              },
-            );
-            if (confirm == true) {
-              await ref.read(authServiceProvider).signOut();
-              await ref.read(analyticsServiceProvider).logEvent('sign_out');
-              // Invalidate auth-related providers so UI refreshes immediately
-              ref.invalidate(authStateChangesProvider);
-              ref.invalidate(currentUserProvider);
-              ref.invalidate(userTransactionsProvider);
-              ref.invalidate(transactionRepositoryProvider);
-
-              messenger.showSnackBar(
-                const SnackBar(
-                  content: Text('Signed out successfully'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-              // Use the app router provider to ensure root navigation is used
-              try {
-                ref.read(appRouterProvider).go('/login');
-              } catch (_) {
-                // Fallback to local router if provider router is unavailable
-                router.go('/login');
               }
             }
           },
