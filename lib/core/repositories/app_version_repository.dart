@@ -16,37 +16,23 @@ class AppVersionRepository {
   /// Returns null if data not found or on error
   Future<AppVersionModel?> getVersionByPlatform(String platform) async {
     try {
-      debugPrint('DEBUG Repository: Getting version for platform: $platform');
-      
-      // Check cache first
       if (_isCacheValid()) {
         final cached = _cache!['app_versions/$platform'];
         if (cached != null && cached.isValid()) {
-          debugPrint('DEBUG Repository: Returning cached version: ${cached.version}');
           return cached.version;
         }
       }
 
-      // Fetch from RTDB
       final snapshot = await _db.get('app_versions/$platform');
-      debugPrint('DEBUG Repository: RTDB snapshot exists: ${snapshot.exists}, value: ${snapshot.value}');
-      
       if (snapshot.exists && snapshot.value != null) {
         final data = Map<String, dynamic>.from(snapshot.value as Map);
-        debugPrint('DEBUG Repository: Parsed data: $data');
         final model = AppVersionModel.fromRTDB(data);
-        debugPrint('DEBUG Repository: Created model: $model');
-        
-        // Cache the result
         _cache ??= {};
         _cache!['app_versions/$platform'] = CachedVersion(model, DateTime.now());
-        
         return model;
       }
       
-      // Fallback: Return test data in debug mode if Firebase data not found
       if (!kReleaseMode) {
-        debugPrint('DEBUG Repository: No Firebase data found, returning test data for platform: $platform');
         final testModel = AppVersionModel(
           minimumVersion: '1.0.3',
           currentVersion: '1.0.5',
@@ -54,15 +40,11 @@ class AppVersionRepository {
           rolloutPercentage: 100,
           storeUrl: 'https://play.google.com/store/apps/details?id=com.aspiredesignovation.cashlyze',
         );
-        debugPrint('DEBUG Repository: Returning test model: $testModel');
         return testModel;
       }
       
-      debugPrint('DEBUG Repository: No version data found for platform: $platform');
       return null;
     } catch (e) {
-      // On error, return null (fail-safe)
-      debugPrint('DEBUG Repository: Error fetching version: $e');
       return null;
     }
   }

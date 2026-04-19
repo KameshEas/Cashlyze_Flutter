@@ -629,9 +629,6 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                       Expanded(
                         child: FilledButton(
                           onPressed: () async {
-                            debugPrint('Budget create: Save pressed');
-                            print('Budget create: Save pressed');
-                            // Visual feedback removed (no blocking dialog).
                             final user = ref.read(currentUserProvider);
                             if (user == null) {
                               // In normal app flow this shouldn't happen because
@@ -676,7 +673,6 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                             }
 
                             try {
-                              debugPrint('Creating budget (name=$name, allocated=$amount, cats=$selectedCategoryIds');
                               // Normalize selected category identifiers to canonical
                               // category IDs where possible before persisting the
                               // budget. The UI keeps `selectedCategoryIds` as
@@ -709,13 +705,11 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                                 period: selectedPeriod,
                                 categoryIds: finalCategoryIds,
                               );
-                              debugPrint('Budget created id=${created.id}');
                               nav.pop(true);
                               pageMessenger.showSnackBar(
                                 const SnackBar(content: Text('Budget created')),
                               );
                             } catch (e) {
-                              debugPrint('Budget create failed: $e');
                               ScaffoldMessenger.of(ctx).showSnackBar(
                                 SnackBar(content: Text('Failed: $e')),
                               );

@@ -83,15 +83,6 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
     }
   }
 
-  // Debug logging to help diagnose mismatches between stored category
-  // values on transactions and budget category identifiers.
-  if (kDebugMode) {
-    print('DEBUG budgetsUtilization: categories (id->name) = $idToName');
-    print('DEBUG budgetsUtilization: nameToId = $nameToId');
-    print('DEBUG budgetsUtilization: budgetNormalized = $budgetNormalized');
-    print('DEBUG budgetsUtilization: primaryForKey = $primaryForKey');
-  }
-
   // Precompute period starts
   final periodStartById = {for (final b in sortedBudgets) b.id: _periodStart(b.period)};
 
@@ -118,9 +109,6 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
         ownerId = primaryForKey[c];
         break;
       }
-    }
-    if (kDebugMode) {
-      print('DEBUG budgetsUtilization: txn=${t.id} raw="$raw" candidates=$candidates owner=$ownerId amount=${t.amount}');
     }
     if (ownerId == null) continue;
 

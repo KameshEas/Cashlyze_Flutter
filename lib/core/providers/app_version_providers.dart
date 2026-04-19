@@ -31,10 +31,7 @@ final currentPlatformVersionProvider =
   final service = ref.watch(appVersionServiceProvider);
 
   final platform = service.getPlatformName();
-  debugPrint('DEBUG AppVersion: Fetching version config for platform: $platform');
   final versionConfig = await repository.getVersionByPlatform(platform);
-  debugPrint('DEBUG AppVersion: Fetched version config: $versionConfig');
-
   return versionConfig;
 });
 
@@ -43,16 +40,11 @@ final forceUpdateRequiredProvider = FutureProvider<bool>((ref) async {
   final versionConfig = await ref.watch(currentPlatformVersionProvider.future);
 
   if (versionConfig == null) {
-    // If version config not found, don't force update (fail-safe)
-    debugPrint('DEBUG ForceUpdateRequired: versionConfig is null, no update required');
     return false;
   }
 
   final service = ref.watch(appVersionServiceProvider);
   final shouldUpdate = await service.shouldForceUpdate(versionConfig);
-  debugPrint('DEBUG ForceUpdateRequired: shouldForceUpdate returned $shouldUpdate');
-  debugPrint('DEBUG ForceUpdateRequired: versionConfig: $versionConfig');
-  
   return shouldUpdate;
 });
 
@@ -73,28 +65,18 @@ class ForceUpdateStateNotifier extends Notifier<ForceUpdateState> {
 
   /// Check for required update and update state
   Future<void> checkForceUpdate() async {
-    debugPrint('DEBUG ForceUpdateNotifier: checkForceUpdate() started');
     state = const ForceUpdateState.loading();
 
     try {
-      final forceUpdateRequired =
-          await ref.read(forceUpdateRequiredProvider.future);
-      debugPrint('DEBUG ForceUpdateNotifier: forceUpdateRequired = $forceUpdateRequired');
-      
-      final versionConfig =
-          await ref.read(currentPlatformVersionProvider.future);
-      debugPrint('DEBUG ForceUpdateNotifier: versionConfig = $versionConfig');
+      final forceUpdateRequired = await ref.read(forceUpdateRequiredProvider.future);
+      final versionConfig = await ref.read(currentPlatformVersionProvider.future);
 
       if (forceUpdateRequired && versionConfig != null) {
-        debugPrint('DEBUG ForceUpdateNotifier: Setting state to updateRequired');
         state = ForceUpdateState.updateRequired(versionConfig);
       } else {
-        debugPrint('DEBUG ForceUpdateNotifier: Setting state to noUpdateRequired (forceUpdateRequired=$forceUpdateRequired, versionConfig=$versionConfig)');
         state = const ForceUpdateState.noUpdateRequired();
       }
     } catch (e) {
-      // On error, proceed without forcing update (fail-safe)
-      debugPrint('DEBUG ForceUpdateNotifier: Error in checkForceUpdate: $e');
       state = const ForceUpdateState.noUpdateRequired();
     }
   }

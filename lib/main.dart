@@ -268,14 +268,10 @@ class _ForceUpdateMonitorState extends ConsumerState<_ForceUpdateMonitor> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('DEBUG: _ForceUpdateMonitor.build() called');
-    
     // Listen for force update state changes
     ref.listen<ForceUpdateState>(forceUpdateStateProvider, (previous, next) {
-      debugPrint('DEBUG: Force update state changed from $previous to $next');
       next.whenOrNull(
         updateRequired: (config) {
-          debugPrint('DEBUG: Update required! Navigating to force update screen for version ${config.minimumVersion}');
           if (mounted) {
             // Use Future.microtask to navigate after frame is complete
             Future.microtask(() {
@@ -297,9 +293,7 @@ class _ForceUpdateMonitorState extends ConsumerState<_ForceUpdateMonitor> {
                     transitionDuration: const Duration(milliseconds: 600),
                   ),
                 );
-                debugPrint('DEBUG: Force update screen displayed');
               } else {
-                debugPrint('DEBUG: Navigator context not available yet, scheduling retry');
                 // Retry after a short delay if context not ready
                 Future.delayed(const Duration(milliseconds: 500), () {
                   if (mounted) {
@@ -318,7 +312,6 @@ class _ForceUpdateMonitorState extends ConsumerState<_ForceUpdateMonitor> {
                           transitionDuration: const Duration(milliseconds: 600),
                         ),
                       );
-                      debugPrint('DEBUG: Force update screen displayed (retry)');
                     }
                   }
                 });
@@ -326,12 +319,8 @@ class _ForceUpdateMonitorState extends ConsumerState<_ForceUpdateMonitor> {
             });
           }
         },
-        noUpdateRequired: () {
-          debugPrint('DEBUG: No update required');
-        },
-        loading: () {
-          debugPrint('DEBUG: Force update check loading...');
-        },
+        noUpdateRequired: () {},
+        loading: () {},
       );
     });
 
@@ -340,11 +329,9 @@ class _ForceUpdateMonitorState extends ConsumerState<_ForceUpdateMonitor> {
 
   Future<void> _performForceUpdateCheck() async {
     try {
-      debugPrint('DEBUG: Starting force update check...');
       await ref.read(forceUpdateStateProvider.notifier).checkForceUpdate();
-      debugPrint('DEBUG: Force update check completed');
     } catch (e) {
-      debugPrint('DEBUG Force update check error: $e');
+      // Silently fail if force update check errors
     }
   }
 }

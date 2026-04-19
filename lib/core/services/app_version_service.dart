@@ -106,20 +106,11 @@ class AppVersionService {
   Future<bool> shouldForceUpdate(AppVersionModel versionConfig) async {
     try {
       final currentVersion = await getCurrentAppVersion();
-      debugPrint('DEBUG AppVersionService: currentVersion = $currentVersion');
-      debugPrint('DEBUG AppVersionService: minimumVersion = ${versionConfig.minimumVersion}');
 
-      // Check if current version is outdated
       if (isVersionOutdated(currentVersion, versionConfig.minimumVersion)) {
-        debugPrint('DEBUG AppVersionService: Version is outdated, checking rollout percentage');
-        
-        // Check if user is eligible for this rollout
         final eligible = await isEligibleForRollout(versionConfig.rolloutPercentage);
-        debugPrint('DEBUG AppVersionService: User eligible for rollout = $eligible (percentage: ${versionConfig.rolloutPercentage})');
         
         if (eligible) {
-          debugPrint('DEBUG AppVersionService: Returning true - force update required!');
-          // Log analytics event
           await _analyticsService.logEvent(
             'force_update_required',
             params: {
@@ -131,10 +122,7 @@ class AppVersionService {
           );
           return true;
         }
-      } else {
-        debugPrint('DEBUG AppVersionService: Version is up to date');
       }
-      debugPrint('DEBUG AppVersionService: Returning false - no force update needed');
       return false;
     } catch (e) {
       // If there's any error, don't block the app
