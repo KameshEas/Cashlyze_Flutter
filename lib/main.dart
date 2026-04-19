@@ -99,10 +99,11 @@ void main() async {
     if (!kReleaseMode) debugPrint('Failed to load .env file: $e');
   }
 
-  // Start the app asynchronously so Sentry cannot block UI startup. We will
-  // initialize the Flutter bindings inside the runZonedGuarded zone to make
+  // Start the app and wait for the zone-initialized startup to complete so
+  // subsequent fire-and-forget inits don't race with binding initialization.
+  // Initialize the Flutter bindings inside the runZonedGuarded zone to make
   // sure binding initialization and `runApp` happen in the same zone.
-  _appRunner();
+  await _appRunner();
 
   // Initialize OneSignal (fire-and-forget). App ID from request.
   () async {

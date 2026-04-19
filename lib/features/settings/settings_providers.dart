@@ -1,1 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+// Settings providers file
+// This file can be used for future settings-related Riverpod providers
+

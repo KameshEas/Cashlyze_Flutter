@@ -15,7 +15,6 @@ import 'dart:async';
 import '../../core/services/drive_backup_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../routes/app_router.dart';
-import 'settings_providers.dart';
 import 'widgets/extracted_dialogs.dart';
 import 'widgets/enhanced_progress_dialog.dart';
 
@@ -334,14 +333,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           icon: Icons.notifications_outlined,
           title: t?.alertsTitle ?? 'Alerts',
           description: t?.alertsSubtitle ?? 'Budget threshold notifications',
-          trailing: Row(
+              trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               _statusBadge(alertsEnabled),
               const SizedBox(width: 8),
-              SwitchListTile.adaptive(
-                title: const SizedBox.shrink(),
-                contentPadding: EdgeInsets.zero,
+              Switch.adaptive(
                 value: alertsEnabled,
                 onChanged: (v) async {
                   await prefs.setAlertsEnabled(v);
@@ -446,8 +443,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              SizedBox(
-                width: 100,
+              Flexible(
+                flex: 1,
                 child: DropdownButtonFormField<String>(
                   initialValue: currency,
                   items: const [
@@ -507,8 +504,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              SizedBox(
-                width: 140,
+              Flexible(
+                flex: 1,
                 child: DropdownButtonFormField<String>(
                   initialValue: dateFormat,
                   items: const [
@@ -729,29 +726,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           if (wide) {
             return SingleChildScrollView(
               padding: const EdgeInsets.all(24),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      children: [
-                        preferences,
-                        const SizedBox(height: 20),
-                        dataSection,
-                      ],
+              child: SizedBox(
+                width: constraints.maxWidth - 48,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          preferences,
+                          const SizedBox(height: 20),
+                          dataSection,
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        accountSection,
-                        const SizedBox(height: 20),
-                        // Developer tools removed.
-                      ],
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          accountSection,
+                          const SizedBox(height: 20),
+                          // Developer tools removed.
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           }
