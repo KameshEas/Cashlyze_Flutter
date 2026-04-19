@@ -222,15 +222,9 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       ),
     );
 
-    // Wrap with drag listener to enable reordering (works with or without Dismissible)
-    final cardWithDrag = ReorderableDragStartListener(
-      index: index,
-      child: budgetCard,
-    );
-
-    // General budget can be reordered but not swiped
+    // General budget can be reordered (via long-press) but not swiped
     if (isSynthetic) {
-      return cardWithDrag;
+      return budgetCard;
     }
 
     return Dismissible(
@@ -355,7 +349,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           return false;
         }
       },
-      child: cardWithDrag,
+      child: budgetCard,
     );
   }
 
