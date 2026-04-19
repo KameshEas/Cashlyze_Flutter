@@ -57,8 +57,9 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           label: const Text('Create'),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -147,6 +148,12 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                       budget: e,
                       currency: currency,
                       isSynthetic: isSynthetic,
+                      onAdjust: () => _openAdjustBudget(
+                        context,
+                        e.id,
+                        e.allocated,
+                        e.name,
+                      ),
                     );
 
                     if (isSynthetic) {
@@ -228,6 +235,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
               },
             ),
           ],
+        ),
         ),
       ),
     );

@@ -14,12 +14,14 @@ class BudgetCard extends ConsumerStatefulWidget {
   final BudgetModel budget;
   final String currency;
   final bool isSynthetic;
+  final VoidCallback? onAdjust;
 
   const BudgetCard({
     super.key,
     required this.budget,
     required this.currency,
     required this.isSynthetic,
+    this.onAdjust,
   });
 
   @override
@@ -140,6 +142,16 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
               Text(remLabel, style: theme.textTheme.titleMedium?.copyWith(color: over ? theme.colorScheme.error : null, fontWeight: FontWeight.bold)),
             ],
           ),
+          if (widget.onAdjust != null) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: widget.onAdjust,
+                child: const Text('Adjust Budget'),
+              ),
+            ),
+          ],
         ],
       ),
     );
