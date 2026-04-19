@@ -18,13 +18,18 @@ import '../features/categories/categories_screen.dart';
 import '../features/emi/emi_form_screen.dart';
 import '../features/emi/emi_dashboard_screen.dart';
 
+// Root navigator key for accessing Navigator context from anywhere
+final rootNavigatorKeyProvider = Provider<GlobalKey<NavigatorState>>((ref) {
+  return GlobalKey<NavigatorState>();
+});
+
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final rootKey = ref.watch(rootNavigatorKeyProvider);
   final onboardingCompleted = ref.watch(onboardingCompletedProvider);
   final authState = ref.watch(authStateChangesProvider);
   final currentUser = ref.watch(currentUserProvider);
   final otpPending = ref.watch(otpPendingProvider);
   const kRouteFadeDuration = Duration(milliseconds: 300);
-  final rootKey = GlobalKey<NavigatorState>();
   final shellKey = GlobalKey<NavigatorState>();
 
   return GoRouter(

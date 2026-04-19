@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart'
 import 'core/theme/app_theme.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'routes/app_router.dart';
+import 'routes/app_router.dart' show rootNavigatorKeyProvider;
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
@@ -19,6 +20,8 @@ import 'core/providers/shared_prefs_provider.dart';
 import 'core/providers/budget_alerts_handler.dart';
 import 'core/services/local_notification_service.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
+import 'core/providers/app_version_providers.dart';
+import 'features/force_update/widgets/force_update_dialog.dart';
 
 // Tracks whether Sentry has finished initialization.
 bool _sentryReady = false;
@@ -204,9 +207,9 @@ class App extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final appRouter = ref.watch(appRouterProvider);
-    // Ensure budget alert handler is initialized so threshold crossings
-    // produce notifications while the app is running.
+    // Ensure budget alert handler is initialized
     ref.watch(budgetAlertsHandlerProvider);
+    
     // Initialize local notifications (idempotent).
     Future.microtask(() async {
       try {
@@ -215,6 +218,7 @@ class App extends ConsumerWidget {
         if (!kReleaseMode) debugPrint('LocalNotification init failed: $e');
       }
     });
+    
     final locale = ref.watch(localeProvider);
     return MaterialApp.router(
       title: AppLocalizations.of(context)?.appTitle ?? 'Cashlyze',
@@ -227,10 +231,120 @@ class App extends ConsumerWidget {
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return _ForceUpdateMonitor(child: child!);
+      },
     );
+  }
+}
+
+/// Widget that monitors force update state and shows dialog when needed
+class _ForceUpdateMonitor extends ConsumerStatefulWidget {
+  final Widget child;
+
+  const _ForceUpdateMonitor({required this.child});
+
+  @override
+  ConsumerState<_ForceUpdateMonitor> createState() => _ForceUpdateMonitorState();
+}
+
+class _ForceUpdateMonitorState extends ConsumerState<_ForceUpdateMonitor> {
+  bool _checkInitiated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Trigger force update check on first build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_checkInitiated) {
+        _checkInitiated = true;
+        _performForceUpdateCheck();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    debugPrint('DEBUG: _ForceUpdateMonitor.build() called');
+    
+    // Listen for force update state changes
+    ref.listen<ForceUpdateState>(forceUpdateStateProvider, (previous, next) {
+      debugPrint('DEBUG: Force update state changed from $previous to $next');
+      next.whenOrNull(
+        updateRequired: (config) {
+          debugPrint('DEBUG: Update required! Navigating to force update screen for version ${config.minimumVersion}');
+          if (mounted) {
+            // Use Future.microtask to navigate after frame is complete
+            Future.microtask(() {
+              final rootKey = ref.read(rootNavigatorKeyProvider);
+              final navigatorContext = rootKey.currentContext;
+              
+              if (navigatorContext != null) {
+                // Push full-page force update screen
+                Navigator.of(navigatorContext).pushReplacement(
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) =>
+                        ForceUpdateDialog(versionConfig: config),
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(
+                        opacity: animation,
+                        child: child,
+                      );
+                    },
+                    transitionDuration: const Duration(milliseconds: 600),
+                  ),
+                );
+                debugPrint('DEBUG: Force update screen displayed');
+              } else {
+                debugPrint('DEBUG: Navigator context not available yet, scheduling retry');
+                // Retry after a short delay if context not ready
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  if (mounted) {
+                    final navContext = ref.read(rootNavigatorKeyProvider).currentContext;
+                    if (navContext != null) {
+                      Navigator.of(navContext).pushReplacement(
+                        PageRouteBuilder(
+                          pageBuilder: (context, animation, secondaryAnimation) =>
+                              ForceUpdateDialog(versionConfig: config),
+                          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: child,
+                            );
+                          },
+                          transitionDuration: const Duration(milliseconds: 600),
+                        ),
+                      );
+                      debugPrint('DEBUG: Force update screen displayed (retry)');
+                    }
+                  }
+                });
+              }
+            });
+          }
+        },
+        noUpdateRequired: () {
+          debugPrint('DEBUG: No update required');
+        },
+        loading: () {
+          debugPrint('DEBUG: Force update check loading...');
+        },
+      );
+    });
+
+    return widget.child;
+  }
+
+  Future<void> _performForceUpdateCheck() async {
+    try {
+      debugPrint('DEBUG: Starting force update check...');
+      await ref.read(forceUpdateStateProvider.notifier).checkForceUpdate();
+      debugPrint('DEBUG: Force update check completed');
+    } catch (e) {
+      debugPrint('DEBUG Force update check error: $e');
+    }
   }
 }
