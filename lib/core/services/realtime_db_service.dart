@@ -74,6 +74,28 @@ class RealtimeDbService {
     return '$_databaseUrl/$trimmed.json';
   }
 
+  /// Convert ServerValue objects to REST API format
+  Map<String, dynamic> _convertServerValues(Map<String, dynamic> data) {
+    return data.map((key, value) {
+      if (value is ServerValue) {
+        // ServerValue.timestamp is the only common server value used
+        return MapEntry(key, {'.sv': 'timestamp'});
+      } else if (value is Map<String, dynamic>) {
+        return MapEntry(key, _convertServerValues(value));
+      } else if (value is List) {
+        return MapEntry(key, value.map((item) {
+          if (item is ServerValue) {
+            return {'.sv': 'timestamp'};
+          } else if (item is Map<String, dynamic>) {
+            return _convertServerValues(item);
+          }
+          return item;
+        }).toList());
+      }
+      return MapEntry(key, value);
+    });
+  }
+
   Future<DatabaseReference> push(String path, Map<String, dynamic> data) async {
     if (_nativeSupported) {
       final ref = _db.ref(path).push();
@@ -81,9 +103,10 @@ class RealtimeDbService {
       return ref;
     }
     final token = await _idToken();
+    final convertedData = _convertServerValues(data);
     final res = await _dio.post(
       _url(path),
-      data: data,
+      data: convertedData,
       queryParameters: token != null ? {'auth': token} : null,
     );
     final name = (res.data as Map)['name'] as String;
@@ -97,9 +120,10 @@ class RealtimeDbService {
       return ref.key!;
     }
     final token = await _idToken();
+    final convertedData = _convertServerValues(data);
     final res = await _dio.post(
       _url(path),
-      data: data,
+      data: convertedData,
       queryParameters: token != null ? {'auth': token} : null,
     );
     final name = (res.data as Map)['name'] as String;
@@ -112,9 +136,10 @@ class RealtimeDbService {
       return;
     }
     final token = await _idToken();
+    final convertedData = _convertServerValues(data);
     await _dio.put(
       _url(path),
-      data: data,
+      data: convertedData,
       queryParameters: token != null ? {'auth': token} : null,
     );
   }
@@ -125,9 +150,10 @@ class RealtimeDbService {
       return;
     }
     final token = await _idToken();
+    final convertedData = _convertServerValues(data);
     await _dio.patch(
       _url(path),
-      data: data,
+      data: convertedData,
       queryParameters: token != null ? {'auth': token} : null,
     );
   }
@@ -138,9 +164,10 @@ class RealtimeDbService {
       return;
     }
     final token = await _idToken();
+    final convertedData = _convertServerValues(dataTree);
     await _dio.patch(
       _url(''),
-      data: dataTree,
+      data: convertedData,
       queryParameters: token != null ? {'auth': token} : null,
     );
   }

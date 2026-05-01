@@ -112,4 +112,6 @@ flutter {
 dependencies {
     // Required for core library desugaring (Java 8+ APIs used by some plugins)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // Material 3 design system for edge-to-edge display support
+    implementation("com.google.android.material:material:1.12.0")
 }
