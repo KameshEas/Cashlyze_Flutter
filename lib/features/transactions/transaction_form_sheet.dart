@@ -300,6 +300,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   }
                 } catch (e) {
                   if (!mounted) return;
+                  debugPrint('Transaction save failed: $e');
                   showRepoErrorSnackBar(messenger, e);
                 }
               }, child: Text(t?.save ?? 'Save')),

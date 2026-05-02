@@ -48,7 +48,14 @@ class RealtimeDbService {
   final bool _nativeSupported;
 
   RealtimeDbService(this._db)
-    : _dio = Dio(),
+    : _dio = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+          sendTimeout: const Duration(seconds: 10),
+          responseType: ResponseType.json,
+        ),
+      ),
       _auth = FirebaseAuth.instance,
       _databaseUrl =
           (DefaultFirebaseOptions.currentPlatform.databaseURL != null &&
@@ -102,15 +109,31 @@ class RealtimeDbService {
       await ref.set(data);
       return ref;
     }
-    final token = await _idToken();
-    final convertedData = _convertServerValues(data);
-    final res = await _dio.post(
-      _url(path),
-      data: convertedData,
-      queryParameters: token != null ? {'auth': token} : null,
-    );
-    final name = (res.data as Map)['name'] as String;
-    return _db.ref(path).child(name);
+    try {
+      final token = await _idToken();
+      if (token == null) {
+        throw Exception('Authentication required: No valid ID token available');
+      }
+      final convertedData = _convertServerValues(data);
+      final res = await _dio.post(
+        _url(path),
+        data: convertedData,
+        queryParameters: {'auth': token},
+      );
+      
+      if (res.data == null || res.data is! Map) {
+        throw Exception('Invalid response from Firebase: expected Map, got ${res.data.runtimeType}');
+      }
+      
+      final name = (res.data as Map)['name'];
+      if (name == null || name is! String) {
+        throw Exception('Invalid response from Firebase: missing or invalid "name" field');
+      }
+      
+      return _db.ref(path).child(name);
+    } catch (e) {
+      throw Exception('Failed to push data to $path: $e');
+    }
   }
 
   Future<String> pushKey(String path, Map<String, dynamic> data) async {
@@ -119,15 +142,31 @@ class RealtimeDbService {
       await ref.set(data);
       return ref.key!;
     }
-    final token = await _idToken();
-    final convertedData = _convertServerValues(data);
-    final res = await _dio.post(
-      _url(path),
-      data: convertedData,
-      queryParameters: token != null ? {'auth': token} : null,
-    );
-    final name = (res.data as Map)['name'] as String;
-    return name;
+    try {
+      final token = await _idToken();
+      if (token == null) {
+        throw Exception('Authentication required: No valid ID token available');
+      }
+      final convertedData = _convertServerValues(data);
+      final res = await _dio.post(
+        _url(path),
+        data: convertedData,
+        queryParameters: {'auth': token},
+      );
+      
+      if (res.data == null || res.data is! Map) {
+        throw Exception('Invalid response from Firebase: expected Map, got ${res.data.runtimeType}');
+      }
+      
+      final name = (res.data as Map)['name'];
+      if (name == null || name is! String) {
+        throw Exception('Invalid response from Firebase: missing or invalid "name" field');
+      }
+      
+      return name;
+    } catch (e) {
+      throw Exception('Failed to push key to $path: $e');
+    }
   }
 
   Future<void> set(String path, Map<String, dynamic> data) async {
@@ -135,13 +174,24 @@ class RealtimeDbService {
       await _db.ref(path).set(data);
       return;
     }
-    final token = await _idToken();
-    final convertedData = _convertServerValues(data);
-    await _dio.put(
-      _url(path),
-      data: convertedData,
-      queryParameters: token != null ? {'auth': token} : null,
-    );
+    try {
+      final token = await _idToken();
+      if (token == null) {
+        throw Exception('Authentication required: No valid ID token available');
+      }
+      final convertedData = _convertServerValues(data);
+      final res = await _dio.put(
+        _url(path),
+        data: convertedData,
+        queryParameters: {'auth': token},
+      );
+      
+      if (res.statusCode != 200) {
+        throw Exception('Failed to set data: HTTP ${res.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Failed to set data at $path: $e');
+    }
   }
 
   Future<void> update(String path, Map<String, dynamic> data) async {
@@ -149,13 +199,24 @@ class RealtimeDbService {
       await _db.ref(path).update(data);
       return;
     }
-    final token = await _idToken();
-    final convertedData = _convertServerValues(data);
-    await _dio.patch(
-      _url(path),
-      data: convertedData,
-      queryParameters: token != null ? {'auth': token} : null,
-    );
+    try {
+      final token = await _idToken();
+      if (token == null) {
+        throw Exception('Authentication required: No valid ID token available');
+      }
+      final convertedData = _convertServerValues(data);
+      final res = await _dio.patch(
+        _url(path),
+        data: convertedData,
+        queryParameters: {'auth': token},
+      );
+      
+      if (res.statusCode != 200) {
+        throw Exception('Failed to update data: HTTP ${res.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Failed to update data at $path: $e');
+    }
   }
 
   Future<void> updateMulti(Map<String, dynamic> dataTree) async {
@@ -163,13 +224,24 @@ class RealtimeDbService {
       await _db.ref().update(dataTree);
       return;
     }
-    final token = await _idToken();
-    final convertedData = _convertServerValues(dataTree);
-    await _dio.patch(
-      _url(''),
-      data: convertedData,
-      queryParameters: token != null ? {'auth': token} : null,
-    );
+    try {
+      final token = await _idToken();
+      if (token == null) {
+        throw Exception('Authentication required: No valid ID token available');
+      }
+      final convertedData = _convertServerValues(dataTree);
+      final res = await _dio.patch(
+        _url(''),
+        data: convertedData,
+        queryParameters: {'auth': token},
+      );
+      
+      if (res.statusCode != 200) {
+        throw Exception('Failed to update multiple paths: HTTP ${res.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Failed to update multiple paths: $e');
+    }
   }
 
   Future<void> remove(String path) async {
@@ -177,27 +249,44 @@ class RealtimeDbService {
       await _db.ref(path).remove();
       return;
     }
-    final token = await _idToken();
-    await _dio.delete(
-      _url(path),
-      queryParameters: token != null ? {'auth': token} : null,
-    );
+    try {
+      final token = await _idToken();
+      if (token == null) {
+        throw Exception('Authentication required: No valid ID token available');
+      }
+      final res = await _dio.delete(
+        _url(path),
+        queryParameters: {'auth': token},
+      );
+      
+      if (res.statusCode != 200) {
+        throw Exception('Failed to remove data: HTTP ${res.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Failed to remove data at $path: $e');
+    }
   }
 
   Future<DataSnapshot> get(String path) async {
     if (_nativeSupported) {
       return await _db.ref(path).get();
     }
-    final token = await _idToken();
-    await _dio.get(
-      _url(path),
-      queryParameters: token != null ? {'auth': token} : null,
-    );
-    final ref = _db.ref(path);
-    // Populate a local DataSnapshot via native ref.get() when possible; otherwise emulate minimal snapshot
-    // For callers using value directly, prefer using onValueMap/getMap
-    final tmp = await ref.get();
-    return tmp;
+    try {
+      final token = await _idToken();
+      if (token == null) {
+        throw Exception('Authentication required: No valid ID token available');
+      }
+      await _dio.get(
+        _url(path),
+        queryParameters: {'auth': token},
+      );
+      
+      // For REST API, return native snapshot as fallback
+      final ref = _db.ref(path);
+      return await ref.get();
+    } catch (e) {
+      throw Exception('Failed to fetch data from $path: $e');
+    }
   }
 
   Stream<DatabaseEvent> onValue(String path) {

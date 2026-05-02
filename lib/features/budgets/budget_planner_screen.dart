@@ -710,6 +710,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                                 const SnackBar(content: Text('Budget created')),
                               );
                             } catch (e) {
+                              debugPrint('Budget creation failed: $e');
                               ScaffoldMessenger.of(ctx).showSnackBar(
                                 SnackBar(content: Text('Failed: $e')),
                               );
