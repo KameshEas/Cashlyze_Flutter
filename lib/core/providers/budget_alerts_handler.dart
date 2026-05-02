@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/realtime_db_service.dart';
 import '../services/notification_service.dart';
 import '../services/local_notification_service.dart';
 import '../services/auth_service.dart';
@@ -45,25 +44,7 @@ final budgetAlertsHandlerProvider = Provider<void>((ref) {
           final body = '${b.name} budget reached ${utilPercent.toStringAsFixed(0)}% of allocated (threshold ${(threshold * 100).toStringAsFixed(0)}%).';
 
           try {
-            // 1) Push a notification record into Realtime DB so server-side
-            // components (cloud functions or admin tooling) can pick it up
-            // and send a remote push via FCM/OneSignal.
-            await ref.read(realtimeDbServiceProvider).push(
-              'users/${user.uid}/pending_notifications',
-              {
-                'title': title,
-                'body': body,
-                'budgetId': b.id,
-                'created_at_ms': DateTime.now().millisecondsSinceEpoch,
-                'read': false,
-              },
-            );
-          } catch (e) {
-            if (kDebugMode) print('Failed to write pending notification: $e');
-          }
-
-          try {
-            // 2) Show a local notification immediately on this device so the
+            // 1) Show a local notification immediately on this device so the
             // user gets alerted even without a server-side push configured.
             await ref.read(localNotificationServiceProvider).showNotification(
               id: b.id,
@@ -76,7 +57,7 @@ final budgetAlertsHandlerProvider = Provider<void>((ref) {
           }
 
           try {
-            // 3) Attempt immediate delivery via client-side NotificationService
+            // 2) Attempt immediate delivery via client-side NotificationService
             // (REST-based) if configured. This is best-effort and may be
             // disabled when there is no server REST key.
             await ref.read(notificationServiceProvider).sendBudgetThresholdNotification(

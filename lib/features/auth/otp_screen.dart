@@ -1,13 +1,13 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 import 'package:go_router/go_router.dart';
-import '../../core/utils/api_constants.dart';
 import '../../core/providers/otp_pending_provider.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/api/api_exception.dart';
+import 'data/auth_remote_data_source.dart';
+import 'data/otp_remote_data_source.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
   /// Email is passed via route query parameter so the screen never depends
@@ -78,52 +78,34 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     return user?.email ?? '';
   }
 
-  /// Safely decodes a JSON response body. Returns an empty map on any parse
-  /// error so callers never crash on HTML / plain-text error pages.
-  Map<String, dynamic> _decodeBody(String raw) {
-    if (raw.isEmpty) return {};
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is Map<String, dynamic>) return decoded;
-      return {};
-    } catch (_) {
-      return {};
-    }
-  }
-
   Future<void> _sendOtp() async {
     final email = _userEmail;
     if (email.isEmpty) return;
     setState(() => _sending = true);
     try {
-      final url = Uri.parse(ApiConstants.sendOtp);
-      final res = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email}),
-      );
-      final body = _decodeBody(res.body);
+      await ref.read(otpRemoteDataSourceProvider).sendOtp(email: email);
       if (mounted) {
-        if (body['success'] == true) {
-          ref.read(otpPendingProvider.notifier).markOtpSent();
-          setState(() => _otpSent = true);
-          _startCooldown();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('OTP sent to $email. Check your inbox.')),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to send OTP: ${body['error'] ?? res.statusCode}'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-        }
+        ref.read(otpPendingProvider.notifier).markOtpSent();
+        setState(() => _otpSent = true);
+        _startCooldown();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('OTP sent to $email. Check your inbox.')),
+        );
+      }
+    } on ConflictException {
+      ref.read(otpPendingProvider.notifier).clearPending();
+      if (mounted) {
+        GoRouter.of(context).go(
+          '/login?notice=${Uri.encodeComponent('This email is already registered. Please login.')}',
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error sending OTP: $e')),
+          SnackBar(
+            content: Text('Failed to send OTP: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     } finally {
@@ -137,38 +119,49 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     if (entered.isEmpty || email.isEmpty) return;
     setState(() => _verifying = true);
     try {
-      final url = Uri.parse(ApiConstants.verifyOtp);
-      final res = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'otp': entered}),
-      );
-      final body = _decodeBody(res.body);
+      final result = await ref
+          .read(otpRemoteDataSourceProvider)
+          .verifyOtp(email: email, otp: entered);
+
+      // After OTP verification, complete registration using the returned token.
+      final notifier = ref.read(otpPendingProvider.notifier);
+      final password = notifier.pendingPassword;
+      final otpToken = result.otpToken;
+
+      if (password.isNotEmpty) {
+        await ref.read(authRemoteDataSourceProvider).register(
+          email: email,
+          password: password,
+          otpToken: otpToken,
+        );
+      }
+
+      // Clear pending state so router allows navigation to home.
+      ref.read(otpPendingProvider.notifier).clearPending();
+
       if (mounted) {
-        if (body['success'] == true) {
-          // Clear pending flag so the router allows navigation to home.
-          ref.read(otpPendingProvider.notifier).clearPending();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('OTP verified successfully.'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          GoRouter.of(context).go('/');
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('OTP verification failed: ${body['error'] ?? 'Invalid or expired OTP.'}'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created. Please login using the account created.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        GoRouter.of(context).go(
+          '/login?notice=${Uri.encodeComponent('Account created successfully. Please login using the account created.')}',
+        );
+      }
+    } on ConflictException {
+      ref.read(otpPendingProvider.notifier).clearPending();
+      if (mounted) {
+        GoRouter.of(context).go(
+          '/login?notice=${Uri.encodeComponent('This email is already registered. Please login.')}',
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error verifying OTP: $e'),
+            content: Text('Error: $e'),
             backgroundColor: Colors.redAccent,
           ),
         );

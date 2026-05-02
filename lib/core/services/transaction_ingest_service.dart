@@ -23,10 +23,13 @@ class TransactionIngestService {
     required double amount,
     required bool isIncome,
     String? categoryId,
+    String? categoryName,
     required DateTime date,
     String? notes,
+    List<String>? tags,
   }) async {
-    final cat = categoryId ?? _categorizer.suggestCategory(title);
+    final rawCat = categoryId?.trim();
+    final cat = (rawCat == null || rawCat.isEmpty) ? null : rawCat;
 
     // Check if budget exists for this category
     if (_budgetRepo != null && cat != null && !isIncome) {
@@ -67,8 +70,11 @@ class TransactionIngestService {
       title: title,
       amount: isIncome ? amount.abs() : -amount.abs(),
       categoryId: cat,
+      categoryName: categoryName,
+      isIncome: isIncome,
       date: date,
       notes: notes,
+      tags: tags,
     );
     await _analytics.logEvent(
       'transaction_add',

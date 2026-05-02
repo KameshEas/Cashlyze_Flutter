@@ -15,7 +15,6 @@ import '../../core/repositories/emi_repository.dart';
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/repositories/budget_repository.dart';
 import '../../core/repositories/category_repository.dart';
-import '../../core/services/realtime_db_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/providers/recurring_providers.dart';
@@ -31,8 +30,6 @@ class HomeScreen extends ConsumerWidget {
     // the data and aligns with the Transactions default view.
     final kpis = ref.watch(currentMonthKpisProvider);
     final txsAsync = ref.watch(recentTransactionsProvider);
-    final mismatch = ref.watch(databaseUrlMismatchProvider);
-    final dbUrl = ref.watch(databaseUrlProvider);
     // Watch EMI list here so we can conditionally render the section.
     final emiAsync = ref.watch(emiUpcomingProvider);
     final plansAsync = ref.watch(userEMIPlansProvider);
@@ -68,23 +65,6 @@ class HomeScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (mismatch)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.orange.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Text(
-                  'Connected to $dbUrl. Expected asia-southeast1 instance.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ),
             _buildBalanceCard(context, currency, kpis),
             const SizedBox(height: 40),
             Text(

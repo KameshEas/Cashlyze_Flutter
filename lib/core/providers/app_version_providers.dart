@@ -4,19 +4,6 @@ import '../models/app_version.dart';
 import '../repositories/app_version_repository.dart';
 import '../services/app_version_service.dart';
 import '../services/analytics_service.dart';
-import '../services/realtime_db_service.dart';
-
-/// Provider for AnalyticsService
-final analyticsServiceProvider = Provider<AnalyticsService>((ref) {
-  final firebase = ref.watch(firebaseAnalyticsProvider);
-  return AnalyticsService(firebase);
-});
-
-/// Provider for AppVersionRepository
-final appVersionRepositoryProvider = Provider<AppVersionRepository>((ref) {
-  final db = ref.watch(realtimeDbServiceProvider);
-  return AppVersionRepository(db);
-});
 
 /// Provider for AppVersionService
 final appVersionServiceProvider = Provider<AppVersionService>((ref) {
@@ -52,7 +39,9 @@ final forceUpdateRequiredProvider = FutureProvider<bool>((ref) async {
 final allVersionsProvider = FutureProvider<Map<String, AppVersionModel?>>(
   (ref) async {
     final repository = ref.watch(appVersionRepositoryProvider);
-    return await repository.getAllVersions();
+    final platform = ref.watch(appVersionServiceProvider).getPlatformName();
+    final version = await repository.getVersionByPlatform(platform);
+    return {platform: version};
   },
 );
 

@@ -12,7 +12,6 @@ import '../features/budgets/budget_planner_screen.dart';
 import '../features/insights/insights_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/splash/splash_screen.dart';
-import '../features/auth/verify_email_screen.dart';
 import '../features/auth/otp_screen.dart';
 import '../features/categories/categories_screen.dart';
 import '../features/emi/emi_form_screen.dart';
@@ -268,19 +267,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        path: '/verify-email',
-        name: 'verify_email',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const VerifyEmailScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-              FadeTransition(opacity: animation, child: child),
-          transitionDuration: MediaQuery.of(context).disableAnimations
-              ? Duration.zero
-              : kRouteFadeDuration,
-        ),
-      ),
-      GoRoute(
         path: '/otp',
         name: 'otp',
         pageBuilder: (context, state) {
@@ -344,7 +330,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/signup';
       final isSplash = state.matchedLocation == '/splash';
-      final isVerifyEmail = state.matchedLocation == '/verify-email';
+
       final isOtp = state.matchedLocation.startsWith('/otp');
 
       final user = currentUser ?? authState.value;
@@ -365,14 +351,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       if (user != null) {
-        if (kRequireEmailVerification) {
-          if (!user.emailVerified && !isVerifyEmail && !isOtp) {
-            return '/verify-email';
-          }
-          if ((isVerifyEmail || isOtp) && user.emailVerified) {
-            return '/';
-          }
-        }
         if (isAuthRoute || isOnboarding) {
           return '/';
         }

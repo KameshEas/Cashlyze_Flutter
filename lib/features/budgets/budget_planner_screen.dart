@@ -338,6 +338,8 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                       );
                       // Clear the deletion record
                       ref.read(lastDeletedBudgetProvider.notifier).clear();
+                        // Invalidate provider after restore
+                        ref.invalidate(userBudgetsProvider);
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Budget restored')),
@@ -355,6 +357,12 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
               ),
             );
           }
+            // Delay invalidation to allow Dismissible animation to complete
+            Future.delayed(const Duration(milliseconds: 300), () {
+              try {
+                ref.invalidate(userBudgetsProvider);
+              } catch (_) {}
+            });
           return true;
         } catch (err) {
           if (context.mounted) {

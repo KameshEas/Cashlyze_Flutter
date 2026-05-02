@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/auth_service.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/repositories/user_repository.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/providers/otp_pending_provider.dart';
+import '../../core/api/api_exception.dart';
 import '../../core/utils/error_messages.dart';
+import 'data/auth_remote_data_source.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   final bool initialIsLogin;
@@ -24,6 +25,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   String? _errorMessage;
+  String? _noticeMessage;
+  bool _noticeHydrated = false;
   // Guards the finally-block setState when we navigate away mid-async.
   bool _navigatedAway = false;
 
@@ -40,12 +43,50 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     _isLogin = widget.initialIsLogin;
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_noticeHydrated) return;
+    final notice = GoRouterState.of(context).uri.queryParameters['notice'];
+    if (notice != null && notice.isNotEmpty) {
+      _noticeMessage = notice;
+    }
+    _noticeHydrated = true;
+  }
+
+  /// Best-effort precheck before OTP send.
+  ///
+  /// Backend currently returns 409 Conflict with "Email already registered"
+  /// on duplicate registration attempts, which lets us fail fast in signup.
+  Future<bool> _isEmailAlreadyRegistered({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      await ref.read(authRemoteDataSourceProvider).register(
+        email: email,
+        password: password,
+      );
+      // Unexpected success for precheck path — treat as not-registered for OTP
+      // flow and immediately clear any persisted auth state.
+      await ref.read(authServiceProvider).signOut();
+      return false;
+    } on ConflictException catch (_) {
+      return true;
+    } catch (_) {
+      // Any non-conflict response (for example "OTP verification required")
+      // means we should continue with OTP flow.
+      return false;
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _noticeMessage = null;
     });
 
     try {
@@ -62,29 +103,34 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             .read(analyticsServiceProvider)
             .logEvent('login', params: {'method': 'email'});
       } else {
-        // Set pending BEFORE calling Firebase so the router guard is already
-        // active when authStateChanges fires internally during account creation.
-        // If creation fails below, the catch block clears it.
-        ref.read(otpPendingProvider.notifier).setPending(
-          email: _emailController.text.trim(),
-        );
+        final email = _emailController.text.trim();
+        final password = _passwordController.text;
 
-        final credential = await authService.createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
+        final alreadyRegistered = await _isEmailAlreadyRegistered(
+          email: email,
+          password: password,
         );
-        final user = credential.user ?? ref.read(currentUserProvider);
-        if (user != null) {
-          await ref
-              .read(userRepositoryProvider)
-              .getOrCreateUser(user.uid, user.email!);
-          await ref
-              .read(analyticsServiceProvider)
-              .logEvent('signup', params: {'method': 'email'});
-          _navigatedAway = true;
-          router.go('/otp?email=${Uri.encodeComponent(_emailController.text.trim())}');
+        if (alreadyRegistered) {
+          setState(() {
+            _errorMessage =
+                'This email is already registered. Please sign in instead.';
+            _isLogin = true;
+          });
           return;
         }
+
+        // Store email + password so the OTP screen can complete registration
+        // once the OTP is verified and an otpToken is returned.
+        ref.read(otpPendingProvider.notifier).setPending(
+          email: email,
+          password: password,
+        );
+        await ref
+            .read(analyticsServiceProvider)
+            .logEvent('signup_initiated', params: {'method': 'email'});
+        _navigatedAway = true;
+        router.go('/otp?email=${Uri.encodeComponent(email)}');
+        return;
       }
 
       messenger.showSnackBar(
@@ -100,6 +146,30 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       _navigatedAway = true;
       router.go('/');
     } catch (e) {
+      if (_isLogin) {
+        final raw = e.toString().toLowerCase();
+        final isInvalidCredentials =
+            e is UnauthorizedException || raw.contains('invalid credentials');
+
+        if (isInvalidCredentials) {
+          final email = _emailController.text.trim();
+          final password = _passwordController.text;
+          final alreadyRegistered = await _isEmailAlreadyRegistered(
+            email: email,
+            password: password,
+          );
+
+          if (!alreadyRegistered) {
+            setState(() {
+              _isLogin = false;
+              _errorMessage =
+                  'No account found for this email. Please register the user.';
+            });
+            return;
+          }
+        }
+      }
+
       // If signup failed, the pending flag was set pre-emptively — clear it.
       if (!_isLogin) {
         ref.read(otpPendingProvider.notifier).clearPending();
@@ -235,6 +305,25 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       const SizedBox(height: 24),
 
                       // Error Message
+                      if (_noticeMessage != null)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Text(
+                            _noticeMessage!,
+                            style: TextStyle(color: theme.colorScheme.primary),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+
+                      // Error Message
                       if (_errorMessage != null)
                         Container(
                           padding: const EdgeInsets.all(12),
@@ -314,23 +403,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               return;
                             }
 
-                            try {
-                              await ref
-                                  .read(authServiceProvider)
-                                  .sendPasswordResetEmail(
-                                    _emailController.text.trim(),
-                                  );
-                              messenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text('Password reset email sent!'),
-                                  backgroundColor: Colors.green,
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Password reset is not available yet. Please contact support.',
                                 ),
-                              );
-                            } catch (e) {
-                              messenger.showSnackBar(
-                                SnackBar(content: Text(e.toString())),
-                              );
-                            }
+                              ),
+                            );
                           },
                           child: const Text('Forgot Password?'),
                         ),

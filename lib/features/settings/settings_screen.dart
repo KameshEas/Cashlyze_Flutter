@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/analytics_service.dart';
+import '../../features/auth/data/auth_remote_data_source.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/repositories/transaction_repository.dart';
@@ -490,22 +491,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: Icon(Icons.calendar_today, size: 18, color: theme.colorScheme.secondary),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Date Format',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Date Format',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
               const SizedBox(width: 12),
-              Flexible(
-                flex: 1,
+              Expanded(
                 child: DropdownButtonFormField<String>(
                   initialValue: dateFormat,
                   items: const [
@@ -526,6 +524,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     filled: true,
                   ),
                   isDense: true,
+                  isExpanded: true,
                 ),
               ),
             ],
@@ -593,15 +592,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           title: 'Change Password',
           subtitle: 'Update your password',
           onTap: () async {
-            final controller = TextEditingController();
+            final currentController = TextEditingController();
+            final newController = TextEditingController();
             final confirm = await showDialog<bool>(
               context: context,
               builder: (ctx) => AlertDialog(
                 title: const Text('Change Password'),
-                content: TextField(
-                  controller: controller,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'New password'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: currentController,
+                      obscureText: true,
+                      decoration: const InputDecoration(labelText: 'Current password'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: newController,
+                      obscureText: true,
+                      decoration: const InputDecoration(labelText: 'New password'),
+                    ),
+                  ],
                 ),
                 actions: [
                   TextButton(
@@ -617,7 +628,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             );
             if (confirm == true) {
               try {
-                await ref.read(authServiceProvider).updatePassword(controller.text.trim());
+                await ref.read(authRemoteDataSourceProvider).changePassword(
+                  currentPassword: currentController.text.trim(),
+                  newPassword: newController.text.trim(),
+                );
                 messenger.showSnackBar(
                   const SnackBar(content: Text('Password updated')),
                 );
@@ -625,7 +639,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
               }
             }
-            controller.dispose();
+            currentController.dispose();
+            newController.dispose();
           },
         ),
         const Divider(height: 1, indent: 52),
@@ -703,7 +718,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 if (user != null) {
                   await _clearAllUserData(ref, user.uid);
                 }
-                await ref.read(authServiceProvider).deleteAccount();
+                await ref.read(authRemoteDataSourceProvider).deleteAccount();
                 messenger.showSnackBar(
                   const SnackBar(content: Text('Account and all data deleted')),
                 );

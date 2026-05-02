@@ -17,6 +17,7 @@ import '../../core/utils/validation.dart';
 import '../../core/widgets/category_picker_field.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/utils/repo_error_handler.dart';
+import '../../core/providers/budget_providers.dart';
 
 enum TransactionFormMode { create, edit }
 
@@ -53,17 +54,20 @@ class TransactionFormSheet extends ConsumerStatefulWidget {
 class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   late final TextEditingController titleController;
   late final TextEditingController amountController;
+  late final TextEditingController notesController;
   String type = 'Expense';
   String category = 'General';
   DateTime date = DateTime.now();
   bool repeatEnabled = false;
   String repeatFreq = 'Monthly';
+  List<String> tags = [];
 
   @override
   void initState() {
     super.initState();
     titleController = TextEditingController(text: widget.initialTitle ?? '');
     amountController = TextEditingController(text: (widget.initialAmount ?? 0).toStringAsFixed(2));
+    notesController = TextEditingController();
     if (widget.initialAmount != null && widget.initialAmount! >= 0) type = 'Income';
     if (widget.initialCategory != null) category = widget.initialCategory!;
     if (widget.initialDate != null) date = widget.initialDate!;
@@ -73,7 +77,40 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   void dispose() {
     titleController.dispose();
     amountController.dispose();
+    notesController.dispose();
     super.dispose();
+  }
+
+  Future<String?> _resolveCategoryId({
+    required String userId,
+    required String? selectedCategory,
+  }) async {
+    if (selectedCategory == null || selectedCategory.trim().isEmpty) return null;
+    final raw = selectedCategory.trim();
+    if (raw.toLowerCase() == 'general') return null;
+
+    var categories = ref
+        .read(userCategoriesProvider)
+        .maybeWhen(data: (d) => d, orElse: () => const []);
+
+    if (categories.isEmpty) {
+      categories = await ref.read(categoryRepositoryProvider).getAllForUser(userId);
+    }
+
+    for (final c in categories) {
+      if (c.id == raw) return c.id;
+    }
+    for (final c in categories) {
+      if (c.name.toLowerCase() == raw.toLowerCase()) return c.id;
+    }
+
+    // If the user picked a label that is not yet in categories, create it so
+    // transaction payloads can always send a stable category_id.
+    final created = await ref.read(categoryRepositoryProvider).create(
+      userId: userId,
+      name: raw,
+    );
+    return created.id;
   }
 
   Future<bool?> _openCreateBudgetForCategory(BuildContext parentCtx, String categoryName, Map<String, dynamic> transactionData) async {
@@ -130,7 +167,12 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                       } else if (catsListForCreate.any((c) => c.id == rawKey)) {
                         storageKey = rawKey;
                       }
-                      final createdBudget = await repo.create(userId: user.uid, name: categoryName, allocated: amount, period: BudgetPeriod.monthly, categoryIds: [storageKey]);
+                      await repo.create(userId: user.uid, name: categoryName, allocated: amount, period: BudgetPeriod.monthly, categoryIds: [storageKey]);
+                      // userBudgetsProvider is backed by Stream.fromFuture(getAll),
+                      // so force a refresh after successful creation.
+                      ref.invalidate(userBudgetsProvider);
+                      ref.invalidate(filteredBudgetsProvider);
+                      ref.invalidate(orderedBudgetsProvider);
                       if (!ctx.mounted) return;
                       FocusScope.of(ctx).unfocus();
                       nav.pop(true);
@@ -144,8 +186,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                         amount: (transactionData['amount'] as double).abs(),
                         isIncome: transactionData['isIncome'] as bool,
                         categoryId: transactionData['categoryId'] as String?,
+                        categoryName: transactionData['categoryName'] as String?,
                         date: transactionData['date'] as DateTime,
                         notes: transactionData['notes'] as String?,
+                        tags: transactionData['tags'] as List<String>?,
                       );
                     } catch (e) {
                       nav.pop(false);
@@ -166,7 +210,6 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final t = AppLocalizations.of(context);
     final prefs = ref.watch(sharedPrefsServiceProvider);
     if (widget.mode == TransactionFormMode.create) {
@@ -225,6 +268,67 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               decoration: InputDecoration(labelText: t?.amountLabel ?? 'Amount', helperText: t?.amountHelperEg ?? 'e.g., 123.45', filled: true),
             ),
             const SizedBox(height: 12),
+            TextFormField(
+              controller: notesController,
+              maxLines: 3,
+              minLines: 1,
+              decoration: InputDecoration(
+                labelText: 'Notes (optional)',
+                hintText: 'Add any notes about this transaction...',
+                filled: true,
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Tags (optional)', style: Theme.of(context).textTheme.bodyMedium),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final tag in tags)
+                      Chip(
+                        label: Text(tag),
+                        onDeleted: () => setState(() => tags.remove(tag)),
+                      ),
+                    ActionChip(
+                      label: const Text('+ Add tag'),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (ctx) {
+                            final controller = TextEditingController();
+                            return AlertDialog(
+                              title: const Text('Add Tag'),
+                              content: TextField(
+                                controller: controller,
+                                decoration: const InputDecoration(labelText: 'Tag name'),
+                              ),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                                TextButton(
+                                  onPressed: () {
+                                    final newTag = controller.text.trim();
+                                    if (newTag.isNotEmpty && !tags.contains(newTag)) {
+                                      setState(() => tags.add(newTag));
+                                    }
+                                    Navigator.pop(ctx);
+                                  },
+                                  child: const Text('Add'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             Row(children: [
               Expanded(child: OutlinedButton(onPressed: () async {
                 final picked = await showDatePicker(context: context, firstDate: DateTime(2000), lastDate: DateTime(2100), initialDate: date);
@@ -248,26 +352,32 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                 }
                 final amt = double.tryParse(amountController.text) ?? 0;
                 final isIncome = type == 'Income';
-                final localCategory = category == 'General' ? null : category;
+                final localCategoryName = category == 'General' ? null : category;
                 try {
                   final user = ref.read(currentUserProvider);
                   if (user == null) return;
+                  final localCategoryId = await _resolveCategoryId(
+                    userId: user.uid,
+                    selectedCategory: localCategoryName,
+                  );
 
                   if (widget.mode == TransactionFormMode.create) {
-                    if (!isIncome && localCategory != null) {
+                    if (!isIncome && localCategoryName != null) {
                       final budgets = await ref.read(budgetRepositoryProvider).streamForUser(user.uid).first;
-                      final hasBudget = budgets.any((b) => b.name.toLowerCase() == localCategory.toLowerCase());
+                      final hasBudget = budgets.any((b) => b.name.toLowerCase() == localCategoryName.toLowerCase());
                       if (!hasBudget) {
                         final transactionData = {
                           'userId': user.uid,
                           'title': titleController.text.trim(),
                           'amount': amt,
                           'isIncome': isIncome,
-                          'categoryId': localCategory,
+                          'categoryId': localCategoryId,
+                          'categoryName': localCategoryName,
                           'date': date,
-                          'notes': null,
+                          'notes': notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+                          'tags': tags.isEmpty ? null : tags,
                         };
-                        final res = await _openCreateBudgetForCategory(context, localCategory, transactionData);
+                        final res = await _openCreateBudgetForCategory(context, localCategoryName, transactionData);
                         if (!mounted) return;
                         if (res == true) {
                           FocusScope.of(context).unfocus();
@@ -278,10 +388,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     }
 
                     final ingest = ref.read(transactionIngestServiceProvider);
-                    await ingest.addManual(userId: user.uid, title: titleController.text, amount: amt, isIncome: isIncome, categoryId: localCategory, date: date, notes: null);
+                    await ingest.addManual(userId: user.uid, title: titleController.text, amount: amt, isIncome: isIncome, categoryId: localCategoryId, categoryName: localCategoryName, date: date, notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(), tags: tags.isEmpty ? null : tags);
                     if (repeatEnabled) {
                       final freq = repeatFreq == 'Weekly' ? RecurringFrequency.weekly : RecurringFrequency.monthly;
-                      await ref.read(recurringRepositoryProvider).createRule(userId: user.uid, title: titleController.text, amount: amt, isIncome: isIncome, categoryId: localCategory, startDate: date, frequency: freq);
+                      await ref.read(recurringRepositoryProvider).createRule(userId: user.uid, title: titleController.text, amount: amt, isIncome: isIncome, categoryId: localCategoryId, startDate: date, frequency: freq);
                     }
                     if (!mounted) return;
                     nav.pop(true);
@@ -292,7 +402,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     await ref.read(transactionRepositoryProvider).update(user.uid, widget.id!, {
                       'title': titleController.text.trim(),
                       'amount': isIncome ? amt.abs() : -amt.abs(),
-                      'categoryId': localCategory,
+                      'categoryId': localCategoryId,
                       'date_ms': date.millisecondsSinceEpoch,
                     });
                     if (!mounted) return;

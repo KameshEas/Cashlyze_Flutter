@@ -174,6 +174,8 @@ final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {
         }
         return matchesQuery && matchesType && matchesCategory && matchesAmount && inRange;
       }).toList();
+      // Ensure newest transactions appear first before pagination.
+      filtered.sort((a, b) => b.date.compareTo(a.date));
       return filtered;
     },
     orElse: () => <TransactionModel>[],

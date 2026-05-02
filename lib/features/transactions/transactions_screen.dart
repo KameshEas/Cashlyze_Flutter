@@ -358,6 +358,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                             date: payload['date'] as DateTime,
                                             notes: null,
                                           );
+                                        // Invalidate provider after restore
+                                        ref.invalidate(userTransactionsProvider);
                                     } catch (_) {}
                                   },
                                 ),
@@ -368,6 +370,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                   controller.close();
                                 } catch (_) {}
                               });
+                                // Delay invalidation to allow Dismissible animation to complete
+                                Future.delayed(const Duration(milliseconds: 300), () {
+                                  try {
+                                    ref.invalidate(userTransactionsProvider);
+                                  } catch (_) {}
+                                });
                               return true;
                             } catch (err) {
                               messenger.clearSnackBars();
@@ -469,6 +477,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
     // If the sheet indicated a successful save, refresh and show feedback.
     if (result == true) {
+      ref.read(transactionFilterProvider.notifier).resetFilters();
       ref.invalidate(userTransactionsProvider);
       final messenger = ScaffoldMessenger.of(context);
       messenger.clearSnackBars();
@@ -504,6 +513,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       ),
     );
     if (result == true) {
+      ref.read(transactionFilterProvider.notifier).resetFilters();
       ref.invalidate(userTransactionsProvider);
       final messenger = ScaffoldMessenger.of(context);
       messenger.clearSnackBars();

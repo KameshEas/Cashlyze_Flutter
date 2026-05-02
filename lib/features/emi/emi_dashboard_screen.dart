@@ -188,6 +188,12 @@ class _PlanCard extends ConsumerWidget {
               try {
                 await ref.read(emiRepositoryProvider).deletePlan(user.uid, plan.id);
                 messenger.showSnackBar(const SnackBar(content: Text('EMI plan deleted')));
+                  // Delay invalidation to allow Dismissible animation to complete
+                  Future.delayed(const Duration(milliseconds: 300), () {
+                    try {
+                      ref.invalidate(userEMIPlansProvider);
+                    } catch (_) {}
+                  });
                 return true;
               } catch (e) {
                 messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
@@ -259,6 +265,8 @@ class _PlanCard extends ConsumerWidget {
                                 try {
                                   await ref.read(emiRepositoryProvider).deletePlan(user.uid, plan.id);
                                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('EMI plan deleted')));
+                                    // Invalidate provider to refresh the list
+                                    ref.invalidate(userEMIPlansProvider);
                                 } catch (e) {
                                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
                                 }

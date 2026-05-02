@@ -4,14 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'firebase_options_placeholder.dart';
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform, kReleaseMode;
 import 'core/theme/app_theme.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'routes/app_router.dart';
 import 'routes/app_router.dart' show rootNavigatorKeyProvider;
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -38,36 +36,18 @@ Future<void> _runAppWithPrefs() async {
 }
 
 Future<void> _appRunner() async {
-  final usePlaceholder =
-      const bool.fromEnvironment('FIREBASE_PLACEHOLDER') && !kReleaseMode;
-
   try {
     // Avoid duplicate initialization if another piece of code has already
     // initialized Firebase (some plugins may auto-init). Check `Firebase.apps`.
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(
-        options: usePlaceholder
-            ? (defaultTargetPlatform == TargetPlatform.iOS
-                ? DefaultFirebaseOptionsPlaceholder.ios
-                : DefaultFirebaseOptionsPlaceholder.android)
-            : DefaultFirebaseOptions.currentPlatform,
+        options: DefaultFirebaseOptions.currentPlatform,
       );
     } else {
       if (!kReleaseMode) debugPrint('Firebase already initialized');
     }
   } catch (e) {
     if (!kReleaseMode) debugPrint('Firebase init failed: $e');
-  }
-
-  try {
-    // Initially only record Flutter errors to Crashlytics. Sentry will be
-    // enabled asynchronously after init completes to avoid blocking UI.
-    FlutterError.onError = (FlutterErrorDetails details) {
-      FirebaseCrashlytics.instance.recordFlutterError(details);
-      FlutterError.dumpErrorToConsole(details);
-    };
-  } catch (e) {
-    if (!kReleaseMode) debugPrint('Crashlytics init failed: $e');
   }
 
   // Use runZonedGuarded so we can capture uncaught errors from the zone.
@@ -77,10 +57,6 @@ Future<void> _appRunner() async {
     WidgetsFlutterBinding.ensureInitialized();
     await _runAppWithPrefs();
   }, (error, stack) async {
-    try {
-      await FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    } catch (_) {}
-
     // Forward to Sentry only after initialization completed.
     if (_sentryReady) {
       try {
@@ -184,10 +160,8 @@ void main() async {
 
       _sentryReady = true;
 
-      // Now enable forwarding of Flutter framework errors to Sentry in
-      // release builds. Crashlytics remains the primary recorder.
+      // Forward Flutter framework errors to Sentry in release builds.
       FlutterError.onError = (FlutterErrorDetails details) {
-        FirebaseCrashlytics.instance.recordFlutterError(details);
         if (kReleaseMode) {
           Sentry.captureException(details.exception, stackTrace: details.stack);
         } else {

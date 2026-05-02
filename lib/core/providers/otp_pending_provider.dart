@@ -4,6 +4,7 @@ import 'shared_prefs_provider.dart';
 const _kOtpPendingKey = 'otp_pending';
 const _kOtpPendingEmailKey = 'otp_pending_email';
 const _kOtpSentKey = 'otp_sent';
+const _kOtpPendingPasswordKey = 'otp_pending_password';
 
 /// Tracks whether the current user still needs to complete OTP verification
 /// after a fresh signup. Set to [true] just before navigating to /otp, and
@@ -22,21 +23,25 @@ const _kOtpSentKey = 'otp_sent';
 /// state changes).
 class OtpPendingNotifier extends Notifier<bool> {
   String pendingEmail = '';
+  String pendingPassword = '';
   bool otpAlreadySent = false;
 
   @override
   bool build() {
     final prefs = ref.read(sharedPrefsProvider);
     pendingEmail = prefs.getString(_kOtpPendingEmailKey) ?? '';
+    pendingPassword = prefs.getString(_kOtpPendingPasswordKey) ?? '';
     otpAlreadySent = prefs.getBool(_kOtpSentKey) ?? false;
     return prefs.getBool(_kOtpPendingKey) ?? false;
   }
 
-  void setPending({String email = ''}) {
+  void setPending({String email = '', String password = ''}) {
     final prefs = ref.read(sharedPrefsProvider);
     pendingEmail = email;
+    pendingPassword = password;
     prefs.setBool(_kOtpPendingKey, true);
     prefs.setString(_kOtpPendingEmailKey, email);
+    prefs.setString(_kOtpPendingPasswordKey, password);
     state = true;
   }
 
@@ -49,9 +54,11 @@ class OtpPendingNotifier extends Notifier<bool> {
   void clearPending() {
     final prefs = ref.read(sharedPrefsProvider);
     pendingEmail = '';
+    pendingPassword = '';
     otpAlreadySent = false;
     prefs.remove(_kOtpPendingKey);
     prefs.remove(_kOtpPendingEmailKey);
+    prefs.remove(_kOtpPendingPasswordKey);
     prefs.remove(_kOtpSentKey);
     state = false;
   }

@@ -1,11 +1,12 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/realtime_db_service.dart';
-import '../services/auth_service.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../models/recurring.dart';
+import '../services/auth_service.dart';
+import '../../features/transactions/data/recurring_remote_data_source.dart';
 
 class RecurringRepository {
-  final RealtimeDbService _db;
-  RecurringRepository(this._db);
+  const RecurringRepository(this._dataSource);
+  final RecurringRemoteDataSource _dataSource;
 
   Future<RecurringRule> createRule({
     required String userId,
@@ -15,65 +16,35 @@ class RecurringRepository {
     String? categoryId,
     required DateTime startDate,
     required RecurringFrequency frequency,
-  }) async {
-    final data = {
-      'userId': userId,
-      'title': title.trim(),
-      'amount': amount,
-      'isIncome': isIncome,
-      'categoryId': categoryId,
-      'start_ms': startDate.millisecondsSinceEpoch,
-      'last_ms': startDate.millisecondsSinceEpoch,
-      'frequency': frequency == RecurringFrequency.weekly ? 'weekly' : 'monthly',
-      'created_at_ms': DateTime.now().millisecondsSinceEpoch,
-    };
-    final key = await _db.pushKey('users/$userId/recurring_rules', data);
-    return RecurringRule.fromRTDB(key, data);
-  }
+  }) =>
+      _dataSource.create(
+        title: title,
+        amount: amount,
+        isIncome: isIncome,
+        categoryId: categoryId,
+        startDate: startDate,
+        frequency: frequency,
+      );
 
-  Future<void> updateLastPosted(String userId, String id, DateTime last) async {
-    await _db.update('users/$userId/recurring_rules/$id', {
-      'last_ms': last.millisecondsSinceEpoch,
-    });
-  }
+  Future<void> updateLastPosted(String userId, String id, DateTime last) =>
+      _dataSource.update(id, startDate: last).then((_) {});
 
-  Stream<List<RecurringRule>> streamForUser(String userId) {
-    return _db.onValueMap('users/$userId/recurring_rules').map((map) {
-      if (map == null) return <RecurringRule>[];
-      final items = <RecurringRule>[];
-      map.forEach((key, value) {
-        if (value is Map) {
-          final data = value.cast<String, dynamic>();
-          items.add(RecurringRule.fromRTDB(key, data));
-        }
-      });
-      items.sort((a, b) => (a.startDate).compareTo(b.startDate));
-      return items;
-    });
-  }
+  Future<List<RecurringRule>> getAllForUser(String userId) =>
+      _dataSource.getAll();
 
-  Future<List<RecurringRule>> getAllForUser(String userId) async {
-    final snap = await _db.get('users/$userId/recurring_rules');
-    if (snap.value == null) return <RecurringRule>[];
-    final map = snap.value as Map<dynamic, dynamic>;
-    final items = <RecurringRule>[];
-    map.forEach((key, value) {
-      if (value is Map) {
-        final data = value.cast<String, dynamic>();
-        items.add(RecurringRule.fromRTDB(key.toString(), data));
-      }
-    });
-    items.sort((a, b) => (a.startDate).compareTo(b.startDate));
-    return items;
-  }
+  Stream<List<RecurringRule>> streamForUser(String userId) =>
+      Stream.fromFuture(_dataSource.getAll());
 }
 
 final recurringRepositoryProvider = Provider<RecurringRepository>((ref) {
-  return RecurringRepository(ref.watch(realtimeDbServiceProvider));
+  return RecurringRepository(ref.watch(recurringRemoteDataSourceProvider));
 });
 
 final userRecurringRulesProvider = StreamProvider<List<RecurringRule>>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return const Stream.empty();
-  return ref.watch(recurringRepositoryProvider).streamForUser(user.uid);
+  return ref
+      .watch(recurringRepositoryProvider)
+      .streamForUser(user.userId)
+      .handleError((_, __) {});
 });

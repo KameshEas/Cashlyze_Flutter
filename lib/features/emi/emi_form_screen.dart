@@ -193,16 +193,7 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                   final messenger = ScaffoldMessenger.of(context);
 
                   if (widget.initialPlan == null) {
-                    final created = await repo.createPlan(plan);
-                    final calc = EMICalculator.compute(
-                      planId: created.id,
-                      loanAmount: plan.loanAmount,
-                      annualRate: plan.annualInterestRate,
-                      tenureMonths: plan.tenureMonths,
-                      startDate: plan.startDate,
-                      frequency: plan.frequency,
-                    );
-                    await repo.addSchedule(user.uid, created.id, calc.schedule);
+                    await repo.createPlan(plan);
                     if (!mounted) return;
                     messenger.showSnackBar(
                       SnackBar(
@@ -214,17 +205,8 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                       ),
                     );
                   } else {
-                    // Update existing plan and replace schedule
+                    // Update existing plan (backend regenerates schedule automatically)
                     await repo.updatePlan(plan);
-                    final calc = EMICalculator.compute(
-                      planId: plan.id,
-                      loanAmount: plan.loanAmount,
-                      annualRate: plan.annualInterestRate,
-                      tenureMonths: plan.tenureMonths,
-                      startDate: plan.startDate,
-                      frequency: plan.frequency,
-                    );
-                    await repo.replaceSchedule(user.uid, plan.id, calc.schedule);
                     if (!mounted) return;
                     messenger.showSnackBar(
                       SnackBar(

@@ -1,15 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'shared_prefs_service.dart';
 import '../providers/shared_prefs_provider.dart';
 
 final firebaseAnalyticsProvider = Provider<FirebaseAnalytics>((ref) {
   return FirebaseAnalytics.instance;
-});
-
-final firebaseCrashlyticsProvider = Provider<FirebaseCrashlytics>((ref) {
-  return FirebaseCrashlytics.instance;
 });
 
 class AnalyticsService {
@@ -19,16 +14,6 @@ class AnalyticsService {
   AnalyticsService(this._analytics, [this._prefs]);
 
   bool get _hasAnalyticsConsent => _prefs?.analyticsConsentGiven ?? false;
-  bool get _hasCrashlyticsConsent => _prefs?.crashlyticsConsentGiven ?? false;
-
-  /// Initialize Crashlytics with consent check
-  Future<void> initializeCrashlytics() async {
-    if (_hasCrashlyticsConsent) {
-      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
-    } else {
-      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(false);
-    }
-  }
 
   Future<void> logScreenView(String screenName) async {
     if (!_hasAnalyticsConsent) return;
@@ -58,7 +43,6 @@ class AnalyticsService {
   /// Update analytics consent - call when user changes consent setting
   Future<void> updateAnalyticsConsent(bool enabled) async {
     await _analytics.setAnalyticsCollectionEnabled(enabled);
-    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(enabled);
   }
 }
 
