@@ -53,20 +53,22 @@ class TransactionFormSheet extends ConsumerStatefulWidget {
 class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   late final TextEditingController titleController;
   late final TextEditingController amountController;
-  late final TextEditingController notesController;
   String type = 'Expense';
   String category = 'General';
   DateTime date = DateTime.now();
   bool repeatEnabled = false;
   String repeatFreq = 'Monthly';
-  List<String> tags = [];
+  
 
   @override
   void initState() {
     super.initState();
     titleController = TextEditingController(text: widget.initialTitle ?? '');
-    amountController = TextEditingController(text: (widget.initialAmount ?? 0).abs().toStringAsFixed(2));
-    notesController = TextEditingController();
+    amountController = TextEditingController(
+      text: widget.initialAmount == null
+          ? ''
+          : widget.initialAmount!.abs().toStringAsFixed(2).replaceFirst(RegExp(r"\.?0+$"), ''),
+    );
     if (widget.initialAmount != null && widget.initialAmount! >= 0) type = 'Income';
     if (widget.initialCategory != null) {
       // Normalize initial category: if an id was provided, map to display name.
@@ -99,7 +101,6 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   void dispose() {
     titleController.dispose();
     amountController.dispose();
-    notesController.dispose();
     super.dispose();
   }
 
@@ -205,8 +206,8 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                         categoryId: transactionData['categoryId'] as String?,
                         categoryName: transactionData['categoryName'] as String?,
                         date: transactionData['date'] as DateTime,
-                        notes: transactionData['notes'] as String?,
-                        tags: transactionData['tags'] as List<String>?,
+                        notes: null,
+                        tags: null,
                       );
                     } catch (e) {
                       nav.pop(false);
@@ -272,6 +273,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   value: category,
                   onChanged: (v) => setState(() => category = v),
                   label: t?.categoryLabel ?? 'Category',
+                  budgetsOnly: true,
                 ),
               ),
             ]),
@@ -283,67 +285,6 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
               decoration: InputDecoration(labelText: t?.amountLabel ?? 'Amount', helperText: t?.amountHelperEg ?? 'e.g., 123.45', filled: true),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: notesController,
-              maxLines: 3,
-              minLines: 1,
-              decoration: InputDecoration(
-                labelText: 'Notes (optional)',
-                hintText: 'Add any notes about this transaction...',
-                filled: true,
-                alignLabelWithHint: true,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Tags (optional)', style: Theme.of(context).textTheme.bodyMedium),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    for (final tag in tags)
-                      Chip(
-                        label: Text(tag),
-                        onDeleted: () => setState(() => tags.remove(tag)),
-                      ),
-                    ActionChip(
-                      label: const Text('+ Add tag'),
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (ctx) {
-                            final controller = TextEditingController();
-                            return AlertDialog(
-                              title: const Text('Add Tag'),
-                              content: TextField(
-                                controller: controller,
-                                decoration: const InputDecoration(labelText: 'Tag name'),
-                              ),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                                TextButton(
-                                  onPressed: () {
-                                    final newTag = controller.text.trim();
-                                    if (newTag.isNotEmpty && !tags.contains(newTag)) {
-                                      setState(() => tags.add(newTag));
-                                    }
-                                    Navigator.pop(ctx);
-                                  },
-                                  child: const Text('Add'),
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ],
             ),
             const SizedBox(height: 12),
             Row(children: [
@@ -391,8 +332,6 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                           'categoryId': localCategoryId,
                           'categoryName': localCategoryName,
                           'date': date,
-                          'notes': notesController.text.trim().isEmpty ? null : notesController.text.trim(),
-                          'tags': tags.isEmpty ? null : tags,
                         };
                         final res = await _openCreateBudgetForCategory(context, localCategoryName, transactionData);
                         if (!mounted) return;
@@ -405,7 +344,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     }
 
                     final ingest = ref.read(transactionIngestServiceProvider);
-                    await ingest.addManual(userId: user.uid, title: titleController.text, amount: amt, isIncome: isIncome, categoryId: localCategoryId, categoryName: localCategoryName, date: date, notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(), tags: tags.isEmpty ? null : tags);
+                    await ingest.addManual(userId: user.uid, title: titleController.text, amount: amt, isIncome: isIncome, categoryId: localCategoryId, categoryName: localCategoryName, date: date, notes: null, tags: null);
                     if (repeatEnabled) {
                       final freq = repeatFreq == 'Weekly' ? RecurringFrequency.weekly : RecurringFrequency.monthly;
                       await ref.read(recurringRepositoryProvider).createRule(userId: user.uid, title: titleController.text, amount: amt, isIncome: isIncome, categoryId: localCategoryId, startDate: date, frequency: freq);

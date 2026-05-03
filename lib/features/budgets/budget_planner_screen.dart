@@ -376,8 +376,10 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           final repo = ref.read(budgetRepositoryProvider);
 
           if (impactedTxs.isNotEmpty) {
-            // Ask user to choose a replacement budget (or General)
-            final candidates = ref.read(filteredBudgetsProvider).where((b) => b.id != budget.id).toList();
+            final candidates = ref
+              .read(filteredBudgetsProvider)
+              .where((b) => b.id != budget.id && (b.name?.trim().toLowerCase() != 'general'))
+              .toList();
             final selectedTarget = await showDialog<String?>(
               context: context,
               builder: (ctx) {
@@ -535,6 +537,10 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                 await ref.read(categoryRepositoryProvider).delete(user.uid, c.id);
               } catch (_) {}
             }
+            // Ensure any cached category lists are refreshed
+            try {
+              ref.invalidate(userCategoriesProvider);
+            } catch (_) {}
           }
 
           // Show undo SnackBar
@@ -564,6 +570,13 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                         period: budget.period,
                         categoryIds: budget.categoryIds,
                       );
+                      // Force providers to refresh after restoring
+                      try {
+                        ref.invalidate(userCategoriesProvider);
+                      } catch (_) {}
+                      try {
+                        ref.invalidate(userBudgetsProvider);
+                      } catch (_) {}
                       ref.read(lastDeletedBudgetProvider.notifier).clear();
                       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Budget restored')));
                     } catch (err) {
@@ -602,7 +615,6 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     final nameController = TextEditingController();
     final allocatedController = TextEditingController();
     
-    List<String> selectedCategoryIds = <String>[];
     BudgetPeriod selectedPeriod = BudgetPeriod.monthly;
 
     final prefs = ref.read(sharedPrefsServiceProvider);
@@ -611,10 +623,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       nameController.text = (draft['name'] as String?) ?? '';
       final amt = draft['allocated'];
       if (amt != null) allocatedController.text = amt.toString();
-      final cats = draft['categoryIds'];
-      if (cats is List) {
-        selectedCategoryIds = cats.cast<String>();
-      }
+      // categories are not part of budget creation UI anymore
       final periodStr = draft['period'] as String?;
       if (periodStr != null) {
         try {
@@ -645,16 +654,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
             child: StatefulBuilder(builder: (ctx, setSheetState) => Consumer(builder: (cctx, wref, _) {
-              final rawCategories = wref.watch(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
-              // Deduplicate categories by normalized (trimmed, lowercased) name
-              final Map<String, CategoryModel> uniqueByName = <String, CategoryModel>{};
-              for (final c in rawCategories) {
-                final nm = (c.name ?? '').trim();
-                if (nm.isEmpty) continue;
-                final key = nm.toLowerCase();
-                uniqueByName.putIfAbsent(key, () => c);
-              }
-              final categories = uniqueByName.values.toList();
+              // Budget creation modal: no category selection UI
 
               return Column(
                 mainAxisSize: MainAxisSize.min,
@@ -724,45 +724,6 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                     },
                   ),
                   const SizedBox(height: 12),
-                  if (categories.isNotEmpty) ...[
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Categories (optional)',
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final c in categories)
-                          FilterChip(
-                            label: Text(c.name),
-                            // Store & compare by name — transactions also store
-                            // categoryId as the category name string, not the
-                            // RTDB key, so this must match.
-                            selected: selectedCategoryIds.contains(c.name),
-                            onSelected: (sel) {
-                              setSheetState(() {
-                                if (sel) {
-                                  selectedCategoryIds = [
-                                    ...selectedCategoryIds,
-                                    c.name,
-                                  ];
-                                } else {
-                                  selectedCategoryIds = selectedCategoryIds
-                                      .where((n) => n != c.name)
-                                      .toList();
-                                }
-                              });
-                            },
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                  ],
                   Row(
                     children: [
                       Expanded(
@@ -812,37 +773,11 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                             }
 
                             try {
-                              // Normalize selected category identifiers to canonical
-                              // category IDs where possible before persisting the
-                              // budget. The UI keeps `selectedCategoryIds` as
-                              // readable names for UX; here we convert names -> ids
-                              // using the user's categories so stored budgets are
-                              // consistent.
-                              final catsList = ref.read(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
-                              final nameToId = <String, String>{};
-                              for (final c in catsList) {
-                                final nm = (c.name ?? '').trim();
-                                if (nm.isEmpty) continue;
-                                nameToId[nm.toLowerCase()] = c.id;
-                              }
-                              final finalCategoryIds = selectedCategoryIds.map((s) {
-                                final sTrim = s.trim();
-                                if (sTrim.isEmpty) return sTrim;
-                                final mapped = nameToId[sTrim.toLowerCase()];
-                                if (mapped != null) return mapped;
-                                // If value already looks like an id that exists,
-                                // keep it as-is.
-                                if (catsList.any((c) => c.id == sTrim)) return sTrim;
-                                // Otherwise persist the original string (legacy).
-                                return sTrim;
-                              }).where((s) => s.isNotEmpty).toList();
-
                               await repo.create(
                                 userId: user.uid,
                                 name: name,
                                 allocated: amount,
                                 period: selectedPeriod,
-                                categoryIds: finalCategoryIds,
                               );
                               nav.pop(true);
                                                       ScaffoldMessenger.of(ctx).showSnackBar(
@@ -880,7 +815,6 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
         await prefs.saveDraft('budget_create', {
           'name': nameController.text.trim(),
           'allocated': double.tryParse(allocatedController.text.trim()),
-          'categoryIds': selectedCategoryIds,
           'period': selectedPeriod.name,
         });
         if (mounted) {

@@ -9,6 +9,7 @@ class CategoryPickerField extends ConsumerWidget {
   final ValueChanged<String> onChanged;
   final String? label;
   final double heightFactor;
+  final bool budgetsOnly;
 
   const CategoryPickerField({
     super.key,
@@ -16,6 +17,7 @@ class CategoryPickerField extends ConsumerWidget {
     required this.onChanged,
     this.label,
     this.heightFactor = 0.6,
+    this.budgetsOnly = false,
   });
 
   @override
@@ -24,35 +26,49 @@ class CategoryPickerField extends ConsumerWidget {
     final catsAsync = ref.watch(userCategoriesProvider);
     final budgetsAsync = ref.watch(userBudgetsProvider);
 
-    final Map<String, String> unique = {'general': 'General'};
+    List<String> categoryNames = [];
 
-    catsAsync.when(
-      loading: () {},
-      error: (error, stack) {},
-      data: (list) {
-        for (final c in list) {
-          final name = (c.name ?? '').trim();
-          if (name.isEmpty) continue;
-          final key = name.toLowerCase();
-          if (!unique.containsKey(key)) unique[key] = name;
-        }
-      },
-    );
+    if (budgetsOnly) {
+      final budgets = budgetsAsync.maybeWhen(data: (d) => d, orElse: () => const []);
+      final Map<String, String> uniqueByName = {};
+      for (final b in budgets) {
+        final name = (b.name ?? '').trim();
+        if (name.isEmpty) continue;
+        final key = name.toLowerCase();
+        uniqueByName.putIfAbsent(key, () => name);
+      }
+      categoryNames = uniqueByName.values.toList();
+    } else {
+      final Map<String, String> unique = {'general': 'General'};
 
-    budgetsAsync.when(
-      loading: () {},
-      error: (error, stack) {},
-      data: (list) {
-        for (final b in list) {
-          final name = (b.name ?? '').trim();
-          if (name.isEmpty) continue;
-          final key = name.toLowerCase();
-          if (!unique.containsKey(key)) unique[key] = name;
-        }
-      },
-    );
+      catsAsync.when(
+        loading: () {},
+        error: (error, stack) {},
+        data: (list) {
+          for (final c in list) {
+            final name = (c.name ?? '').trim();
+            if (name.isEmpty) continue;
+            final key = name.toLowerCase();
+            if (!unique.containsKey(key)) unique[key] = name;
+          }
+        },
+      );
 
-    final categoryNames = unique.values.toList();
+      budgetsAsync.when(
+        loading: () {},
+        error: (error, stack) {},
+        data: (list) {
+          for (final b in list) {
+            final name = (b.name ?? '').trim();
+            if (name.isEmpty) continue;
+            final key = name.toLowerCase();
+            if (!unique.containsKey(key)) unique[key] = name;
+          }
+        },
+      );
+
+      categoryNames = unique.values.toList();
+    }
     final safeValue = categoryNames.contains(value) ? value : (categoryNames.isNotEmpty ? categoryNames.first : 'General');
 
     return InkWell(
