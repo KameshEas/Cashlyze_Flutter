@@ -89,6 +89,10 @@ class CategoriesScreen extends ConsumerWidget {
                             await ref
                                 .read(categoryRepositoryProvider)
                                 .delete(user.uid, c.id);
+                            // Force a refresh of categories so UI doesn't show cached values
+                            try {
+                              ref.invalidate(userCategoriesProvider);
+                            } catch (_) {}
                             messenger.showSnackBar(
                               SnackBar(content: Text(t?.deleted ?? 'Deleted')),
                             );
@@ -141,6 +145,10 @@ class CategoriesScreen extends ConsumerWidget {
       } else {
         await repo.update(user.uid, categoryId, {'name': name.trim()});
       }
+      // Ensure the provider refreshes so the list reflects the change
+      try {
+        ref.invalidate(userCategoriesProvider);
+      } catch (_) {}
       messenger.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)?.saved ?? 'Saved')));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));

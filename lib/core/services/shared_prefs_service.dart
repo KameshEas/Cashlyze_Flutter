@@ -8,7 +8,6 @@ class SharedPrefsService {
   static const String _alertFrequencyKey = 'alert_frequency';
   static const String _currencyKey = 'currency';
   static const String _dateFormatKey = 'date_format';
-  static const String _biometricKey = 'biometric_enabled';
   static const String _showDevKey = 'show_development_section';
   static const String _languageKey = 'app_language_code';
   static const String _analyticsConsentKey = 'analytics_consent_given';
@@ -47,11 +46,6 @@ class SharedPrefsService {
   String get dateFormat => _prefs.getString(_dateFormatKey) ?? 'yyyy-MM-dd';
   Future<void> setDateFormat(String value) async {
     await _prefs.setString(_dateFormatKey, value);
-  }
-
-  bool get biometricEnabled => _prefs.getBool(_biometricKey) ?? false;
-  Future<void> setBiometricEnabled(bool value) async {
-    await _prefs.setBool(_biometricKey, value);
   }
 
   bool get showDevelopmentSection => _prefs.getBool(_showDevKey) ?? false;

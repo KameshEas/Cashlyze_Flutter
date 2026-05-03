@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cashlyze/core/theme/app_theme.dart';
 import 'package:cashlyze/core/providers/shared_prefs_provider.dart';
@@ -8,6 +9,17 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUpAll(() {
+    // Prevent google_fonts from attempting network fetches during tests.
+    // This avoids test failures when the TestWidgets binding blocks HTTP.
+    try {
+      // Disable google_fonts runtime use inside the app theme so tests
+      // don't attempt network fetches for fonts.
+      disableGoogleFontsForTests();
+      GoogleFonts.config.allowRuntimeFetching = false;
+    } catch (_) {}
+  });
+
   testWidgets('Settings screen dark theme golden', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();

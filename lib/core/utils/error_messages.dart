@@ -16,6 +16,9 @@ String friendlyAuthError(Object error) {
   if (raw.contains('wrong-password') || raw.contains('invalid-credential')) {
     return 'Incorrect email or password.';
   }
+  if (raw.contains('invalid credentials')) {
+    return 'Incorrect email or password.';
+  }
   if (raw.contains('email-already-in-use')) {
     return 'An account already exists with this email.';
   }

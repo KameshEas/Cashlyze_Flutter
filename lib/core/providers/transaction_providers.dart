@@ -21,16 +21,8 @@ final recentTransactionsProvider = StreamProvider<List<TransactionModel>>((
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(<TransactionModel>[]);
   final repo = ref.watch(transactionRepositoryProvider);
-  final stream = Stream<List<TransactionModel>>.multi((controller) async {
-    try {
-      final initial = await repo.getAllForUser(user.uid);
-      controller.add(initial);
-    } catch (_) {}
-    await for (final items in repo.streamForUser(user.uid)) {
-      controller.add(items);
-    }
-  });
-  return stream.timeout(const Duration(seconds: 5)).handleError((_, __) {});
+  final stream = repo.streamForUser(user.uid);
+  return stream.timeout(const Duration(seconds: 15)).handleError((_, __) {});
 });
 
 class TransactionsCacheNotifier extends Notifier<List<TransactionModel>> {

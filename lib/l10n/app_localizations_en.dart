@@ -42,7 +42,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterExpense => 'Expense';
 
   @override
-  String get uncategorized => 'Uncategorized';
+  String get uncategorized => 'General';
 
   @override
   String get addTransaction => 'Add transaction';
@@ -200,12 +200,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get alertsSubtitle => 'Notify when budgets approach thresholds';
-
-  @override
-  String get biometricRequireTitle => 'Require biometric to unlock';
-
-  @override
-  String get biometricRequireSubtitle => 'Prompt biometric on app launch';
 
   @override
   String get developerOptionsTitle => 'Developer Options';

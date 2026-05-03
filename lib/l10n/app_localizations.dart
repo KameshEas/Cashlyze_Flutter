@@ -169,7 +169,7 @@ abstract class AppLocalizations {
   /// No description provided for @uncategorized.
   ///
   /// In en, this message translates to:
-  /// **'Uncategorized'**
+  /// **'General'**
   String get uncategorized;
 
   /// No description provided for @addTransaction.
@@ -483,18 +483,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notify when budgets approach thresholds'**
   String get alertsSubtitle;
-
-  /// No description provided for @biometricRequireTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Require biometric to unlock'**
-  String get biometricRequireTitle;
-
-  /// No description provided for @biometricRequireSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Prompt biometric on app launch'**
-  String get biometricRequireSubtitle;
 
   /// No description provided for @developerOptionsTitle.
   ///

@@ -4,17 +4,20 @@ import 'package:go_router/go_router.dart';
 import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/analytics_service.dart';
+import '../../features/auth/data/auth_remote_data_source.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/repositories/budget_repository.dart';
 import '../../core/repositories/emi_repository.dart';
-import '../../core/services/biometric_service.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
+import 'dart:async';
 import '../../core/services/drive_backup_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../routes/app_router.dart';
+import 'widgets/extracted_dialogs.dart';
+import 'widgets/enhanced_progress_dialog.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -24,13 +27,12 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  // ── Extracted from build() closure — was recreated on every setState call.
-  // Now defined once as a class method: stable across rebuilds.
-  Widget sectionCard(IconData icon, String title, List<Widget> children) {
+  /// Enhanced section card with better visual hierarchy, spacing, and icons
+  Widget sectionCard(IconData icon, String title, List<Widget> children, {String? description}) {
     final theme = Theme.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
@@ -41,23 +43,137 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Enhanced header with larger icon and better typography
           Row(
             children: [
-              Icon(icon, size: 20, color: theme.colorScheme.primary),
-              const SizedBox(width: 8),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 24, color: theme.colorScheme.primary),
+              ),
+              const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  title,
-                  style: theme.textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w600),
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (description != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        description,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           ...children,
         ],
+      ),
+    );
+  }
+
+  /// Enhanced preference row with icon, status indicator, and better styling
+  Widget _preferenceRow({
+    required IconData icon,
+    required String title,
+    String? description,
+    required Widget trailing,
+    bool showDivider = false,
+    Color? iconColor,
+  }) {
+    final theme = Theme.of(context);
+    final bgColor = iconColor ?? theme.colorScheme.primary;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: bgColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 18, color: bgColor),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (description != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        description,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              trailing,
+            ],
+          ),
+        ),
+        if (showDivider)
+          Divider(
+            height: 1,
+            indent: 0,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+          ),
+      ],
+    );
+  }
+
+  /// Status badge widget for showing active/inactive states
+  Widget _statusBadge(bool isActive) {
+    final theme = Theme.of(context);
+    final color = isActive ? Colors.green : Colors.grey;
+    final text = isActive ? 'Active' : 'Inactive';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        text,
+        style: theme.textTheme.bodySmall?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
       ),
     );
   }
@@ -134,23 +250,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  /// Full-width action tile for the Data section.
-  /// Extracted from build() closure so it is stable across redraws and
-  /// no longer has a hard-coded width:180 that clips on narrow screens.
+  /// Enhanced action tile with better visual hierarchy and hover effects
   Widget _actionTile({
     required IconData icon,
     required String title,
     String? subtitle,
     required VoidCallback onTap,
     Color? color,
+    bool isDangerous = false,
   }) {
     final theme = Theme.of(context);
-    final iconColor = color ?? theme.colorScheme.primary;
+    final iconColor = isDangerous ? Colors.red : (color ?? theme.colorScheme.primary);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
         child: Row(
           children: [
             Container(
@@ -167,17 +282,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: theme.textTheme.bodyMedium),
-                  if (subtitle != null)
+                  Text(
+                    title,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isDangerous ? Colors.red : null,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
                     Text(
                       subtitle,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                  ],
                 ],
               ),
             ),
@@ -207,153 +329,214 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       Icons.tune,
       t?.preferencesTitle ?? 'Preferences',
       [
-        SwitchListTile.adaptive(
-          title: Text(t?.alertsTitle ?? 'Alerts'),
-          subtitle: Text(
-            t?.alertsSubtitle ?? 'Notify when budgets approach thresholds',
-          ),
-          contentPadding: EdgeInsets.zero,
-          value: alertsEnabled,
-          onChanged: (v) async {
-            await prefs.setAlertsEnabled(v);
-            setState(() {});
-          },
-        ),
-        // Show the alert threshold slider only when Alerts are enabled.
-        if (prefs.alertsEnabled) ...[
-          const SizedBox(height: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        // Alerts setting with icon and status
+        _preferenceRow(
+          icon: Icons.notifications_outlined,
+          title: t?.alertsTitle ?? 'Alerts',
+          description: t?.alertsSubtitle ?? 'Budget threshold notifications',
+              trailing: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Budget alert threshold',
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  Text(
-                    '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                ],
+              _statusBadge(alertsEnabled),
+              const SizedBox(width: 8),
+              Switch.adaptive(
+                value: alertsEnabled,
+                onChanged: (v) async {
+                  await prefs.setAlertsEnabled(v);
+                  setState(() {});
+                },
               ),
-              const SizedBox(height: 8),
-              Semantics(
-                label: 'Budget alert threshold',
-                value: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
-                child: Slider(
-                  value: (prefs.alertThreshold.clamp(0.5, 1.0)),
-                  min: 0.5,
-                  max: 1.0,
-                  divisions: 10,
-                  label:
-                      '${(prefs.alertThreshold * 100).toStringAsFixed(0)}% threshold',
-                  onChanged: (v) {
-                    prefs.setAlertThreshold(v);
-                    setState(() {});
+            ],
+          ),
+          showDivider: true,
+        ),
+        
+        // Alert threshold slider (shown when enabled)
+        if (prefs.alertsEnabled) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Alert Threshold',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Semantics(
+                  label: 'Budget alert threshold',
+                  value: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
+                  child: Slider(
+                    value: (prefs.alertThreshold.clamp(0.5, 1.0)),
+                    min: 0.5,
+                    max: 1.0,
+                    divisions: 10,
+                    label: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}% threshold',
+                    onChanged: (v) {
+                      prefs.setAlertThreshold(v);
+                      setState(() {});
+                    },
+                    onChangeEnd: (v) async {
+                      await ref.read(analyticsServiceProvider).logEvent(
+                        'alert_threshold_change',
+                        params: {'threshold_percent': (v * 100).round()},
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(
+            height: 1,
+            indent: 0,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+          ),
+        ],
+        
+        // Currency setting
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.secondary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.currency_exchange, size: 18, color: theme.colorScheme.secondary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Currency',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Flexible(
+                flex: 1,
+                child: DropdownButtonFormField<String>(
+                  initialValue: currency,
+                  items: const [
+                    DropdownMenuItem(value: 'USD', child: Text('USD')),
+                    DropdownMenuItem(value: 'EUR', child: Text('EUR')),
+                    DropdownMenuItem(value: 'INR', child: Text('INR')),
+                  ],
+                  onChanged: (v) async {
+                    if (v == null) return;
+                    await ref.read(currencyProvider.notifier).set(v);
                   },
-                  onChangeEnd: (v) async {
-                    await ref.read(analyticsServiceProvider).logEvent(
-                          'alert_threshold_change',
-                          params: {'threshold_percent': (v * 100).round()},
-                        );
-                  },
+                  decoration: InputDecoration(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    filled: true,
+                  ),
+                  isDense: true,
                 ),
               ),
             ],
           ),
-        ],
-        FutureBuilder<bool>(
-          future: ref.read(biometricServiceProvider).isAvailable(),
-          builder: (ctx, snap) {
-            final available = snap.data ?? false;
-            if (!available) return const SizedBox.shrink();
-            return SwitchListTile.adaptive(
-              title: Text(
-                t?.biometricRequireTitle ?? 'Require biometric to unlock',
-              ),
-              subtitle: Text(
-                t?.biometricRequireSubtitle ?? 'Prompt biometric on app launch',
-              ),
-              contentPadding: EdgeInsets.zero,
-              value: prefs.biometricEnabled,
-              onChanged: (v) async {
-                await prefs.setBiometricEnabled(v);
-                setState(() {});
-              },
-            );
-          },
         ),
-        // Developer Options removed from Settings.
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: currency,
-                items: const [
-                  DropdownMenuItem(value: 'USD', child: Text('USD')),
-                  DropdownMenuItem(value: 'EUR', child: Text('EUR')),
-                  DropdownMenuItem(value: 'INR', child: Text('INR')),
-                ],
-                onChanged: (v) async {
-                  if (v == null) return;
-                  await ref.read(currencyProvider.notifier).set(v);
-                },
-                decoration: const InputDecoration(
-                  labelText: 'Currency',
-                  filled: true,
+        Divider(
+          height: 1,
+          indent: 0,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+        ),
+        
+        // Date format setting
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.secondary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
+                child: Icon(Icons.calendar_today, size: 18, color: theme.colorScheme.secondary),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: dateFormat,
-                items: const [
-                  DropdownMenuItem(
-                    value: 'yyyy-MM-dd',
-                    child: Text('yyyy-MM-dd'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'dd/MM/yyyy',
-                    child: Text('dd/MM/yyyy'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'MM/dd/yyyy',
-                    child: Text('MM/dd/yyyy'),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Date Format',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
-                onChanged: (v) async {
-                  if (v == null) return;
-                  await prefs.setDateFormat(v);
-                  setState(() {});
-                },
-                decoration: const InputDecoration(
-                  labelText: 'Date format',
-                  filled: true,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: dateFormat,
+                  items: const [
+                    DropdownMenuItem(value: 'yyyy-MM-dd', child: Text('yyyy-MM-dd')),
+                    DropdownMenuItem(value: 'dd/MM/yyyy', child: Text('dd/MM/yyyy')),
+                    DropdownMenuItem(value: 'MM/dd/yyyy', child: Text('MM/dd/yyyy')),
+                  ],
+                  onChanged: (v) async {
+                    if (v == null) return;
+                    await prefs.setDateFormat(v);
+                    setState(() {});
+                  },
+                  decoration: InputDecoration(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    filled: true,
+                  ),
+                  isDense: true,
+                  isExpanded: true,
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
     final dataSection = sectionCard(
-      Icons.layers_outlined,
+      Icons.cloud_outlined,
       t?.dataPrivacyTitle ?? 'Data & Privacy',
       [
-        // Export / local Backup removed — use Backup to Drive / Restore from Drive instead.
         const SizedBox(height: 8),
-        // Navigation + action tiles — changed from Wrap(width:180) to full-width
-        // Column so tiles never clip on narrow phones.
-        // Categories and Onboarding removed from Settings per request.
         _actionTile(
           icon: Icons.payments_outlined,
           title: t?.emiTrackerTitle ?? 'EMI Tracker',
@@ -400,35 +583,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     // Account section — ListTile leading icons now use the same 36×36 rounded
     // pill container as _actionTile for visual consistency.
     final accountSection = sectionCard(
-      Icons.lock_outline,
+      Icons.security,
       'Account & Security',
       [
-        ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-          leading: Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              Icons.lock_reset,
-              size: 18,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-          title: const Text('Change Password'),
+        // Change Password
+        _actionTile(
+          icon: Icons.lock_reset,
+          title: 'Change Password',
+          subtitle: 'Update your password',
           onTap: () async {
-            final controller = TextEditingController();
+            final currentController = TextEditingController();
+            final newController = TextEditingController();
             final confirm = await showDialog<bool>(
               context: context,
               builder: (ctx) => AlertDialog(
                 title: const Text('Change Password'),
-                content: TextField(
-                  controller: controller,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'New password'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: currentController,
+                      obscureText: true,
+                      decoration: const InputDecoration(labelText: 'Current password'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: newController,
+                      obscureText: true,
+                      decoration: const InputDecoration(labelText: 'New password'),
+                    ),
+                  ],
                 ),
                 actions: [
                   TextButton(
@@ -444,9 +628,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             );
             if (confirm == true) {
               try {
-                await ref
-                    .read(authServiceProvider)
-                    .updatePassword(controller.text.trim());
+                await ref.read(authRemoteDataSourceProvider).changePassword(
+                  currentPassword: currentController.text.trim(),
+                  newPassword: newController.text.trim(),
+                );
                 messenger.showSnackBar(
                   const SnackBar(content: Text('Password updated')),
                 );
@@ -454,65 +639,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
               }
             }
-            controller.dispose();
           },
         ),
-        ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-          leading: Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.delete_forever, size: 18, color: Colors.red),
-          ),
-          title: const Text('Delete Account', style: TextStyle(color: Colors.red)),
-          subtitle: const Text('Delete all data & account'),
-          onTap: () async {
-            final confirm = await _showDeleteAccountDialog(context, ref);
-            if (confirm == true) {
-              try {
-                // First delete all user data
-                final user = ref.read(currentUserProvider);
-                if (user != null) {
-                  await _clearAllUserData(ref, user.uid);
-                }
-                // Then delete the account
-                await ref.read(authServiceProvider).deleteAccount();
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Account and all data deleted')),
-                );
-                router.go('/login');
-              } catch (e) {
-                messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
-              }
-            }
-          },
-        ),
-        ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-          leading: Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              Icons.logout,
-              size: 18,
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
-          title: const Text('Sign out'),
+        const Divider(height: 1, indent: 52),
+        
+        // Sign out
+        _actionTile(
+          icon: Icons.logout,
+          title: 'Sign Out',
+          subtitle: 'End your session',
           onTap: () async {
             final confirm = await showDialog<bool>(
               context: context,
               builder: (ctx) {
                 return AlertDialog(
-                  title: const Text('Sign out'),
+                  title: const Text('Sign Out'),
                   content: const Text('Are you sure you want to sign out?'),
                   actions: [
                     TextButton(
@@ -521,20 +662,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     FilledButton(
                       onPressed: () => Navigator.of(ctx).pop(true),
-                      child: const Text('Sign out'),
+                      child: const Text('Sign Out'),
                     ),
                   ],
                 );
               },
             );
             if (confirm == true) {
-              await ref.read(authServiceProvider).signOut();
-              await ref.read(analyticsServiceProvider).logEvent('sign_out');
-              // Invalidate auth-related providers so UI refreshes immediately
-              ref.invalidate(authStateChangesProvider);
-              ref.invalidate(currentUserProvider);
+              // Clear cached repositories first so they don't hold user data.
+              // Do NOT invalidate `authStateChangesProvider` or
+              // `currentUserProvider` here — invalidating them causes the
+              // router redirect to see the providers in a loading state and
+              // navigate to the `/loading` route. That can hang because the
+              // sign-out event was already emitted before a new subscription
+              // is created. Rely on the auth service's stream emission instead.
               ref.invalidate(userTransactionsProvider);
               ref.invalidate(transactionRepositoryProvider);
+
+              await ref.read(authServiceProvider).signOut();
+              await ref.read(analyticsServiceProvider).logEvent('sign_out');
 
               messenger.showSnackBar(
                 const SnackBar(
@@ -542,12 +688,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   backgroundColor: Colors.green,
                 ),
               );
-              // Use the app router provider to ensure root navigation is used
               try {
                 ref.read(appRouterProvider).go('/login');
               } catch (_) {
-                // Fallback to local router if provider router is unavailable
                 router.go('/login');
+              }
+            }
+          },
+        ),
+        const Divider(height: 1, indent: 52),
+        
+        // Delete Account (Danger Zone)
+        _actionTile(
+          icon: Icons.delete_forever,
+          title: 'Delete Account',
+          subtitle: 'Delete all data & account',
+          isDangerous: true,
+          onTap: () async {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => DeleteAccountDialog(
+                userEmail: ref.read(currentUserProvider)?.email,
+                onExportPressed: () async {
+                  Navigator.pop(ctx);
+                  await _showExportDataDialog(context, ref);
+                },
+                onConfirm: (_) {},
+              ),
+            );
+            if (confirm == true) {
+              try {
+                final user = ref.read(currentUserProvider);
+                if (user != null) {
+                  await _clearAllUserData(ref, user.uid);
+                }
+                await ref.read(authRemoteDataSourceProvider).deleteAccount();
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Account and all data deleted')),
+                );
+                router.go('/login');
+              } catch (e) {
+                messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
               }
             }
           },
@@ -564,29 +745,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           if (wide) {
             return SingleChildScrollView(
               padding: const EdgeInsets.all(24),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      children: [
-                        preferences,
-                        const SizedBox(height: 20),
-                        dataSection,
-                      ],
+              child: SizedBox(
+                width: constraints.maxWidth - 48,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          preferences,
+                          const SizedBox(height: 20),
+                          dataSection,
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        accountSection,
-                        const SizedBox(height: 20),
-                        // Developer tools removed.
-                      ],
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          accountSection,
+                          const SizedBox(height: 20),
+                          // Developer tools removed.
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           }
@@ -619,17 +803,40 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final user = ref.read(currentUserProvider);
     if (user == null) return;
-    // Show progress dialog while performing backup
-    showDialog(
+
+    final progressController = StreamController<({String phase, double progress, String? errorMessage})>();
+
+    // Show enhanced progress dialog
+    EnhancedProgressDialog.show(
       context: context,
-      barrierDismissible: false,
-      useRootNavigator: true,
-      builder: (ctx) => const AlertDialog(
-        content: SizedBox(height: 64, child: Center(child: CircularProgressIndicator())),
-      ),
+      title: 'Backup to Drive',
+      subtitle: 'Uploading transactions...',
+      type: ProgressDialogType.backup,
+      progressStream: progressController.stream,
+      onCancel: () {
+        progressController.close();
+      },
+      canCancel: true,
     );
+
     try {
-      final transactions = await ref.read(transactionRepositoryProvider).getAllForUser(user.uid);
+      // Phase 1: Fetch transactions
+      progressController.add((
+        phase: 'Fetching transactions...',
+        progress: 0.2,
+        errorMessage: null,
+      ));
+
+      final transactions =
+          await ref.read(transactionRepositoryProvider).getAllForUser(user.uid);
+
+      // Phase 2: Prepare data
+      progressController.add((
+        phase: 'Preparing backup file...',
+        progress: 0.5,
+        errorMessage: null,
+      ));
+
       final data = {
         'version': 1,
         'exported_at_ms': DateTime.now().millisecondsSinceEpoch,
@@ -644,18 +851,57 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             .toList(),
       };
       final jsonStr = const JsonEncoder.withIndent('  ').convert(data);
+
+      // Phase 3: Upload to Drive
+      progressController.add((
+        phase: 'Uploading to Google Drive...',
+        progress: 0.7,
+        errorMessage: null,
+      ));
+
       final filename = 'cashlyze_transactions_${user.uid}.json';
-      final fileId = await ref.read(driveBackupServiceProvider).uploadJson(filename: filename, json: jsonStr);
-      await ref.read(analyticsServiceProvider).logEvent('backup_drive', params: {'items': transactions.length, 'file_id': fileId});
-      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
-      messenger.showSnackBar(const SnackBar(content: Text('Uploaded to Google Drive')));
-    } catch (e) {
-      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
-      if (e is StateError && e.toString().contains('Google Sign-In failed')) {
-        messenger.showSnackBar(const SnackBar(content: Text('Google sign-in failed. Please sign in to continue.')));
-      } else {
-        messenger.showSnackBar(SnackBar(content: Text('Drive upload failed: $e')));
+      final fileId = await ref
+          .read(driveBackupServiceProvider)
+          .uploadJson(filename: filename, json: jsonStr);
+
+      // Phase 4: Complete
+      progressController.add((
+        phase: 'Backup completed successfully',
+        progress: 1.0,
+        errorMessage: null,
+      ));
+
+      await ref.read(analyticsServiceProvider).logEvent('backup_drive',
+          params: {'items': transactions.length, 'file_id': fileId});
+
+      if (context.mounted) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Uploaded to Google Drive'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
+    } catch (e) {
+      String errorMsg = 'Drive upload failed';
+      if (e is StateError &&
+          e.toString().contains('Google Sign-In failed')) {
+        errorMsg = 'Google sign-in failed. Please sign in to continue.';
+      } else {
+        errorMsg = 'Upload failed: $e';
+      }
+
+      progressController.add((
+        phase: 'Backup failed',
+        progress: 1.0,
+        errorMessage: errorMsg,
+      ));
+
+      if (context.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text(errorMsg)));
+      }
+    } finally {
+      progressController.close();
     }
   }
 
@@ -667,28 +913,66 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final user = ref.read(currentUserProvider);
     if (user == null) return;
 
-    // Show progress while downloading
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        useRootNavigator: true,
-        builder: (ctx) => const AlertDialog(
-          content: SizedBox(height: 64, child: Center(child: CircularProgressIndicator())),
-        ),
-      );
+    final progressController = StreamController<({String phase, double progress, String? errorMessage})>();
+
+    // Show enhanced progress dialog
+    EnhancedProgressDialog.show(
+      context: context,
+      title: 'Restore from Drive',
+      subtitle: 'Downloading transactions...',
+      type: ProgressDialogType.restore,
+      progressStream: progressController.stream,
+      onCancel: () {
+        progressController.close();
+      },
+      canCancel: true,
+    );
 
     try {
+      // Phase 1: Download from Drive
+      progressController.add((
+        phase: 'Downloading from Google Drive...',
+        progress: 0.2,
+        errorMessage: null,
+      ));
+
       final filename = 'cashlyze_transactions_${user.uid}.json';
-      final jsonStr = await ref.read(driveBackupServiceProvider).downloadJson(filename: filename);
+      final jsonStr =
+          await ref.read(driveBackupServiceProvider).downloadJson(filename: filename);
+
       if (jsonStr == null) {
-        if (context.mounted) Navigator.of(context).pop();
-        messenger.showSnackBar(const SnackBar(content: Text('No backup found in Drive')));
+        progressController.add((
+          phase: 'No backup found',
+          progress: 1.0,
+          errorMessage: 'No backup found in Drive',
+        ));
+        if (context.mounted) {
+          messenger.showSnackBar(
+              const SnackBar(content: Text('No backup found in Drive')));
+        }
         return;
       }
 
+      // Phase 2: Parse backup file
+      progressController.add((
+        phase: 'Parsing backup file...',
+        progress: 0.4,
+        errorMessage: null,
+      ));
+
       final Map<String, dynamic> map = jsonDecode(jsonStr);
       final List txs = (map['transactions'] as List?) ?? const [];
+
+      // Phase 3: Importing transactions
+      progressController.add((
+        phase: 'Importing transactions (0/${txs.length})...',
+        progress: 0.5,
+        errorMessage: null,
+      ));
+
       int count = 0;
+      final total = txs.length;
+
       for (final t in txs) {
         if (t is Map) {
           await ref.read(transactionRepositoryProvider).create(
@@ -696,153 +980,69 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 title: (t['title'] as String?) ?? 'Imported',
                 amount: ((t['amount'] as num?) ?? 0).toDouble(),
                 categoryId: t['categoryId'] as String?,
-                date: DateTime.fromMillisecondsSinceEpoch(((t['date_ms'] as num?) ?? DateTime.now().millisecondsSinceEpoch).toInt()),
+                date: DateTime.fromMillisecondsSinceEpoch(
+                    (((t['date_ms'] as num?) ?? DateTime.now().millisecondsSinceEpoch)
+                        .toInt())),
                 notes: t['notes'] as String?,
               );
           count++;
+
+          // Update progress
+          final progress = 0.5 + (count / total) * 0.4;
+          progressController.add((
+            phase: 'Importing transactions ($count/$total)...',
+            progress: progress,
+            errorMessage: null,
+          ));
         }
       }
 
-      await ref.read(analyticsServiceProvider).logEvent('restore_drive', params: {'items': count});
-      await ref.read(analyticsServiceProvider).logEvent('transaction_imported', params: {
-        'import_method': 'drive',
-        'provider': null,
-        'count': count,
-        'import_duration_ms': 0,
-        'success': true,
-      });
+      // Phase 4: Complete
+      progressController.add((
+        phase: 'Restore completed successfully',
+        progress: 1.0,
+        errorMessage: null,
+      ));
 
-      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
-      messenger.showSnackBar(SnackBar(content: Text('Restored $count transactions from Drive')));
-    } catch (e) {
-      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
-      if (e is StateError && e.toString().contains('Google Sign-In failed')) {
-        messenger.showSnackBar(const SnackBar(content: Text('Google sign-in failed. Please sign in to continue.')));
-      } else {
-        messenger.showSnackBar(SnackBar(content: Text('Drive restore failed: $e')));
-      }
-    }
-  }
+      await ref.read(analyticsServiceProvider).logEvent('restore_drive',
+          params: {'items': count});
+      await ref.read(analyticsServiceProvider).logEvent('transaction_imported',
+          params: {
+            'import_method': 'drive',
+            'provider': null,
+            'count': count,
+            'import_duration_ms': 0,
+            'success': true,
+          });
 
-  Future<void> _showClearDataDialog(BuildContext context, WidgetRef ref) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final user = ref.read(currentUserProvider);
-    if (user == null) return;
-    final theme = Theme.of(context);
-    final prefs = ref.read(sharedPrefsServiceProvider);
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) {
-        String typed = '';
-        bool acknowledged = false;
-        return StatefulBuilder(
-          builder: (ctx, setState) => AlertDialog(
-            title: const Text('Clear All Data'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'This will permanently delete all your data including:\n\n'
-                    '• All transactions\n'
-                    '• All budgets\n'
-                    '• All categories\n'
-                    '• All EMI plans\n\n'
-                    'This action cannot be undone.',
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: () async => _showExportDataDialog(context, ref),
-                    icon: const Icon(Icons.download_outlined),
-                    label: const Text('Copy Export (JSON)'),
-                  ),
-                  CheckboxListTile(
-                    value: acknowledged,
-                    onChanged: (v) => setState(() => acknowledged = v ?? false),
-                    title: const Text('I have exported my data'),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  const SizedBox(height: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Budget alert threshold',
-                            style: theme.textTheme.bodyMedium
-                                ?.copyWith(fontWeight: FontWeight.w600),
-                          ),
-                          Text(
-                            '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Semantics(
-                        label: 'Budget alert threshold',
-                        value: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
-                        child: Slider(
-                          value: (prefs.alertThreshold.clamp(0.5, 1.0)),
-                          min: 0.5,
-                          max: 1.0,
-                          divisions: 10,
-                          label: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}% threshold',
-                          onChanged: (v) {
-                            prefs.setAlertThreshold(v);
-                            setState(() {});
-                          },
-                          onChangeEnd: (v) async {
-                            await ref.read(analyticsServiceProvider).logEvent(
-                                  'alert_threshold_change',
-                                  params: {'threshold_percent': (v * 100).round()},
-                                );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: (acknowledged && typed == 'DELETE')
-                    ? () => Navigator.of(ctx).pop(true)
-                    : null,
-                style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Clear All Data'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (confirm == true) {
-      try {
-        await _clearAllUserData(ref, user.uid);
-        if (!context.mounted) return;
+      if (context.mounted) {
         messenger.showSnackBar(
-          const SnackBar(
-            content: Text('All data cleared successfully'),
+          SnackBar(
+            content: Text('Restored $count transactions from Drive'),
             backgroundColor: Colors.green,
           ),
         );
-      } catch (e) {
-        messenger.showSnackBar(
-          SnackBar(content: Text('Failed to clear data: $e')),
-        );
       }
+    } catch (e) {
+      String errorMsg = 'Drive restore failed';
+      if (e is StateError &&
+          e.toString().contains('Google Sign-In failed')) {
+        errorMsg = 'Google sign-in failed. Please sign in to continue.';
+      } else {
+        errorMsg = 'Restore failed: $e';
+      }
+
+      progressController.add((
+        phase: 'Restore failed',
+        progress: 1.0,
+        errorMessage: errorMsg,
+      ));
+
+      if (context.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text(errorMsg)));
+      }
+    } finally {
+      progressController.close();
     }
   }
 
@@ -905,101 +1105,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Future<bool?> _showDeleteAccountDialog(BuildContext context, WidgetRef ref) async {
-    final user = ref.read(currentUserProvider);
-    if (user == null) return false;
 
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) {
-        String typed = '';
-        bool exportAcknowledged = false;
-        return StatefulBuilder(
-          builder: (ctx, setState) => AlertDialog(
-            title: const Row(
-              children: [
-                Icon(Icons.warning, color: Colors.red),
-                SizedBox(width: 8),
-                Text('Delete Account', style: TextStyle(color: Colors.red)),
-              ],
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '⚠️ This action is IRREVERSIBLE!\n\n'
-                    'Deleting your account will permanently remove:\n\n'
-                    '• Your account and login credentials\n'
-                    '• All transactions\n'
-                    '• All budgets\n'
-                    '• All categories\n'
-                    '• All EMI plans\n'
-                    '• All preferences\n\n'
-                    'Your cloud backups will become orphaned.',
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.info, color: Colors.orange, size: 20),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Export your data before deleting to keep a backup.',
-                            style: TextStyle(fontSize: 13),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: () async => _showExportDataDialog(context, ref),
-                    icon: const Icon(Icons.download),
-                    label: const Text('Export All Data First'),
-                  ),
-                  CheckboxListTile(
-                    value: exportAcknowledged,
-                    onChanged: (v) => setState(() => exportAcknowledged = v ?? false),
-                    title: const Text('I have exported my data'),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    onChanged: (v) => setState(() => typed = v),
-                    decoration: const InputDecoration(
-                      labelText: 'Type DELETE to confirm',
-                      filled: true,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: (exportAcknowledged && typed == 'DELETE')
-                    ? () => Navigator.of(ctx).pop(true)
-                    : null,
-                style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Delete Everything'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   Future<void> _clearAllUserData(WidgetRef ref, String userId) async {
     // Clear transactions

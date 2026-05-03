@@ -135,3 +135,87 @@ final recommendationsProvider = Provider<List<String>>((ref) {
   }
   return suggestions;
 });
+
+// ── Top Spends ────────────────────────────────────────────────────────────
+
+class TopMerchant {
+  final String name;
+  final double amount;
+  const TopMerchant(this.name, this.amount);
+}
+
+final topMerchantsProvider = Provider<List<TopMerchant>>((ref) {
+  final txs = ref.watch(filteredTransactionsProvider);
+  final map = <String, double>{};
+  for (final t in txs.where((t) => t.amount < 0)) {
+    map[t.title] = (map[t.title] ?? 0) + t.amount.abs();
+  }
+  final sorted = map.entries.toList()
+    ..sort((a, b) => b.value.compareTo(a.value));
+  return sorted.take(5).map((e) => TopMerchant(e.key, e.value)).toList();
+});
+
+// ── Recurring payments ───────────────────────────────────────────────────────
+
+class RecurringPayment {
+  final String title;
+  final double avgAmount;
+  final int occurrences;
+  final Duration avgInterval;
+  const RecurringPayment({
+    required this.title,
+    required this.avgAmount,
+    required this.occurrences,
+    required this.avgInterval,
+  });
+}
+
+final recurringPaymentsProvider = Provider<List<RecurringPayment>>((ref) {
+  final txsAsync = ref.watch(recentTransactionsProvider);
+  final txs = txsAsync.maybeWhen(
+    data: (d) => d,
+    orElse: () => <TransactionModel>[],
+  );
+  final byTitle = <String, List<TransactionModel>>{};
+  for (final t in txs.where((t) => t.amount < 0)) {
+    byTitle.putIfAbsent(t.title, () => []).add(t);
+  }
+  final result = <RecurringPayment>[];
+  for (final entry in byTitle.entries) {
+    final list = entry.value..sort((a, b) => a.date.compareTo(b.date));
+    if (list.length < 2) continue;
+    final amounts = list.map((t) => t.amount.abs()).toList();
+    final avgAmount = amounts.reduce((a, b) => a + b) / amounts.length;
+    final intervals = <int>[];
+    for (int i = 1; i < list.length; i++) {
+      intervals.add(list[i].date.difference(list[i - 1].date).inDays);
+    }
+    final avgDays =
+        intervals.reduce((a, b) => a + b) / intervals.length;
+    if (avgDays < 20 || avgDays > 42) continue;
+    final variance = amounts
+            .map((a) => pow(a - avgAmount, 2))
+            .reduce((a, b) => a + b) /
+        amounts.length;
+    final stdDev = sqrt(variance);
+    if (avgAmount > 0 && stdDev / avgAmount > 0.25) continue;
+    result.add(RecurringPayment(
+      title: entry.key,
+      avgAmount: avgAmount,
+      occurrences: list.length,
+      avgInterval: Duration(days: avgDays.round()),
+    ));
+  }
+  result.sort((a, b) => b.avgAmount.compareTo(a.avgAmount));
+  return result;
+});
+
+// ── Forecast next month ──────────────────────────────────────────────────────
+
+final forecastExpenseNextMonthProvider = Provider<double?>((ref) {
+  final monthly = ref.watch(monthlyTrendProvider);
+  if (monthly.length < 2) return null;
+  final last =
+      monthly.length >= 3 ? monthly.sublist(monthly.length - 3) : monthly;
+  return last.reduce((a, b) => a + b) / last.length;
+});

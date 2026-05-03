@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/emi.dart';
-import '../../core/services/emi_calculator.dart';
 import '../../core/repositories/emi_repository.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/utils/format.dart';
+import '../../core/providers/shared_prefs_provider.dart';
 
 class EMIFormScreen extends ConsumerStatefulWidget {
   final EMIPlan? initialPlan;
@@ -48,6 +49,7 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.initialPlan != null;
+    final prefs = ref.read(sharedPrefsServiceProvider);
     return Scaffold(
       appBar: AppBar(title: Text(isEditing ? 'Edit EMI Plan' : 'New EMI Plan')),
       body: SingleChildScrollView(
@@ -123,7 +125,7 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
+                      child: OutlinedButton(
                       onPressed: () async {
                         final picked = await showDatePicker(
                           context: context,
@@ -134,7 +136,7 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                         if (picked != null) setState(() => _startDate = picked);
                       },
                       child: Text(
-                        'Start: ${_startDate.toLocal()}'.split(' ').first,
+                        'Start: ${formatDate(_startDate.toLocal(), prefs.dateFormat)}',
                       ),
                     ),
                   ),
@@ -190,16 +192,11 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                   final messenger = ScaffoldMessenger.of(context);
 
                   if (widget.initialPlan == null) {
-                    final created = await repo.createPlan(plan);
-                    final calc = EMICalculator.compute(
-                      planId: created.id,
-                      loanAmount: plan.loanAmount,
-                      annualRate: plan.annualInterestRate,
-                      tenureMonths: plan.tenureMonths,
-                      startDate: plan.startDate,
-                      frequency: plan.frequency,
-                    );
-                    await repo.addSchedule(user.uid, created.id, calc.schedule);
+                    await repo.createPlan(plan);
+                    // Refresh the plans list so the dashboard reflects the new plan
+                    try {
+                      ref.invalidate(userEMIPlansProvider);
+                    } catch (_) {}
                     if (!mounted) return;
                     messenger.showSnackBar(
                       SnackBar(
@@ -211,17 +208,12 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                       ),
                     );
                   } else {
-                    // Update existing plan and replace schedule
+                    // Update existing plan (backend regenerates schedule automatically)
                     await repo.updatePlan(plan);
-                    final calc = EMICalculator.compute(
-                      planId: plan.id,
-                      loanAmount: plan.loanAmount,
-                      annualRate: plan.annualInterestRate,
-                      tenureMonths: plan.tenureMonths,
-                      startDate: plan.startDate,
-                      frequency: plan.frequency,
-                    );
-                    await repo.replaceSchedule(user.uid, plan.id, calc.schedule);
+                    // Refresh list so updates are visible
+                    try {
+                      ref.invalidate(userEMIPlansProvider);
+                    } catch (_) {}
                     if (!mounted) return;
                     messenger.showSnackBar(
                       SnackBar(

@@ -1,180 +1,239 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_database/firebase_database.dart';
-import '../services/realtime_db_service.dart';
-import '../services/auth_service.dart';
-import '../services/sync_service.dart';
+
 import '../models/transaction.dart';
+import '../services/auth_service.dart';
+import '../../features/transactions/data/transaction_remote_data_source.dart';
 
 class TransactionRepository {
-  final RealtimeDbService _db;
-  final SyncService? _sync;
+  const TransactionRepository(this._dataSource);
+  final TransactionRemoteDataSource _dataSource;
 
-  TransactionRepository(this._db, [this._sync]);
+  static final Map<String, StreamController<List<TransactionModel>>> _controllers =
+      <String, StreamController<List<TransactionModel>>>{};
+  static final Map<String, List<TransactionModel>> _cache =
+      <String, List<TransactionModel>>{};
+  static final Map<String, Timer> _pollers = <String, Timer>{};
+
+  StreamController<List<TransactionModel>> _controllerFor(String userId) {
+    return _controllers.putIfAbsent(
+      userId,
+      () => StreamController<List<TransactionModel>>.broadcast(),
+    );
+  }
+
+  List<TransactionModel> _sorted(List<TransactionModel> list) {
+    final copy = [...list];
+    copy.sort((a, b) => b.date.compareTo(a.date));
+    return copy;
+  }
+
+  String _signature(List<TransactionModel> list) {
+    return list
+        .map(
+          (t) =>
+              '${t.id}|${t.title}|${t.amount}|${t.categoryId ?? ''}|${t.categoryName ?? ''}|${t.date.millisecondsSinceEpoch}|${t.notes ?? ''}|${(t.tags ?? const <String>[]).join(',')}',
+        )
+        .join(';');
+  }
+
+  Future<void> _refreshUser(String userId) async {
+    try {
+      final fresh = _sorted(await _dataSource.getAll());
+      final hasCache = _cache.containsKey(userId);
+      final prev = hasCache ? _cache[userId]! : const <TransactionModel>[];
+
+      // Always emit the initial value for a user (even if empty) so
+      // consumers don't remain stuck in a loading state when the
+      // backend returns an empty list for new users.
+      if (!hasCache || _signature(prev) != _signature(fresh)) {
+        _cache[userId] = fresh;
+        _controllerFor(userId).add(fresh);
+      }
+    } catch (_) {}
+  }
+
+  void _startPolling(String userId) {
+    if (_pollers.containsKey(userId)) return;
+    _pollers[userId] = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => _refreshUser(userId),
+    );
+  }
 
   Future<TransactionModel> create({
     required String userId,
     required String title,
     required double amount,
     String? categoryId,
+    String? categoryName,
+    bool isIncome = false,
     required DateTime date,
     String? notes,
     List<String>? tags,
   }) async {
-    _validate(title: title, amount: amount, date: date);
-    final data = {
-      'userId': userId,
-      'title': title.trim(),
-      'amount': amount,
-      'categoryId': categoryId,
-      'date_ms': date.millisecondsSinceEpoch,
-      'notes': notes,
-      'tags': tags,
-      'created_at_ms': ServerValue.timestamp,
-      'updated_at_ms': ServerValue.timestamp,
-    };
-    try {
-      final key = await _db.pushKey('users/$userId/transactions', data);
-      return TransactionModel.fromRTDB(key, data);
-    } catch (e) {
-      // If push fails (offline), enqueue a canonical payload for later sync
-      final canonical = {
-        'id': 'local_${DateTime.now().millisecondsSinceEpoch}',
-        'account_id': userId,
-        'provider': 'local',
-        'amount': amount,
-        'currency': 'INR',
-        'date': date.toIso8601String(),
-        'transaction_type': amount < 0 ? 'debit' : 'credit',
-        'merchant_name': title.trim(),
-        'raw_description': notes ?? title.trim(),
-        'normalized_description': title.trim(),
-        'category': categoryId,
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      };
-      _sync?.enqueue(canonical);
-      // Return a local model so UI can reflect created txn immediately
-      // Safely parse canonical['date'] which may be String, int (ms), double, or absent.
-      final dynamic dateRaw = canonical['date'];
-      late final int dateMs;
-      if (dateRaw is int) {
-        dateMs = dateRaw;
-      } else if (dateRaw is double) {
-        dateMs = DateTime.fromMillisecondsSinceEpoch(dateRaw.toInt()).millisecondsSinceEpoch;
-      } else if (dateRaw is String) {
-        try {
-          dateMs = DateTime.parse(dateRaw).millisecondsSinceEpoch;
-        } catch (_) {
-          dateMs = DateTime.now().millisecondsSinceEpoch;
-        }
-      } else {
-        dateMs = DateTime.now().millisecondsSinceEpoch;
-      }
-
-      return TransactionModel.fromRTDB(canonical['id'] as String, {
-        'title': canonical['merchant_name'],
-        'amount': canonical['amount'],
-        'categoryId': canonical['category'],
-        'date_ms': dateMs,
-        'notes': canonical['normalized_description'],
-        'tags': [],
-        'created_at_ms': DateTime.now().millisecondsSinceEpoch,
-        'updated_at_ms': DateTime.now().millisecondsSinceEpoch,
-      });
-    }
-  }
-
-  /// Ingest a canonical transaction (from bank provider) and persist.
-  Future<TransactionModel> ingestFromProvider({
-    required String userId,
-    required Map<String, dynamic> canonical,
-  }) async {
-    final title = (canonical['merchant_name'] as String?) ?? 'Imported';
-    final amount = ((canonical['amount'] as num?) ?? 0).toDouble();
-    final date = DateTime.parse((canonical['date'] as String?) ?? DateTime.now().toIso8601String());
-    return create(userId: userId, title: title, amount: amount, date: date, notes: canonical['normalized_description'] as String?);
+    final created = await _dataSource.create(
+      title: title,
+      amount: amount,
+      date: date,
+      categoryId: categoryId,
+      categoryName: categoryName,
+      isIncome: isIncome,
+      notes: notes,
+      tags: tags,
+    );
+    final current = [...(_cache[userId] ?? const <TransactionModel>[])];
+    current.removeWhere((t) => t.id == created.id);
+    current.insert(0, created);
+    final next = _sorted(current);
+    _cache[userId] = next;
+    _controllerFor(userId).add(next);
+    return created;
   }
 
   Future<void> update(String userId, String id, Map<String, dynamic> data) async {
-    data['updated_at_ms'] = ServerValue.timestamp;
-    await _db.update('users/$userId/transactions/$id', data);
-  }
+      final updated = await _dataSource.update(
+        id,
+        title: data['title'] as String?,
+        amount: data['amount'] != null
+            ? (data['amount'] as num).toDouble()
+            : null,
+        date: data['date'] is String
+            ? DateTime.parse(data['date'] as String)
+            : null,
+        categoryId: data['categoryId'] as String? ??
+            data['category_id'] as String?,
+        categoryName: data['categoryName'] as String? ??
+            data['category_name'] as String?,
+        isIncome: data['isIncome'] as bool?,
+        notes: data['notes'] as String?,
+        tags: (data['tags'] as List?)?.cast<String>(),
+      );
 
-  Future<void> delete(String id) async {
-    // We need userId to resolve path; delete by looking up owner id
-    // In RTDB we store under users/{uid}/transactions/{id}
-    // For simplicity, callers should pass userId via map or manage path externally.
-    // Here we do nothing without userId; use dedicated deleteForUser
+      final current = [...(_cache[userId] ?? const <TransactionModel>[])];
+      final idx = current.indexWhere((t) => t.id == id);
+      if (idx >= 0) {
+        current[idx] = updated;
+      } else {
+        current.insert(0, updated);
+      }
+      final next = _sorted(current);
+      _cache[userId] = next;
+      _controllerFor(userId).add(next);
   }
 
   Future<void> deleteForUser(String userId, String id) async {
-    await _db.remove('users/$userId/transactions/$id');
+    await _dataSource.delete(id);
+    final current = [...(_cache[userId] ?? const <TransactionModel>[])];
+    current.removeWhere((t) => t.id == id);
+    _cache[userId] = current;
+    _controllerFor(userId).add(current);
   }
 
-  Stream<List<TransactionModel>> streamForUser(String userId) {
-    return _db.onValueMap('users/$userId/transactions').map((map) {
-      if (map == null) return <TransactionModel>[];
-      final items = <TransactionModel>[];
-      map.forEach((key, value) {
-        if (value is Map) {
-          final data = value.cast<String, dynamic>();
-          items.add(TransactionModel.fromRTDB(key, data));
+  Future<List<TransactionModel>> getAllForUser(String userId) =>
+      _dataSource.getAll();
+
+  Stream<List<TransactionModel>> streamForUser(String userId) =>
+      Stream<List<TransactionModel>>.multi((controller) async {
+        final shared = _controllerFor(userId);
+        final cached = _cache[userId];
+        if (cached != null) {
+          controller.add(cached);
         }
+
+        unawaited(_refreshUser(userId));
+        // Polling is controlled externally (prefer websocket-based updates).
+        // Start polling only if explicitly requested via `enablePollingForUser`.
+
+        final sub = shared.stream.listen(
+          controller.add,
+          onError: (_, __) {},
+        );
+
+        controller.onCancel = () => sub.cancel();
       });
-      items.sort((a, b) => b.date.compareTo(a.date));
-      return items;
-    });
+
+  /// Public control: enable periodic polling for a user (used when websocket
+  /// fallback to polling is active).
+  void enablePollingForUser(String userId) {
+    _startPolling(userId);
   }
 
-  Future<List<TransactionModel>> getAllForUser(String userId) async {
-    final snapshot = await _db.get('users/$userId/transactions');
-    if (snapshot.value == null) return <TransactionModel>[];
-    final map = snapshot.value as Map<dynamic, dynamic>;
-    final items = <TransactionModel>[];
-    map.forEach((key, value) {
-      if (value is Map) {
-        final data = value.cast<String, dynamic>();
-        items.add(TransactionModel.fromRTDB(key.toString(), data));
+  /// Public control: disable periodic polling for a user.
+  void disablePollingForUser(String userId) {
+    final t = _pollers.remove(userId);
+    try {
+      t?.cancel();
+    } catch (_) {}
+  }
+
+  /// Apply a remote websocket transaction event to the local cache.
+  void applyRemoteTransactionEvent(String userId, String type, Map<String, dynamic> payload) {
+    try {
+      if (type == 'transaction_deleted' || type == 'transaction.deleted') {
+        final id = payload['transaction_id'] as String? ?? payload['id'] as String?;
+        if (id != null) {
+          final current = [...(_cache[userId] ?? const <TransactionModel>[])];
+          current.removeWhere((t) => t.id == id);
+          _cache[userId] = current;
+          _controllerFor(userId).add(current);
+        }
+        return;
       }
-    });
-    items.sort((a, b) => b.date.compareTo(a.date));
-    return items;
-  }
 
-  void _validate({required String title, required double amount, required DateTime date}) {
-    if (title.trim().isEmpty) {
-      throw ArgumentError('Title is required');
-    }
-    if (amount.isNaN) {
-      throw ArgumentError('Amount must be a number');
-    }
-    if (date.isAfter(DateTime.now().add(const Duration(days: 1)))) {
-      throw ArgumentError('Date cannot be in the future');
-    }
+      if (type == 'transaction_created' || type == 'transaction_updated') {
+        final id = payload['id'] as String;
+        final title = payload['title'] as String? ?? '';
+        final amount = (payload['amount'] as num?)?.toDouble() ?? 0.0;
+        final categoryId = payload['category_id'] as String? ?? payload['categoryId'] as String?;
+        final categoryName = payload['category_name'] as String? ?? payload['category'] as String?;
+        DateTime date = DateTime.now();
+        final rawDate = payload['date'] ?? payload['transaction_date'] ?? payload['created_at'];
+        if (rawDate is String) {
+          date = DateTime.tryParse(rawDate) ?? DateTime.now();
+        } else if (rawDate is num) {
+          date = DateTime.fromMillisecondsSinceEpoch(rawDate.toInt());
+        }
+        final notes = payload['notes'] as String?;
+        final tags = (payload['tags'] as List?)?.cast<String>();
+
+        final created = TransactionModel(
+          id: id,
+          userId: payload['user_id'] as String? ?? payload['userId'] as String? ?? userId,
+          title: title,
+          amount: amount,
+          categoryId: categoryId,
+          categoryName: categoryName,
+          date: date,
+          notes: notes,
+          tags: tags,
+        );
+
+        final current = [...(_cache[userId] ?? const <TransactionModel>[])];
+        final idx = current.indexWhere((t) => t.id == id);
+        if (idx >= 0) {
+          current[idx] = created;
+        } else {
+          current.insert(0, created);
+        }
+        final next = _sorted(current);
+        _cache[userId] = next;
+        _controllerFor(userId).add(next);
+      }
+    } catch (_) {}
   }
 }
 
 final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
-  return TransactionRepository(ref.watch(realtimeDbServiceProvider), ref.watch(syncServiceProvider));
+  return TransactionRepository(ref.watch(transactionRemoteDataSourceProvider));
 });
 
 final userTransactionsProvider = StreamProvider<List<TransactionModel>>((ref) {
   final user = ref.watch(currentUserProvider);
-  // Stream.empty() never emits → StreamProvider stays loading forever.
-  // Use Stream.value([]) so it immediately resolves to data([]) for guests.
   if (user == null) return Stream.value(<TransactionModel>[]);
-  final repo = ref.watch(transactionRepositoryProvider);
-  // Mirror recentTransactionsProvider: eager getAllForUser() snapshot first so
-  // the list appears instantly, then keep the RTDB listener for live updates.
-  // A 5-second timeout prevents an infinite skeleton on cold connections.
-  final stream = Stream<List<TransactionModel>>.multi((controller) async {
-    try {
-      final initial = await repo.getAllForUser(user.uid);
-      controller.add(initial);
-    } catch (_) {}
-    await for (final items in repo.streamForUser(user.uid)) {
-      controller.add(items);
-    }
-  });
-  return stream.timeout(const Duration(seconds: 5)).handleError((_, __) {});
+  return ref
+      .watch(transactionRepositoryProvider)
+      .streamForUser(user.userId)
+      .handleError((_, __) {});
 });

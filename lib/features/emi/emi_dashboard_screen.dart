@@ -5,8 +5,10 @@ import '../../core/models/emi.dart';
 import '../../core/utils/format.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/widgets/skeleton.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
+import '../../core/widgets/animated_progress_indicator.dart';
 import 'emi_form_screen.dart';
 
 class EMIDashboardScreen extends ConsumerWidget {
@@ -82,20 +84,7 @@ class _PlanCard extends ConsumerWidget {
     final scheduleAsync = ref.watch(emiScheduleProvider(plan.id));
     final currency = ref.watch(currencyProvider);
     return scheduleAsync.when(
-      loading: () => AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04)),
-        ),
-        child: const SizedBox(
-          height: 64,
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      ),
+      loading: () => const SkeletonListTile(),
       error: (e, _) => AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -166,7 +155,7 @@ class _PlanCard extends ConsumerWidget {
               try {
                 HapticFeedback.lightImpact();
                 await ref.read(emiRepositoryProvider).markPaid(user.uid, plan.id, next.id);
-                messenger.showSnackBar(SnackBar(content: Text('${formatAmount(next.installment, currency)} paid')));
+                messenger.showSnackBar(const SnackBar(content: Text('Marked as paid')));
               } catch (e) {
                 messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
               }
@@ -187,6 +176,12 @@ class _PlanCard extends ConsumerWidget {
               try {
                 await ref.read(emiRepositoryProvider).deletePlan(user.uid, plan.id);
                 messenger.showSnackBar(const SnackBar(content: Text('EMI plan deleted')));
+                  // Delay invalidation to allow Dismissible animation to complete
+                  Future.delayed(const Duration(milliseconds: 300), () {
+                    try {
+                      ref.invalidate(userEMIPlansProvider);
+                    } catch (_) {}
+                  });
                 return true;
               } catch (e) {
                 messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
@@ -223,7 +218,7 @@ class _PlanCard extends ConsumerWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${pending} EMIs left • ${plan.tenureMonths} months • ${plan.annualInterestRate.toStringAsFixed(2)}% interest',
+                              '$pending EMIs left • ${plan.tenureMonths} months • ${plan.annualInterestRate.toStringAsFixed(2)}% interest',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ],
@@ -258,6 +253,8 @@ class _PlanCard extends ConsumerWidget {
                                 try {
                                   await ref.read(emiRepositoryProvider).deletePlan(user.uid, plan.id);
                                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('EMI plan deleted')));
+                                    // Invalidate provider to refresh the list
+                                    ref.invalidate(userEMIPlansProvider);
                                 } catch (e) {
                                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
                                 }
@@ -274,13 +271,10 @@ class _PlanCard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   // Progress
-                  LinearProgressIndicator(
-                    value: progress.clamp(0.0, 1.0),
+                  AnimatedProgressIndicator(
+                    progress: progress.clamp(0.0, double.infinity),
                     minHeight: 8,
                     backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      progress >= 1 ? Colors.green : Theme.of(context).colorScheme.secondary,
-                    ),
                   ),
                   const SizedBox(height: 8),
                   Text('$paidCount of $total paid', style: Theme.of(context).textTheme.bodySmall),
@@ -345,13 +339,13 @@ class _PlanCard extends ConsumerWidget {
                               HapticFeedback.mediumImpact();
                               try {
                                 await ref.read(emiRepositoryProvider).markPaid(user.uid, plan.id, e.id);
-                                messenger.showSnackBar(SnackBar(content: Text('${formatAmount(e.installment, currency)} paid successfully')));
+                                messenger.showSnackBar(const SnackBar(content: Text('Marked as paid')));
                               } catch (err) {
                                 messenger.showSnackBar(SnackBar(content: Text('Failed: $err')));
                               }
                             },
                             style: FilledButton.styleFrom(elevation: 2, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14)),
-                            child: Text('Pay ${formatAmount(e.installment, currency)}'),
+                            child: const Text('Mark Paid'),
                           ),
                         ],
                       );

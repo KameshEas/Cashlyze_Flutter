@@ -3,7 +3,10 @@ import 'shared_prefs_provider.dart';
 
 const _kOtpPendingKey = 'otp_pending';
 const _kOtpPendingEmailKey = 'otp_pending_email';
+const _kOtpPendingNameKey = 'otp_pending_name';
+const _kOtpPendingMobileKey = 'otp_pending_mobile';
 const _kOtpSentKey = 'otp_sent';
+const _kOtpPendingPasswordKey = 'otp_pending_password';
 
 /// Tracks whether the current user still needs to complete OTP verification
 /// after a fresh signup. Set to [true] just before navigating to /otp, and
@@ -22,21 +25,38 @@ const _kOtpSentKey = 'otp_sent';
 /// state changes).
 class OtpPendingNotifier extends Notifier<bool> {
   String pendingEmail = '';
+  String pendingName = '';
+  String pendingMobile = '';
+  String pendingPassword = '';
   bool otpAlreadySent = false;
 
   @override
   bool build() {
     final prefs = ref.read(sharedPrefsProvider);
     pendingEmail = prefs.getString(_kOtpPendingEmailKey) ?? '';
+    pendingName = prefs.getString(_kOtpPendingNameKey) ?? '';
+    pendingMobile = prefs.getString(_kOtpPendingMobileKey) ?? '';
+    pendingPassword = prefs.getString(_kOtpPendingPasswordKey) ?? '';
     otpAlreadySent = prefs.getBool(_kOtpSentKey) ?? false;
     return prefs.getBool(_kOtpPendingKey) ?? false;
   }
 
-  void setPending({String email = ''}) {
+  void setPending({
+    String email = '',
+    String password = '',
+    String name = '',
+    String mobile = '',
+  }) {
     final prefs = ref.read(sharedPrefsProvider);
     pendingEmail = email;
+    pendingName = name;
+    pendingMobile = mobile;
+    pendingPassword = password;
     prefs.setBool(_kOtpPendingKey, true);
     prefs.setString(_kOtpPendingEmailKey, email);
+    prefs.setString(_kOtpPendingNameKey, name);
+    prefs.setString(_kOtpPendingMobileKey, mobile);
+    prefs.setString(_kOtpPendingPasswordKey, password);
     state = true;
   }
 
@@ -49,9 +69,15 @@ class OtpPendingNotifier extends Notifier<bool> {
   void clearPending() {
     final prefs = ref.read(sharedPrefsProvider);
     pendingEmail = '';
+    pendingName = '';
+    pendingMobile = '';
+    pendingPassword = '';
     otpAlreadySent = false;
     prefs.remove(_kOtpPendingKey);
     prefs.remove(_kOtpPendingEmailKey);
+    prefs.remove(_kOtpPendingNameKey);
+    prefs.remove(_kOtpPendingMobileKey);
+    prefs.remove(_kOtpPendingPasswordKey);
     prefs.remove(_kOtpSentKey);
     state = false;
   }

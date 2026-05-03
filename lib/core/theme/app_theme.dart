@@ -2,6 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../ui/constants.dart';
 
+// When running widget tests the TestWidgets binding prevents network
+// requests; google_fonts may attempt to fetch fonts and fail. Tests can
+// call `disableGoogleFontsForTests()` to force using fallback text styles
+// that do not perform network fetches.
+bool _disableGoogleFontsForTests = false;
+
+/// Call from tests to avoid google_fonts performing network fetches.
+void disableGoogleFontsForTests() => _disableGoogleFontsForTests = true;
+
 class AppTheme {
   // ── Brand ───────────────────────────────────────────────────────────
   // #059669 on white = 4.7:1 (WCAG AA ✓) — replaces #006D5B (too dark)
@@ -33,20 +42,31 @@ class AppTheme {
         onError: Colors.white,
       ),
       scaffoldBackgroundColor: darkBackground,
-      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).apply(
-        bodyColor: Colors.white,
-        displayColor: Colors.white,
-      ),
+      textTheme: !_disableGoogleFontsForTests
+          ? GoogleFonts.interTextTheme(ThemeData.dark().textTheme).apply(
+              bodyColor: Colors.white,
+              displayColor: Colors.white,
+            )
+          : ThemeData.dark()
+              .textTheme
+              .apply(bodyColor: Colors.white, displayColor: Colors.white),
       appBarTheme: AppBarTheme(
         backgroundColor: darkBackground,
         elevation: 0,
-        centerTitle: true,
-        titleTextStyle: GoogleFonts.inter(
-          fontSize: AppType.h3,    // 20 from scale — no more magic number
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
-          height: AppType.lhTight,
-        ),
+        centerTitle: false,
+        titleTextStyle: !_disableGoogleFontsForTests
+            ? GoogleFonts.inter(
+                fontSize: AppType.h3, // 20 from scale — no more magic number
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                height: AppType.lhTight,
+              )
+            : TextStyle(
+                fontSize: AppType.h3,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                height: AppType.lhTight,
+              ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -60,10 +80,12 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: AppRadius.mdAll,
           ),
-          textStyle: GoogleFonts.inter(
-            fontSize: AppType.b1,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: !_disableGoogleFontsForTests
+              ? GoogleFonts.inter(
+                  fontSize: AppType.b1,
+                  fontWeight: FontWeight.w600,
+                )
+              : TextStyle(fontSize: AppType.b1, fontWeight: FontWeight.w600),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -76,10 +98,12 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: AppRadius.mdAll,
           ),
-          textStyle: GoogleFonts.inter(
-            fontSize: AppType.b1,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: !_disableGoogleFontsForTests
+              ? GoogleFonts.inter(
+                  fontSize: AppType.b1,
+                  fontWeight: FontWeight.w600,
+                )
+              : TextStyle(fontSize: AppType.b1, fontWeight: FontWeight.w600),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -92,10 +116,12 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: AppRadius.mdAll,
           ),
-          textStyle: GoogleFonts.inter(
-            fontSize: AppType.b1,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: !_disableGoogleFontsForTests
+              ? GoogleFonts.inter(
+                  fontSize: AppType.b1,
+                  fontWeight: FontWeight.w600,
+                )
+              : TextStyle(fontSize: AppType.b1, fontWeight: FontWeight.w600),
         ),
       ),
       cardTheme: CardThemeData(
@@ -113,10 +139,12 @@ class AppTheme {
         backgroundColor: surfaceColor,
         indicatorColor: primaryColor.withValues(alpha: 0.18),
         labelTextStyle: WidgetStateProperty.all(
-          GoogleFonts.inter(
-            fontSize: AppType.b3,
-            fontWeight: FontWeight.w500,
-          ),
+          !_disableGoogleFontsForTests
+              ? GoogleFonts.inter(
+                  fontSize: AppType.b3,
+                  fontWeight: FontWeight.w500,
+                )
+              : TextStyle(fontSize: AppType.b3, fontWeight: FontWeight.w500),
         ),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
@@ -146,20 +174,31 @@ class AppTheme {
         onError: Colors.white,
       ),
       scaffoldBackgroundColor: AppColors.neutral100,
-      textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme).apply(
-        bodyColor: Colors.black,
-        displayColor: Colors.black,
-      ),
+      textTheme: !_disableGoogleFontsForTests
+          ? GoogleFonts.interTextTheme(ThemeData.light().textTheme).apply(
+              bodyColor: Colors.black,
+              displayColor: Colors.black,
+            )
+          : ThemeData.light()
+              .textTheme
+              .apply(bodyColor: Colors.black, displayColor: Colors.black),
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.neutral100,
         elevation: 0,
-        centerTitle: true,
-        titleTextStyle: GoogleFonts.inter(
-          fontSize: AppType.h3,
-          fontWeight: FontWeight.w700,
-          color: Colors.black,
-          height: AppType.lhTight,
-        ),
+        centerTitle: false,
+        titleTextStyle: !_disableGoogleFontsForTests
+            ? GoogleFonts.inter(
+                fontSize: AppType.h3,
+                fontWeight: FontWeight.w700,
+                color: Colors.black,
+                height: AppType.lhTight,
+              )
+            : TextStyle(
+                fontSize: AppType.h3,
+                fontWeight: FontWeight.w700,
+                color: Colors.black,
+                height: AppType.lhTight,
+              ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -173,10 +212,12 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: AppRadius.mdAll,
           ),
-          textStyle: GoogleFonts.inter(
-            fontSize: AppType.b1,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: !_disableGoogleFontsForTests
+              ? GoogleFonts.inter(
+                  fontSize: AppType.b1,
+                  fontWeight: FontWeight.w600,
+                )
+              : TextStyle(fontSize: AppType.b1, fontWeight: FontWeight.w600),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -189,10 +230,12 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: AppRadius.mdAll,
           ),
-          textStyle: GoogleFonts.inter(
-            fontSize: AppType.b1,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: !_disableGoogleFontsForTests
+              ? GoogleFonts.inter(
+                  fontSize: AppType.b1,
+                  fontWeight: FontWeight.w600,
+                )
+              : TextStyle(fontSize: AppType.b1, fontWeight: FontWeight.w600),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -205,10 +248,12 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: AppRadius.mdAll,
           ),
-          textStyle: GoogleFonts.inter(
-            fontSize: AppType.b1,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: !_disableGoogleFontsForTests
+              ? GoogleFonts.inter(
+                  fontSize: AppType.b1,
+                  fontWeight: FontWeight.w600,
+                )
+              : TextStyle(fontSize: AppType.b1, fontWeight: FontWeight.w600),
         ),
       ),
       cardTheme: CardThemeData(
@@ -224,10 +269,12 @@ class AppTheme {
         backgroundColor: Colors.white,
         indicatorColor: const Color(0x1A059669), // emerald600 / 10 %
         labelTextStyle: WidgetStateProperty.all(
-          GoogleFonts.inter(
-            fontSize: AppType.b3,
-            fontWeight: FontWeight.w500,
-          ),
+          !_disableGoogleFontsForTests
+              ? GoogleFonts.inter(
+                  fontSize: AppType.b3,
+                  fontWeight: FontWeight.w500,
+                )
+              : TextStyle(fontSize: AppType.b3, fontWeight: FontWeight.w500),
         ),
         // FIX: was WidgetStatePropertyAll (no selected distinction = no feedback)
         iconTheme: WidgetStateProperty.resolveWith((states) {
@@ -247,23 +294,35 @@ class AppTheme {
     return InputDecorationTheme(
       filled: true,
       fillColor: fill,
-      labelStyle: GoogleFonts.inter(
-        fontWeight: FontWeight.w500,
-        fontSize: AppType.b2,
-        color: onSurface.withValues(alpha: 0.7),
-      ),
-      hintStyle: GoogleFonts.inter(
-        fontSize: AppType.b2,
-        color: onSurface.withValues(alpha: 0.4),
-      ),
-      helperStyle: GoogleFonts.inter(
-        fontSize: AppType.b3,
-        color: onSurface.withValues(alpha: 0.6),
-      ),
-      errorStyle: GoogleFonts.inter(
-        fontSize: AppType.b3,
-        color: errorColor,
-      ),
+      labelStyle: !_disableGoogleFontsForTests
+          ? GoogleFonts.inter(
+              fontWeight: FontWeight.w500,
+              fontSize: AppType.b2,
+              color: onSurface.withValues(alpha: 0.7),
+            )
+          : TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: AppType.b2,
+              color: onSurface.withValues(alpha: 0.7),
+            ),
+      hintStyle: !_disableGoogleFontsForTests
+          ? GoogleFonts.inter(
+              fontSize: AppType.b2,
+              color: onSurface.withValues(alpha: 0.4),
+            )
+          : TextStyle(fontSize: AppType.b2, color: onSurface.withValues(alpha: 0.4)),
+      helperStyle: !_disableGoogleFontsForTests
+          ? GoogleFonts.inter(
+              fontSize: AppType.b3,
+              color: onSurface.withValues(alpha: 0.6),
+            )
+          : TextStyle(fontSize: AppType.b3, color: onSurface.withValues(alpha: 0.6)),
+      errorStyle: !_disableGoogleFontsForTests
+          ? GoogleFonts.inter(
+              fontSize: AppType.b3,
+              color: errorColor,
+            )
+          : TextStyle(fontSize: AppType.b3, color: errorColor),
       border: OutlineInputBorder(
         borderRadius: AppRadius.mdAll,
         borderSide: BorderSide(color: onSurface.withValues(alpha: 0.14)),

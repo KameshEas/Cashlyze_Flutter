@@ -24,21 +24,26 @@ Future<String?> showInputDialog(BuildContext context, {
   required String label,
   bool obscure = false,
   String? initial,
-}) {
+}) async {
   final controller = TextEditingController(text: initial ?? '');
-  return showDialog<String?>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(title),
-      content: TextField(
-        controller: controller,
-        obscureText: obscure,
-        decoration: InputDecoration(labelText: label),
+  try {
+    final res = await showDialog<String?>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          obscureText: obscure,
+          decoration: InputDecoration(labelText: label),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.of(ctx).pop(controller.text.trim()), child: const Text('Save')),
+        ],
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Cancel')),
-        FilledButton(onPressed: () => Navigator.of(ctx).pop(controller.text.trim()), child: const Text('Save')),
-      ],
-    ),
-  );
+    );
+    return res;
+  } finally {
+    controller.dispose();
+  }
 }

@@ -29,7 +29,6 @@ class SecureStorageService {
   static const String _keyRefreshToken = 'refresh_token';
   static const String _keyEncryptionKey = 'encryption_key';
   static const String _keyUserId = 'user_id';
-  static const String _keyBiometricEnabled = 'biometric_enabled';
   static const String _keyPinCode = 'pin_code';
 
   /// Saves the authentication token securely.
@@ -88,20 +87,6 @@ class SecureStorageService {
   /// Retrieves the user ID.
   Future<String?> getUserId() async {
     return await _storage.read(key: _keyUserId);
-  }
-
-  /// Saves biometric authentication preference.
-  Future<void> setBiometricEnabled(bool enabled) async {
-    await _storage.write(
-      key: _keyBiometricEnabled,
-      value: enabled.toString(),
-    );
-  }
-
-  /// Checks if biometric authentication is enabled.
-  Future<bool> isBiometricEnabled() async {
-    final value = await _storage.read(key: _keyBiometricEnabled);
-    return value == 'true';
   }
 
   /// Saves the PIN code securely (hashed).

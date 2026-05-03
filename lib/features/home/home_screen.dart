@@ -9,12 +9,12 @@ import '../../core/services/transaction_ingest_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/skeleton.dart';
+import '../../core/widgets/category_picker_field.dart';
 import '../../core/models/transaction.dart';
 import '../../core/repositories/emi_repository.dart';
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/repositories/budget_repository.dart';
 import '../../core/repositories/category_repository.dart';
-import '../../core/services/realtime_db_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/providers/recurring_providers.dart';
@@ -30,18 +30,14 @@ class HomeScreen extends ConsumerWidget {
     // the data and aligns with the Transactions default view.
     final kpis = ref.watch(currentMonthKpisProvider);
     final txsAsync = ref.watch(recentTransactionsProvider);
-    final mismatch = ref.watch(databaseUrlMismatchProvider);
-    final dbUrl = ref.watch(databaseUrlProvider);
     // Watch EMI list here so we can conditionally render the section.
     final emiAsync = ref.watch(emiUpcomingProvider);
     final plansAsync = ref.watch(userEMIPlansProvider);
-    // Show the EMI section while either the plans or upcoming streams are
-    // loading or when either has data. This reduces flicker when streams
-    // reconnect or are briefly delayed.
-    final hasEmis = (
-      plansAsync.maybeWhen(data: (list) => list.isNotEmpty, loading: () => true, orElse: () => false)
-    ) || (
-      emiAsync.maybeWhen(data: (list) => list.isNotEmpty, loading: () => true, orElse: () => false)
+    // Show the EMI section only when the user has EMI plans.
+    // Do not show the section based solely on upcoming payments.
+    final hasEmis = plansAsync.maybeWhen(
+      data: (list) => list.isNotEmpty,
+      orElse: () => false,
     );
     final t = AppLocalizations.of(context);
     return Scaffold(
@@ -60,6 +56,19 @@ class HomeScreen extends ConsumerWidget {
             ),
             tooltip: 'Notifications',
           ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              try {
+                ref.invalidate(userEMIPlansProvider);
+                ref.invalidate(emiUpcomingProvider);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Refreshing EMI data')));
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Refresh failed: $e')));
+              }
+            },
+            tooltip: 'Refresh',
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -67,25 +76,8 @@ class HomeScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (mismatch)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.orange.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Text(
-                  'Connected to $dbUrl. Expected asia-southeast1 instance.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ),
             _buildBalanceCard(context, currency, kpis),
-            const SizedBox(height: 24),
+            const SizedBox(height: 40),
             Text(
               t?.quickActions ?? 'Quick Actions',
               style: Theme.of(
@@ -123,6 +115,9 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildBalanceCard(BuildContext context, String currency, Kpis kpis) {
+    final balanceStatus = getBalanceStatus(kpis.net, currency);
+    final isPositive = balanceStatus.isPositive;
+    
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -147,6 +142,7 @@ class HomeScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header Row: Title + Period
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -165,23 +161,66 @@ class HomeScreen extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
+          
+          // Primary Status Message (Animated)
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             switchInCurve: Curves.easeOut,
             switchOutCurve: Curves.easeIn,
             transitionBuilder: (child, animation) =>
                 ScaleTransition(scale: animation, child: child),
-            child: Text(
-              formatAmount(kpis.net, currency),
+            child: Column(
               key: ValueKey(kpis.net),
-              style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-              ),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Status message row with indicator
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        balanceStatus.message,
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    // Status indicator circle (green/red)
+                    Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isPositive ? Colors.greenAccent : Colors.redAccent,
+                        boxShadow: [
+                          BoxShadow(
+                            color: isPositive 
+                                ? Colors.greenAccent.withValues(alpha: 0.5)
+                                : Colors.redAccent.withValues(alpha: 0.5),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                // Secondary: Net balance (small text)
+                Text(
+                  'Net: ${formatAmount(kpis.net, currency)}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.65),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
+          
           const SizedBox(height: 24),
+          
+          // Income & Expense Breakdown (existing, unchanged)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -314,7 +353,7 @@ class HomeScreen extends ConsumerWidget {
                     );
                   } else if (action['action'] == 'scan') {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Scan receipt not implemented')),
+                      const SnackBar(content: Text('Scan feature coming soon')),
                     );
                   }
                 },
@@ -431,14 +470,16 @@ class HomeScreen extends ConsumerWidget {
             ),
           );
         }
-        final list = monthItems.take(3).toList();
+        final list = monthItems.take(2).toList();
         return Column(
           children: [
             for (var i = 0; i < list.length; i++) ...[
               _buildTransactionItem(
                 context,
+                ref,
                 list[i].title,
-                list[i].categoryId ?? 'Uncategorized',
+                list[i].categoryId,
+                list[i].categoryName,
                 formatAmount(list[i].amount, currency),
                 list[i].amount >= 0,
               ),
@@ -452,12 +493,51 @@ class HomeScreen extends ConsumerWidget {
 
   Widget _buildTransactionItem(
     BuildContext context,
+    WidgetRef ref,
     String title,
-    String category,
+    String? categoryId,
+    String? categoryName,
     String amount,
     bool isIncome,
   ) {
     final theme = Theme.of(context);
+    // Resolve category id/name to a display name using user categories.
+    // Prefer a matching category id, but allow the transaction-provided
+    // `categoryName` to override when it differs (handles rename races).
+    final cats = ref.watch(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+    String displayCategory;
+    final id = categoryId?.trim();
+    final nameFallback = categoryName?.trim();
+
+    if ((id == null || id.isEmpty) && (nameFallback == null || nameFallback.isEmpty)) {
+      displayCategory = 'General';
+    } else if (id != null && id.isNotEmpty) {
+      final byId = cats.where((c) => c.id == id).toList();
+      if (byId.isNotEmpty) {
+        final catName = byId.first.name;
+        if (nameFallback != null && nameFallback.isNotEmpty && catName.trim().toLowerCase() != nameFallback.toLowerCase()) {
+          displayCategory = nameFallback;
+        } else {
+          displayCategory = catName;
+        }
+      } else {
+        final lookup = (nameFallback ?? id).trim();
+        final byName = cats.where((c) => (c.name ?? '').toLowerCase() == lookup.toLowerCase()).toList();
+        if (byName.isNotEmpty) {
+          displayCategory = byName.first.name;
+        } else if (nameFallback != null && nameFallback.isNotEmpty) {
+          displayCategory = nameFallback;
+        } else {
+          displayCategory = id;
+        }
+      }
+    } else {
+      // No id but have a name fallback
+      final lookup = nameFallback!.trim();
+      final byName = cats.where((c) => (c.name ?? '').toLowerCase() == lookup.toLowerCase()).toList();
+      displayCategory = byName.isNotEmpty ? byName.first.name : lookup;
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -500,7 +580,7 @@ class HomeScreen extends ConsumerWidget {
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(category, style: theme.textTheme.bodySmall),
+                  child: Text(displayCategory, style: theme.textTheme.bodySmall, overflow: TextOverflow.ellipsis, maxLines: 1),
                 ),
               ],
             ),
@@ -546,8 +626,9 @@ class HomeScreen extends ConsumerWidget {
         if (parsed != null) date = parsed;
       }
     }
-    final result = await showModalBottomSheet<bool>(
+    final result = await Future.microtask(() => showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       isDismissible: true,
       backgroundColor: theme.colorScheme.surface,
@@ -555,10 +636,14 @@ class HomeScreen extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) {
-        // Use a Consumer inside the sheet so it rebuilds when categories/budgets load.
-        return Consumer(builder: (sheetCtx, sheetRef, _) {
-          final messenger = ScaffoldMessenger.of(context);
-          final nav = Navigator.of(context);
+        // Wrap the sheet in a StatefulBuilder so local sheet state (date,
+        // selected type/category) can update the UI when mutated.
+        return StatefulBuilder(builder: (sheetCtx2, setSheetState) {
+          // Use a Consumer inside the StatefulBuilder so it rebuilds when
+          // categories/budgets load while still allowing local state updates.
+          return Consumer(builder: (sheetCtx, sheetRef, _) {
+            final messenger = ScaffoldMessenger.of(sheetCtx);
+            final nav = Navigator.of(sheetCtx);
 
           // Build category list from user categories + budgets so Quick Add
           // uses the same options as the full Transactions screen.
@@ -602,8 +687,11 @@ class HomeScreen extends ConsumerWidget {
                 key = idToNameHome[raw]!.trim();
               } else {
                 final mappedId = nameToIdHome[raw.toLowerCase()];
-                if (mappedId != null) key = idToNameHome[mappedId] ?? raw;
-                else key = (b.name ?? raw).trim();
+                if (mappedId != null) {
+                  key = idToNameHome[mappedId] ?? raw;
+                } else {
+                  key = (b.name ?? raw).trim();
+                }
               }
             } else {
               key = (b.name ?? '').trim();
@@ -635,7 +723,7 @@ class HomeScreen extends ConsumerWidget {
           final matchingCountHome = categoryItems.where((it) => it.value == displayLocalCategory).length;
           final effectiveInitialLocalCategory = matchingCountHome == 1
               ? displayLocalCategory
-              : (categoryItems.isNotEmpty ? (categoryItems.first.value as String?) : null);
+              : (categoryItems.isNotEmpty ? categoryItems.first.value : null);
 
           return Padding(
             padding: EdgeInsets.only(
@@ -671,7 +759,7 @@ class HomeScreen extends ConsumerWidget {
                               child: Text('Income'),
                             ),
                           ],
-                          onChanged: (v) => localType = v ?? 'Expense',
+                          onChanged: (v) => setSheetState(() => localType = v ?? 'Expense'),
                           decoration: const InputDecoration(
                             labelText: 'Type',
                             filled: true,
@@ -680,15 +768,10 @@ class HomeScreen extends ConsumerWidget {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: DropdownButtonFormField<String>(
-                          initialValue: effectiveInitialLocalCategory,
-                          isExpanded: true,
-                          items: categoryItems,
-                          onChanged: (v) => localCategory = v ?? 'General',
-                          decoration: const InputDecoration(
-                            labelText: 'Category',
-                            filled: true,
-                          ),
+                        child: CategoryPickerField(
+                          value: effectiveInitialLocalCategory ?? (localCategory ?? 'General'),
+                          onChanged: (v) => setSheetState(() => localCategory = v),
+                          label: 'Category',
                         ),
                       ),
                     ],
@@ -716,7 +799,7 @@ class HomeScreen extends ConsumerWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton(
+                          child: OutlinedButton(
                           onPressed: () async {
                             final picked = await showDatePicker(
                               context: ctx,
@@ -724,9 +807,11 @@ class HomeScreen extends ConsumerWidget {
                               lastDate: DateTime(2100),
                               initialDate: date,
                             );
-                            if (picked != null) date = picked;
+                            if (picked != null) setSheetState(() => date = picked);
                           },
-                          child: Text('Date: ${date.toLocal()}'.split(' ').first),
+                          child: Text(
+                            '${AppLocalizations.of(ctx)?.dateLabel ?? 'Date:'} ${formatDate(date.toLocal(), prefs.dateFormat)}',
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -738,7 +823,7 @@ class HomeScreen extends ConsumerWidget {
                           final ingest = ref.read(
                             transactionIngestServiceProvider,
                           );
-                          try {
+                            try {
                             await ingest.addManual(
                               userId: user.uid,
                               title: titleController.text,
@@ -748,9 +833,10 @@ class HomeScreen extends ConsumerWidget {
                               date: date,
                               notes: null,
                             );
+                            // Pop the sheet and let the caller show the success snackbar
                             nav.pop(true);
-                            messenger.showSnackBar(const SnackBar(content: Text('Transaction saved')));
                           } catch (e) {
+                            // Show failures immediately
                             messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
                           }
                         },
@@ -763,10 +849,15 @@ class HomeScreen extends ConsumerWidget {
             ),
           );
         });
+      });
       },
-    );
+    ));
     final messenger = ScaffoldMessenger.of(context);
-    if (result != true) {
+    if (result == true) {
+      await prefs.clearDraft('home_quick_add');
+      messenger.clearSnackBars();
+      messenger.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)?.transactionSaved ?? 'Transaction saved')));
+    } else {
       final hasData =
           titleController.text.trim().isNotEmpty ||
           amountController.text.trim().isNotEmpty;
@@ -780,8 +871,6 @@ class HomeScreen extends ConsumerWidget {
         });
         messenger.showSnackBar(const SnackBar(content: Text('Draft saved')));
       }
-    } else {
-      await prefs.clearDraft('home_quick_add');
     }
     // Do not dispose controllers here; they are tied to the bottom
     // sheet lifecycle and disposing them synchronously can race with
@@ -791,8 +880,9 @@ class HomeScreen extends ConsumerWidget {
   Future<void> _openQuickActionsMenu(BuildContext context, WidgetRef ref) async {
     final t = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    await showModalBottomSheet<void>(
+    await Future.microtask(() => showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       isDismissible: true,
       backgroundColor: theme.colorScheme.surface,
@@ -883,7 +973,7 @@ class HomeScreen extends ConsumerWidget {
                             onTap: () {
                               nav.pop();
                               Future.microtask(() => ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Scan receipt not implemented')),
+                                const SnackBar(content: Text('Scan feature coming soon')),
                               ));
                             },
                             borderRadius: BorderRadius.circular(12),
@@ -916,7 +1006,7 @@ class HomeScreen extends ConsumerWidget {
           },
         );
       },
-    );
+    ));
   }
 
   Widget _buildUpcomingEmi(
@@ -1129,7 +1219,7 @@ class HomeScreen extends ConsumerWidget {
                                 vertical: 12,
                               ),
                             ),
-                            child: Text('Pay ${formatAmount(e.installment, currency)}'),
+                            child: const Text('Mark Paid'),
                           ),
                         ],
                       ),

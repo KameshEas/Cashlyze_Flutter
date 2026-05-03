@@ -202,12 +202,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get alertsSubtitle => 'बजट सीमा के पास पहुँचने पर सूचित करें';
 
   @override
-  String get biometricRequireTitle => 'अनलॉक करने के लिए बायोमेट्रिक आवश्यक';
-
-  @override
-  String get biometricRequireSubtitle => 'ऐप लॉन्च पर बायोमेट्रिक मांगें';
-
-  @override
   String get developerOptionsTitle => 'डेवलपर विकल्प';
 
   @override

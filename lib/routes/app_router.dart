@@ -5,6 +5,7 @@ import '../core/providers/onboarding_provider.dart';
 import '../core/services/auth_service.dart';
 import '../core/providers/otp_pending_provider.dart';
 import '../features/auth/auth_screen.dart';
+import '../features/auth/loader_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/transactions/transactions_screen.dart';
@@ -12,25 +13,43 @@ import '../features/budgets/budget_planner_screen.dart';
 import '../features/insights/insights_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/splash/splash_screen.dart';
-import '../features/auth/verify_email_screen.dart';
 import '../features/auth/otp_screen.dart';
 import '../features/categories/categories_screen.dart';
 import '../features/emi/emi_form_screen.dart';
 import '../features/emi/emi_dashboard_screen.dart';
+import '../features/onboarding/help_center_screen.dart';
+
+// Root navigator key for accessing Navigator context from anywhere
+final rootNavigatorKeyProvider = Provider<GlobalKey<NavigatorState>>((ref) {
+  return GlobalKey<NavigatorState>();
+});
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final rootKey = ref.watch(rootNavigatorKeyProvider);
   final onboardingCompleted = ref.watch(onboardingCompletedProvider);
   final authState = ref.watch(authStateChangesProvider);
   final currentUser = ref.watch(currentUserProvider);
   final otpPending = ref.watch(otpPendingProvider);
   const kRouteFadeDuration = Duration(milliseconds: 300);
-  final rootKey = GlobalKey<NavigatorState>();
   final shellKey = GlobalKey<NavigatorState>();
 
   return GoRouter(
     navigatorKey: rootKey,
     initialLocation: '/splash',
     routes: [
+      GoRoute(
+        path: '/loading',
+        name: 'loading',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const LoaderScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+              FadeTransition(opacity: animation, child: child),
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
+        ),
+      ),
       GoRoute(
         path: '/splash',
         name: 'splash',
@@ -262,19 +281,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        path: '/verify-email',
-        name: 'verify_email',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const VerifyEmailScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-              FadeTransition(opacity: animation, child: child),
-          transitionDuration: MediaQuery.of(context).disableAnimations
-              ? Duration.zero
-              : kRouteFadeDuration,
-        ),
-      ),
-      GoRoute(
         path: '/otp',
         name: 'otp',
         pageBuilder: (context, state) {
@@ -316,6 +322,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               : kRouteFadeDuration,
         ),
       ),
+      GoRoute(
+        path: '/help_center',
+        name: 'help_center',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const HelpCenterScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+              FadeTransition(opacity: animation, child: child),
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
+        ),
+      ),
+
     ],
     redirect: (context, state) {
       final isOnboarding = state.matchedLocation == '/onboarding';
@@ -324,8 +344,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/signup';
       final isSplash = state.matchedLocation == '/splash';
-      final isVerifyEmail = state.matchedLocation == '/verify-email';
+
       final isOtp = state.matchedLocation.startsWith('/otp');
+
+      final isLoadingRoute = state.matchedLocation == '/loading';
+
+      // If auth state is still resolving, show the loader route so the
+      // user doesn't briefly land on the login page before the router
+      // redirects to home.
+      if (authState.isLoading) {
+        if (isLoadingRoute) return null;
+        return '/loading';
+      }
 
       final user = currentUser ?? authState.value;
 
@@ -345,14 +375,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       if (user != null) {
-        if (kRequireEmailVerification) {
-          if (!user.emailVerified && !isVerifyEmail && !isOtp) {
-            return '/verify-email';
-          }
-          if ((isVerifyEmail || isOtp) && user.emailVerified) {
-            return '/';
-          }
-        }
         if (isAuthRoute || isOnboarding) {
           return '/';
         }

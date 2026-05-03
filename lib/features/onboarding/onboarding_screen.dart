@@ -35,10 +35,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     {
       'title': 'Set Smart Budgets',
       'description':
-          'Create monthly budgets per category. Get alerted before you overspend — not after.',
+          'Create Daily, Weekly, or Monthly budgets. Filter by period, reorder for quick access, and undo changes.',
       'icon': Icons.account_balance_wallet_rounded,
       'gradientStart': Color(0xFF14B8A6),
       'gradientEnd': Color(0xFF3B82F6),
+      'features': [
+        '• Multiple budget periods: Daily, Weekly, Monthly',
+        '• Filter budgets to focus on what matters',
+        '• Drag to reorder for quick access',
+        '• Undo adjustments within 5 seconds',
+      ],
     },
     {
       'title': 'Gain Clear Insights',
@@ -116,64 +122,95 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildPage(BuildContext context, Map<String, dynamic> data) {
+    final features = data['features'] as List<String>?;
+    
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.heroPadding,
         vertical: AppSpacing.s16,
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // ── Illustration ───────────────────────────────────────────────
-          // Previously: Icon at 50–70% opacity → looked like a broken fallback.
-          // Now: full-opacity icon on a branded gradient circle — intentional.
-          Semantics(
-            label: 'Onboarding illustration for ${data['title']}',
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    (data['gradientStart'] as Color),
-                    (data['gradientEnd'] as Color),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: features != null ? MainAxisAlignment.start : MainAxisAlignment.center,
+          children: [
+            if (features != null) const SizedBox(height: AppSpacing.s24),
+            // ── Illustration ───────────────────────────────────────────────
+            // Previously: Icon at 50–70% opacity → looked like a broken fallback.
+            // Now: full-opacity icon on a branded gradient circle — intentional.
+            Semantics(
+              label: 'Onboarding illustration for ${data['title']}',
+              child: Container(
+                width: 160,
+                height: 160,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      (data['gradientStart'] as Color),
+                      (data['gradientEnd'] as Color),
+                    ],
+                  ),
+                  boxShadow: AppShadow.brand(data['gradientStart'] as Color),
+                ),
+                child: Icon(
+                  data['icon'] as IconData,
+                  size: 70,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s32),
+            // ── Title ──────────────────────────────────────────────────────
+            Text(
+              data['title'] as String,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                height: AppType.lhTight,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s16),
+            // ── Description ────────────────────────────────────────────────
+            Text(
+              data['description'] as String,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
+                height: AppType.lhNormal,
+              ),
+            ),
+            // ── Features (if available) ────────────────────────────────────
+            if (features != null) ...[
+              const SizedBox(height: AppSpacing.s24),
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                padding: const EdgeInsets.all(AppSpacing.s16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final feature in features)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Text(
+                          feature,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
-                boxShadow: AppShadow.brand(data['gradientStart'] as Color),
               ),
-              child: Icon(
-                data['icon'] as IconData,
-                size: 80,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.s40),
-          // ── Title ──────────────────────────────────────────────────────
-          Text(
-            data['title'] as String,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              height: AppType.lhTight,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.s16),
-          // ── Description ────────────────────────────────────────────────
-          Text(
-            data['description'] as String,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.7),
-              height: AppType.lhNormal,
-            ),
-          ),
-        ],
+            ],
+          ],
+        ),
       ),
     );
   }
