@@ -13,10 +13,10 @@ class ForceUpdateDialog extends ConsumerStatefulWidget {
   final VoidCallback? onUpdateInitiated;
 
   const ForceUpdateDialog({
-    Key? key,
+    super.key,
     required this.versionConfig,
     this.onUpdateInitiated,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<ForceUpdateDialog> createState() => _ForceUpdateDialogState();

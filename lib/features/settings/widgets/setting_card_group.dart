@@ -8,12 +8,12 @@ class SettingCardGroup extends StatelessWidget {
   final List<Widget> cards;
 
   const SettingCardGroup({
-    Key? key,
+    super.key,
     required this.icon,
     required this.title,
     this.subtitle,
     required this.cards,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

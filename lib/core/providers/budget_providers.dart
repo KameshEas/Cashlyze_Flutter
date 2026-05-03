@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/foundation.dart';
 import '../repositories/budget_repository.dart';
 import '../repositories/category_repository.dart';
 import '../repositories/transaction_repository.dart';
@@ -88,9 +87,9 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
 
   for (final t in txs) {
     if (t.amount >= 0) continue;
-    final raw = t.categoryId;
-    if (raw == null) continue;
-
+    // Treat transactions with no category id/name as 'General' so the
+    // synthetic General budget captures uncategorized spend.
+    final raw = t.categoryId ?? t.categoryName ?? 'General';
     final rawTrim = raw.trim();
     final candidates = <String>{};
     candidates.add(rawTrim);
@@ -113,7 +112,7 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
     if (ownerId == null) continue;
 
     final start = periodStartById[ownerId]!;
-    if (!t.date.isAfter(start)) continue;
+    if (t.date.isBefore(start)) continue;
 
     spentByBudget[ownerId] = (spentByBudget[ownerId] ?? 0) + t.amount.abs();
   }
@@ -206,9 +205,17 @@ class DeletedBudgetRecord {
   final BudgetModel budget;
   final DateTime timestamp;
 
+  // If the deleted budget was remapped to another budget, store the
+  // target budget id and the previous categoryIds of the target so an
+  // undo operation can restore the previous state.
+  final String? remappedTargetId;
+  final List<String>? targetPreviousCategoryIds;
+
   DeletedBudgetRecord({
     required this.budget,
     required this.timestamp,
+    this.remappedTargetId,
+    this.targetPreviousCategoryIds,
   });
 }
 

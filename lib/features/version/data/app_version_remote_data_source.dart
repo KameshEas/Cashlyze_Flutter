@@ -14,7 +14,7 @@ class AppVersionRemoteDataSource {
         ApiEndpoints.appVersion,
         queryParameters: {'platform': platform},
       );
-      final data = response.data as Map<String, dynamic>?;
+      final data = response.data;
       if (data == null) return null;
       return AppVersionModel.fromRTDB(data);
     } catch (_) {

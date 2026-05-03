@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/models/scanned_bill.dart';
 import '../../core/providers/scan_providers.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/transaction_ingest_service.dart';

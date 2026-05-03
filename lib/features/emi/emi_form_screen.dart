@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/emi.dart';
-import '../../core/services/emi_calculator.dart';
 import '../../core/repositories/emi_repository.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/services/auth_service.dart';

@@ -10,7 +10,7 @@
   "filterAll": "All",
   "filterIncome": "Income",
   "filterExpense": "Expense",
-  "uncategorized": "Uncategorized",
+  "uncategorized": "General",
   "addTransaction": "Add transaction",
   "deleteTransactionTitle": "Delete transaction",
   "delete": "Delete",

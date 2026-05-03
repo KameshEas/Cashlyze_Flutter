@@ -9,13 +9,13 @@ import 'package:flutter/foundation.dart'
 import 'core/theme/app_theme.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'routes/app_router.dart';
-import 'routes/app_router.dart' show rootNavigatorKeyProvider;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/providers/shared_prefs_provider.dart';
 import 'core/providers/budget_alerts_handler.dart';
+import 'core/providers/realtime_provider.dart';
 import 'core/services/local_notification_service.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'core/providers/app_version_providers.dart';
@@ -184,6 +184,8 @@ class App extends ConsumerWidget {
     final appRouter = ref.watch(appRouterProvider);
     // Ensure budget alert handler is initialized
     ref.watch(budgetAlertsHandlerProvider);
+    // Ensure websocket listener (realtime updates) is initialized
+    ref.watch(wsListenerProvider);
     
     // Initialize local notifications (idempotent).
     Future.microtask(() async {

@@ -42,7 +42,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterExpense => 'Expense';
 
   @override
-  String get uncategorized => 'Uncategorized';
+  String get uncategorized => 'General';
 
   @override
   String get addTransaction => 'Add transaction';

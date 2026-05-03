@@ -179,6 +179,7 @@ class TransactionRemoteDataSource {
       title: json['title'] as String,
       amount: (json['amount'] as num).toDouble(),
       categoryId: json['category_id'] as String? ?? json['categoryId'] as String?,
+      categoryName: (json['category_name'] as String?) ?? (json['category'] as String?),
       date: date,
       notes: json['notes'] as String?,
       tags: (json['tags'] as List?)?.cast<String>(),

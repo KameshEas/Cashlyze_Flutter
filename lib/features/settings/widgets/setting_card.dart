@@ -11,7 +11,7 @@ class SettingCard extends StatefulWidget {
   final Color? iconColor;
 
   const SettingCard({
-    Key? key,
+    super.key,
     required this.icon,
     required this.title,
     this.description,
@@ -19,7 +19,7 @@ class SettingCard extends StatefulWidget {
     this.trailing,
     this.onTap,
     this.iconColor,
-  }) : super(key: key);
+  });
 
   @override
   State<SettingCard> createState() => _SettingCardState();

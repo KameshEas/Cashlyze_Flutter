@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/transaction.dart';
 import '../../core/utils/format.dart';
+import '../../core/repositories/category_repository.dart';
 
 class TransactionListItem extends ConsumerWidget {
   final TransactionModel tx;
@@ -90,23 +91,44 @@ class TransactionListItem extends ConsumerWidget {
                   Row(
                     children: [
                       Flexible(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.onSurface.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Builder(builder: (ctx) {
+                                final cats = ref.watch(userCategoriesProvider).maybeWhen(
+                                      data: (d) => d,
+                                      orElse: () => const [],
+                                    );
+                                final rawId = tx.categoryId;
+                                final nameFallback = tx.categoryName?.trim();
+                                if ((rawId == null || rawId.trim().isEmpty) && (nameFallback == null || nameFallback.isEmpty)) {
+                                  return Text('General', style: theme.textTheme.bodySmall, overflow: TextOverflow.ellipsis, maxLines: 1);
+                                }
+
+                                // Prefer matching by id, then by name (case-insensitive),
+                                // then use transaction.categoryName fallback, otherwise show raw id/value.
+                                final byIdList = rawId != null ? cats.where((c) => c.id == rawId).toList() : <dynamic>[];
+                                if (byIdList.isNotEmpty) {
+                                  return Text(byIdList.first.name, style: theme.textTheme.bodySmall, overflow: TextOverflow.ellipsis, maxLines: 1);
+                                }
+                                final lookup = (rawId ?? nameFallback) ?? '';
+                                final byNameList = cats.where((c) => (c.name ?? '').toLowerCase() == lookup.toLowerCase()).toList();
+                                if (byNameList.isNotEmpty) {
+                                  return Text(byNameList.first.name, style: theme.textTheme.bodySmall, overflow: TextOverflow.ellipsis, maxLines: 1);
+                                }
+                                if (nameFallback != null && nameFallback.isNotEmpty) {
+                                  return Text(nameFallback, style: theme.textTheme.bodySmall, overflow: TextOverflow.ellipsis, maxLines: 1);
+                                }
+                                return Text(lookup, style: theme.textTheme.bodySmall, overflow: TextOverflow.ellipsis, maxLines: 1);
+                              }),
+                            ),
                           ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.onSurface.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            tx.categoryId ?? 'Uncategorized',
-                            style: theme.textTheme.bodySmall,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                        ),
-                      ),
                       const SizedBox(width: 8),
                       Text(
                         formatDate(tx.date, datePattern),

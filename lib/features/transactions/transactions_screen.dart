@@ -12,7 +12,6 @@ import 'transaction_list_item.dart';
 import 'transaction_filter_sheet.dart';
 import 'transaction_filters.dart';
 import 'transaction_form_sheet.dart';
-import 'transaction_group_list.dart';
 import '../../core/utils/repo_error_handler.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
@@ -358,8 +357,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                             date: payload['date'] as DateTime,
                                             notes: null,
                                           );
-                                        // Invalidate provider after restore
-                                        ref.invalidate(userTransactionsProvider);
                                     } catch (_) {}
                                   },
                                 ),
@@ -370,12 +367,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                   controller.close();
                                 } catch (_) {}
                               });
-                                // Delay invalidation to allow Dismissible animation to complete
-                                Future.delayed(const Duration(milliseconds: 300), () {
-                                  try {
-                                    ref.invalidate(userTransactionsProvider);
-                                  } catch (_) {}
-                                });
                               return true;
                             } catch (err) {
                               messenger.clearSnackBars();
@@ -478,7 +469,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     // If the sheet indicated a successful save, refresh and show feedback.
     if (result == true) {
       ref.read(transactionFilterProvider.notifier).resetFilters();
-      ref.invalidate(userTransactionsProvider);
       final messenger = ScaffoldMessenger.of(context);
       messenger.clearSnackBars();
       messenger.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)?.transactionSaved ?? 'Transaction saved')));
@@ -514,7 +504,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
     if (result == true) {
       ref.read(transactionFilterProvider.notifier).resetFilters();
-      ref.invalidate(userTransactionsProvider);
       final messenger = ScaffoldMessenger.of(context);
       messenger.clearSnackBars();
       messenger.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)?.transactionUpdated ?? 'Transaction updated')));
@@ -568,7 +557,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     );
               } catch (_) {}
             }
-            ref.invalidate(userTransactionsProvider);
           },
         ),
       );
@@ -577,7 +565,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         _selectedIds.clear();
         _selectionMode = false;
       });
-      ref.invalidate(userTransactionsProvider);
     } catch (err) {
       showRepoErrorSnackBar(messenger, err);
     }

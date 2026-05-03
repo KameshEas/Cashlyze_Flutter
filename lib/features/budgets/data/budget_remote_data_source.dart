@@ -48,7 +48,34 @@ class BudgetRemoteDataSource {
       },
     );
     final list = (response.data as List).cast<Map<dynamic, dynamic>>();
-    return list
+    // Filter out soft-deleted entries that the API may return. The API
+    // sometimes includes deleted items with fields like `deleted`,
+    // `deleted_at` or `deletedAt`. Exclude those so the UI does not show
+    // stale/removed budgets.
+    final filtered = list.where((entry) {
+      final map = entry.cast<String, dynamic>();
+      if (map.containsKey('deleted')) {
+        final v = map['deleted'];
+        if (v == true || v == 1 || v == '1') return false;
+      }
+      if (map.containsKey('deleted_at')) {
+        if (map['deleted_at'] != null) return false;
+      }
+      if (map.containsKey('deletedAt')) {
+        if (map['deletedAt'] != null) return false;
+      }
+      if (map.containsKey('is_deleted')) {
+        final v = map['is_deleted'];
+        if (v == true || v == 1 || v == '1') return false;
+      }
+      if (map.containsKey('isDeleted')) {
+        final v = map['isDeleted'];
+        if (v == true || v == 1 || v == '1') return false;
+      }
+      return true;
+    }).toList();
+
+    return filtered
         .map((e) => _fromApiJson(e.cast<String, dynamic>()))
         .toList();
   }
@@ -95,10 +122,35 @@ class BudgetRemoteDataSource {
   // ── Mapper ────────────────────────────────────────────────────────────────
 
   BudgetModel _fromApiJson(Map<String, dynamic> json) {
-    final createdAtRaw = json['created_at'];
-    final updatedAtRaw = json['updated_at'];
+    final createdAtRaw = json['created_at'] ?? json['createdAt'];
+    final updatedAtRaw = json['updated_at'] ?? json['updatedAt'];
 
     final rawCategoryIds = json['category_ids'] ?? json['categoryIds'];
+
+    DateTime createdAt = DateTime.fromMillisecondsSinceEpoch(0);
+    if (createdAtRaw != null) {
+      if (createdAtRaw is String) {
+        createdAt = DateTime.tryParse(createdAtRaw) ??
+            (int.tryParse(createdAtRaw) != null
+                ? DateTime.fromMillisecondsSinceEpoch(int.parse(createdAtRaw))
+                : DateTime.fromMillisecondsSinceEpoch(0));
+      } else if (createdAtRaw is num) {
+        final ms = createdAtRaw.toInt();
+        final maybeMs = ms < 10000000000 ? ms * 1000 : ms;
+        createdAt = DateTime.fromMillisecondsSinceEpoch(maybeMs);
+      }
+    }
+
+    DateTime? updatedAt;
+    if (updatedAtRaw != null) {
+      if (updatedAtRaw is String) {
+        updatedAt = DateTime.tryParse(updatedAtRaw);
+      } else if (updatedAtRaw is num) {
+        final ms = updatedAtRaw.toInt();
+        final maybeMs = ms < 10000000000 ? ms * 1000 : ms;
+        updatedAt = DateTime.fromMillisecondsSinceEpoch(maybeMs);
+      }
+    }
 
     return BudgetModel(
       id: json['id'] as String,
@@ -110,15 +162,8 @@ class BudgetRemoteDataSource {
         orElse: () => BudgetPeriod.monthly,
       ),
       categoryIds: (rawCategoryIds as List?)?.cast<String>() ?? const [],
-      createdAt: createdAtRaw is String
-          ? DateTime.parse(createdAtRaw)
-          : DateTime.fromMillisecondsSinceEpoch((createdAtRaw as num).toInt()),
-      updatedAt: updatedAtRaw == null
-          ? null
-          : updatedAtRaw is String
-              ? DateTime.parse(updatedAtRaw)
-              : DateTime.fromMillisecondsSinceEpoch(
-                  (updatedAtRaw as num).toInt()),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
     );
   }
 }

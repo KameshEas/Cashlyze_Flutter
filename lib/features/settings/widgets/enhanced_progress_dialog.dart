@@ -14,7 +14,7 @@ class EnhancedProgressDialog extends StatefulWidget {
   final Duration dismissDelay;
 
   const EnhancedProgressDialog({
-    Key? key,
+    super.key,
     required this.title,
     this.subtitle,
     this.type = ProgressDialogType.backup,
@@ -22,7 +22,7 @@ class EnhancedProgressDialog extends StatefulWidget {
     this.onCancel,
     this.canCancel = true,
     this.dismissDelay = const Duration(seconds: 2),
-  }) : super(key: key);
+  });
 
   static Future<void> show({
     required BuildContext context,
@@ -151,7 +151,7 @@ class _EnhancedProgressDialogState extends State<EnhancedProgressDialog> {
               value: _progress,
               minHeight: 8,
               backgroundColor:
-                  Theme.of(context).colorScheme.surfaceVariant,
+                  Theme.of(context).colorScheme.surfaceContainerHighest,
               valueColor: AlwaysStoppedAnimation<Color>(
                 _hasError
                     ? Colors.red
@@ -165,7 +165,7 @@ class _EnhancedProgressDialogState extends State<EnhancedProgressDialog> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceVariant,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(

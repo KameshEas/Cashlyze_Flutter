@@ -5,6 +5,7 @@ import '../core/providers/onboarding_provider.dart';
 import '../core/services/auth_service.dart';
 import '../core/providers/otp_pending_provider.dart';
 import '../features/auth/auth_screen.dart';
+import '../features/auth/loader_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/transactions/transactions_screen.dart';
@@ -36,6 +37,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     navigatorKey: rootKey,
     initialLocation: '/splash',
     routes: [
+      GoRoute(
+        path: '/loading',
+        name: 'loading',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const LoaderScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+              FadeTransition(opacity: animation, child: child),
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
+        ),
+      ),
       GoRoute(
         path: '/splash',
         name: 'splash',
@@ -332,6 +346,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isSplash = state.matchedLocation == '/splash';
 
       final isOtp = state.matchedLocation.startsWith('/otp');
+
+      final isLoadingRoute = state.matchedLocation == '/loading';
+
+      // If auth state is still resolving, show the loader route so the
+      // user doesn't briefly land on the login page before the router
+      // redirects to home.
+      if (authState.isLoading) {
+        if (isLoadingRoute) return null;
+        return '/loading';
+      }
 
       final user = currentUser ?? authState.value;
 

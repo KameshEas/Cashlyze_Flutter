@@ -157,7 +157,7 @@ final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {
       final filtered = items.where((e) {
         final matchesQuery = q.isEmpty || e.title.toLowerCase().contains(q);
         final matchesType = f.filter == 'All' || (f.filter == 'Income' && e.amount > 0) || (f.filter == 'Expense' && e.amount < 0);
-        final catLabel = e.categoryId ?? 'Uncategorized';
+        final catLabel = e.categoryId ?? 'General';
         final matchesCategory = f.category == 'All' || f.category == catLabel;
         final absAmount = e.amount.abs();
         final matchesAmount = (f.minAmount == null || absAmount >= f.minAmount!) && (f.maxAmount == null || absAmount <= f.maxAmount!);

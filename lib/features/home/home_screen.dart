@@ -465,8 +465,9 @@ class HomeScreen extends ConsumerWidget {
             for (var i = 0; i < list.length; i++) ...[
               _buildTransactionItem(
                 context,
+                ref,
                 list[i].title,
-                list[i].categoryId ?? 'Uncategorized',
+                list[i].categoryId ?? list[i].categoryName,
                 formatAmount(list[i].amount, currency),
                 list[i].amount >= 0,
               ),
@@ -480,12 +481,29 @@ class HomeScreen extends ConsumerWidget {
 
   Widget _buildTransactionItem(
     BuildContext context,
+    WidgetRef ref,
     String title,
-    String category,
+    String? category,
     String amount,
     bool isIncome,
   ) {
     final theme = Theme.of(context);
+    // Resolve category id/name to a display name using user categories
+    final cats = ref.watch(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+    String displayCategory;
+    if (category == null || category.trim().isEmpty) {
+      displayCategory = 'General';
+    } else {
+      final raw = category.trim();
+      final byId = cats.where((c) => c.id == raw).toList();
+      if (byId.isNotEmpty) {
+        displayCategory = byId.first.name;
+      } else {
+        final byName = cats.where((c) => (c.name ?? '').toLowerCase() == raw.toLowerCase()).toList();
+        displayCategory = byName.isNotEmpty ? byName.first.name : raw;
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -528,7 +546,7 @@ class HomeScreen extends ConsumerWidget {
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(category, style: theme.textTheme.bodySmall),
+                  child: Text(displayCategory, style: theme.textTheme.bodySmall, overflow: TextOverflow.ellipsis, maxLines: 1),
                 ),
               ],
             ),
@@ -771,7 +789,7 @@ class HomeScreen extends ConsumerWidget {
                           final ingest = ref.read(
                             transactionIngestServiceProvider,
                           );
-                          try {
+                            try {
                             await ingest.addManual(
                               userId: user.uid,
                               title: titleController.text,

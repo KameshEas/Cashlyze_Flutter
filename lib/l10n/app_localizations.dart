@@ -169,7 +169,7 @@ abstract class AppLocalizations {
   /// No description provided for @uncategorized.
   ///
   /// In en, this message translates to:
-  /// **'Uncategorized'**
+  /// **'General'**
   String get uncategorized;
 
   /// No description provided for @addTransaction.

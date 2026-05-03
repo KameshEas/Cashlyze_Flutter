@@ -40,7 +40,26 @@ class CategoryRemoteDataSource {
     final response =
         await _api.get<List<dynamic>>(ApiEndpoints.categories);
     final list = (response.data as List).cast<Map<dynamic, dynamic>>();
-    return list
+    // Filter out soft-deleted entries that the API may return. The API
+    // sometimes includes deleted items with fields like `deleted`,
+    // `deleted_at` or `deletedAt`. Exclude those so the UI does not show
+    // stale/removed categories (e.g., previously deleted "Food").
+    final filtered = list.where((entry) {
+      final map = entry.cast<String, dynamic>();
+      if (map.containsKey('deleted')) {
+        final v = map['deleted'];
+        if (v == true || v == 1 || v == '1') return false;
+      }
+      if (map.containsKey('deleted_at')) {
+        if (map['deleted_at'] != null) return false;
+      }
+      if (map.containsKey('deletedAt')) {
+        if (map['deletedAt'] != null) return false;
+      }
+      return true;
+    }).toList();
+
+    return filtered
         .map((e) => _fromApiJson(e.cast<String, dynamic>()))
         .toList();
   }

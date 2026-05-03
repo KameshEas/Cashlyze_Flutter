@@ -8,11 +8,11 @@ class DeleteAccountDialog extends StatefulWidget {
   final Function(bool) onConfirm;
 
   const DeleteAccountDialog({
-    Key? key,
+    super.key,
     this.userEmail,
     this.onExportPressed,
     required this.onConfirm,
-  }) : super(key: key);
+  });
 
   @override
   State<DeleteAccountDialog> createState() => _DeleteAccountDialogState();
@@ -156,9 +156,9 @@ class ClearDataDialog extends StatefulWidget {
   final Function(bool) onConfirm;
 
   const ClearDataDialog({
-    Key? key,
+    super.key,
     required this.onConfirm,
-  }) : super(key: key);
+  });
 
   static Future<bool?> show(
     BuildContext context, {

@@ -17,7 +17,6 @@ import '../../core/utils/validation.dart';
 import '../../core/widgets/category_picker_field.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/utils/repo_error_handler.dart';
-import '../../core/providers/budget_providers.dart';
 
 enum TransactionFormMode { create, edit }
 
@@ -66,10 +65,33 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   void initState() {
     super.initState();
     titleController = TextEditingController(text: widget.initialTitle ?? '');
-    amountController = TextEditingController(text: (widget.initialAmount ?? 0).toStringAsFixed(2));
+    amountController = TextEditingController(text: (widget.initialAmount ?? 0).abs().toStringAsFixed(2));
     notesController = TextEditingController();
     if (widget.initialAmount != null && widget.initialAmount! >= 0) type = 'Income';
-    if (widget.initialCategory != null) category = widget.initialCategory!;
+    if (widget.initialCategory != null) {
+      // Normalize initial category: if an id was provided, map to display name.
+      // Do async lookup after init so we don't make initState async.
+      final raw = widget.initialCategory!.trim();
+      if (raw.isNotEmpty) {
+        Future.microtask(() async {
+          var cats = ref.read(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+          if (cats.isEmpty) {
+            try {
+              final user = ref.read(currentUserProvider);
+              if (user != null) {
+                cats = await ref.read(categoryRepositoryProvider).getAllForUser(user.uid);
+              }
+            } catch (_) {}
+          }
+          final byId = cats.where((c) => c.id == raw).toList();
+          if (byId.isNotEmpty) {
+            if (mounted) setState(() => category = byId.first.name);
+          } else {
+            if (mounted) setState(() => category = widget.initialCategory!);
+          }
+        });
+      }
+    }
     if (widget.initialDate != null) date = widget.initialDate!;
   }
 
@@ -168,11 +190,6 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                         storageKey = rawKey;
                       }
                       await repo.create(userId: user.uid, name: categoryName, allocated: amount, period: BudgetPeriod.monthly, categoryIds: [storageKey]);
-                      // userBudgetsProvider is backed by Stream.fromFuture(getAll),
-                      // so force a refresh after successful creation.
-                      ref.invalidate(userBudgetsProvider);
-                      ref.invalidate(filteredBudgetsProvider);
-                      ref.invalidate(orderedBudgetsProvider);
                       if (!ctx.mounted) return;
                       FocusScope.of(ctx).unfocus();
                       nav.pop(true);
@@ -352,7 +369,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                 }
                 final amt = double.tryParse(amountController.text) ?? 0;
                 final isIncome = type == 'Income';
-                final localCategoryName = category == 'General' ? null : category;
+                final localCategoryName = category; // always keep display label (e.g., 'General')
                 try {
                   final user = ref.read(currentUserProvider);
                   if (user == null) return;
@@ -362,7 +379,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   );
 
                   if (widget.mode == TransactionFormMode.create) {
-                    if (!isIncome && localCategoryName != null) {
+                    if (!isIncome && localCategoryName != null && localCategoryName.toLowerCase() != 'general') {
                       final budgets = await ref.read(budgetRepositoryProvider).streamForUser(user.uid).first;
                       final hasBudget = budgets.any((b) => b.name.toLowerCase() == localCategoryName.toLowerCase());
                       if (!hasBudget) {
@@ -403,6 +420,9 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                       'title': titleController.text.trim(),
                       'amount': isIncome ? amt.abs() : -amt.abs(),
                       'categoryId': localCategoryId,
+                      // Send the selected display value so backend can clear or match
+                      // the category even when user picks 'General'.
+                      'categoryName': category,
                       'date_ms': date.millisecondsSinceEpoch,
                     });
                     if (!mounted) return;

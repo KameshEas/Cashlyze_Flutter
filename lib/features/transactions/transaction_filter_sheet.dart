@@ -198,8 +198,8 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
             loading: () => const LinearProgressIndicator(),
             error: (_, __) => const SizedBox.shrink(),
             data: (list) {
-              final cats = <String>['All', 'Uncategorized'];
-              final seenLower = <String>{'all', 'uncategorized'};
+              final cats = <String>['All', 'General'];
+              final seenLower = <String>{'all', 'general'};
               for (final c in list) {
                 final nm = (c.name ?? '').trim();
                 if (nm.isEmpty) continue;
