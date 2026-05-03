@@ -155,7 +155,7 @@ class _PlanCard extends ConsumerWidget {
               try {
                 HapticFeedback.lightImpact();
                 await ref.read(emiRepositoryProvider).markPaid(user.uid, plan.id, next.id);
-                messenger.showSnackBar(SnackBar(content: Text('${formatAmount(next.installment, currency)} paid')));
+                messenger.showSnackBar(const SnackBar(content: Text('Marked as paid')));
               } catch (e) {
                 messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
               }
@@ -339,13 +339,13 @@ class _PlanCard extends ConsumerWidget {
                               HapticFeedback.mediumImpact();
                               try {
                                 await ref.read(emiRepositoryProvider).markPaid(user.uid, plan.id, e.id);
-                                messenger.showSnackBar(SnackBar(content: Text('${formatAmount(e.installment, currency)} paid successfully')));
+                                messenger.showSnackBar(const SnackBar(content: Text('Marked as paid')));
                               } catch (err) {
                                 messenger.showSnackBar(SnackBar(content: Text('Failed: $err')));
                               }
                             },
                             style: FilledButton.styleFrom(elevation: 2, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14)),
-                            child: Text('Pay ${formatAmount(e.installment, currency)}'),
+                            child: const Text('Mark Paid'),
                           ),
                         ],
                       );

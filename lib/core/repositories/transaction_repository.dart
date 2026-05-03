@@ -33,7 +33,7 @@ class TransactionRepository {
     return list
         .map(
           (t) =>
-              '${t.id}|${t.title}|${t.amount}|${t.categoryId ?? ''}|${t.date.millisecondsSinceEpoch}|${t.notes ?? ''}|${(t.tags ?? const <String>[]).join(',')}',
+              '${t.id}|${t.title}|${t.amount}|${t.categoryId ?? ''}|${t.categoryName ?? ''}|${t.date.millisecondsSinceEpoch}|${t.notes ?? ''}|${(t.tags ?? const <String>[]).join(',')}',
         )
         .join(';');
   }

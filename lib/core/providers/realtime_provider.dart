@@ -93,10 +93,21 @@ final wsListenerProvider = Provider<void>((ref) {
           return;
         }
 
-        // Transactions: update cache directly
-        if (t == WsEventType.transactionCreated || t == WsEventType.transactionUpdated || t == WsEventType.transactionDeleted) {
+        if (t == WsEventType.transactionCreated ||
+            t == WsEventType.transactionUpdated ||
+            t == WsEventType.transactionDeleted) {
           try {
             txnRepo.applyRemoteTransactionEvent(next.userId, t, payload);
+
+            final hasCategoryInfo = (payload['category_id'] != null ||
+                payload['categoryId'] != null ||
+                payload['category_name'] != null ||
+                payload['category'] != null);
+            if (hasCategoryInfo) {
+              try {
+                ref.invalidate(userCategoriesProvider);
+              } catch (_) {}
+            }
           } catch (_) {}
           return;
         }

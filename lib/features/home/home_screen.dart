@@ -33,13 +33,11 @@ class HomeScreen extends ConsumerWidget {
     // Watch EMI list here so we can conditionally render the section.
     final emiAsync = ref.watch(emiUpcomingProvider);
     final plansAsync = ref.watch(userEMIPlansProvider);
-    // Show the EMI section while either the plans or upcoming streams are
-    // loading or when either has data. This reduces flicker when streams
-    // reconnect or are briefly delayed.
-    final hasEmis = (
-      plansAsync.maybeWhen(data: (list) => list.isNotEmpty, loading: () => true, orElse: () => false)
-    ) || (
-      emiAsync.maybeWhen(data: (list) => list.isNotEmpty, loading: () => true, orElse: () => false)
+    // Show the EMI section only when the user has EMI plans.
+    // Do not show the section based solely on upcoming payments.
+    final hasEmis = plansAsync.maybeWhen(
+      data: (list) => list.isNotEmpty,
+      orElse: () => false,
     );
     final t = AppLocalizations.of(context);
     return Scaffold(
@@ -57,6 +55,19 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
             tooltip: 'Notifications',
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              try {
+                ref.invalidate(userEMIPlansProvider);
+                ref.invalidate(emiUpcomingProvider);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Refreshing EMI data')));
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Refresh failed: $e')));
+              }
+            },
+            tooltip: 'Refresh',
           ),
         ],
       ),
@@ -1208,7 +1219,7 @@ class HomeScreen extends ConsumerWidget {
                                 vertical: 12,
                               ),
                             ),
-                            child: Text('Pay ${formatAmount(e.installment, currency)}'),
+                            child: const Text('Mark Paid'),
                           ),
                         ],
                       ),
