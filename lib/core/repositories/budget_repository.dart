@@ -44,7 +44,13 @@ class BudgetRepository {
   Future<void> _refreshUser(String userId) async {
     try {
       final fresh = _sorted(await _dataSource.getAll());
-      final prev = _cache[userId] ?? const <BudgetModel>[];
+      if (!_cache.containsKey(userId)) {
+        _cache[userId] = fresh;
+        _controllerFor(userId).add(fresh);
+        return;
+      }
+
+      final prev = _cache[userId]!;
       if (_signature(prev) != _signature(fresh)) {
         _cache[userId] = fresh;
         _controllerFor(userId).add(fresh);
