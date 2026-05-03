@@ -65,6 +65,9 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
     final spent = ref.watch(
       budgetsUtilizationProvider.select((m) => m[widget.budget.id] ?? 0.0),
     );
+    // Instrumentation: always print budget spend info so we can trace
+    // why a budget shows 0 spent during rename operations.
+    print('[BudgetCard] id=${widget.budget.id} name=${widget.budget.name} spent=$spent allocated=$allocated');
     final progress = allocated.isFinite ? (allocated == 0 ? 0.0 : (spent / allocated)) : 0.0;
     final allocatedLabel = allocated.isFinite ? formatAmount(allocated, widget.currency) : '∞';
     final remaining = allocated.isFinite ? (allocated - spent) : double.infinity;

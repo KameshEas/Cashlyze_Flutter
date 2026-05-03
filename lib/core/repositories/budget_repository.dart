@@ -51,9 +51,38 @@ class BudgetRepository {
       }
 
       final prev = _cache[userId]!;
-      if (_signature(prev) != _signature(fresh)) {
-        _cache[userId] = fresh;
-        _controllerFor(userId).add(fresh);
+
+      // If the server returned budgets that appear to have been renamed
+      // compared to our cached versions, merge previous categoryIds into
+      // the fresh results so transient rename races don't drop mappings.
+      final mergedFresh = fresh.map((fb) {
+        try {
+          final matches = prev.where((p) => p.id == fb.id).toList();
+          if (matches.isNotEmpty) {
+            final prevModel = matches.first;
+            final oldName = prevModel.name.trim();
+            final newName = fb.name.trim();
+            if (oldName.isNotEmpty && newName.isNotEmpty && oldName.toLowerCase() != newName.toLowerCase()) {
+              final mergedCats = {...fb.categoryIds, ...prevModel.categoryIds}.toList();
+              return BudgetModel(
+                id: fb.id,
+                userId: fb.userId,
+                name: fb.name,
+                allocated: fb.allocated,
+                period: fb.period,
+                categoryIds: mergedCats,
+                createdAt: fb.createdAt,
+                updatedAt: fb.updatedAt,
+              );
+            }
+          }
+        } catch (_) {}
+        return fb;
+      }).toList();
+
+      if (_signature(prev) != _signature(mergedFresh)) {
+        _cache[userId] = mergedFresh;
+        _controllerFor(userId).add(mergedFresh);
       }
     } catch (e) {
       if (kDebugMode) debugPrint('Budget refresh failed: $e');
@@ -125,10 +154,36 @@ class BudgetRepository {
     final resolvedUserId = userId.isNotEmpty ? userId : updated.userId;
     final current = [...(_cache[resolvedUserId] ?? const <BudgetModel>[])];
     final idx = current.indexWhere((b) => b.id == id);
+    // If the update included a name change, merge the previous
+    // budget's categoryIds with the server response so transient
+    // rename races don't drop existing associations locally.
+    List<String> categoryIdsToUse = updated.categoryIds;
+    try {
+      if (previousBudget != null && data['name'] != null) {
+        final oldName = previousBudget.name.trim();
+        final newName = (data['name'] as String).trim();
+        if (oldName.isNotEmpty && newName.isNotEmpty && oldName.toLowerCase() != newName.toLowerCase()) {
+          final merged = {...updated.categoryIds, ...previousBudget.categoryIds}.toList();
+          categoryIdsToUse = merged;
+        }
+      }
+    } catch (_) {}
+
+    final modelToInsert = BudgetModel(
+      id: updated.id,
+      userId: updated.userId,
+      name: updated.name,
+      allocated: updated.allocated,
+      period: updated.period,
+      categoryIds: categoryIdsToUse,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    );
+
     if (idx >= 0) {
-      current[idx] = updated;
+      current[idx] = modelToInsert;
     } else {
-      current.insert(0, updated);
+      current.insert(0, modelToInsert);
     }
     final next = _sorted(current);
     _cache[resolvedUserId] = next;
@@ -307,7 +362,7 @@ class BudgetRepository {
           updatedAt = DateTime.fromMillisecondsSinceEpoch(maybeMs);
         }
 
-        final model = BudgetModel(
+        var model = BudgetModel(
           id: id,
           userId: payload['user_id'] as String? ?? payload['userId'] as String? ?? userId,
           name: name,
@@ -317,6 +372,33 @@ class BudgetRepository {
           createdAt: createdAt,
           updatedAt: updatedAt,
         );
+
+        // If we had a cached version and the name changed, merge the
+        // previous categoryIds into the incoming model so transient
+        // rename races don't cause spend to disappear locally.
+        try {
+          if (cachedList != null) {
+            final prev = cachedList.where((b) => b.id == id).toList();
+            if (prev.isNotEmpty) {
+              final prevModel = prev.first;
+              final oldName = prevModel.name.trim();
+              final newName = name.trim();
+              if (oldName.isNotEmpty && newName.isNotEmpty && oldName.toLowerCase() != newName.toLowerCase()) {
+                final merged = {...model.categoryIds, ...prevModel.categoryIds}.toList();
+                model = BudgetModel(
+                  id: model.id,
+                  userId: model.userId,
+                  name: model.name,
+                  allocated: model.allocated,
+                  period: model.period,
+                  categoryIds: merged,
+                  createdAt: model.createdAt,
+                  updatedAt: model.updatedAt,
+                );
+              }
+            }
+          }
+        } catch (_) {}
 
         final current = [...(_cache[userId] ?? const <BudgetModel>[])];
         final idx = current.indexWhere((b) => b.id == id);

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import '../repositories/budget_repository.dart';
 import '../repositories/category_repository.dart';
 import '../repositories/transaction_repository.dart';
@@ -25,13 +26,16 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
   final categories = ref.watch(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
   final spentByBudget = <String, double>{};
 
-  // Build maps for category id <-> name to normalize matching.
+  // Build maps for category id <-> name to normalize matching. Use
+  // a multi-valued map for names because duplicates may exist; keep
+  // each name's set of ids so we can match transactions to any id.
   final idToName = <String, String>{};
-  final nameToId = <String, String>{};
+  final nameToIds = <String, Set<String>>{};
   for (final c in categories) {
     final nameTrim = (c.name ?? '').trim();
     idToName[c.id] = nameTrim;
-    nameToId[nameTrim.toLowerCase()] = c.id;
+    final key = nameTrim.toLowerCase();
+    nameToIds.putIfAbsent(key, () => <String>{}).add(c.id);
   }
 
   // Sort budgets oldest → newest so the first budget that claims a
@@ -53,8 +57,10 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
         s.add(vTrim.toLowerCase());
         final mappedName = idToName[vTrim];
         if (mappedName != null) s.add(mappedName.toLowerCase());
-        final mappedId = nameToId[vTrim.toLowerCase()];
-        if (mappedId != null) s.add(mappedId);
+        final mappedIds = nameToIds[vTrim.toLowerCase()];
+        if (mappedIds != null) {
+          for (final mid in mappedIds) s.add(mid);
+        }
       }
     } else {
       for (final v in b.categoryIds) {
@@ -64,9 +70,24 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
         // If this value looks like an id we can map to a name too.
         final mappedName = idToName[vTrim];
         if (mappedName != null) s.add(mappedName.toLowerCase());
-        // If value is a name, map to id too.
-        final mappedId = nameToId[vTrim.toLowerCase()];
-        if (mappedId != null) s.add(mappedId);
+        // If value is a name, map to id(s) too.
+        final mappedIds = nameToIds[vTrim.toLowerCase()];
+        if (mappedIds != null) {
+          for (final mid in mappedIds) s.add(mid);
+        }
+      }
+    }
+
+    // Also always include the budget's own name as a matching key. This
+    // helps transient cases where server/client disagree about which
+    // category ids are claimed by the budget (e.g., during a rename).
+    final nameKey = (b.name ?? '').trim();
+    if (nameKey.isNotEmpty) {
+      s.add(nameKey);
+      s.add(nameKey.toLowerCase());
+      final mappedIdsForName = nameToIds[nameKey.toLowerCase()];
+      if (mappedIdsForName != null) {
+        for (final mid in mappedIdsForName) s.add(mid);
       }
     }
     budgetNormalized[b.id] = s;
@@ -88,28 +109,53 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
 
   for (final t in txs) {
     if (t.amount >= 0) continue;
-    // Treat transactions with no category id/name as 'General' so the
-    // synthetic General budget captures uncategorized spend.
-    final raw = t.categoryId ?? t.categoryName ?? 'General';
-    final rawTrim = raw.trim();
+    // Build candidate keys from both the category id and the category
+    // name reported on the transaction. Include both forms even when
+    // an id is present so we tolerate rename/order races.
+    final idCandidate = (t.categoryId ?? '').trim();
+    final nameCandidate = (t.categoryName ?? '').trim();
     final candidates = <String>{};
-    candidates.add(rawTrim);
-    candidates.add(rawTrim.toLowerCase());
-    // If raw matches a known id, also add its name lowercased
-    final asName = idToName[rawTrim];
-    if (asName != null) candidates.add(asName.toLowerCase());
-    // If raw looks like a name, try mapping to id
-    final asId = nameToId[rawTrim.toLowerCase()];
-    if (asId != null) candidates.add(asId);
+
+    if (idCandidate.isNotEmpty) {
+      candidates.add(idCandidate);
+      candidates.add(idCandidate.toLowerCase());
+      final idAsName = idToName[idCandidate];
+      if (idAsName != null) {
+        candidates.add(idAsName);
+        candidates.add(idAsName.toLowerCase());
+      }
+    }
+
+    if (nameCandidate.isNotEmpty) {
+      candidates.add(nameCandidate);
+      candidates.add(nameCandidate.toLowerCase());
+      final nameAsIds = nameToIds[nameCandidate.toLowerCase()];
+      if (nameAsIds != null) {
+        for (final mid in nameAsIds) candidates.add(mid);
+      }
+    }
+
+    if (candidates.isEmpty) {
+      candidates.add('General');
+      candidates.add('general');
+    }
+
+    // Always print instrumentation so developers can see matching
+    // candidates in all build modes when debugging this issue.
+    print('[BudgetsUtil] tx ${t.id} id=${t.categoryId} name=${t.categoryName} candidates=${candidates.join(', ')}');
 
     // Find the primary budget for the first candidate that has one
     String? ownerId;
+    String? matchedCandidate;
     for (final c in candidates) {
       if (primaryForKey.containsKey(c)) {
         ownerId = primaryForKey[c];
+        matchedCandidate = c;
         break;
       }
     }
+
+    print('[BudgetsUtil] tx ${t.id} matched=$matchedCandidate owner=$ownerId');
     if (ownerId == null) continue;
 
     final start = periodStartById[ownerId]!;
