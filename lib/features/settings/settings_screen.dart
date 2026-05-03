@@ -669,12 +669,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               },
             );
             if (confirm == true) {
-              await ref.read(authServiceProvider).signOut();
-              await ref.read(analyticsServiceProvider).logEvent('sign_out');
-              ref.invalidate(authStateChangesProvider);
-              ref.invalidate(currentUserProvider);
+              // Clear cached repositories first so they don't hold user data.
+              // Do NOT invalidate `authStateChangesProvider` or
+              // `currentUserProvider` here — invalidating them causes the
+              // router redirect to see the providers in a loading state and
+              // navigate to the `/loading` route. That can hang because the
+              // sign-out event was already emitted before a new subscription
+              // is created. Rely on the auth service's stream emission instead.
               ref.invalidate(userTransactionsProvider);
               ref.invalidate(transactionRepositoryProvider);
+
+              await ref.read(authServiceProvider).signOut();
+              await ref.read(analyticsServiceProvider).logEvent('sign_out');
 
               messenger.showSnackBar(
                 const SnackBar(

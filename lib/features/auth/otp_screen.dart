@@ -126,6 +126,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       // After OTP verification, complete registration using the returned token.
       final notifier = ref.read(otpPendingProvider.notifier);
       final password = notifier.pendingPassword;
+      final name = notifier.pendingName;
+      final mobile = notifier.pendingMobile;
       final otpToken = result.otpToken;
 
       if (password.isNotEmpty) {
@@ -133,6 +135,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
           email: email,
           password: password,
           otpToken: otpToken,
+          name: name.isNotEmpty ? name : null,
+          mobile: mobile.isNotEmpty ? mobile : null,
         );
       }
 

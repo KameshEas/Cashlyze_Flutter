@@ -76,5 +76,101 @@ platform :android do
     end
   end
 
+  desc "Build APK and upload to Firebase App Distribution"
+  lane :firebase_apk do
+    sh "flutter build apk --release"
+    project_root = File.expand_path('../../', __dir__)
+    apk_glob_primary = File.join(project_root, 'build', 'app', 'outputs', 'apk', '**', '*.apk')
+    apk_glob_android = File.join(project_root, 'android', 'app', 'build', 'outputs', 'apk', '**', '*.apk')
+    apk_candidates = Dir[apk_glob_primary] + Dir[apk_glob_android]
+    if apk_candidates.empty?
+      UI.user_error!("Couldn't find .apk in build outputs. Checked: #{apk_glob_primary} and #{apk_glob_android}")
+    end
+    apk_path = apk_candidates.max_by { |f| File.mtime(f) }
+
+    firebase_app_distribution(
+      app: ENV['FIREBASE_ANDROID_APP_ID'] || "1:655565727204:android:70bd6ab5ed20350e6013f1",
+      groups: ENV['FIREBASE_DISTRIBUTION_GROUPS'],
+      testers: ENV['FIREBASE_TESTERS'],
+      release_notes: ENV['FIREBASE_RELEASE_NOTES'] || "Automated APK build via fastlane 🚀",
+      android_artifact_path: apk_path,
+      android_artifact_type: "APK"
+    )
+  end
+
+  desc "Build AAB and upload to Google Play closed testing track"
+  lane :playstore_closed do
+    sh "flutter build appbundle --release"
+    project_root = File.expand_path('../../', __dir__)
+    glob_primary = File.join(project_root, 'build', 'app', 'outputs', 'bundle', '**', '*.aab')
+    glob_android = File.join(project_root, 'android', 'app', 'build', 'outputs', 'bundle', '**', '*.aab')
+    aab_candidates = Dir[glob_primary] + Dir[glob_android]
+    if aab_candidates.empty?
+      UI.user_error!("Couldn't find .aab in build outputs. Checked: #{glob_primary} and #{glob_android}")
+    end
+    aab_path = aab_candidates.max_by { |f| File.mtime(f) }
+
+    supply(
+      aab: aab_path,
+      track: ENV.fetch('GOOGLE_PLAY_TRACK', 'closed'),
+      json_key_data: ENV['GCLOUD_SERVICE_ACCOUNT_CREDENTIALS'],
+      package_name: ENV.fetch('PACKAGE_NAME', 'com.aspiredesignovation.cashlyze'),
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      release_status: ENV.fetch('GOOGLE_PLAY_RELEASE_STATUS', 'draft')
+    )
+  end
+
+  desc "Build both APK and AAB; upload APK to Firebase and AAB to Play Store closed testing"
+  lane :release_closed_with_firebase do
+    sh "flutter build appbundle --release"
+    sh "flutter build apk --release"
+
+    project_root = File.expand_path('../../', __dir__)
+
+    # find AAB
+    glob_primary = File.join(project_root, 'build', 'app', 'outputs', 'bundle', '**', '*.aab')
+    glob_android = File.join(project_root, 'android', 'app', 'build', 'outputs', 'bundle', '**', '*.aab')
+    aab_candidates = Dir[glob_primary] + Dir[glob_android]
+    if aab_candidates.empty?
+      UI.user_error!("Couldn't find .aab in build outputs. Checked: #{glob_primary} and #{glob_android}")
+    end
+    aab_path = aab_candidates.max_by { |f| File.mtime(f) }
+
+    # find APK
+    apk_glob_primary = File.join(project_root, 'build', 'app', 'outputs', 'apk', '**', '*.apk')
+    apk_glob_android = File.join(project_root, 'android', 'app', 'build', 'outputs', 'apk', '**', '*.apk')
+    apk_candidates = Dir[apk_glob_primary] + Dir[apk_glob_android]
+    if apk_candidates.empty?
+      UI.user_error!("Couldn't find .apk in build outputs. Checked: #{apk_glob_primary} and #{apk_glob_android}")
+    end
+    apk_path = apk_candidates.max_by { |f| File.mtime(f) }
+
+    # Upload APK to Firebase App Distribution
+    firebase_app_distribution(
+      app: ENV['FIREBASE_ANDROID_APP_ID'] || "1:655565727204:android:70bd6ab5ed20350e6013f1",
+      groups: ENV['FIREBASE_DISTRIBUTION_GROUPS'],
+      testers: ENV['FIREBASE_TESTERS'],
+      release_notes: ENV['FIREBASE_RELEASE_NOTES'] || "Automated build via fastlane 🚀",
+      android_artifact_path: apk_path,
+      android_artifact_type: "APK"
+    )
+
+    # Upload AAB to Play Store closed track
+    supply(
+      aab: aab_path,
+      track: ENV.fetch('GOOGLE_PLAY_TRACK', 'closed'),
+      json_key_data: ENV['GCLOUD_SERVICE_ACCOUNT_CREDENTIALS'],
+      package_name: ENV.fetch('PACKAGE_NAME', 'com.aspiredesignovation.cashlyze'),
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      release_status: ENV.fetch('GOOGLE_PLAY_RELEASE_STATUS', 'draft')
+    )
+  end
+
 
 end

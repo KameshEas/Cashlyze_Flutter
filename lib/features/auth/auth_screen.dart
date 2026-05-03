@@ -20,6 +20,8 @@ class AuthScreen extends ConsumerStatefulWidget {
 class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _mobileController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLogin = true;
   bool _isLoading = false;
@@ -33,6 +35,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   @override
   void dispose() {
     _emailController.dispose();
+    _nameController.dispose();
+    _mobileController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -120,10 +124,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         }
 
         // Store email + password so the OTP screen can complete registration
-        // once the OTP is verified and an otpToken is returned.
+        // once the OTP is verified and an otpToken is returned. Also store
+        // name and mobile for richer user profile creation.
+        final name = _nameController.text.trim();
+        final mobile = _mobileController.text.trim();
         ref.read(otpPendingProvider.notifier).setPending(
           email: email,
           password: password,
+          name: name,
+          mobile: mobile,
         );
         await ref
             .read(analyticsServiceProvider)
@@ -190,7 +199,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -240,179 +248,338 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 48),
-
-                      // Email Field
-                      TextFormField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: InputDecoration(
-                          labelText: 'Email',
-                          prefixIcon: const Icon(Icons.email_outlined),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          filled: true,
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your email';
-                          }
-                          if (!value.contains('@')) {
-                            return 'Please enter a valid email';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Password Field
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          filled: true,
-                          // Show/hide toggle — a 2024 table-stakes UX requirement
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                            ),
-                            tooltip: _obscurePassword
-                                ? 'Show password'
-                                : 'Hide password',
-                            onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword,
-                            ),
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
-                          }
-                          if (value.length < 6) {
-                            return 'Password must be at least 6 characters';
-                          }
-                          return null;
-                        },
-                      ),
                       const SizedBox(height: 24),
 
-                      // Error Message
-                      if (_noticeMessage != null)
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          margin: const EdgeInsets.only(bottom: 12),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                      // Card container
+                      Container(
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.06),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
                             ),
-                          ),
-                          child: Text(
-                            _noticeMessage!,
-                            style: TextStyle(color: theme.colorScheme.primary),
-                            textAlign: TextAlign.center,
-                          ),
+                          ],
                         ),
-
-                      // Error Message
-                      if (_errorMessage != null)
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          margin: const EdgeInsets.only(bottom: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: Colors.red.withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: Text(
-                            _errorMessage!,
-                            style: TextStyle(color: Colors.red[300]),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-
-                      // Submit Button
-                      FilledButton(
-                        onPressed: _isLoading ? null : _submit,
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(
-                                _isLogin ? 'Sign In' : 'Sign Up',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Header tabs
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.surface,
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                      ),
-                      const SizedBox(height: 16),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: () {
+                                        setState(() {
+                                          _isLogin = true;
+                                          _errorMessage = null;
+                                        });
+                                      },
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: _isLogin
+                                              ? theme.colorScheme.primary.withOpacity(0.12)
+                                              : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            'Sign In',
+                                            style: theme.textTheme.bodyLarge?.copyWith(
+                                              color: _isLogin
+                                                  ? theme.colorScheme.primary
+                                                  : theme.colorScheme.onSurface,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: () {
+                                        setState(() {
+                                          _isLogin = false;
+                                          _errorMessage = null;
+                                        });
+                                      },
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: !_isLogin
+                                              ? theme.colorScheme.primary.withOpacity(0.12)
+                                              : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            'Sign Up',
+                                            style: theme.textTheme.bodyLarge?.copyWith(
+                                              color: !_isLogin
+                                                  ? theme.colorScheme.primary
+                                                  : theme.colorScheme.onSurface,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
 
-                      // Toggle Login/Signup
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _isLogin = !_isLogin;
-                            _errorMessage = null;
-                          });
-                        },
-                        child: Text(
-                          _isLogin
-                              ? "Don't have an account? Sign Up"
-                              : 'Already have an account? Sign In',
-                        ),
-                      ),
+                            // Animated form content: smooth size + fade transition
+                            ClipRect(
+                              child: AnimatedSize(
+                                duration: const Duration(milliseconds: 220),
+                                curve: Curves.easeOutCubic,
+                                alignment: Alignment.topCenter,
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 220),
+                                  switchInCurve: Curves.easeIn,
+                                  switchOutCurve: Curves.easeOut,
+                                  layoutBuilder: (currentChild, previousChildren) {
+                                    return Stack(
+                                      alignment: Alignment.topCenter,
+                                      children: [
+                                        ...previousChildren,
+                                        if (currentChild != null) currentChild,
+                                      ],
+                                    );
+                                  },
+                                  transitionBuilder: (child, animation) {
+                                    final fade = CurvedAnimation(parent: animation, curve: Curves.easeIn);
+                                    final size = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+                                    return FadeTransition(
+                                      opacity: fade,
+                                      child: SizeTransition(
+                                        sizeFactor: size,
+                                        axis: Axis.vertical,
+                                        axisAlignment: -1.0,
+                                        child: child,
+                                      ),
+                                    );
+                                  },
+                                  child: Column(
+                                    key: ValueKey<String>(_isLogin ? 'auth-login' : 'auth-signup'),
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      // Name & Mobile (Sign Up only)
+                                      if (!_isLogin) ...[
+                                        TextFormField(
+                                          controller: _nameController,
+                                          decoration: InputDecoration(
+                                            labelText: 'Name',
+                                            prefixIcon: const Icon(Icons.person_outline),
+                                            border: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            filled: true,
+                                          ),
+                                          validator: (value) {
+                                            if (!_isLogin) {
+                                              if (value == null || value.trim().isEmpty) {
+                                                return 'Please enter your name';
+                                              }
+                                            }
+                                            return null;
+                                          },
+                                        ),
+                                        const SizedBox(height: 12),
+                                        TextFormField(
+                                          controller: _mobileController,
+                                          keyboardType: TextInputType.phone,
+                                          decoration: InputDecoration(
+                                            labelText: 'Mobile',
+                                            prefixIcon: const Icon(Icons.phone_outlined),
+                                            border: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            filled: true,
+                                          ),
+                                          validator: (value) {
+                                            if (!_isLogin) {
+                                              if (value == null || value.trim().isEmpty) {
+                                                return 'Please enter your mobile number';
+                                              }
+                                              if (value.trim().length < 6) {
+                                                return 'Mobile number must be at least 6 digits';
+                                              }
+                                            }
+                                            return null;
+                                          },
+                                        ),
+                                        const SizedBox(height: 16),
+                                      ],
 
-                      // Forgot Password
-                      // Note: biometric on/off toggle is in Settings → Preferences
-                      // (showing a security toggle before the user is authenticated
-                      //  is contextually wrong and confusing for new users)
-                      if (_isLogin)
-                        TextButton(
-                          onPressed: () async {
-                            final messenger = ScaffoldMessenger.of(context);
-                            if (_emailController.text.trim().isEmpty) {
-                              messenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Please enter your email first',
+                                      // Email Field
+                                      TextFormField(
+                                        controller: _emailController,
+                                        keyboardType: TextInputType.emailAddress,
+                                        decoration: InputDecoration(
+                                          labelText: 'Email',
+                                          prefixIcon: const Icon(Icons.email_outlined),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          filled: true,
+                                        ),
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Please enter your email';
+                                          }
+                                          if (!value.contains('@')) {
+                                            return 'Please enter a valid email';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      const SizedBox(height: 16),
+
+                                      // Password Field
+                                      TextFormField(
+                                        controller: _passwordController,
+                                        obscureText: _obscurePassword,
+                                        decoration: InputDecoration(
+                                          labelText: 'Password',
+                                          prefixIcon: const Icon(Icons.lock_outline),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          filled: true,
+                                          suffixIcon: IconButton(
+                                            icon: Icon(
+                                              _obscurePassword
+                                                  ? Icons.visibility_outlined
+                                                  : Icons.visibility_off_outlined,
+                                            ),
+                                            tooltip: _obscurePassword ? 'Show password' : 'Hide password',
+                                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                          ),
+                                        ),
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Please enter your password';
+                                          }
+                                          if (value.length < 6) {
+                                            return 'Password must be at least 6 characters';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      const SizedBox(height: 24),
+
+                                      // Notice / Error
+                                      if (_noticeMessage != null)
+                                        Container(
+                                          padding: const EdgeInsets.all(12),
+                                          margin: const EdgeInsets.only(bottom: 12),
+                                          decoration: BoxDecoration(
+                                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(
+                                              color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            _noticeMessage!,
+                                            style: TextStyle(color: theme.colorScheme.primary),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+
+                                      if (_errorMessage != null)
+                                        Container(
+                                          padding: const EdgeInsets.all(12),
+                                          margin: const EdgeInsets.only(bottom: 16),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(
+                                              color: Colors.red.withValues(alpha: 0.3),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            _errorMessage!,
+                                            style: TextStyle(color: Colors.red[300]),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+
+                                      // Submit Button
+                                      FilledButton(
+                                        onPressed: _isLoading ? null : _submit,
+                                        style: FilledButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                          minimumSize: const Size.fromHeight(52),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                        child: _isLoading
+                                            ? const SizedBox(
+                                                height: 20,
+                                                width: 20,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                ),
+                                              )
+                                            : Text(
+                                                _isLogin ? 'Sign In' : 'Sign Up',
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                      ),
+                                      const SizedBox(height: 12),
+
+                                      // Forgot Password (only for Sign In)
+                                      if (_isLogin)
+                                        TextButton(
+                                          onPressed: () async {
+                                            final messenger = ScaffoldMessenger.of(context);
+                                            if (_emailController.text.trim().isEmpty) {
+                                              messenger.showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('Please enter your email first'),
+                                                ),
+                                              );
+                                              return;
+                                            }
+
+                                            messenger.showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Password reset is not available yet. Please contact support.'),
+                                              ),
+                                            );
+                                          },
+                                          child: const Text('Forgot Password?'),
+                                        ),
+                                    ],
                                   ),
                                 ),
-                              );
-                              return;
-                            }
-
-                            messenger.showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Password reset is not available yet. Please contact support.',
-                                ),
                               ),
-                            );
-                          },
-                          child: const Text('Forgot Password?'),
+                            ),
+                          ],
                         ),
+                      ),
                     ],
                   ),
                 ),

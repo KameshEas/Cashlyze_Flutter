@@ -60,9 +60,14 @@ stages:
         set -e
         gem install fastlane -NV
         export PATH="$PATH:$HOME/flutter/bin"
-        fastlane android firebase
+        bundle install || true
+        bundle exec fastlane android release_closed_with_firebase
       env:
         FIREBASE_CLI_TOKEN: $(FIREBASE_CLI_TOKEN)
+        GCLOUD_SERVICE_ACCOUNT_CREDENTIALS: $(GCLOUD_SERVICE_ACCOUNT_CREDENTIALS)
+        FIREBASE_ANDROID_APP_ID: $(FIREBASE_ANDROID_APP_ID)
+        FIREBASE_DISTRIBUTION_GROUPS: $(FIREBASE_DISTRIBUTION_GROUPS)
+        PACKAGE_NAME: $(PACKAGE_NAME)
       displayName: Distribute via Firebase App Distribution
     - task: PublishBuildArtifacts@1
       inputs:

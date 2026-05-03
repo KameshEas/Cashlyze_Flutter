@@ -56,6 +56,7 @@ class AuthRemoteDataSource {
     required String password,
     String? otpToken,
     String? name,
+    String? mobile,
     String? displayName,
     String? photoUrl,
   }) async {
@@ -66,6 +67,7 @@ class AuthRemoteDataSource {
         'password': password,
         if (otpToken != null && otpToken.isNotEmpty) 'otp_token': otpToken,
         if (name != null) 'name': name,
+        if (mobile != null && mobile.isNotEmpty) 'mobile': mobile,
         if (displayName != null) 'display_name': displayName,
         if (photoUrl != null) 'photo_url': photoUrl,
       },

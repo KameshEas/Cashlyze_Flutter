@@ -5,6 +5,7 @@ import '../../core/services/auth_service.dart';
 import '../../core/models/transaction.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/widgets/skeleton.dart';
+import '../../core/widgets/empty_state.dart';
 import '../../core/providers/shared_prefs_provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/widgets/dialogs.dart';
@@ -244,18 +245,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               if (allFiltered.isEmpty) {
                 listChild = Center(
                   key: const ValueKey('tx_empty'),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Semantics(
-                        label: 'No transactions illustration',
-                        child: Icon(Icons.receipt_long, size: 72, color: theme.colorScheme.primary),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(t?.noTransactions ?? 'No transactions', style: theme.textTheme.titleMedium),
-                      const SizedBox(height: 8),
-                      FilledButton(onPressed: () => _openAddForm(context), child: Text(t?.addTransaction ?? 'Add transaction')),
-                    ],
+                  child: AppEmptyState(
+                    title: t?.noTransactions ?? 'No transactions',
+                    subtitle: t?.noTransactions == null
+                        ? 'You have no transactions yet. Tap Add to create one.'
+                        : '${t?.noTransactions}',
+                    icon: Icons.receipt_long,
+                    actionLabel: t?.addTransaction ?? 'Add transaction',
+                    onAction: () => _openAddForm(context),
                   ),
                 );
               } else {

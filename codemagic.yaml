@@ -234,6 +234,29 @@ workflows:
           echo "Building AAB with build-name=$BUILD_NAME build-number=$BUILD_NUMBER"
           flutter build appbundle $FLAGS
 
+      - name: Install fastlane
+        script: |
+          #!/bin/bash
+          set -euo pipefail
+          gem install fastlane -NV
+          if [ -f android/Gemfile ]; then
+            bundle install || true
+          fi
+
+      - name: Run Fastlane (upload AAB and APK)
+        script: |
+          #!/bin/bash
+          set -euo pipefail
+          bundle exec fastlane android release_closed_with_firebase
+        env:
+          GCLOUD_SERVICE_ACCOUNT_CREDENTIALS: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+          FIREBASE_TOKEN: $FIREBASE_TOKEN
+          FIREBASE_ANDROID_APP_ID: $FIREBASE_ANDROID_APP_ID
+          FIREBASE_DISTRIBUTION_GROUPS: $FIREBASE_DISTRIBUTION_GROUPS
+          PACKAGE_NAME: $PACKAGE_NAME
+          GOOGLE_PLAY_TRACK: $GOOGLE_PLAY_TRACK
+          GOOGLE_PLAY_RELEASE_STATUS: $GOOGLE_PLAY_RELEASE_STATUS
+
     artifacts:
       - build/app/outputs/bundle/release/*.aab
 

@@ -41,8 +41,13 @@ class TransactionRepository {
   Future<void> _refreshUser(String userId) async {
     try {
       final fresh = _sorted(await _dataSource.getAll());
-      final prev = _cache[userId] ?? const <TransactionModel>[];
-      if (_signature(prev) != _signature(fresh)) {
+      final hasCache = _cache.containsKey(userId);
+      final prev = hasCache ? _cache[userId]! : const <TransactionModel>[];
+
+      // Always emit the initial value for a user (even if empty) so
+      // consumers don't remain stuck in a loading state when the
+      // backend returns an empty list for new users.
+      if (!hasCache || _signature(prev) != _signature(fresh)) {
         _cache[userId] = fresh;
         _controllerFor(userId).add(fresh);
       }

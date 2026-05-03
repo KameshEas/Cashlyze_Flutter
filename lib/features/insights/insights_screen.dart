@@ -8,6 +8,7 @@ import '../../core/providers/insights_providers.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/skeleton.dart';
+import '../../core/widgets/empty_state.dart';
 import '../../core/ui/constants.dart';
 import '../../core/widgets/animated_progress_indicator.dart';
 
@@ -96,8 +97,9 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
             if (isLoading)
               const SkeletonChartBox(height: 200)
             else if (monthly.isEmpty)
-              const _EmptyState(
-                message: 'Add transactions to see your trend',
+              const AppEmptyState(
+                title: 'No trend data',
+                subtitle: 'Add transactions to see your monthly trend',
                 icon: Icons.show_chart_rounded,
               )
             else
@@ -115,8 +117,9 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
             if (isLoading)
               const SkeletonChartBox(height: 180)
             else if (topMerchants.isEmpty)
-              const _EmptyState(
-                message: 'No merchant data for this period',
+              const AppEmptyState(
+                title: 'No merchant data',
+                subtitle: 'No merchant data for this period',
                 icon: Icons.storefront_rounded,
               )
             else
@@ -132,8 +135,9 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
             if (isLoading)
               const SkeletonChartBox(height: 140)
             else if (recurring.isEmpty)
-              const _EmptyState(
-                message: 'No recurring payments detected yet',
+              const AppEmptyState(
+                title: 'No recurring payments',
+                subtitle: 'No recurring payments detected yet',
                 icon: Icons.repeat_rounded,
               )
             else
@@ -208,45 +212,7 @@ class _BaseCard extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  final String message;
-  final IconData icon;
-  const _EmptyState({required this.message, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      height: 100,
-      width: double.infinity,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: AppRadius.lgAll,
-        border: Border.all(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 30,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.25),
-          ),
-          const SizedBox(height: AppSpacing.s8),
-          Text(
-            message,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// _EmptyState removed in favor of shared AppEmptyState widget.
 
 // ════════════════════════════════════════════════════════════════════════════
 // Time range picker

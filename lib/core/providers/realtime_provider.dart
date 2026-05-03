@@ -112,10 +112,12 @@ final wsListenerProvider = Provider<void>((ref) {
           return;
         }
 
-        // Budgets: update cache directly
+        // Budgets: update cache directly and force-refresh categories/txns
         if (t == WsEventType.budgetCreated || t == WsEventType.budgetUpdated || t == 'budget_utilization_changed' || t == WsEventType.budgetDeleted) {
           try {
             budgetRepo.applyRemoteBudgetEvent(next.userId, t, payload);
+            try { ref.invalidate(userCategoriesProvider); } catch (_) {}
+            try { ref.invalidate(userTransactionsProvider); } catch (_) {}
           } catch (_) {}
           return;
         }
