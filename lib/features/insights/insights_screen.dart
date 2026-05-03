@@ -28,14 +28,13 @@ class InsightsScreen extends ConsumerStatefulWidget {
 }
 
 class _InsightsScreenState extends ConsumerState<InsightsScreen> {
-  int? _touchedIndex;
 
   @override
   Widget build(BuildContext context) {
     final txsAsync = ref.watch(recentTransactionsProvider);
     final kpis = ref.watch(kpisProvider);
     final monthly = ref.watch(monthlyTrendProvider);
-    final categories = ref.watch(categoryBreakdownProvider);
+    
     final topMerchants = ref.watch(topMerchantsProvider);
     final recurring = ref.watch(recurringPaymentsProvider);
     final anomalies = ref.watch(anomaliesProvider);
@@ -105,31 +104,11 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
               _MonthlyTrendCard(monthly: monthly),
             const SizedBox(height: AppSpacing.sectionGap),
 
-            // ── Category breakdown ─────────────────────────────────────────
-            const _SectionHeader(
-              title: 'Spending by Category',
-              icon: Icons.donut_large_rounded,
-            ),
-            const SizedBox(height: AppSpacing.s12),
-            if (isLoading)
-              const SkeletonChartBox(height: 260)
-            else if (categories.isEmpty)
-              const _EmptyState(
-                message: 'No category data for this period',
-                icon: Icons.donut_large_rounded,
-              )
-            else
-              _CategoryDonut(
-                categories: categories,
-                currency: currency,
-                touchedIndex: _touchedIndex,
-                onTouch: (i) => setState(() => _touchedIndex = i),
-              ),
-            const SizedBox(height: AppSpacing.sectionGap),
+            // Category breakdown removed per request.
 
-            // ── Top merchants ──────────────────────────────────────────────
+            // ── Top Spends ──────────────────────────────────────────────
             const _SectionHeader(
-              title: 'Top Merchants',
+              title: 'Top Spends',
               icon: Icons.storefront_rounded,
             ),
             const SizedBox(height: AppSpacing.s12),
@@ -764,172 +743,10 @@ class _MonthlyTrendCard extends StatelessWidget {
   }
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// Category donut
-// ════════════════════════════════════════════════════════════════════════════
-
-class _CategoryDonut extends StatelessWidget {
-  final Map<String, double> categories;
-  final String currency;
-  final int? touchedIndex;
-  final ValueChanged<int?> onTouch;
-  const _CategoryDonut({
-    required this.categories,
-    required this.currency,
-    required this.touchedIndex,
-    required this.onTouch,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final entries = categories.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    const maxSlices = 6;
-    late final List<MapEntry<String, double>> display;
-    if (entries.length > maxSlices) {
-      final top = entries.sublist(0, maxSlices - 1);
-      final otherSum = entries
-          .sublist(maxSlices - 1)
-          .fold<double>(0, (p, e) => p + e.value);
-      display = [...top, MapEntry('Other', otherSum)];
-    } else {
-      display = entries;
-    }
-    final total = display.fold<double>(0, (p, e) => p + e.value);
-
-    return _BaseCard(
-      child: Row(
-        children: [
-          Expanded(
-            flex: 5,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  height: 220,
-                  child: PieChart(
-                    PieChartData(
-                      sectionsSpace: 2,
-                      centerSpaceRadius: 48,
-                      sections: List.generate(display.length, (i) {
-                        final isTouched = i == touchedIndex;
-                        return PieChartSectionData(
-                          value: display[i].value,
-                          color: _kPalette[i % _kPalette.length],
-                          radius: isTouched ? 66.0 : 54.0,
-                          showTitle: false,
-                        );
-                      }),
-                      pieTouchData: PieTouchData(
-                        touchCallback: (event, response) {
-                          final idx = response
-                              ?.touchedSection?.touchedSectionIndex;
-                          onTouch(
-                            event.isInterestedForInteractions ? idx : null,
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      formatAmount(total, currency),
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    Text(
-                      'Total',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.55,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 4,
-            child: _CategoryLegend(
-              entries: display,
-              total: total,
-              touchedIndex: touchedIndex,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CategoryLegend extends StatelessWidget {
-  final List<MapEntry<String, double>> entries;
-  final double total;
-  final int? touchedIndex;
-  const _CategoryLegend({
-    required this.entries,
-    required this.total,
-    this.touchedIndex,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: List.generate(entries.length, (i) {
-        final e = entries[i];
-        final color = _kPalette[i % _kPalette.length];
-        final pct = total > 0 ? (e.value / total * 100) : 0.0;
-        final isSelected = i == touchedIndex;
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 3),
-          child: Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.s8),
-              Expanded(
-                child: Text(
-                  e.key,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight:
-                        isSelected ? FontWeight.w700 : FontWeight.w500,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Text(
-                '${pct.toStringAsFixed(0)}%',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                ),
-              ),
-            ],
-          ),
-        );
-      }),
-    );
-  }
-}
+// Category breakdown removed from Insights.
 
 // ════════════════════════════════════════════════════════════════════════════
-// Top merchants with bar indicators
+// Top Spends with bar indicators
 // ════════════════════════════════════════════════════════════════════════════
 
 class _MerchantsCard extends StatelessWidget {
@@ -1013,6 +830,12 @@ class _MerchantsCard extends StatelessWidget {
     );
   }
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// Budgets bar list — shows spending per budget with matching legend and color
+// ════════════════════════════════════════════════════════════════════════════
+
+// Budgets card removed — budgets are shown on the Budgets screen.
 
 // ════════════════════════════════════════════════════════════════════════════
 // Recurring payments

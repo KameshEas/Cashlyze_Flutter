@@ -639,8 +639,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
               }
             }
-            currentController.dispose();
-            newController.dispose();
           },
         ),
         const Divider(height: 1, indent: 52),

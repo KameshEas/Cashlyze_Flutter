@@ -33,8 +33,10 @@ class EmiRemoteDataSource {
         'loan_amount': loanAmount,
         'annual_interest_rate': annualInterestRate,
         'tenure_months': tenureMonths,
-        'start_date': startDate.toIso8601String(),
-        'frequency': frequency.name,
+        // API expects a date (YYYY-MM-DD) for start_date — send date-only string
+        'start_date': startDate.toIso8601String().split('T').first,
+        // Server doesn't support weekly frequency; map weekly -> monthly
+        'frequency': frequency.name == 'weekly' ? 'monthly' : frequency.name,
       },
     );
     return _planFromApiJson((response.data as Map).cast<String, dynamic>());
@@ -68,8 +70,10 @@ class EmiRemoteDataSource {
         if (annualInterestRate != null)
           'annual_interest_rate': annualInterestRate,
         if (tenureMonths != null) 'tenure_months': tenureMonths,
-        if (startDate != null) 'start_date': startDate.toIso8601String(),
-        if (frequency != null) 'frequency': frequency.name,
+        if (startDate != null)
+          'start_date': startDate.toIso8601String().split('T').first,
+        if (frequency != null)
+          'frequency': frequency.name == 'weekly' ? 'monthly' : frequency.name,
         if (active != null) 'active': active,
       },
     );

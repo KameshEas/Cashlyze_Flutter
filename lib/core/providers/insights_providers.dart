@@ -136,7 +136,7 @@ final recommendationsProvider = Provider<List<String>>((ref) {
   return suggestions;
 });
 
-// ── Top merchants ────────────────────────────────────────────────────────────
+// ── Top Spends ────────────────────────────────────────────────────────────
 
 class TopMerchant {
   final String name;

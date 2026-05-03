@@ -974,7 +974,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                             ScaffoldMessenger.of(ctx).showSnackBar(
                               SnackBar(
                                 content: const Text('Budget adjusted'),
-                                duration: const Duration(seconds: 5),
+                                duration: const Duration(seconds: 3),
                                 action: SnackBarAction(
                                   label: 'Undo',
                                   onPressed: () async {

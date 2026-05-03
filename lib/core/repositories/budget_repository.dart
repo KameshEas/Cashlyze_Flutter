@@ -249,13 +249,40 @@ class BudgetRepository {
         }
 
         final name = payload['name'] as String? ?? payload['title'] as String? ?? '';
-        final allocated = (payload['allocated'] as num?)?.toDouble() ?? (payload['amount'] as num?)?.toDouble() ?? 0.0;
+        final num? allocatedFromPayload = (payload['allocated'] as num?) ?? (payload['amount'] as num?);
+        double allocated;
+        final cachedList = _cache[userId];
+        if (allocatedFromPayload != null) {
+          allocated = allocatedFromPayload.toDouble();
+        } else if (cachedList != null) {
+          final prev = cachedList.where((b) => b.id == id).toList();
+          if (prev.isNotEmpty) {
+            allocated = prev.first.allocated;
+          } else {
+            allocated = 0.0;
+          }
+        } else {
+          allocated = 0.0;
+        }
         final periodRaw = payload['period'] as String? ?? 'monthly';
         final period = BudgetPeriod.values.firstWhere(
           (p) => p.name == periodRaw.toLowerCase() || p.name == periodRaw,
           orElse: () => BudgetPeriod.monthly,
         );
-        final categoryIds = (payload['category_ids'] as List?)?.cast<String>() ?? (payload['categoryIds'] as List?)?.cast<String>() ?? const [];
+        final rawCategoryIds = (payload['category_ids'] as List?) ?? (payload['categoryIds'] as List?);
+        List<String> categoryIds;
+        if (rawCategoryIds != null) {
+          categoryIds = rawCategoryIds.cast<String>();
+        } else if (cachedList != null) {
+          final prev = cachedList.where((b) => b.id == id).toList();
+          if (prev.isNotEmpty) {
+            categoryIds = prev.first.categoryIds;
+          } else {
+            categoryIds = const [];
+          }
+        } else {
+          categoryIds = const [];
+        }
 
         DateTime createdAt = DateTime.fromMillisecondsSinceEpoch(0);
         final rawCreated = payload['created_at'] ?? payload['createdAt'];

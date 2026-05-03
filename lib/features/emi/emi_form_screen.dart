@@ -193,6 +193,10 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
 
                   if (widget.initialPlan == null) {
                     await repo.createPlan(plan);
+                    // Refresh the plans list so the dashboard reflects the new plan
+                    try {
+                      ref.invalidate(userEMIPlansProvider);
+                    } catch (_) {}
                     if (!mounted) return;
                     messenger.showSnackBar(
                       SnackBar(
@@ -206,6 +210,10 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                   } else {
                     // Update existing plan (backend regenerates schedule automatically)
                     await repo.updatePlan(plan);
+                    // Refresh list so updates are visible
+                    try {
+                      ref.invalidate(userEMIPlansProvider);
+                    } catch (_) {}
                     if (!mounted) return;
                     messenger.showSnackBar(
                       SnackBar(
