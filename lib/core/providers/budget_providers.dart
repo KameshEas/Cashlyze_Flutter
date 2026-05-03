@@ -3,6 +3,7 @@ import '../repositories/budget_repository.dart';
 import '../repositories/category_repository.dart';
 import '../repositories/transaction_repository.dart';
 import '../models/budget.dart';
+import '../models/category.dart';
 import '../providers/shared_prefs_provider.dart';
 
 DateTime _periodStart(BudgetPeriod p) {
@@ -211,11 +212,16 @@ class DeletedBudgetRecord {
   final String? remappedTargetId;
   final List<String>? targetPreviousCategoryIds;
 
+  // If the delete operation removed any Category records as part of
+  // the budget deletion, keep them here so an undo can recreate them.
+  final List<CategoryModel>? deletedCategories;
+
   DeletedBudgetRecord({
     required this.budget,
     required this.timestamp,
     this.remappedTargetId,
     this.targetPreviousCategoryIds,
+    this.deletedCategories,
   });
 }
 

@@ -9,6 +9,7 @@ import '../../core/widgets/skeleton.dart';
 import '../../core/utils/format.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/models/budget.dart';
+import '../../core/models/category.dart';
 import 'budget_card.dart';
 import 'package:flutter/services.dart';
 import '../../core/utils/validation.dart';
@@ -480,13 +481,61 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
             return true;
           }
 
-          // No impacted transactions — simple delete with undo
+          final List<CategoryModel> categoriesToDelete = [];
+          if (budget.categoryIds.isEmpty) {
+            final matchName = budget.name.trim().toLowerCase();
+            final otherBudgets = ref.read(filteredBudgetsProvider).where((b) => b.id != budget.id).toList();
+            for (final c in cats) {
+              final cname = (c.name ?? '').trim();
+              if (cname.isEmpty) continue;
+              if (cname.toLowerCase() != matchName) continue;
+
+              // Skip if other budgets reference this category (by id or name)
+              final usedByOtherBudget = otherBudgets.any((b) {
+                if (b.categoryIds.isEmpty) {
+                  return b.name.trim().toLowerCase() == cname.toLowerCase();
+                }
+                return b.categoryIds.any((v) {
+                  final vt = v.trim();
+                  if (vt.isEmpty) return false;
+                  if (vt == c.id) return true;
+                  if (vt.toLowerCase() == cname.toLowerCase()) return true;
+                  return false;
+                });
+              });
+              if (usedByOtherBudget) continue;
+
+              // Skip if any transaction references this category (by id or name)
+              final usedByTx = txs.any((t) {
+                final raw = (t.categoryId ?? t.categoryName ?? '').trim();
+                if (raw.isEmpty) return false;
+                if (raw == c.id) return true;
+                if (raw.toLowerCase() == cname.toLowerCase()) return true;
+                return false;
+              });
+              if (usedByTx) continue;
+
+              categoriesToDelete.add(c);
+            }
+          }
+
+          // Record deleted budget + categories for undo
           ref.read(lastDeletedBudgetProvider.notifier).setDeleted(DeletedBudgetRecord(
             budget: budget,
             timestamp: DateTime.now(),
+            deletedCategories: categoriesToDelete.isNotEmpty ? categoriesToDelete : null,
           ));
 
           await repo.delete(user.uid, budget.id);
+
+          // Delete category records (best-effort)
+          if (categoriesToDelete.isNotEmpty) {
+            for (final c in categoriesToDelete) {
+              try {
+                await ref.read(categoryRepositoryProvider).delete(user.uid, c.id);
+              } catch (_) {}
+            }
+          }
 
           // Show undo SnackBar
           if (context.mounted) {
@@ -498,6 +547,16 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                   label: 'Undo',
                   onPressed: () async {
                     try {
+                      final rec = ref.read(lastDeletedBudgetProvider);
+                      // Recreate any deleted categories first (best-effort)
+                      if (rec?.deletedCategories != null) {
+                        for (final dc in rec!.deletedCategories!) {
+                          try {
+                            await ref.read(categoryRepositoryProvider).create(userId: user.uid, name: dc.name, icon: dc.icon, color: dc.color);
+                          } catch (_) {}
+                        }
+                      }
+
                       await repo.create(
                         userId: user.uid,
                         name: budget.name,
@@ -515,6 +574,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
               ),
             );
           }
+
           return true;
         } catch (err) {
           if (context.mounted) {
@@ -578,14 +638,24 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       builder: (ctx) {
         final nav = Navigator.of(ctx);
         
-        return Padding(
+            return Padding(
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(ctx).viewInsets.bottom,
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
             child: StatefulBuilder(builder: (ctx, setSheetState) => Consumer(builder: (cctx, wref, _) {
-              final categories = wref.watch(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+              final rawCategories = wref.watch(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+              // Deduplicate categories by normalized (trimmed, lowercased) name
+              final Map<String, CategoryModel> uniqueByName = <String, CategoryModel>{};
+              for (final c in rawCategories) {
+                final nm = (c.name ?? '').trim();
+                if (nm.isEmpty) continue;
+                final key = nm.toLowerCase();
+                uniqueByName.putIfAbsent(key, () => c);
+              }
+              final categories = uniqueByName.values.toList();
+
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

@@ -52,10 +52,21 @@ abstract final class ApiEndpoints {
   ///
   /// [token] is the JWT access token appended as a query parameter.
   static String wsUser(String userId, String token) {
-    final wsBase = EnvConfig.baseUrl
-        .replaceFirst('https://', 'wss://')
-        .replaceFirst('http://', 'ws://');
-    return '$wsBase/ws/user/$userId?token=$token';
+    final base = Uri.parse(EnvConfig.baseUrl);
+    final scheme = base.scheme == 'https'
+        ? 'wss'
+        : (base.scheme == 'http' ? 'ws' : base.scheme);
+    final pathSegments = <String>[];
+    if (base.pathSegments.isNotEmpty) pathSegments.addAll(base.pathSegments);
+    pathSegments.addAll(['ws', 'user', userId]);
+    final wsUri = Uri(
+      scheme: scheme,
+      host: base.host,
+      port: base.hasPort ? base.port : null,
+      pathSegments: pathSegments,
+      queryParameters: {'token': token},
+    );
+    return wsUri.toString();
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
