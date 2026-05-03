@@ -467,7 +467,8 @@ class HomeScreen extends ConsumerWidget {
                 context,
                 ref,
                 list[i].title,
-                list[i].categoryId ?? list[i].categoryName,
+                list[i].categoryId,
+                list[i].categoryName,
                 formatAmount(list[i].amount, currency),
                 list[i].amount >= 0,
               ),
@@ -483,25 +484,47 @@ class HomeScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     String title,
-    String? category,
+    String? categoryId,
+    String? categoryName,
     String amount,
     bool isIncome,
   ) {
     final theme = Theme.of(context);
-    // Resolve category id/name to a display name using user categories
+    // Resolve category id/name to a display name using user categories.
+    // Prefer a matching category id, but allow the transaction-provided
+    // `categoryName` to override when it differs (handles rename races).
     final cats = ref.watch(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
     String displayCategory;
-    if (category == null || category.trim().isEmpty) {
+    final id = categoryId?.trim();
+    final nameFallback = categoryName?.trim();
+
+    if ((id == null || id.isEmpty) && (nameFallback == null || nameFallback.isEmpty)) {
       displayCategory = 'General';
-    } else {
-      final raw = category.trim();
-      final byId = cats.where((c) => c.id == raw).toList();
+    } else if (id != null && id.isNotEmpty) {
+      final byId = cats.where((c) => c.id == id).toList();
       if (byId.isNotEmpty) {
-        displayCategory = byId.first.name;
+        final catName = byId.first.name;
+        if (nameFallback != null && nameFallback.isNotEmpty && catName.trim().toLowerCase() != nameFallback.toLowerCase()) {
+          displayCategory = nameFallback;
+        } else {
+          displayCategory = catName;
+        }
       } else {
-        final byName = cats.where((c) => (c.name ?? '').toLowerCase() == raw.toLowerCase()).toList();
-        displayCategory = byName.isNotEmpty ? byName.first.name : raw;
+        final lookup = (nameFallback ?? id).trim();
+        final byName = cats.where((c) => (c.name ?? '').toLowerCase() == lookup.toLowerCase()).toList();
+        if (byName.isNotEmpty) {
+          displayCategory = byName.first.name;
+        } else if (nameFallback != null && nameFallback.isNotEmpty) {
+          displayCategory = nameFallback;
+        } else {
+          displayCategory = id;
+        }
       }
+    } else {
+      // No id but have a name fallback
+      final lookup = nameFallback!.trim();
+      final byName = cats.where((c) => (c.name ?? '').toLowerCase() == lookup.toLowerCase()).toList();
+      displayCategory = byName.isNotEmpty ? byName.first.name : lookup;
     }
 
     return Container(

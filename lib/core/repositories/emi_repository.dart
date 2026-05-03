@@ -66,35 +66,46 @@ class EMIRepository {
       }),
     );
   }
+
+  // Future-based helpers (preferred for UI caching)
+  Future<List<EMIPayment>> getScheduleForPlan(String userId, String planId) async {
+    return _dataSource.getSchedule(planId);
+  }
+
+  Future<List<EMIPayment>> getUpcomingPaymentsThisMonthFuture(String userId) async {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, 1);
+    final end = DateTime(now.year, now.month + 1, 1);
+    final upcoming = <EMIPayment>[];
+    final plans = await _dataSource.getAllPlans();
+    for (final plan in plans) {
+      final payments = await _dataSource.getSchedule(plan.id);
+      upcoming.addAll(payments.where(
+        (p) => !p.paid && p.dueDate.isAfter(start) && p.dueDate.isBefore(end),
+      ));
+    }
+    upcoming.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    return upcoming;
+  }
 }
 
 final emiRepositoryProvider =
     Provider<EMIRepository>((ref) => EMIRepository(ref.watch(emiRemoteDataSourceProvider)));
 
-final userEMIPlansProvider = StreamProvider<List<EMIPlan>>((ref) {
+final userEMIPlansProvider = FutureProvider<List<EMIPlan>>((ref) {
   final user = ref.watch(currentUserProvider);
-  if (user == null) return Stream.value(<EMIPlan>[]);
-  return ref
-      .watch(emiRepositoryProvider)
-      .streamPlans(user.userId)
-      .handleError((_, __) {});
+  if (user == null) return Future.value(<EMIPlan>[]);
+  return ref.watch(emiRepositoryProvider).getAllPlansForUser(user.userId);
 });
 
-final emiScheduleProvider =
-    StreamProvider.family<List<EMIPayment>, String>((ref, planId) {
+final emiScheduleProvider = FutureProvider.family<List<EMIPayment>, String>((ref, planId) {
   final user = ref.watch(currentUserProvider);
-  if (user == null) return Stream.value(<EMIPayment>[]);
-  return ref
-      .watch(emiRepositoryProvider)
-      .streamSchedule(user.userId, planId)
-      .handleError((_, __) {});
+  if (user == null) return Future.value(<EMIPayment>[]);
+  return ref.watch(emiRepositoryProvider).getScheduleForPlan(user.userId, planId);
 });
 
-final emiUpcomingProvider = StreamProvider<List<EMIPayment>>((ref) {
+final emiUpcomingProvider = FutureProvider<List<EMIPayment>>((ref) {
   final user = ref.watch(currentUserProvider);
-  if (user == null) return Stream.value(<EMIPayment>[]);
-  return ref
-      .watch(emiRepositoryProvider)
-      .streamUpcomingThisMonth(user.userId)
-      .handleError((_, __) {});
+  if (user == null) return Future.value(<EMIPayment>[]);
+  return ref.watch(emiRepositoryProvider).getUpcomingPaymentsThisMonthFuture(user.userId);
 });

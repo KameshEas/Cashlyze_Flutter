@@ -148,16 +148,25 @@ class EmiRemoteDataSource {
             ? DateTime.parse(paidAtRaw)
             : DateTime.fromMillisecondsSinceEpoch((paidAtRaw as num).toInt());
 
+    // Backend historically returned `amount` only. Support both shapes
+    final installmentRaw = json['installment'] ?? json['amount'];
+    final interestRaw = json['interest'];
+    final principalRaw = json['principal'];
+    final remainingRaw = json['remaining_principal'] ?? json['remainingPrincipal'];
+
+    final installment = installmentRaw != null ? (installmentRaw as num).toDouble() : 0.0;
+    final interest = interestRaw != null ? (interestRaw as num).toDouble() : 0.0;
+    final principal = principalRaw != null ? (principalRaw as num).toDouble() : 0.0;
+    final remaining = remainingRaw != null ? (remainingRaw as num).toDouble() : 0.0;
+
     return EMIPayment(
       id: json['id'] as String,
       planId: json['plan_id'] as String? ?? planId,
       dueDate: dueDate,
-      installment: (json['installment'] as num).toDouble(),
-      interest: (json['interest'] as num).toDouble(),
-      principal: (json['principal'] as num).toDouble(),
-      remainingPrincipal: (json['remaining_principal'] ??
-              json['remainingPrincipal'] as num)
-          .toDouble(),
+      installment: installment,
+      interest: interest,
+      principal: principal,
+      remainingPrincipal: remaining,
       paid: json['paid'] as bool? ?? false,
       paidAt: paidAt,
     );

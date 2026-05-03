@@ -105,19 +105,30 @@ class TransactionListItem extends ConsumerWidget {
                                       data: (d) => d,
                                       orElse: () => const [],
                                     );
-                                final rawId = tx.categoryId;
+                                final rawId = tx.categoryId?.trim();
                                 final nameFallback = tx.categoryName?.trim();
-                                if ((rawId == null || rawId.trim().isEmpty) && (nameFallback == null || nameFallback.isEmpty)) {
+
+                                if ((rawId == null || rawId.isEmpty) && (nameFallback == null || nameFallback.isEmpty)) {
                                   return Text('General', style: theme.textTheme.bodySmall, overflow: TextOverflow.ellipsis, maxLines: 1);
                                 }
 
-                                // Prefer matching by id, then by name (case-insensitive),
-                                // then use transaction.categoryName fallback, otherwise show raw id/value.
-                                final byIdList = rawId != null ? cats.where((c) => c.id == rawId).toList() : <dynamic>[];
-                                if (byIdList.isNotEmpty) {
-                                  return Text(byIdList.first.name, style: theme.textTheme.bodySmall, overflow: TextOverflow.ellipsis, maxLines: 1);
+                                // If we have an id, prefer the category name for that id,
+                                // but allow the transaction-provided `categoryName` to
+                                // override when it differs (handles race/rename cases).
+                                if (rawId != null && rawId.isNotEmpty) {
+                                  final byIdList = cats.where((c) => c.id == rawId).toList();
+                                  if (byIdList.isNotEmpty) {
+                                    final catName = byIdList.first.name;
+                                    if (nameFallback != null && nameFallback.isNotEmpty && catName.trim().toLowerCase() != nameFallback.toLowerCase()) {
+                                      return Text(nameFallback, style: theme.textTheme.bodySmall, overflow: TextOverflow.ellipsis, maxLines: 1);
+                                    }
+                                    return Text(catName, style: theme.textTheme.bodySmall, overflow: TextOverflow.ellipsis, maxLines: 1);
+                                  }
                                 }
-                                final lookup = (rawId ?? nameFallback) ?? '';
+
+                                // Try matching by name (either the explicit fallback or
+                                // the id-as-name); otherwise show the fallback or raw value.
+                                final lookup = (nameFallback ?? rawId) ?? '';
                                 final byNameList = cats.where((c) => (c.name ?? '').toLowerCase() == lookup.toLowerCase()).toList();
                                 if (byNameList.isNotEmpty) {
                                   return Text(byNameList.first.name, style: theme.textTheme.bodySmall, overflow: TextOverflow.ellipsis, maxLines: 1);

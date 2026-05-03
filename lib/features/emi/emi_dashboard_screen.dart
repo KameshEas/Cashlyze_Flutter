@@ -5,6 +5,7 @@ import '../../core/models/emi.dart';
 import '../../core/utils/format.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/widgets/skeleton.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import '../../core/widgets/animated_progress_indicator.dart';
@@ -83,20 +84,7 @@ class _PlanCard extends ConsumerWidget {
     final scheduleAsync = ref.watch(emiScheduleProvider(plan.id));
     final currency = ref.watch(currencyProvider);
     return scheduleAsync.when(
-      loading: () => AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04)),
-        ),
-        child: const SizedBox(
-          height: 64,
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      ),
+      loading: () => const SkeletonListTile(),
       error: (e, _) => AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
