@@ -9,15 +9,13 @@ import '../../features/budgets/data/budget_remote_data_source.dart';
 import 'category_repository.dart';
 
 class BudgetRepository {
-  const BudgetRepository(this._dataSource, this._categoryRepo);
+  BudgetRepository(this._dataSource, this._categoryRepo);
   final BudgetRemoteDataSource _dataSource;
   final CategoryRepository _categoryRepo;
 
-  static final Map<String, StreamController<List<BudgetModel>>> _controllers =
-      <String, StreamController<List<BudgetModel>>>{};
-  static final Map<String, List<BudgetModel>> _cache =
-      <String, List<BudgetModel>>{};
-  static final Map<String, Timer> _pollers = <String, Timer>{};
+  final Map<String, StreamController<List<BudgetModel>>> _controllers = {};
+  final Map<String, List<BudgetModel>> _cache = {};
+  final Map<String, Timer> _pollers = {};
 
   StreamController<List<BudgetModel>> _controllerFor(String userId) {
     return _controllers.putIfAbsent(
@@ -32,13 +30,12 @@ class BudgetRepository {
     return copy;
   }
 
-  String _signature(List<BudgetModel> list) {
-    return list
-        .map(
-          (b) =>
-              '${b.id}|${b.name}|${b.allocated}|${b.period.name}|${b.updatedAt?.millisecondsSinceEpoch ?? 0}|${b.categoryIds.join(',')}',
-        )
-        .join(';');
+  int _signature(List<BudgetModel> list) {
+    int hash = 0;
+    for (final b in list) {
+      hash = hash * 31 + b.id.hashCode;
+    }
+    return hash;
   }
 
   Future<void> _refreshUser(String userId) async {
@@ -76,7 +73,9 @@ class BudgetRepository {
               );
             }
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('[BudgetRepository] merge rename failed: $e');
+        }
         return fb;
       }).toList();
 
@@ -93,7 +92,7 @@ class BudgetRepository {
   void _startPolling(String userId) {
     if (_pollers.containsKey(userId)) return;
     _pollers[userId] = Timer.periodic(
-      const Duration(seconds: 5),
+      const Duration(seconds: 30),
       (_) => _refreshUser(userId),
     );
   }
@@ -167,7 +166,9 @@ class BudgetRepository {
           categoryIdsToUse = merged;
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[BudgetRepository] update merge failed: $e');
+    }
 
     final modelToInsert = BudgetModel(
       id: updated.id,
@@ -207,7 +208,9 @@ class BudgetRepository {
           }
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[BudgetRepository] update category rename failed: $e');
+    }
   }
 
   Future<void> delete(String userId, String id) async {
@@ -232,7 +235,9 @@ class BudgetRepository {
 
         final sub = shared.stream.listen(
           controller.add,
-          onError: (_, __) {},
+          onError: (err, _) {
+            debugPrint('[BudgetRepository] stream error: $err');
+          },
         );
 
         controller.onCancel = () => sub.cancel();
@@ -249,7 +254,9 @@ class BudgetRepository {
     final t = _pollers.remove(userId);
     try {
       t?.cancel();
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[BudgetRepository] disablePolling error: $e');
+    }
   }
 
   /// Apply a remote websocket budget event to the local cache.
@@ -398,7 +405,9 @@ class BudgetRepository {
               }
             }
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('[BudgetRepository] remote event merge failed: $e');
+        }
 
         final current = [...(_cache[userId] ?? const <BudgetModel>[])];
         final idx = current.indexWhere((b) => b.id == id);
@@ -411,7 +420,9 @@ class BudgetRepository {
         _cache[userId] = next;
         _controllerFor(userId).add(next);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[BudgetRepository] applyRemoteBudgetEvent failed: $e');
+    }
   }
 
   Future<void> addAdjustment({
@@ -450,6 +461,18 @@ class BudgetRepository {
     final next = _sorted(current);
     _cache[userId] = next;
     _controllerFor(userId).add(next);
+  }
+
+  /// Cleans up all resources for a given userId (called on sign-out).
+  void disposeForUser(String userId) {
+    disablePollingForUser(userId);
+    _cache.remove(userId);
+    final controller = _controllers.remove(userId);
+    try {
+      controller?.close();
+    } catch (e) {
+      debugPrint('[BudgetRepository] disposeForUser error: $e');
+    }
   }
 }
 

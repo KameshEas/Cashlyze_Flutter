@@ -1,5 +1,8 @@
+How can import 'package:flutter/foundation.dart';
+
 enum RecurringFrequency { weekly, monthly }
 
+@immutable
 class RecurringRule {
   final String id;
   final String userId;
@@ -59,4 +62,48 @@ class RecurringRule {
           : 'monthly',
     };
   }
+
+  RecurringRule copyWith({
+    String? id,
+    String? userId,
+    String? title,
+    double? amount,
+    bool? isIncome,
+    String? categoryId,
+    DateTime? startDate,
+    DateTime? lastPostedDate,
+    RecurringFrequency? frequency,
+    bool clearCategoryId = false,
+    bool clearLastPostedDate = false,
+  }) {
+    return RecurringRule(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      title: title ?? this.title,
+      amount: amount ?? this.amount,
+      isIncome: isIncome ?? this.isIncome,
+      categoryId: clearCategoryId ? null : (categoryId ?? this.categoryId),
+      startDate: startDate ?? this.startDate,
+      lastPostedDate: clearLastPostedDate ? null : (lastPostedDate ?? this.lastPostedDate),
+      frequency: frequency ?? this.frequency,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RecurringRule &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          userId == other.userId &&
+          title == other.title &&
+          amount == other.amount &&
+          isIncome == other.isIncome &&
+          categoryId == other.categoryId &&
+          startDate == other.startDate &&
+          lastPostedDate == other.lastPostedDate &&
+          frequency == other.frequency;
+
+  @override
+  int get hashCode => Object.hash(id, userId, title, amount, isIncome, categoryId, startDate, lastPostedDate, frequency);
 }

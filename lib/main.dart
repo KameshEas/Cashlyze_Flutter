@@ -81,10 +81,15 @@ void main() async {
   // sure binding initialization and `runApp` happen in the same zone.
   await _appRunner();
 
-  // Initialize OneSignal (fire-and-forget). App ID from request.
+  // Initialize OneSignal (fire-and-forget). App ID from .env.
   () async {
     try {
-      await OneSignal.initialize('37af7f2d-22d4-4eac-972b-50cb1377fbb8');
+      final oneSignalAppId = dotenv.env['ONESIGNAL_APP_ID'];
+      if (oneSignalAppId == null || oneSignalAppId.isEmpty) {
+        if (!kReleaseMode) debugPrint('ONESIGNAL_APP_ID not set — OneSignal disabled.');
+        return;
+      }
+      await OneSignal.initialize(oneSignalAppId);
       if (!kReleaseMode) debugPrint('OneSignal initialized');
       try {
         final canRequest = await OneSignal.Notifications.canRequest();
@@ -114,11 +119,7 @@ void main() async {
 
   final sentryDsn = (sentryFromDotenv != null && sentryFromDotenv.isNotEmpty)
       ? sentryFromDotenv
-      : const String.fromEnvironment(
-          'SENTRY_DSN',
-          defaultValue:
-              'https://bc9d78a3c4da4aa4f78f3620f1eea37c@o4511054838300672.ingest.us.sentry.io/4511054843674624',
-        );
+      : const String.fromEnvironment('SENTRY_DSN');
 
   if (sentryDsn.isEmpty) {
     if (!kReleaseMode) debugPrint('SENTRY_DSN not set — Sentry disabled.');

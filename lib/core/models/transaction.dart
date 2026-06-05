@@ -1,6 +1,7 @@
-class TransactionModel {
+import 'package:flutter/foundation.dart';
 
-  
+@immutable
+class TransactionModel {
   final String id;
   final String userId;
   final String title;
@@ -49,4 +50,50 @@ class TransactionModel {
       'tags': tags,
     };
   }
+
+  TransactionModel copyWith({
+    String? id,
+    String? userId,
+    String? title,
+    double? amount,
+    String? categoryId,
+    String? categoryName,
+    DateTime? date,
+    String? notes,
+    List<String>? tags,
+    bool clearCategoryId = false,
+    bool clearCategoryName = false,
+    bool clearNotes = false,
+    bool clearTags = false,
+  }) {
+    return TransactionModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      title: title ?? this.title,
+      amount: amount ?? this.amount,
+      categoryId: clearCategoryId ? null : (categoryId ?? this.categoryId),
+      categoryName: clearCategoryName ? null : (categoryName ?? this.categoryName),
+      date: date ?? this.date,
+      notes: clearNotes ? null : (notes ?? this.notes),
+      tags: clearTags ? null : (tags ?? this.tags),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TransactionModel &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          userId == other.userId &&
+          title == other.title &&
+          amount == other.amount &&
+          categoryId == other.categoryId &&
+          categoryName == other.categoryName &&
+          date == other.date &&
+          notes == other.notes &&
+          listEquals(tags, other.tags);
+
+  @override
+  int get hashCode => Object.hash(id, userId, title, amount, categoryId, categoryName, date, notes, tags == null ? null : Object.hashAll(tags!));
 }

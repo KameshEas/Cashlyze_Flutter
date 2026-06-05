@@ -213,10 +213,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.error.withOpacity(0.08),
+                      color: theme.colorScheme.error.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: theme.colorScheme.error.withOpacity(0.3),
+                        color: theme.colorScheme.error.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(

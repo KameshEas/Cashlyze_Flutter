@@ -27,25 +27,35 @@ final wsListenerProvider = Provider<void>((ref) {
         final prevId = previous.userId;
         final txnRepo = ref.read(transactionRepositoryProvider);
         final budgetRepo = ref.read(budgetRepositoryProvider);
-        txnRepo.disablePollingForUser(prevId);
-        budgetRepo.disablePollingForUser(prevId);
-      } catch (_) {}
+        txnRepo.disposeForUser(prevId);
+        budgetRepo.disposeForUser(prevId);
+      } catch (e) {
+        debugPrint('[wsListenerProvider] cleanup previous user failed: $e');
+      }
     }
 
     if (next == null) {
       // Signed out: cancel subscription and disconnect
       try {
         sub?.cancel();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[wsListenerProvider] sub cancel failed: $e');
+      }
       try {
         stateSub?.cancel();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[wsListenerProvider] stateSub cancel failed: $e');
+      }
       try {
         fallbackSub?.cancel();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[wsListenerProvider] fallbackSub cancel failed: $e');
+      }
       try {
         ws.disconnect();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[wsListenerProvider] ws disconnect failed: $e');
+      }
       sub = null;
       return;
     }
@@ -58,7 +68,9 @@ final wsListenerProvider = Provider<void>((ref) {
       try {
         txnRepo.enablePollingForUser(next.userId);
         budgetRepo.enablePollingForUser(next.userId);
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[wsListenerProvider] enablePolling failed: $e');
+      }
       try {
         await ws.connect(next.userId);
       } catch (e) {
@@ -67,29 +79,35 @@ final wsListenerProvider = Provider<void>((ref) {
 
       try {
         await sub?.cancel();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[wsListenerProvider] sub cancel 2 failed: $e');
+      }
 
       // Cancel previous listeners
       try {
         await stateSub?.cancel();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[wsListenerProvider] stateSub cancel 2 failed: $e');
+      }
       try {
         await fallbackSub?.cancel();
-      } catch (_) {}
-
-      // txnRepo/budgetRepo already read above; reuse local variables
+      } catch (e) {
+        debugPrint('[wsListenerProvider] fallbackSub cancel 2 failed: $e');
+      }
 
       sub = ws.events.listen((event) {
         final t = event.type;
         final payload = event.payload;
 
-        // Categories: refresh category list
+        // Categories: refresh category list — only on category-specific events
         if (t == WsEventType.categoryCreated ||
             t == WsEventType.categoryUpdated ||
             t == WsEventType.categoryDeleted) {
           try {
             ref.invalidate(userCategoriesProvider);
-          } catch (_) {}
+          } catch (e) {
+            debugPrint('[wsListenerProvider] invalidate categories failed: $e');
+          }
           return;
         }
 
@@ -98,27 +116,24 @@ final wsListenerProvider = Provider<void>((ref) {
             t == WsEventType.transactionDeleted) {
           try {
             txnRepo.applyRemoteTransactionEvent(next.userId, t, payload);
-
-            final hasCategoryInfo = (payload['category_id'] != null ||
-                payload['categoryId'] != null ||
-                payload['category_name'] != null ||
-                payload['category'] != null);
-            if (hasCategoryInfo) {
-              try {
-                ref.invalidate(userCategoriesProvider);
-              } catch (_) {}
-            }
-          } catch (_) {}
+            // Only invalidate categories if a category-specific event arrives,
+            // not on every transaction event with category metadata.
+          } catch (e) {
+            debugPrint('[wsListenerProvider] transaction event failed: $e');
+          }
           return;
         }
 
-        // Budgets: update cache directly and force-refresh categories/txns
-        if (t == WsEventType.budgetCreated || t == WsEventType.budgetUpdated || t == 'budget_utilization_changed' || t == WsEventType.budgetDeleted) {
+        // Budgets: update cache directly
+        if (t == WsEventType.budgetCreated ||
+            t == WsEventType.budgetUpdated ||
+            t == 'budget_utilization_changed' ||
+            t == WsEventType.budgetDeleted) {
           try {
             budgetRepo.applyRemoteBudgetEvent(next.userId, t, payload);
-            try { ref.invalidate(userCategoriesProvider); } catch (_) {}
-            try { ref.invalidate(userTransactionsProvider); } catch (_) {}
-          } catch (_) {}
+          } catch (e) {
+            debugPrint('[wsListenerProvider] budget event failed: $e');
+          }
           return;
         }
       });
@@ -130,7 +145,9 @@ final wsListenerProvider = Provider<void>((ref) {
             txnRepo.disablePollingForUser(next.userId);
             budgetRepo.disablePollingForUser(next.userId);
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('[wsListenerProvider] state change failed: $e');
+        }
       });
 
       // If websocket falls back to polling, enable periodic polling on repos.
@@ -138,7 +155,9 @@ final wsListenerProvider = Provider<void>((ref) {
         try {
           txnRepo.enablePollingForUser(next.userId);
           budgetRepo.enablePollingForUser(next.userId);
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('[wsListenerProvider] fallback poll failed: $e');
+        }
       });
     });
   });
@@ -146,16 +165,24 @@ final wsListenerProvider = Provider<void>((ref) {
   ref.onDispose(() {
     try {
       sub?.cancel();
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[wsListenerProvider] dispose sub cancel failed: $e');
+    }
     try {
       stateSub?.cancel();
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[wsListenerProvider] dispose stateSub cancel failed: $e');
+    }
     try {
       fallbackSub?.cancel();
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[wsListenerProvider] dispose fallbackSub cancel failed: $e');
+    }
     try {
       ws.disconnect();
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[wsListenerProvider] dispose ws disconnect failed: $e');
+    }
   });
 
 });

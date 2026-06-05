@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
+
 /// Lightweight representation of the currently authenticated user.
 ///
 /// Replaces `firebase_auth.User` throughout the codebase.  The identity is
 /// backed by the JWT issued by the Cashlyze backend — not by Firebase Auth.
+@immutable
 class AuthUser {
   const AuthUser({
     required this.userId,

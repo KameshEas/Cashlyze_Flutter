@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart';
+
 enum BudgetPeriod { daily, weekly, monthly }
 
+@immutable
 class BudgetModel {
   final String id;
   final String userId;
@@ -48,4 +51,44 @@ class BudgetModel {
       'updated_at_ms': updatedAt?.millisecondsSinceEpoch,
     };
   }
+
+  BudgetModel copyWith({
+    String? id,
+    String? userId,
+    String? name,
+    double? allocated,
+    BudgetPeriod? period,
+    List<String>? categoryIds,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool clearUpdatedAt = false,
+  }) {
+    return BudgetModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      name: name ?? this.name,
+      allocated: allocated ?? this.allocated,
+      period: period ?? this.period,
+      categoryIds: categoryIds ?? this.categoryIds,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: clearUpdatedAt ? null : (updatedAt ?? this.updatedAt),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BudgetModel &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          userId == other.userId &&
+          name == other.name &&
+          allocated == other.allocated &&
+          period == other.period &&
+          listEquals(categoryIds, other.categoryIds) &&
+          createdAt == other.createdAt &&
+          updatedAt == other.updatedAt;
+
+  @override
+  int get hashCode => Object.hash(id, userId, name, allocated, period, Object.hashAll(categoryIds), createdAt, updatedAt);
 }

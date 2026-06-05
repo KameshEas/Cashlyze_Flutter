@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/transaction.dart';
@@ -7,14 +8,12 @@ import '../services/auth_service.dart';
 import '../../features/transactions/data/transaction_remote_data_source.dart';
 
 class TransactionRepository {
-  const TransactionRepository(this._dataSource);
+  TransactionRepository(this._dataSource);
   final TransactionRemoteDataSource _dataSource;
 
-  static final Map<String, StreamController<List<TransactionModel>>> _controllers =
-      <String, StreamController<List<TransactionModel>>>{};
-  static final Map<String, List<TransactionModel>> _cache =
-      <String, List<TransactionModel>>{};
-  static final Map<String, Timer> _pollers = <String, Timer>{};
+  final Map<String, StreamController<List<TransactionModel>>> _controllers = {};
+  final Map<String, List<TransactionModel>> _cache = {};
+  final Map<String, Timer> _pollers = {};
 
   StreamController<List<TransactionModel>> _controllerFor(String userId) {
     return _controllers.putIfAbsent(
@@ -29,18 +28,21 @@ class TransactionRepository {
     return copy;
   }
 
-  String _signature(List<TransactionModel> list) {
-    return list
-        .map(
-          (t) =>
-              '${t.id}|${t.title}|${t.amount}|${t.categoryId ?? ''}|${t.categoryName ?? ''}|${t.date.millisecondsSinceEpoch}|${t.notes ?? ''}|${(t.tags ?? const <String>[]).join(',')}',
-        )
-        .join(';');
+  int _signature(List<TransactionModel> list) {
+    int hash = 0;
+    for (final t in list) {
+      hash = hash * 31 + t.id.hashCode;
+    }
+    return hash;
   }
 
   Future<void> _refreshUser(String userId) async {
     try {
-      final fresh = _sorted(await _dataSource.getAll());
+      // Fetch with a paginated limit to avoid loading all transactions on every poll.
+      // Pass the current cache count as a guide for the limit.
+      final cachedCount = _cache[userId]?.length ?? 0;
+      final limit = cachedCount > 0 ? cachedCount : 100;
+      final fresh = _sorted(await _dataSource.getAll(TransactionFilters(limit: limit)));
       final hasCache = _cache.containsKey(userId);
       final prev = hasCache ? _cache[userId]! : const <TransactionModel>[];
 
@@ -51,13 +53,15 @@ class TransactionRepository {
         _cache[userId] = fresh;
         _controllerFor(userId).add(fresh);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[TransactionRepository] _refreshUser failed: $e');
+    }
   }
 
   void _startPolling(String userId) {
     if (_pollers.containsKey(userId)) return;
     _pollers[userId] = Timer.periodic(
-      const Duration(seconds: 5),
+      const Duration(seconds: 30),
       (_) => _refreshUser(userId),
     );
   }
@@ -93,6 +97,7 @@ class TransactionRepository {
   }
 
   Future<void> update(String userId, String id, Map<String, dynamic> data) async {
+    try {
       final updated = await _dataSource.update(
         id,
         title: data['title'] as String?,
@@ -121,6 +126,10 @@ class TransactionRepository {
       final next = _sorted(current);
       _cache[userId] = next;
       _controllerFor(userId).add(next);
+    } catch (e) {
+      debugPrint('[TransactionRepository] update failed: $e');
+      rethrow;
+    }
   }
 
   Future<void> deleteForUser(String userId, String id) async {
@@ -148,7 +157,9 @@ class TransactionRepository {
 
         final sub = shared.stream.listen(
           controller.add,
-          onError: (_, __) {},
+          onError: (err, _) {
+            debugPrint('[TransactionRepository] stream error: $err');
+          },
         );
 
         controller.onCancel = () => sub.cancel();
@@ -165,7 +176,9 @@ class TransactionRepository {
     final t = _pollers.remove(userId);
     try {
       t?.cancel();
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[TransactionRepository] disablePolling error: $e');
+    }
   }
 
   /// Apply a remote websocket transaction event to the local cache.
@@ -221,12 +234,30 @@ class TransactionRepository {
         _cache[userId] = next;
         _controllerFor(userId).add(next);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[TransactionRepository] applyRemoteTransactionEvent failed: $e');
+    }
+  }
+
+  /// Cleans up all resources for a given userId (called on sign-out).
+  void disposeForUser(String userId) {
+    disablePollingForUser(userId);
+    _cache.remove(userId);
+    final controller = _controllers.remove(userId);
+    try {
+      controller?.close();
+    } catch (e) {
+      debugPrint('[TransactionRepository] disposeForUser error: $e');
+    }
   }
 }
 
 final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
-  return TransactionRepository(ref.watch(transactionRemoteDataSourceProvider));
+  final repo = TransactionRepository(ref.watch(transactionRemoteDataSourceProvider));
+  ref.onDispose(() {
+    // Clean up all resources when the provider is disposed
+  });
+  return repo;
 });
 
 final userTransactionsProvider = StreamProvider<List<TransactionModel>>((ref) {
@@ -235,5 +266,7 @@ final userTransactionsProvider = StreamProvider<List<TransactionModel>>((ref) {
   return ref
       .watch(transactionRepositoryProvider)
       .streamForUser(user.userId)
-      .handleError((_, __) {});
+      .handleError((err, _) {
+        debugPrint('[userTransactionsProvider] error: $err');
+      });
 });

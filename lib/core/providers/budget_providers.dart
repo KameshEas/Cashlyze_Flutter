@@ -140,10 +140,6 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
       candidates.add('general');
     }
 
-    // Always print instrumentation so developers can see matching
-    // candidates in all build modes when debugging this issue.
-    print('[BudgetsUtil] tx ${t.id} id=${t.categoryId} name=${t.categoryName} candidates=${candidates.join(', ')}');
-
     // Find the primary budget for the first candidate that has one
     String? ownerId;
     String? matchedCandidate;
@@ -155,7 +151,6 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
       }
     }
 
-    print('[BudgetsUtil] tx ${t.id} matched=$matchedCandidate owner=$ownerId');
     if (ownerId == null) continue;
 
     final start = periodStartById[ownerId]!;

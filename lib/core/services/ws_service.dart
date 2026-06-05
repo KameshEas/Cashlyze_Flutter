@@ -123,17 +123,13 @@ class WsService {
     }
 
     final url = ApiEndpoints.wsUser(_userId!, token);
-    _debugLog('Connecting to $url');
-
-    // Parse the URL and log parsed components to help diagnose host/port issues
-    final uri = Uri.parse(url);
-    _debugLog("Parsed URI -> scheme=${uri.scheme}, host=${uri.host}, port=${uri.hasPort ? uri.port : 'unspecified'}, path=${uri.path}");
+    _debugLog('Connecting to WebSocket for user $_userId');
 
     try {
       _channelSub?.cancel();
       _channel?.sink.close();
 
-      _channel = WebSocketChannel.connect(uri);
+      _channel = WebSocketChannel.connect(Uri.parse(url));
       await _channel!.ready;
 
       _setConnectionState(WsConnectionState.connected);
@@ -205,8 +201,7 @@ class WsService {
 
   static void _debugLog(String msg) {
     if (kDebugMode) {
-      // ignore: avoid_print
-      print('[WsService] $msg');
+      debugPrint('[WsService] $msg');
     }
   }
 }
