@@ -39,9 +39,15 @@ class EMIDashboardScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: plansAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Failed to load: $e')),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(userEMIPlansProvider);
+          await ref.read(userEMIPlansProvider.future);
+        },
+        displacement: 40.0,
+        child: plansAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('Failed to load: $e')),
         data: (plans) {
           if (plans.isEmpty) {
             return Center(
@@ -71,6 +77,7 @@ class EMIDashboardScreen extends ConsumerWidget {
           );
         },
       ),
+        ),
     );
   }
 }
