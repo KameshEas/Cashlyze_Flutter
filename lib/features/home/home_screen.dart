@@ -61,42 +61,47 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const BalanceCard(),
-            const SizedBox(height: 40),
-            Text(
-              t?.quickActions ?? 'Quick Actions',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const QuickActions(),
-            if (hasEmis) ...[
-              const SizedBox(height: 24),
+      body: RefreshIndicator(
+        onRefresh: () => _performRefresh(context, ref),
+        displacement: 40.0,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const BalanceCard(),
+              const SizedBox(height: 40),
               Text(
-                t?.emiTracker ?? 'EMI Tracker',
+                t?.quickActions ?? 'Quick Actions',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 12),
-              _buildUpcomingEmi(context, ref, currency),
-            ],
-            const SizedBox(height: 24),
-            Text(
-              t?.recentTransactions ?? 'Recent Transactions',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+              const SizedBox(height: 16),
+              const QuickActions(),
+              if (hasEmis) ...[
+                const SizedBox(height: 24),
+                Text(
+                  t?.emiTracker ?? 'EMI Tracker',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildUpcomingEmi(context, ref, currency),
+              ],
+              const SizedBox(height: 24),
+              Text(
+                t?.recentTransactions ?? 'Recent Transactions',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            _buildRecentTransactions(context, ref, currency, txsAsync),
-          ],
+              const SizedBox(height: 16),
+              _buildRecentTransactions(context, ref, currency, txsAsync),
+            ],
+          ),
         ),
       ),
     );
@@ -243,6 +248,34 @@ class HomeScreen extends ConsumerWidget {
         );
       },
     );
+  }
+
+  Future<void> _performRefresh(final BuildContext context, final WidgetRef ref) async {
+    try {
+      ref.invalidate(currentMonthKpisProvider);
+      ref.invalidate(recentTransactionsProvider);
+      ref.invalidate(userEMIPlansProvider);
+      ref.invalidate(emiUpcomingProvider);
+      ref.invalidate(recurringProcessorProvider);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Dashboard refreshed'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Refresh failed: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
   }
 }
 
