@@ -1,7 +1,9 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
-import '../repositories/transaction_repository.dart';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../models/transaction.dart';
+import '../repositories/transaction_repository.dart';
 import '../services/auth_service.dart';
 
 enum TimeRange { last7d, last30d, last90d }
@@ -22,7 +24,7 @@ final recentTransactionsProvider = StreamProvider<List<TransactionModel>>((
   if (user == null) return Stream.value(<TransactionModel>[]);
   final repo = ref.watch(transactionRepositoryProvider);
   final stream = repo.streamForUser(user.uid);
-  return stream.timeout(const Duration(seconds: 15)).handleError((_, __) {});
+  return stream.timeout(const Duration(seconds: 15)).handleError((_, _) {});
 });
 
 class TransactionsCacheNotifier extends Notifier<List<TransactionModel>> {
@@ -40,7 +42,7 @@ class TransactionsCacheNotifier extends Notifier<List<TransactionModel>> {
         loading: () {
           // keep last known state during loading
         },
-        error: (_, __) {
+        error: (_, _) {
           // keep last known state on error
         },
       );
@@ -94,13 +96,13 @@ final monthlyTrendProvider = Provider<List<double>>((ref) {
   final now = DateTime.now();
   final months = List.generate(
     6,
-    (i) => DateTime(now.year, now.month - (5 - i), 1),
+    (i) => DateTime(now.year, now.month - (5 - i)),
   );
   final values = List<double>.filled(6, 0);
   for (final t in txs) {
     for (var i = 0; i < months.length; i++) {
       final m = months[i];
-      final next = DateTime(m.year, m.month + 1, 1);
+      final next = DateTime(m.year, m.month + 1);
       if (t.date.isAfter(m) && t.date.isBefore(next)) {
         values[i] += t.amount.abs();
       }

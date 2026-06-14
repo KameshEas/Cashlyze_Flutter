@@ -1,7 +1,7 @@
+import 'package:cashlyze/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:cashlyze/main.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -64,10 +64,8 @@ void main() {
 
       // Look for toggle button
       final toggleFinder = find.textContaining('Sign Up');
-      
+
       if (toggleFinder.evaluate().isNotEmpty) {
-        final initialText = tester.widget<Text>(toggleFinder.first).data;
-        
         // Tap toggle
         await tester.tap(toggleFinder.first);
         await tester.pumpAndSettle();

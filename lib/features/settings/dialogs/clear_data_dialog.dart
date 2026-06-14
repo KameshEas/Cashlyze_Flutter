@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/providers/shared_prefs_provider.dart';
 
 /// Dialog for clearing all user data with export option
 class ClearDataDialog extends ConsumerStatefulWidget {
@@ -24,7 +23,6 @@ class _ClearDataDialogState extends ConsumerState<ClearDataDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final prefs = ref.read(sharedPrefsServiceProvider);
     final canClear = acknowledged && typed == 'DELETE';
 
     return AlertDialog(

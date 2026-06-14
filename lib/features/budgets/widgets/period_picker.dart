@@ -189,7 +189,6 @@ class _PeriodPickerState extends State<PeriodPicker> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                  width: 1,
                 ),
                 color: theme.colorScheme.surface,
               ),

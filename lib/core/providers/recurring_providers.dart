@@ -1,9 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../models/recurring.dart';
 import '../repositories/recurring_repository.dart';
 import '../repositories/transaction_repository.dart';
-import '../services/auth_service.dart';
-import '../models/recurring.dart';
 import '../services/analytics_service.dart';
+import '../services/auth_service.dart';
 
 DateTime _nextDue(DateTime from, RecurringFrequency f) {
   if (f == RecurringFrequency.weekly) {
@@ -33,7 +34,6 @@ final recurringProcessorProvider = FutureProvider<int>((ref) async {
           amount: r.isIncome ? r.amount.abs() : -r.amount.abs(),
           categoryId: r.categoryId,
           date: next,
-          notes: null,
         );
         posted++;
       }

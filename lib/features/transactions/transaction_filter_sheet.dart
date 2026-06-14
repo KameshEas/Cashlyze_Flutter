@@ -101,7 +101,7 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
                   );
                 }
                 final now = DateTime.now();
-                final m = DateTime(now.year, now.month - (i - 1), 1);
+                final m = DateTime(now.year, now.month - (i - 1));
                 final label = '${m.year}-${m.month.toString().padLeft(2, '0')}';
                 final isSelected = localMonth != null && localMonth!.year == m.year && localMonth!.month == m.month;
                 return FilterChip(label: Text(label), selected: isSelected, onSelected: (_) => setState(() => localMonth = m));
@@ -201,7 +201,7 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
               final cats = <String>['All', 'General'];
               final seenLower = <String>{'all', 'general'};
               for (final c in list) {
-                final nm = (c.name ?? '').trim();
+                final nm = (c.name).trim();
                 if (nm.isEmpty) continue;
                 final nl = nm.toLowerCase();
                 if (!seenLower.contains(nl)) {
@@ -211,7 +211,7 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
               }
               final idToName = <String, String>{};
               for (final c in list) {
-                final nm = (c.name ?? '').trim();
+                final nm = (c.name).trim();
                 if (nm.isNotEmpty) idToName[c.id] = nm;
               }
               for (final b in budgets) {

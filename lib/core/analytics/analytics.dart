@@ -2,10 +2,11 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 
 /// Lightweight analytics wrapper for common events used in Phase 0.
 class AnalyticsService {
-  AnalyticsService._private();
-  static final AnalyticsService _instance = AnalyticsService._private();
   factory AnalyticsService() => _instance;
 
+  AnalyticsService._private();
+
+  static final AnalyticsService _instance = AnalyticsService._private();
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
   /// Log onboarding completion.

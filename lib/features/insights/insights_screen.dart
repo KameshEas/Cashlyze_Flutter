@@ -318,7 +318,6 @@ class _NetHeroCard extends StatelessWidget {
             const SkeletonLine(height: 32, width: 160)
           else
             Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
                   child: Text(
@@ -606,7 +605,6 @@ class _MonthlyTrendCard extends StatelessWidget {
         child: LineChart(
           LineChartData(
             gridData: FlGridData(
-              show: true,
               drawVerticalLine: false,
               getDrawingHorizontalLine: (_) => FlLine(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
@@ -626,7 +624,7 @@ class _MonthlyTrendCard extends StatelessWidget {
                     }
                     final now = DateTime.now();
                     final offset = monthly.length - 1 - idx;
-                    final m = DateTime(now.year, now.month - offset, 1);
+                    final m = DateTime(now.year, now.month - offset);
                     return Padding(
                       padding: const EdgeInsets.only(top: 6),
                       child: Text(
@@ -681,7 +679,6 @@ class _MonthlyTrendCard extends StatelessWidget {
                 barWidth: 2.5,
                 color: color,
                 dotData: FlDotData(
-                  show: true,
                   getDotPainter: (spot, _, bar, i) => FlDotCirclePainter(
                     radius: 3.5,
                     color: color,

@@ -46,7 +46,7 @@ class CategoryPickerField extends ConsumerWidget {
         error: (error, stack) {},
         data: (list) {
           for (final c in list) {
-            final name = (c.name ?? '').trim();
+            final name = (c.name).trim();
             if (name.isEmpty) continue;
             final key = name.toLowerCase();
             if (!unique.containsKey(key)) unique[key] = name;
@@ -59,7 +59,7 @@ class CategoryPickerField extends ConsumerWidget {
         error: (error, stack) {},
         data: (list) {
           for (final b in list) {
-            final name = (b.name ?? '').trim();
+            final name = (b.name).trim();
             if (name.isEmpty) continue;
             final key = name.toLowerCase();
             if (!unique.containsKey(key)) unique[key] = name;
@@ -77,7 +77,6 @@ class CategoryPickerField extends ConsumerWidget {
           context: context,
           useRootNavigator: true,
           isScrollControlled: true,
-          isDismissible: true,
           backgroundColor: theme.colorScheme.surface,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(16)),

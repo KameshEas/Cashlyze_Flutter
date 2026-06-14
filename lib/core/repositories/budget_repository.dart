@@ -3,9 +3,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/budgets/data/budget_remote_data_source.dart';
 import '../models/budget.dart';
 import '../services/auth_service.dart';
-import '../../features/budgets/data/budget_remote_data_source.dart';
 import 'category_repository.dart';
 
 class BudgetRepository {
@@ -201,7 +201,7 @@ class BudgetRepository {
           // Look up categories for the user and find a case-insensitive match
           final lookupUserId = previousUserId ?? resolvedUserId;
           final cats = await _categoryRepo.getAllForUser(lookupUserId);
-          final matches = cats.where((c) => (c.name ?? '').trim().toLowerCase() == oldName.toLowerCase()).toList();
+          final matches = cats.where((c) => (c.name).trim().toLowerCase() == oldName.toLowerCase()).toList();
           if (matches.isNotEmpty) {
             final match = matches.first;
             await _categoryRepo.update(resolvedUserId, match.id, {'name': newName});
@@ -502,7 +502,6 @@ final userBudgetsProvider = StreamProvider<List<BudgetModel>>((ref) {
       period: BudgetPeriod.monthly,
       categoryIds: const [],
       createdAt: DateTime.fromMillisecondsSinceEpoch(0),
-      updatedAt: null,
     );
     return [general, ...list];
   });

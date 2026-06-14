@@ -47,8 +47,8 @@ class EMIRepository {
 
   Stream<List<EMIPayment>> streamUpcomingThisMonth(String userId) {
     final now = DateTime.now();
-    final start = DateTime(now.year, now.month, 1);
-    final end = DateTime(now.year, now.month + 1, 1);
+    final start = DateTime(now.year, now.month);
+    final end = DateTime(now.year, now.month + 1);
     return Stream.fromFuture(
       _dataSource.getAllPlans().then((plans) async {
         final upcoming = <EMIPayment>[];
@@ -74,8 +74,8 @@ class EMIRepository {
 
   Future<List<EMIPayment>> getUpcomingPaymentsThisMonthFuture(String userId) async {
     final now = DateTime.now();
-    final start = DateTime(now.year, now.month, 1);
-    final end = DateTime(now.year, now.month + 1, 1);
+    final start = DateTime(now.year, now.month);
+    final end = DateTime(now.year, now.month + 1);
     final upcoming = <EMIPayment>[];
     final plans = await _dataSource.getAllPlans();
     for (final plan in plans) {

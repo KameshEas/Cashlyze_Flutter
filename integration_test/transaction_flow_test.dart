@@ -1,7 +1,7 @@
+import 'package:cashlyze/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:cashlyze/main.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -51,8 +51,6 @@ void main() {
 
       // Look for quick action buttons on home screen
       final transferFinder = find.text('Transfer');
-      final topUpFinder = find.text('Top-up');
-      final billFinder = find.text('Bill');
 
       if (transferFinder.evaluate().isNotEmpty) {
         await tester.tap(transferFinder.first);

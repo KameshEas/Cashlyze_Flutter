@@ -191,7 +191,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           const SizedBox(height: 4),
           Expanded(
             child: Builder(builder: (ctx) {
-              final filterState = ref.watch(transactionFilterProvider);
               if (txsAsync.isLoading) {
                 return RefreshIndicator(
                   onRefresh: () async {

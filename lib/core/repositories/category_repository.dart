@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/categories/data/category_remote_data_source.dart';
 import '../models/category.dart';
 import '../services/auth_service.dart';
-import '../../features/categories/data/category_remote_data_source.dart';
 
 class CategoryRepository {
   const CategoryRepository(this._dataSource);

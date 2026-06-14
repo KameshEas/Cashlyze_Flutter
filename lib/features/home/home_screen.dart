@@ -63,7 +63,6 @@ class HomeScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () => _performRefresh(context, ref),
-        displacement: 40.0,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           physics: const AlwaysScrollableScrollPhysics(),
@@ -114,7 +113,6 @@ class HomeScreen extends ConsumerWidget {
   ) {
     final upcomingAsync = ref.watch(emiUpcomingProvider);
     final theme = Theme.of(context);
-    final t = AppLocalizations.of(context);
     return upcomingAsync.when(
       loading: () => const SizedBox(
         height: 60,
@@ -205,8 +203,8 @@ class HomeScreen extends ConsumerWidget {
       ),
       data: (items) {
         final now = DateTime.now();
-        final monthStart = DateTime(now.year, now.month, 1);
-        final nextMonthStart = DateTime(now.year, now.month + 1, 1);
+        final monthStart = DateTime(now.year, now.month);
+        final nextMonthStart = DateTime(now.year, now.month + 1);
         final monthItems = items
             .where(
               (t) =>

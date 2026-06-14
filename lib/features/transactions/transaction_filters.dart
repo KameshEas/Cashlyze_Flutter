@@ -33,7 +33,7 @@ class TransactionFilterState {
     this.page = 1,
     this.pageSize = 20,
     bool? useDateRange,
-  }) : selectedMonth = selectedMonth ?? DateTime(DateTime.now().year, DateTime.now().month, 1),
+  }) : selectedMonth = selectedMonth ?? DateTime(DateTime.now().year, DateTime.now().month),
         // By default don't use a date-range; allow user to enable it.
         useDateRange = useDateRange ?? false,
         fromDate = fromDate,
@@ -150,8 +150,8 @@ final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {
   return txsAsync.maybeWhen(
     data: (items) {
       final q = f.debouncedQuery.trim().toLowerCase();
-      final monthStart = f.selectedMonth == null ? null : DateTime(f.selectedMonth!.year, f.selectedMonth!.month, 1);
-      final monthEnd = f.selectedMonth == null ? null : DateTime(f.selectedMonth!.year, f.selectedMonth!.month + 1, 1);
+      final monthStart = f.selectedMonth == null ? null : DateTime(f.selectedMonth!.year, f.selectedMonth!.month);
+      final monthEnd = f.selectedMonth == null ? null : DateTime(f.selectedMonth!.year, f.selectedMonth!.month + 1);
       final from = f.fromDate;
       final to = f.toDate;
       final filtered = items.where((e) {
@@ -205,7 +205,7 @@ final activeFilterCountProvider = Provider<int>((ref) {
   if (state.category != 'All') count++;
   if (state.minAmount != null) count++;
   if (state.maxAmount != null) count++;
-  if (state.selectedMonth != null && state.selectedMonth != DateTime(DateTime.now().year, DateTime.now().month, 1)) count++;
+  if (state.selectedMonth != null && state.selectedMonth != DateTime(DateTime.now().year, DateTime.now().month)) count++;
   return count;
 });
 

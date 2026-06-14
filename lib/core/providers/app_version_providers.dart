@@ -1,8 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../models/app_version.dart';
 import '../repositories/app_version_repository.dart';
-import '../services/app_version_service.dart';
 import '../services/analytics_service.dart';
+import '../services/app_version_service.dart';
 
 /// Provider for AppVersionService
 final appVersionServiceProvider = Provider<AppVersionService>((ref) {

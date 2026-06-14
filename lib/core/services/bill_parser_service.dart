@@ -155,7 +155,6 @@ class BillParserService {
 
       items.add(BillItem(
         description: trimmed,
-        quantity: null,
         price: price,
       ));
     }

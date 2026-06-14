@@ -16,7 +16,6 @@ void showRepoErrorSnackBar(ScaffoldMessengerState messenger, Object err, {String
     messenger.showSnackBar(
       SnackBar(
         content: Text(msg),
-        duration: const Duration(seconds: 4),
         behavior: SnackBarBehavior.floating,
       ),
     );

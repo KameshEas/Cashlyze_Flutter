@@ -1,8 +1,9 @@
 import 'package:riverpod/riverpod.dart';
+
+import '../models/scanned_bill.dart';
 import '../services/bill_ocr_service.dart';
 import '../services/bill_parser_service.dart';
 import '../services/merchant_categorizer_service.dart';
-import '../models/scanned_bill.dart';
 
 // OCR Service
 final billOCRServiceProvider = Provider<BillOCRService>((ref) {
@@ -58,7 +59,7 @@ class ScanNotifier extends Notifier<ScanState> {
   }
 
   Future<void> scanImage(String imagePath) async {
-    state = state.copyWith(isProcessing: true, errorMessage: null);
+    state = state.copyWith(isProcessing: true);
     
     try {
       // Extract text from image

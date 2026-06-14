@@ -1,15 +1,6 @@
 import 'package:flutter/material.dart';
 import '../ui/constants.dart';
 
-/// Whether to use Google Fonts via network fetching.
-///
-/// Set to `false` to avoid runtime network requests for font files.
-/// When `false`, the app uses the built-in system fonts.
-bool _useGoogleFontsNetwork = false;
-
-/// Call from tests to ensure no network fonts are used.
-void disableGoogleFontsForTests() => _useGoogleFontsNetwork = false;
-
 /// The text style to use when Google Fonts network fetch is disabled.
 /// Falls back to the default system font (Roboto on Android/iOS).
 TextStyle _fallbackTextStyle({
@@ -53,7 +44,6 @@ class AppTheme {
         error: errorColor,
         onPrimary: Colors.white,
         onSecondary: Colors.white,   // white on teal500 = readable
-        onSurface: Colors.white,
         onError: Colors.white,
       ),
       scaffoldBackgroundColor: darkBackground,
@@ -166,12 +156,9 @@ class AppTheme {
       colorScheme: const ColorScheme.light(
         primary: primaryColor,
         secondary: secondaryColor,
-        surface: Colors.white,
         error: errorColor,
-        onPrimary: Colors.white,
         onSecondary: Colors.white, // white on teal500 = readable
         onSurface: Colors.black,
-        onError: Colors.white,
       ),
       scaffoldBackgroundColor: AppColors.neutral100,
       textTheme: ThemeData.light().textTheme.apply(

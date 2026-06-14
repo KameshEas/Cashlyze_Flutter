@@ -105,7 +105,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             children: [
               Container(
@@ -354,7 +354,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         // Alert threshold slider (shown when enabled)
         if (prefs.alertsEnabled) ...[
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+            padding: const EdgeInsets.symmetric(vertical: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -390,7 +390,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   child: Slider(
                     value: (prefs.alertThreshold.clamp(0.5, 1.0)),
                     min: 0.5,
-                    max: 1.0,
                     divisions: 10,
                     label: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}% threshold',
                     onChanged: (v) {
@@ -417,7 +416,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         
         // Currency setting
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             children: [
               Container(
@@ -445,7 +444,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               const SizedBox(width: 12),
               Flexible(
-                flex: 1,
                 child: DropdownButtonFormField<String>(
                   initialValue: currency,
                   items: const [
@@ -464,7 +462,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     filled: true,
                   ),
-                  isDense: true,
                 ),
               ),
             ],
@@ -478,7 +475,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         
         // Date format setting
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             children: [
               Container(
@@ -523,8 +520,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     filled: true,
                   ),
-                  isDense: true,
-                  isExpanded: true,
                 ),
               ),
             ],
@@ -811,12 +806,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context: context,
       title: 'Backup to Drive',
       subtitle: 'Uploading transactions...',
-      type: ProgressDialogType.backup,
       progressStream: progressController.stream,
       onCancel: () {
         progressController.close();
       },
-      canCancel: true,
     );
 
     try {
@@ -925,7 +918,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       onCancel: () {
         progressController.close();
       },
-      canCancel: true,
     );
 
     try {

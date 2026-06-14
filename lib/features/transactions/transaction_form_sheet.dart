@@ -145,7 +145,6 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       context: parentCtx,
       useRootNavigator: true,
       isScrollControlled: true,
-      isDismissible: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -320,7 +319,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   );
 
                   if (widget.mode == TransactionFormMode.create) {
-                    if (!isIncome && localCategoryName != null && localCategoryName.toLowerCase() != 'general') {
+                    if (!isIncome && localCategoryName.toLowerCase() != 'general') {
                       final budgets = await ref.read(budgetRepositoryProvider).streamForUser(user.uid).first;
                       final hasBudget = budgets.any((b) => b.name.toLowerCase() == localCategoryName.toLowerCase());
                       if (!hasBudget) {

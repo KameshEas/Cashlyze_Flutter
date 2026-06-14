@@ -1,11 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/notification_service.dart';
-import '../services/local_notification_service.dart';
-import '../services/auth_service.dart';
+
 import '../providers/shared_prefs_provider.dart';
-import 'budget_providers.dart';
 import '../repositories/budget_repository.dart';
+import '../services/auth_service.dart';
+import '../services/local_notification_service.dart';
+import '../services/notification_service.dart';
+import 'budget_providers.dart';
 
 /// Provider that listens to budget utilization changes and sends a
 /// push notification when a budget crosses the user-configured threshold.

@@ -370,7 +370,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                       opacity: fade,
                                       child: SizeTransition(
                                         sizeFactor: size,
-                                        axis: Axis.vertical,
                                         axisAlignment: -1.0,
                                         child: child,
                                       ),

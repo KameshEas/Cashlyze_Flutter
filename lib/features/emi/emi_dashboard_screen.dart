@@ -44,7 +44,6 @@ class EMIDashboardScreen extends ConsumerWidget {
           ref.invalidate(userEMIPlansProvider);
           await ref.read(userEMIPlansProvider.future);
         },
-        displacement: 40.0,
         child: plansAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(child: Text('Failed to load: $e')),
@@ -108,27 +107,10 @@ class _PlanCard extends ConsumerWidget {
         final total = items.length;
         final progress = total == 0 ? 0.0 : paidCount / total;
         final pending = total - paidCount;
-        final nextDue = items.firstWhere(
-          (e) => !e.paid,
-          orElse: () => items.isNotEmpty
-              ? items.last
-              : EMIPayment(
-                  id: 'x',
-                  planId: plan.id,
-                  dueDate: plan.startDate,
-                  installment: 0,
-                  interest: 0,
-                  principal: 0,
-                  remainingPrincipal: 0,
-                  paid: false,
-                ),
-        );
-        final days = nextDue.dueDate.difference(DateTime.now()).inDays;
         double remainingAmount = items.where((x) => !x.paid).fold<double>(0, (p, e) => p + e.installment);
 
         return Dismissible(
           key: ValueKey('emi_plan_${plan.id}'),
-          direction: DismissDirection.horizontal,
           background: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             alignment: Alignment.centerLeft,
@@ -280,7 +262,6 @@ class _PlanCard extends ConsumerWidget {
                   // Progress
                   AnimatedProgressIndicator(
                     progress: progress.clamp(0.0, double.infinity),
-                    minHeight: 8,
                     backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
                   ),
                   const SizedBox(height: 8),

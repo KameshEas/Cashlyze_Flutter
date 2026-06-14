@@ -224,7 +224,6 @@ class TutorialManager {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       showDialog(
         context: context,
-        barrierDismissible: true,
         builder: (_) => tutorialBuilder(() {
           Navigator.of(context).pop();
         }),

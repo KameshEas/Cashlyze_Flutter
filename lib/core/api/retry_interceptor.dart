@@ -26,8 +26,8 @@ class RetryInterceptor extends Interceptor {
 
   @override
   Future<void> onError(
-    DioException err,
-    ErrorInterceptorHandler handler,
+    final DioException err,
+    final ErrorInterceptorHandler handler,
   ) async {
     final options = err.requestOptions;
     final method = options.method.toUpperCase();
@@ -71,7 +71,7 @@ class RetryInterceptor extends Interceptor {
     }
   }
 
-  bool _isRetryable(DioException err) {
+  bool _isRetryable(final DioException err) {
     return err.type == DioExceptionType.connectionTimeout ||
         err.type == DioExceptionType.receiveTimeout ||
         err.type == DioExceptionType.sendTimeout ||

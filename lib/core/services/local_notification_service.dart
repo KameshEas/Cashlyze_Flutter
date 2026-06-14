@@ -10,11 +10,7 @@ class LocalNotificationService {
   Future<void> init() async {
     if (_initialized) return;
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    final ios = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+    const ios = DarwinInitializationSettings();
     final settings = InitializationSettings(android: android, iOS: ios);
 
     try {
@@ -44,7 +40,6 @@ class LocalNotificationService {
         channelDescription: 'Notifications when budgets cross thresholds',
         importance: Importance.high,
         priority: Priority.high,
-        playSound: true,
       );
       final iosDetails = DarwinNotificationDetails();
       final notifDetails = NotificationDetails(android: androidDetails, iOS: iosDetails);

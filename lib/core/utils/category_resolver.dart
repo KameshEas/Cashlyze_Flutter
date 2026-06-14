@@ -16,16 +16,16 @@ import '../models/category.dart';
 /// ```
 @immutable
 class CategoryResolver {
-  CategoryResolver(this.categories) {
-    _buildMaps();
-  }
+  CategoryResolver(this.categories)
+      : _idToName = _buildIdToName(categories),
+        _nameToIds = _buildNameToIds(categories);
 
   /// The full list of user categories.
   final List<CategoryModel> categories;
 
   /// Pre-built lookup maps.
-  Map<String, String> _idToName = <String, String>{};
-  Map<String, Set<String>> _nameToIds = <String, Set<String>>{};
+  final Map<String, String> _idToName;
+  final Map<String, Set<String>> _nameToIds;
 
   /// Returns the display name for the given category id or name.
   ///
@@ -98,15 +98,23 @@ class CategoryResolver {
 
   // ── Private ──────────────────────────────────────────────────────────────
 
-  void _buildMaps() {
-    _idToName = <String, String>{};
-    _nameToIds = <String, Set<String>>{};
+  static Map<String, String> _buildIdToName(List<CategoryModel> categories) {
+    final map = <String, String>{};
     for (final c in categories) {
-      final nameTrim = (c.name ?? '').trim();
-      _idToName[c.id] = nameTrim;
-      final key = nameTrim.toLowerCase();
-      _nameToIds.putIfAbsent(key, () => <String>{}).add(c.id);
+      final nameTrim = (c.name).trim();
+      map[c.id] = nameTrim;
     }
+    return map;
+  }
+
+  static Map<String, Set<String>> _buildNameToIds(List<CategoryModel> categories) {
+    final map = <String, Set<String>>{};
+    for (final c in categories) {
+      final nameTrim = (c.name).trim();
+      final key = nameTrim.toLowerCase();
+      map.putIfAbsent(key, () => <String>{}).add(c.id);
+    }
+    return map;
   }
 }
 

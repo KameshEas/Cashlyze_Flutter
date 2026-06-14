@@ -1,7 +1,7 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/app_version.dart';
 import '../../features/version/data/app_version_remote_data_source.dart';
+import '../models/app_version.dart';
 
 class AppVersionRepository {
   const AppVersionRepository(this._dataSource);

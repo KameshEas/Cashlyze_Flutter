@@ -97,7 +97,6 @@ class ContextualTooltip extends ConsumerWidget {
               borderRadius: BorderRadius.circular(AppRadius.lg),
               border: Border.all(
                 color: accentColor.withValues(alpha: 0.3),
-                width: 1,
               ),
               boxShadow: [
                 BoxShadow(
@@ -212,12 +211,10 @@ class _AutoDismissTimer extends StatefulWidget {
 }
 
 class _AutoDismissTimerState extends State<_AutoDismissTimer> {
-  late Future<void> _future;
-
   @override
   void initState() {
     super.initState();
-    _future = Future.delayed(widget.duration, widget.onExpire);
+    Future.delayed(widget.duration, widget.onExpire);
   }
 
   @override

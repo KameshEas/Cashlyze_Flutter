@@ -261,7 +261,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   );
                 }
               } else {
-                await _complete(skipped: false);
+                await _complete();
               }
             },
             child: Text(

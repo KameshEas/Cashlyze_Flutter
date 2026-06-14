@@ -1,18 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../repositories/transaction_repository.dart';
-import '../services/categorization_service.dart';
 import 'analytics_service.dart';
 import '../repositories/budget_repository.dart';
 
 class TransactionIngestService {
   final TransactionRepository _repo;
-  final CategorizationService _categorizer;
   final AnalyticsService _analytics;
   final BudgetRepository? _budgetRepo;
 
   TransactionIngestService(
     this._repo,
-    this._categorizer,
     this._analytics, [
     this._budgetRepo,
   ]);
@@ -49,7 +46,7 @@ class TransactionIngestService {
           if (budget.id == lookupRaw) return true;
           // Match any listed category identifier (could be id or name)
           for (final bid in budget.categoryIds) {
-            final bTrim = (bid ?? '').trim();
+            final bTrim = bid.trim();
             if (bTrim.isEmpty) continue;
             if (bTrim.toLowerCase() == lcCat) return true;
             if (bTrim == lookupRaw) return true;
@@ -110,7 +107,6 @@ final transactionIngestServiceProvider = Provider<TransactionIngestService>((
 ) {
   return TransactionIngestService(
     ref.watch(transactionRepositoryProvider),
-    ref.watch(categorizationServiceProvider),
     ref.watch(analyticsServiceProvider),
     ref.watch(budgetRepositoryProvider),
   );

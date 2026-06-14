@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../services/ws_service.dart';
-import '../services/auth_service.dart';
 import '../models/auth_user.dart';
+import '../repositories/budget_repository.dart';
 import '../repositories/category_repository.dart';
 import '../repositories/transaction_repository.dart';
-import '../repositories/budget_repository.dart';
+import '../services/auth_service.dart';
+import '../services/ws_service.dart';
 
 /// Provider that ensures the WebSocket service connects when a user signs
 /// in and listens to realtime events. On relevant events it invalidates

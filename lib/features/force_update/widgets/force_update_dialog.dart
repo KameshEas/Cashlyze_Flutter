@@ -4,7 +4,6 @@ import 'dart:io';
 import '../../../../../../core/models/app_version.dart';
 import '../../../../../../core/services/store_redirect_service.dart';
 import '../../../../../../core/providers/app_version_providers.dart';
-import '../../../../../../core/theme/app_theme.dart';
 
 /// Force update screen - full-page non-dismissible blocking screen
 /// Users must update or force close the app
@@ -111,7 +110,6 @@ class _ForceUpdateDialogState extends ConsumerState<ForceUpdateDialog>
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           // Animated Icon Container
                           Container(
@@ -168,7 +166,6 @@ class _ForceUpdateDialogState extends ConsumerState<ForceUpdateDialog>
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: colorScheme.primary.withOpacity(0.2),
-                                width: 1,
                               ),
                             ),
                             padding: const EdgeInsets.all(20),

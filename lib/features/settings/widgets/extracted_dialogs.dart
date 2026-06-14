@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// A reusable delete account confirmation dialog.
 class DeleteAccountDialog extends StatefulWidget {

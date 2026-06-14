@@ -246,7 +246,6 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
 
     return Dismissible(
       key: ValueKey('budget_dismissible_${budget.id}'),
-      direction: DismissDirection.horizontal,
       background: Container(
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -378,7 +377,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           if (impactedTxs.isNotEmpty) {
             final candidates = ref
               .read(filteredBudgetsProvider)
-              .where((b) => b.id != budget.id && (b.name?.trim().toLowerCase() != 'general'))
+              .where((b) => b.id != budget.id && (b.name.trim().toLowerCase() != 'general'))
               .toList();
             final selectedTarget = await showDialog<String?>(
               context: context,
@@ -639,7 +638,6 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
-      isDismissible: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -855,7 +853,6 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
-      isDismissible: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -1072,10 +1069,8 @@ class _SectionHeader extends StatelessWidget {
 
 class _BaseCard extends StatelessWidget {
   final Widget child;
-  final EdgeInsets? padding;
   const _BaseCard({
     required this.child,
-    this.padding,
   });
 
   @override
@@ -1083,7 +1078,7 @@ class _BaseCard extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       width: double.infinity,
-      padding: padding ?? const EdgeInsets.all(AppSpacing.cardPadding),
+      padding: const EdgeInsets.all(AppSpacing.cardPadding),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: AppRadius.lgAll,
@@ -1144,7 +1139,6 @@ class _BudgetsHeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = theme.colorScheme.primary;
-    final over = utilization > 1.0;
 
     return Container(
       width: double.infinity,
@@ -1202,7 +1196,6 @@ class _BudgetsHeroCard extends StatelessWidget {
               Expanded(
                 child: AnimatedProgressIndicator(
                   progress: utilization.clamp(0.0, double.infinity),
-                  minHeight: 8,
                   backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.06),
                 ),
               ),

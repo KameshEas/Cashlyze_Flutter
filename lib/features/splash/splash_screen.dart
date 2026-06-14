@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/providers/onboarding_provider.dart';
-import '../../core/providers/shared_prefs_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   final Duration duration;

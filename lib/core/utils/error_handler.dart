@@ -55,7 +55,7 @@ class ErrorHandler {
     final Map<String, dynamic>? extraData,
   }) async {
     try {
-      final eventId = await Sentry.captureException(
+      await Sentry.captureException(
         error,
         stackTrace: stackTrace,
       );

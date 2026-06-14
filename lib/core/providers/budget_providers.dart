@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/foundation.dart';
-import '../repositories/budget_repository.dart';
-import '../repositories/category_repository.dart';
-import '../repositories/transaction_repository.dart';
+
 import '../models/budget.dart';
 import '../models/category.dart';
 import '../providers/shared_prefs_provider.dart';
+import '../repositories/budget_repository.dart';
+import '../repositories/category_repository.dart';
+import '../repositories/transaction_repository.dart';
 
 DateTime _periodStart(BudgetPeriod p) {
   final now = DateTime.now();
@@ -16,7 +16,7 @@ DateTime _periodStart(BudgetPeriod p) {
       final monday = now.subtract(Duration(days: (now.weekday - 1)));
       return DateTime(monday.year, monday.month, monday.day);
     case BudgetPeriod.monthly:
-      return DateTime(now.year, now.month, 1);
+      return DateTime(now.year, now.month);
   }
 }
 
@@ -142,11 +142,9 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
 
     // Find the primary budget for the first candidate that has one
     String? ownerId;
-    String? matchedCandidate;
     for (final c in candidates) {
       if (primaryForKey.containsKey(c)) {
         ownerId = primaryForKey[c];
-        matchedCandidate = c;
         break;
       }
     }
@@ -347,4 +345,3 @@ final orderedBudgetsProvider = Provider<List<BudgetModel>>((ref) {
 
   return budgets;
 });
-

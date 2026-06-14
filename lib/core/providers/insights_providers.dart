@@ -1,7 +1,9 @@
 import 'dart:math';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/transaction_providers.dart';
+
 import '../models/transaction.dart';
+import '../providers/transaction_providers.dart';
 
 class Kpis {
   final num income;
@@ -51,8 +53,8 @@ final currentMonthKpisProvider = Provider<Kpis>((ref) {
   );
 
   final now = DateTime.now();
-  final monthStart = DateTime(now.year, now.month, 1);
-  final nextMonthStart = DateTime(now.year, now.month + 1, 1);
+  final monthStart = DateTime(now.year, now.month);
+  final nextMonthStart = DateTime(now.year, now.month + 1);
 
   txs = txs
       .where(
