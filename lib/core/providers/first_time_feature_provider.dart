@@ -134,6 +134,32 @@ final firstTimeSettingsProvider = NotifierProvider<FirstTimeSettingsNotifier, bo
   FirstTimeSettingsNotifier.new,
 );
 
+// First-time app launch walkthrough
+class FirstTimeAppLaunchNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    final prefs = ref.read(sharedPrefsProvider);
+    final seen = prefs.getBool('first_time_app_launch_walkthrough_seen') ?? false;
+    return !seen;
+  }
+
+  Future<void> markAsSeen() async {
+    final prefs = ref.read(sharedPrefsProvider);
+    await prefs.setBool('first_time_app_launch_walkthrough_seen', true);
+    state = false;
+  }
+
+  Future<void> reset() async {
+    final prefs = ref.read(sharedPrefsProvider);
+    await prefs.setBool('first_time_app_launch_walkthrough_seen', false);
+    state = true;
+  }
+}
+
+final firstTimeAppLaunchProvider = NotifierProvider<FirstTimeAppLaunchNotifier, bool>(
+  FirstTimeAppLaunchNotifier.new,
+);
+
 // Dismissed tooltips (tracking which tooltips user has dismissed)
 class DismissedTooltipsNotifier extends Notifier<Set<String>> {
   @override

@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/providers/onboarding_provider.dart';
 import '../core/services/auth_service.dart';
 import '../core/providers/otp_pending_provider.dart';
+import '../core/providers/first_time_feature_provider.dart';
 import '../features/auth/auth_screen.dart';
 import '../features/auth/loader_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
+import '../features/onboarding/first_time_walkthrough.dart';
 import '../features/home/home_screen.dart';
 import '../features/transactions/transactions_screen.dart';
 import '../features/budgets/budget_planner_screen.dart';
@@ -30,6 +32,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateChangesProvider);
   final currentUser = ref.watch(currentUserProvider);
   final otpPending = ref.watch(otpPendingProvider);
+  final shouldShowWalkthrough = ref.watch(firstTimeAppLaunchProvider);
   const kRouteFadeDuration = Duration(milliseconds: 300);
   final shellKey = GlobalKey<NavigatorState>();
 
@@ -335,6 +338,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               : kRouteFadeDuration,
         ),
       ),
+      GoRoute(
+        path: '/walkthrough',
+        name: 'walkthrough',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const FirstTimeWalkthrough(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+              FadeTransition(opacity: animation, child: child),
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
+        ),
+      ),
 
     ],
     redirect: (context, state) {
@@ -344,6 +360,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/signup';
       final isSplash = state.matchedLocation == '/splash';
+      final isWalkthrough = state.matchedLocation == '/walkthrough';
 
       final isOtp = state.matchedLocation.startsWith('/otp');
 
@@ -375,7 +392,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       if (user != null) {
-        if (isAuthRoute || isOnboarding) {
+        // Show first-time walkthrough if user hasn't seen it yet
+        if (shouldShowWalkthrough) {
+          if (isWalkthrough) return null;
+          return '/walkthrough';
+        }
+
+        if (isAuthRoute || isOnboarding || isWalkthrough) {
           return '/';
         }
         return null;
