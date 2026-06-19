@@ -274,18 +274,15 @@ class _FirstTimeWalkthroughState extends ConsumerState<FirstTimeWalkthrough>
 }
 
 class _WalkthroughPage {
+
+  _WalkthroughPage({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.color,
+  });
   final IconData icon;
   final String title;
   final String description;
   final Color color;
-
-  _WalkthroughPage({
-    required final IconData icon,
-    required final String title,
-    required final String description,
-    required final Color color,
-  })  : icon = icon,
-        title = title,
-        description = description,
-        color = color;
 }

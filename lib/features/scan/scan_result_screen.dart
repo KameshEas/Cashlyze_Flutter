@@ -39,7 +39,7 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final scanState = ref.watch(scanProvider);
     final bill = scanState.result;
 
@@ -55,7 +55,7 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
         title: const Text('Review Receipt'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
+          onPressed: context.pop,
         ),
       ),
       body: SafeArea(
@@ -139,14 +139,14 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                   ),
-                  onTap: () => _showCategoryPicker(),
+                  onTap: _showCategoryPicker,
                 ),
               ]),
               const SizedBox(height: AppSpacing.s20),
 
               _buildSection('Date', [
                 InkWell(
-                  onTap: () => _selectDate(),
+                  onTap: _selectDate,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.s16,
@@ -185,8 +185,8 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: bill.items.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.s8),
-                      itemBuilder: (_, index) {
+                      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.s8),
+                      itemBuilder: (final _, final index) {
                         final item = bill.items[index];
                         return Container(
                           padding: const EdgeInsets.all(AppSpacing.s12),
@@ -221,7 +221,7 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: () => _confirmTransaction(),
+                  onPressed: _confirmTransaction,
                   child: const Text('Confirm & Add to Wallet'),
                 ),
               ),
@@ -243,7 +243,7 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
     );
   }
 
-  Widget _buildSection(String title, List<Widget> children) {
+  Widget _buildSection(final String title, final List<Widget> children) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -259,7 +259,7 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
     );
   }
 
-  Color _getConfidenceColor(double confidence) {
+  Color _getConfidenceColor(final double confidence) {
     if (confidence >= 0.8) return Colors.green;
     if (confidence >= 0.5) return Colors.orange;
     return Colors.red;
@@ -280,7 +280,7 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
   void _showCategoryPicker() {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (final ctx) => AlertDialog(
         title: const Text('Select Category'),
         content: SingleChildScrollView(
           child: Column(
@@ -295,7 +295,7 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
               'Other',
             ]
                 .map(
-                  (cat) => ListTile(
+                  (final cat) => ListTile(
                     title: Text(cat),
                     onTap: () {
                       categoryController.text = cat;
@@ -356,9 +356,10 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
         context.go('/transactions');
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${e.toString()}'),
+          content: Text('Error: $e'),
           backgroundColor: Colors.red,
         ),
       );

@@ -1,6 +1,6 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:cashlyze/core/services/emi_calculator.dart';
 import 'package:cashlyze/core/models/emi.dart';
+import 'package:cashlyze/core/services/emi_calculator.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Zero Cost EMI Calculator Tests', () {
@@ -10,7 +10,7 @@ void main() {
         loanAmount: 10000,
         annualRate: 0, // Zero interest
         tenureMonths: 10,
-        startDate: DateTime(2024, 1, 1),
+        startDate: DateTime(2024),
         frequency: PaymentFrequency.monthly,
       );
 
@@ -32,7 +32,7 @@ void main() {
         loanAmount: 12000,
         annualRate: 0, // Zero interest
         tenureMonths: 12,
-        startDate: DateTime(2024, 1, 1),
+        startDate: DateTime(2024),
         frequency: PaymentFrequency.quarterly,
       );
 
@@ -48,7 +48,7 @@ void main() {
         loanAmount: 5200,
         annualRate: 0, // Zero interest
         tenureMonths: 2, // ~8 weeks
-        startDate: DateTime(2024, 1, 1),
+        startDate: DateTime(2024),
         frequency: PaymentFrequency.weekly,
       );
 
@@ -69,7 +69,7 @@ void main() {
         loanAmount: 10000,
         annualRate: 0,
         tenureMonths: 10,
-        startDate: DateTime(2024, 1, 1),
+        startDate: DateTime(2024),
         frequency: PaymentFrequency.monthly,
       );
 
@@ -79,7 +79,7 @@ void main() {
         loanAmount: 10000,
         annualRate: 12, // 12% annual interest
         tenureMonths: 10,
-        startDate: DateTime(2024, 1, 1),
+        startDate: DateTime(2024),
         frequency: PaymentFrequency.monthly,
       );
 

@@ -1,12 +1,5 @@
 /// User model for Cashlyze app
 class UserModel {
-  final String uid;
-  final String email;
-  final String? displayName;
-  final String? photoURL;
-  final DateTime createdAt;
-  final DateTime? updatedAt;
-  final Map<String, dynamic>? preferences;
 
   UserModel({
     required this.uid,
@@ -20,10 +13,10 @@ class UserModel {
 
   /// Create UserModel from Firebase User
   factory UserModel.fromFirebaseUser(
-    String uid,
-    String email, {
-    String? displayName,
-    String? photoURL,
+    final String uid,
+    final String email, {
+    final String? displayName,
+    final String? photoURL,
   }) {
     return UserModel(
       uid: uid,
@@ -35,7 +28,7 @@ class UserModel {
   }
 
   /// Create UserModel from Firestore document
-  factory UserModel.fromRTDB(String id, Map<String, dynamic> data) {
+  factory UserModel.fromRTDB(final String id, final Map<String, dynamic> data) {
     return UserModel(
       uid: id,
       email: data['email'] ?? '',
@@ -48,6 +41,13 @@ class UserModel {
       preferences: data['preferences'] as Map<String, dynamic>?,
     );
   }
+  final String uid;
+  final String email;
+  final String? displayName;
+  final String? photoURL;
+  final DateTime createdAt;
+  final DateTime? updatedAt;
+  final Map<String, dynamic>? preferences;
 
   /// Convert UserModel to Firestore document
   Map<String, dynamic> toRTDB() {
@@ -63,13 +63,13 @@ class UserModel {
 
   /// Create a copy with updated fields
   UserModel copyWith({
-    String? uid,
-    String? email,
-    String? displayName,
-    String? photoURL,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    Map<String, dynamic>? preferences,
+    final String? uid,
+    final String? email,
+    final String? displayName,
+    final String? photoURL,
+    final DateTime? createdAt,
+    final DateTime? updatedAt,
+    final Map<String, dynamic>? preferences,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -88,7 +88,7 @@ class UserModel {
   }
 
   @override
-  bool operator ==(Object other) {
+  bool operator ==(final Object other) {
     if (identical(this, other)) return true;
 
     return other is UserModel &&

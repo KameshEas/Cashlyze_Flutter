@@ -5,12 +5,6 @@ import 'package:flutter/material.dart';
 /// Uses AnimatedOpacity and AnimatedContainer to transition between status states
 /// (Over Budget / Under Budget) with smooth color changes.
 class AnimatedStatusIndicator extends StatefulWidget {
-  final double progress;
-  final Duration duration;
-  final Curve curve;
-  final TextStyle? textStyle;
-  final EdgeInsetsGeometry padding;
-  final BorderRadiusGeometry borderRadius;
 
   const AnimatedStatusIndicator({
     super.key,
@@ -21,6 +15,12 @@ class AnimatedStatusIndicator extends StatefulWidget {
     this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
     this.borderRadius = const BorderRadius.all(Radius.circular(20)),
   });
+  final double progress;
+  final Duration duration;
+  final Curve curve;
+  final TextStyle? textStyle;
+  final EdgeInsetsGeometry padding;
+  final BorderRadiusGeometry borderRadius;
 
   @override
   State<AnimatedStatusIndicator> createState() =>
@@ -29,12 +29,12 @@ class AnimatedStatusIndicator extends StatefulWidget {
 
 class _AnimatedStatusIndicatorState extends State<AnimatedStatusIndicator> {
   @override
-  void didUpdateWidget(AnimatedStatusIndicator oldWidget) {
+  void didUpdateWidget(final AnimatedStatusIndicator oldWidget) {
     super.didUpdateWidget(oldWidget);
   }
 
   /// Gets the status text based on progress value.
-  String _getStatusText(double progress) {
+  String _getStatusText(final double progress) {
     if (progress >= 1.0) {
       final overAmount = ((progress - 1.0) * 100).toStringAsFixed(0);
       return 'Over Budget (+$overAmount%)';
@@ -44,7 +44,7 @@ class _AnimatedStatusIndicatorState extends State<AnimatedStatusIndicator> {
   }
 
   /// Gets the background color based on progress.
-  Color _getBackgroundColor(double progress) {
+  Color _getBackgroundColor(final double progress) {
     if (progress >= 1.0) {
       return Colors.red.withValues(alpha: 0.15);
     }
@@ -55,7 +55,7 @@ class _AnimatedStatusIndicatorState extends State<AnimatedStatusIndicator> {
   }
 
   /// Gets the text color based on progress.
-  Color _getTextColor(double progress) {
+  Color _getTextColor(final double progress) {
     if (progress >= 1.0) {
       return Colors.red;
     }
@@ -66,7 +66,7 @@ class _AnimatedStatusIndicatorState extends State<AnimatedStatusIndicator> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final statusText = _getStatusText(widget.progress);
     final backgroundColor = _getBackgroundColor(widget.progress);
     final textColor = _getTextColor(widget.progress);

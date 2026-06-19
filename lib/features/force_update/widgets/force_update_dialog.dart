@@ -1,21 +1,23 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:io';
+
 import '../../../../../../core/models/app_version.dart';
-import '../../../../../../core/services/store_redirect_service.dart';
 import '../../../../../../core/providers/app_version_providers.dart';
+import '../../../../../../core/services/store_redirect_service.dart';
 
 /// Force update screen - full-page non-dismissible blocking screen
 /// Users must update or force close the app
 class ForceUpdateDialog extends ConsumerStatefulWidget {
-  final AppVersionModel versionConfig;
-  final VoidCallback? onUpdateInitiated;
 
   const ForceUpdateDialog({
     super.key,
     required this.versionConfig,
     this.onUpdateInitiated,
   });
+  final AppVersionModel versionConfig;
+  final VoidCallback? onUpdateInitiated;
 
   @override
   ConsumerState<ForceUpdateDialog> createState() => _ForceUpdateDialogState();
@@ -80,7 +82,7 @@ class _ForceUpdateDialogState extends ConsumerState<ForceUpdateDialog>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return PopScope(
@@ -96,7 +98,7 @@ class _ForceUpdateDialogState extends ConsumerState<ForceUpdateDialog>
                 end: Alignment.bottomRight,
                 colors: [
                   Theme.of(context).scaffoldBackgroundColor,
-                  Theme.of(context).scaffoldBackgroundColor.withOpacity(0.95),
+                  Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.95),
                 ],
               ),
             ),
@@ -121,12 +123,12 @@ class _ForceUpdateDialogState extends ConsumerState<ForceUpdateDialog>
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                  colorScheme.primary.withOpacity(0.2),
-                                  colorScheme.secondary.withOpacity(0.15),
+                                  colorScheme.primary.withValues(alpha: 0.2),
+                                  colorScheme.secondary.withValues(alpha: 0.15),
                                 ],
                               ),
                               border: Border.all(
-                                color: colorScheme.primary.withOpacity(0.3),
+                                color: colorScheme.primary.withValues(alpha: 0.3),
                                 width: 2,
                               ),
                             ),
@@ -153,7 +155,7 @@ class _ForceUpdateDialogState extends ConsumerState<ForceUpdateDialog>
                           Text(
                             'A newer version of Cashlyze is available',
                             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: colorScheme.onSurface.withOpacity(0.7),
+                              color: colorScheme.onSurface.withValues(alpha: 0.7),
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -162,10 +164,10 @@ class _ForceUpdateDialogState extends ConsumerState<ForceUpdateDialog>
                           // Version Info Card
                           Container(
                             decoration: BoxDecoration(
-                              color: colorScheme.surface.withOpacity(0.5),
+                              color: colorScheme.surface.withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: colorScheme.primary.withOpacity(0.2),
+                                color: colorScheme.primary.withValues(alpha: 0.2),
                               ),
                             ),
                             padding: const EdgeInsets.all(20),
@@ -178,7 +180,7 @@ class _ForceUpdateDialogState extends ConsumerState<ForceUpdateDialog>
                                     Text(
                                       'Current',
                                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: colorScheme.onSurface.withOpacity(0.6),
+                                        color: colorScheme.onSurface.withValues(alpha: 0.6),
                                       ),
                                     ),
                                     const SizedBox(height: 8),
@@ -203,7 +205,7 @@ class _ForceUpdateDialogState extends ConsumerState<ForceUpdateDialog>
                                     Text(
                                       'New',
                                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: colorScheme.onSurface.withOpacity(0.6),
+                                        color: colorScheme.onSurface.withValues(alpha: 0.6),
                                       ),
                                     ),
                                     const SizedBox(height: 8),
@@ -224,11 +226,10 @@ class _ForceUpdateDialogState extends ConsumerState<ForceUpdateDialog>
                           // Release Notes
                           Container(
                             decoration: BoxDecoration(
-                              color: colorScheme.surface.withOpacity(0.3),
+                              color: colorScheme.surface.withValues(alpha: 0.3),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: colorScheme.secondary.withOpacity(0.2),
-                                width: 1,
+                                color: colorScheme.secondary.withValues(alpha: 0.2),
                               ),
                             ),
                             padding: const EdgeInsets.all(16),
@@ -256,7 +257,7 @@ class _ForceUpdateDialogState extends ConsumerState<ForceUpdateDialog>
                                 Text(
                                   widget.versionConfig.releaseNotes,
                                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: colorScheme.onSurface.withOpacity(0.8),
+                                    color: colorScheme.onSurface.withValues(alpha: 0.8),
                                     height: 1.6,
                                   ),
                                   maxLines: 8,
@@ -276,7 +277,7 @@ class _ForceUpdateDialogState extends ConsumerState<ForceUpdateDialog>
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: colorScheme.primary,
                                 foregroundColor: Colors.white,
-                                disabledBackgroundColor: colorScheme.primary.withOpacity(0.5),
+                                disabledBackgroundColor: colorScheme.primary.withValues(alpha: 0.5),
                                 elevation: 4,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -294,7 +295,7 @@ class _ForceUpdateDialogState extends ConsumerState<ForceUpdateDialog>
                                   : Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.download_rounded,
                                         size: 22,
                                         color: Colors.white,
@@ -318,7 +319,7 @@ class _ForceUpdateDialogState extends ConsumerState<ForceUpdateDialog>
                           Text(
                             'It\'s recommended to update for better performance and security',
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurface.withOpacity(0.5),
+                              color: colorScheme.onSurface.withValues(alpha: 0.5),
                               fontStyle: FontStyle.italic,
                             ),
                             textAlign: TextAlign.center,

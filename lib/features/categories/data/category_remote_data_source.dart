@@ -11,7 +11,7 @@ import '../../../core/models/category.dart';
 /// - `PUT /categories/{id}`
 /// - `DELETE /categories/{id}`
 class CategoryRemoteDataSource {
-  const CategoryRemoteDataSource({required ApiClient apiClient})
+  const CategoryRemoteDataSource({required final ApiClient apiClient})
       : _api = apiClient;
 
   final ApiClient _api;
@@ -19,9 +19,9 @@ class CategoryRemoteDataSource {
   // ── Create ────────────────────────────────────────────────────────────────
 
   Future<CategoryModel> create({
-    required String name,
-    String? icon,
-    int? color,
+    required final String name,
+    final String? icon,
+    final int? color,
   }) async {
     final response = await _api.post<Map<String, dynamic>>(
       ApiEndpoints.categories,
@@ -44,7 +44,7 @@ class CategoryRemoteDataSource {
     // sometimes includes deleted items with fields like `deleted`,
     // `deleted_at` or `deletedAt`. Exclude those so the UI does not show
     // stale/removed categories (e.g., previously deleted "Food").
-    final filtered = list.where((entry) {
+    final filtered = list.where((final entry) {
       final map = entry.cast<String, dynamic>();
       if (map.containsKey('deleted')) {
         final v = map['deleted'];
@@ -60,13 +60,13 @@ class CategoryRemoteDataSource {
     }).toList();
 
     return filtered
-        .map((e) => _fromApiJson(e.cast<String, dynamic>()))
+        .map((final e) => _fromApiJson(e.cast<String, dynamic>()))
         .toList();
   }
 
   // ── Get by id ─────────────────────────────────────────────────────────────
 
-  Future<CategoryModel> getById(String id) async {
+  Future<CategoryModel> getById(final String id) async {
     final response = await _api.get<Map<String, dynamic>>(
       ApiEndpoints.categoryById(id),
     );
@@ -76,10 +76,10 @@ class CategoryRemoteDataSource {
   // ── Update ────────────────────────────────────────────────────────────────
 
   Future<CategoryModel> update(
-    String id, {
-    String? name,
-    String? icon,
-    int? color,
+    final String id, {
+    final String? name,
+    final String? icon,
+    final int? color,
   }) async {
     final response = await _api.put<Map<String, dynamic>>(
       ApiEndpoints.categoryById(id),
@@ -94,13 +94,13 @@ class CategoryRemoteDataSource {
 
   // ── Delete ────────────────────────────────────────────────────────────────
 
-  Future<void> delete(String id) async {
+  Future<void> delete(final String id) async {
     await _api.delete<void>(ApiEndpoints.categoryById(id));
   }
 
   // ── Mapper ────────────────────────────────────────────────────────────────
 
-  CategoryModel _fromApiJson(Map<String, dynamic> json) {
+  CategoryModel _fromApiJson(final Map<String, dynamic> json) {
     return CategoryModel(
       id: json['id'] as String,
       userId: json['user_id'] as String? ?? json['userId'] as String? ?? '',
@@ -114,6 +114,6 @@ class CategoryRemoteDataSource {
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 final categoryRemoteDataSourceProvider =
-    Provider<CategoryRemoteDataSource>((ref) {
+    Provider<CategoryRemoteDataSource>((final ref) {
   return CategoryRemoteDataSource(apiClient: ref.watch(apiClientProvider));
 });

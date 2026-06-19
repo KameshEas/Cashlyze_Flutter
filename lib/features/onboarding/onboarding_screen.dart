@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/providers/onboarding_provider.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/ui/constants.dart';
@@ -62,7 +62,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     _onboardingStart = DateTime.now();
   }
 
-  Future<void> _complete({bool skipped = false}) async {
+  Future<void> _complete({final bool skipped = false}) async {
     final start = _onboardingStart;
     final durationMs = DateTime.now().difference(start).inMilliseconds;
     final steps = _currentPage + 1;
@@ -84,7 +84,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -108,9 +108,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
-                onPageChanged: (index) => setState(() => _currentPage = index),
+                onPageChanged: (final int index) => setState(() => _currentPage = index),
                 itemCount: _pages.length,
-                itemBuilder: (context, index) =>
+                itemBuilder: (final BuildContext context, final int index) =>
                     _buildPage(context, _pages[index]),
               ),
             ),
@@ -121,7 +121,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Widget _buildPage(BuildContext context, Map<String, dynamic> data) {
+  Widget _buildPage(final BuildContext context, final Map<String, dynamic> data) {
     final features = data['features'] as List<String>?;
     
     return Padding(
@@ -138,7 +138,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             // Previously: Icon at 50–70% opacity → looked like a broken fallback.
             // Now: full-opacity icon on a branded gradient circle — intentional.
             Semantics(
-              label: 'Onboarding illustration for ${data['title']}',
+              label: 'Onboarding illustration for ${(data['title'] as String)}',
               child: Container(
                 width: 160,
                 height: 160,
@@ -195,7 +195,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (final feature in features)
+                    for (final String feature in features)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 6),
                         child: Text(
@@ -230,7 +230,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           Row(
             children: List.generate(
               _pages.length,
-              (index) => AnimatedContainer(
+              (final int index) => AnimatedContainer(
                 duration: MediaQuery.of(context).disableAnimations
                     ? Duration.zero
                     : const Duration(milliseconds: 300),
@@ -251,11 +251,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           // ── Next / Get Started ─────────────────────────────────────────
           FilledButton(
             onPressed: () async {
-                if (_currentPage < _pages.length - 1) {
+              if (_currentPage < _pages.length - 1) {
                 if (MediaQuery.of(context).disableAnimations) {
                   _pageController.jumpToPage(_currentPage + 1);
                 } else {
-                  _pageController.nextPage(
+                  await _pageController.nextPage(
                     duration: const Duration(milliseconds: 350),
                     curve: Curves.easeInOut,
                   );

@@ -169,8 +169,8 @@ class DismissedTooltipsNotifier extends Notifier<Set<String>> {
     try {
       // Simple parsing: "tooltip_id1,tooltip_id2"
       final tooltips = (savedJson.replaceAll('[', '').replaceAll(']', '').replaceAll('"', '').split(',')
-          .map((s) => s.trim())
-          .where((s) => s.isNotEmpty)
+          .map((final s) => s.trim())
+          .where((final s) => s.isNotEmpty)
           .toSet());
       return tooltips;
     } catch (_) {
@@ -178,10 +178,10 @@ class DismissedTooltipsNotifier extends Notifier<Set<String>> {
     }
   }
 
-  Future<void> dismiss(String tooltipId) async {
+  Future<void> dismiss(final String tooltipId) async {
     state = {...state, tooltipId};
     final prefs = ref.read(sharedPrefsProvider);
-    final json = state.map((id) => '"$id"').toList();
+    final json = state.map((final id) => '"$id"').toList();
     await prefs.setString('dismissed_tooltips', '[${json.join(',')}]');
   }
 

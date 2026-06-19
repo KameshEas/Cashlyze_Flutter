@@ -2,12 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/budget.dart';
 import '../models/category.dart';
+import '../models/transaction.dart';
 import '../providers/shared_prefs_provider.dart';
 import '../repositories/budget_repository.dart';
 import '../repositories/category_repository.dart';
 import '../repositories/transaction_repository.dart';
 
-DateTime _periodStart(BudgetPeriod p) {
+DateTime _periodStart(final BudgetPeriod p) {
   final now = DateTime.now();
   switch (p) {
     case BudgetPeriod.daily:
@@ -20,10 +21,10 @@ DateTime _periodStart(BudgetPeriod p) {
   }
 }
 
-final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
-  final budgets = ref.watch(userBudgetsProvider).maybeWhen(data: (d) => d, orElse: () => const []);
-  final txs = ref.watch(userTransactionsProvider).maybeWhen(data: (d) => d, orElse: () => const []);
-  final categories = ref.watch(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+final budgetsUtilizationProvider = Provider<Map<String, double>>((final ref) {
+  final budgets = ref.watch(userBudgetsProvider).maybeWhen(data: (final d) => d, orElse: () => const <BudgetModel>[]);
+  final txs = ref.watch(userTransactionsProvider).maybeWhen(data: (final d) => d, orElse: () => const <TransactionModel>[]);
+  final categories = ref.watch(userCategoriesProvider).maybeWhen(data: (final d) => d, orElse: () => const <CategoryModel>[]);
   final spentByBudget = <String, double>{};
 
   // Build maps for category id <-> name to normalize matching. Use
@@ -32,7 +33,7 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
   final idToName = <String, String>{};
   final nameToIds = <String, Set<String>>{};
   for (final c in categories) {
-    final nameTrim = (c.name ?? '').trim();
+    final nameTrim = c.name.trim();
     idToName[c.id] = nameTrim;
     final key = nameTrim.toLowerCase();
     nameToIds.putIfAbsent(key, () => <String>{}).add(c.id);
@@ -40,7 +41,7 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
 
   // Sort budgets oldest → newest so the first budget that claims a
   // category becomes the "primary" owner of that category's spend.
-  final sortedBudgets = [...budgets]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+  final sortedBudgets = [...budgets]..sort((final a, final b) => a.createdAt.compareTo(b.createdAt));
 
   // For each budget, compute a normalized set of identifiers it claims
   // (both ids and lowercased names) so we can match transactions stored
@@ -51,7 +52,7 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
     if (b.categoryIds.isEmpty) {
       // If budget doesn't explicitly list categoryIds, assume the budget's
       // name itself is the claimed category (e.g., budget named "Food").
-      final vTrim = (b.name ?? '').trim();
+      final vTrim = b.name.trim();
       if (vTrim.isNotEmpty) {
         s.add(vTrim);
         s.add(vTrim.toLowerCase());
@@ -59,7 +60,9 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
         if (mappedName != null) s.add(mappedName.toLowerCase());
         final mappedIds = nameToIds[vTrim.toLowerCase()];
         if (mappedIds != null) {
-          for (final mid in mappedIds) s.add(mid);
+          for (final mid in mappedIds) {
+            s.add(mid);
+          }
         }
       }
     } else {
@@ -73,7 +76,9 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
         // If value is a name, map to id(s) too.
         final mappedIds = nameToIds[vTrim.toLowerCase()];
         if (mappedIds != null) {
-          for (final mid in mappedIds) s.add(mid);
+          for (final mid in mappedIds) {
+            s.add(mid);
+          }
         }
       }
     }
@@ -81,13 +86,15 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
     // Also always include the budget's own name as a matching key. This
     // helps transient cases where server/client disagree about which
     // category ids are claimed by the budget (e.g., during a rename).
-    final nameKey = (b.name ?? '').trim();
+    final nameKey = b.name.trim();
     if (nameKey.isNotEmpty) {
       s.add(nameKey);
       s.add(nameKey.toLowerCase());
       final mappedIdsForName = nameToIds[nameKey.toLowerCase()];
       if (mappedIdsForName != null) {
-        for (final mid in mappedIdsForName) s.add(mid);
+        for (final mid in mappedIdsForName) {
+          s.add(mid);
+        }
       }
     }
     budgetNormalized[b.id] = s;
@@ -131,7 +138,9 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
       candidates.add(nameCandidate.toLowerCase());
       final nameAsIds = nameToIds[nameCandidate.toLowerCase()];
       if (nameAsIds != null) {
-        for (final mid in nameAsIds) candidates.add(mid);
+        for (final mid in nameAsIds) {
+          candidates.add(mid);
+        }
       }
     }
 
@@ -160,8 +169,8 @@ final budgetsUtilizationProvider = Provider<Map<String, double>>((ref) {
   return spentByBudget;
 });
 
-final budgetAlertsProvider = Provider<List<String>>((ref) {
-  final budgets = ref.watch(userBudgetsProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+final budgetAlertsProvider = Provider<List<String>>((final ref) {
+  final budgets = ref.watch(userBudgetsProvider).maybeWhen(data: (final d) => d, orElse: () => const <BudgetModel>[]);
   final spent = ref.watch(budgetsUtilizationProvider);
   final prefs = ref.watch(sharedPrefsServiceProvider);
   final threshold = prefs.alertThreshold;
@@ -181,7 +190,7 @@ class PeriodFilterNotifier extends Notifier<String> {
   @override
   String build() => 'All';
 
-  void setFilter(String filter) {
+  void setFilter(final String filter) {
     state = filter;
   }
 }
@@ -191,15 +200,15 @@ final periodFilterProvider = NotifierProvider<PeriodFilterNotifier, String>(
 );
 
 // Filtered budgets by period
-final filteredBudgetsProvider = Provider<List<BudgetModel>>((ref) {
-  final budgets = ref.watch(userBudgetsProvider).maybeWhen(data: (d) => d, orElse: () => <BudgetModel>[]);
+final filteredBudgetsProvider = Provider<List<BudgetModel>>((final ref) {
+  final budgets = ref.watch(userBudgetsProvider).maybeWhen(data: (final d) => d, orElse: () => <BudgetModel>[]);
   final selectedFilter = ref.watch(periodFilterProvider);
 
   if (selectedFilter == 'All') {
     return budgets;
   }
 
-  final filtered = budgets.where((b) {
+  final filtered = budgets.where((final b) {
     if (b.id == '__general_budget') return true; // Always show General budget
     final periodName = b.period.name.toLowerCase();
     return periodName == selectedFilter.toLowerCase();
@@ -209,10 +218,6 @@ final filteredBudgetsProvider = Provider<List<BudgetModel>>((ref) {
 
 // Track last budget adjustment for undo
 class BudgetAdjustmentRecord {
-  final String budgetId;
-  final double oldAllocated;
-  final double newAllocated;
-  final DateTime timestamp;
 
   BudgetAdjustmentRecord({
     required this.budgetId,
@@ -220,6 +225,10 @@ class BudgetAdjustmentRecord {
     required this.newAllocated,
     required this.timestamp,
   });
+  final String budgetId;
+  final double oldAllocated;
+  final double newAllocated;
+  final DateTime timestamp;
 }
 
 // Last adjustment notifier
@@ -227,7 +236,7 @@ class LastAdjustmentNotifier extends Notifier<BudgetAdjustmentRecord?> {
   @override
   BudgetAdjustmentRecord? build() => null;
 
-  void setAdjustment(BudgetAdjustmentRecord? record) {
+  void setAdjustment(final BudgetAdjustmentRecord? record) {
     state = record;
   }
 
@@ -242,6 +251,14 @@ final lastBudgetAdjustmentProvider = NotifierProvider<LastAdjustmentNotifier, Bu
 
 // Track last deleted budget for recovery
 class DeletedBudgetRecord {
+
+  DeletedBudgetRecord({
+    required this.budget,
+    required this.timestamp,
+    this.remappedTargetId,
+    this.targetPreviousCategoryIds,
+    this.deletedCategories,
+  });
   final BudgetModel budget;
   final DateTime timestamp;
 
@@ -254,14 +271,6 @@ class DeletedBudgetRecord {
   // If the delete operation removed any Category records as part of
   // the budget deletion, keep them here so an undo can recreate them.
   final List<CategoryModel>? deletedCategories;
-
-  DeletedBudgetRecord({
-    required this.budget,
-    required this.timestamp,
-    this.remappedTargetId,
-    this.targetPreviousCategoryIds,
-    this.deletedCategories,
-  });
 }
 
 // Last delete notifier
@@ -269,7 +278,7 @@ class LastDeleteNotifier extends Notifier<DeletedBudgetRecord?> {
   @override
   DeletedBudgetRecord? build() => null;
 
-  void setDeleted(DeletedBudgetRecord? record) {
+  void setDeleted(final DeletedBudgetRecord? record) {
     state = record;
   }
 
@@ -296,8 +305,8 @@ class BudgetOrderNotifier extends Notifier<List<String>> {
       final saved = prefs.getString('budget_order') ?? '[]';
       // Simple JSON parsing for list of strings
       final parsed = (saved.replaceAll('[', '').replaceAll(']', '').replaceAll('"', '').split(',')
-          .map((s) => s.trim())
-          .where((s) => s.isNotEmpty)
+          .map((final s) => s.trim())
+          .where((final s) => s.isNotEmpty)
           .toList());
       state = parsed.cast<String>();
     } catch (_) {
@@ -305,11 +314,11 @@ class BudgetOrderNotifier extends Notifier<List<String>> {
     }
   }
 
-  Future<void> updateOrder(List<String> newOrder) async {
+  Future<void> updateOrder(final List<String> newOrder) async {
     state = newOrder;
     try {
       final prefs = ref.read(sharedPrefsProvider);
-      final json = newOrder.map((id) => '"$id"').toList();
+      final json = newOrder.map((final id) => '"$id"').toList();
       await prefs.setString('budget_order', '[${json.join(',')}]');
     } catch (_) {
       // Ignore errors
@@ -322,7 +331,7 @@ final budgetOrderProvider = NotifierProvider<BudgetOrderNotifier, List<String>>(
 );
 
 // Ordered budgets combining custom order and filtering (all budgets can be reordered)
-final orderedBudgetsProvider = Provider<List<BudgetModel>>((ref) {
+final orderedBudgetsProvider = Provider<List<BudgetModel>>((final ref) {
   final filteredBudgets = ref.watch(filteredBudgetsProvider);
   final customOrder = ref.watch(budgetOrderProvider);
 
@@ -330,7 +339,7 @@ final orderedBudgetsProvider = Provider<List<BudgetModel>>((ref) {
 
   // Sort budgets by custom order (including General budget)
   if (customOrder.isNotEmpty) {
-    budgets.sort((a, b) {
+    budgets.sort((final a, final b) {
       final aIndex = customOrder.indexOf(a.id);
       final bIndex = customOrder.indexOf(b.id);
       // Items in custom order come first, sorted by their position

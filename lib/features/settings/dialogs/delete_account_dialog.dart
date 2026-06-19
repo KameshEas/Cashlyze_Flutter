@@ -3,14 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Dialog for deleting account with proper confirmation flow
 class DeleteAccountDialog extends ConsumerStatefulWidget {
-  final VoidCallback onExportTap;
-  final VoidCallback onConfirmDelete;
 
   const DeleteAccountDialog({
     super.key,
     required this.onExportTap,
     required this.onConfirmDelete,
   });
+  final void Function() onExportTap;
+  final void Function() onConfirmDelete;
 
   @override
   ConsumerState<DeleteAccountDialog> createState() =>
@@ -22,7 +22,7 @@ class _DeleteAccountDialogState extends ConsumerState<DeleteAccountDialog> {
   bool exportAcknowledged = false;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final canDelete = exportAcknowledged && typed == 'DELETE';
 
@@ -50,11 +50,11 @@ class _DeleteAccountDialogState extends ConsumerState<DeleteAccountDialog> {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
               ),
-              child: Row(
+              child: const Row(
                 children: [
                   Icon(Icons.error_outline, color: Colors.red, size: 20),
-                  const SizedBox(width: 8),
-                  const Expanded(
+                  SizedBox(width: 8),
+                  Expanded(
                     child: Text(
                       'This action is IRREVERSIBLE!',
                       style: TextStyle(
@@ -96,11 +96,11 @@ class _DeleteAccountDialogState extends ConsumerState<DeleteAccountDialog> {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
               ),
-              child: Row(
+              child: const Row(
                 children: [
                   Icon(Icons.info_outline, color: Colors.orange, size: 20),
-                  const SizedBox(width: 8),
-                  const Expanded(
+                  SizedBox(width: 8),
+                  Expanded(
                     child: Text(
                       'Export your data first to keep a backup',
                       style: TextStyle(fontSize: 13),
@@ -122,7 +122,7 @@ class _DeleteAccountDialogState extends ConsumerState<DeleteAccountDialog> {
             // Confirmation checkbox
             CheckboxListTile(
               value: exportAcknowledged,
-              onChanged: (v) => setState(() => exportAcknowledged = v ?? false),
+              onChanged: (final v) => setState(() => exportAcknowledged = v ?? false),
               title: const Text('I have exported my data'),
               subtitle: const Text('Required to proceed'),
               contentPadding: EdgeInsets.zero,
@@ -130,7 +130,7 @@ class _DeleteAccountDialogState extends ConsumerState<DeleteAccountDialog> {
             const SizedBox(height: 12),
             // Confirmation text field
             TextField(
-              onChanged: (v) => setState(() => typed = v),
+              onChanged: (final v) => setState(() => typed = v),
               decoration: InputDecoration(
                 labelText: 'Type DELETE to confirm',
                 hintText: 'DELETE',

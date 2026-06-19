@@ -3,14 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Dialog for clearing all user data with export option
 class ClearDataDialog extends ConsumerStatefulWidget {
-  final VoidCallback onExportTap;
-  final VoidCallback onConfirmClear;
 
   const ClearDataDialog({
     super.key,
     required this.onExportTap,
     required this.onConfirmClear,
   });
+  final void Function() onExportTap;
+  final void Function() onConfirmClear;
 
   @override
   ConsumerState<ClearDataDialog> createState() => _ClearDataDialogState();
@@ -21,14 +21,14 @@ class _ClearDataDialogState extends ConsumerState<ClearDataDialog> {
   bool acknowledged = false;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final canClear = acknowledged && typed == 'DELETE';
 
     return AlertDialog(
       title: Row(
         children: [
-          Icon(Icons.warning_amber, color: Colors.orange, size: 24),
+          const Icon(Icons.warning_amber, color: Colors.orange, size: 24),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -95,14 +95,14 @@ class _ClearDataDialogState extends ConsumerState<ClearDataDialog> {
             // Acknowledgment checkbox
             CheckboxListTile(
               value: acknowledged,
-              onChanged: (v) => setState(() => acknowledged = v ?? false),
+              onChanged: (final v) => setState(() => acknowledged = v ?? false),
               title: const Text('I understand this cannot be undone'),
               contentPadding: EdgeInsets.zero,
             ),
             const SizedBox(height: 12),
             // Confirmation text field
             TextField(
-              onChanged: (v) => setState(() => typed = v),
+              onChanged: (final v) => setState(() => typed = v),
               decoration: InputDecoration(
                 labelText: 'Type DELETE to confirm',
                 hintText: 'DELETE',

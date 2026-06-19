@@ -1,19 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/models/category.dart';
 import '../../core/models/transaction.dart';
-import '../../core/utils/format.dart';
 import '../../core/repositories/category_repository.dart';
+import '../../core/utils/format.dart';
 
 class TransactionListItem extends ConsumerWidget {
-  final TransactionModel tx;
-  final String currency;
-  final String datePattern;
-  final bool selectionMode;
-  final bool selected;
-  final ValueChanged<bool>? onSelectedChanged;
-  final VoidCallback? onLongPress;
-  final VoidCallback? onTap;
 
   const TransactionListItem({
     super.key,
@@ -26,9 +19,17 @@ class TransactionListItem extends ConsumerWidget {
     this.onLongPress,
     this.onTap,
   });
+  final TransactionModel tx;
+  final String currency;
+  final String datePattern;
+  final bool selectionMode;
+  final bool selected;
+  final ValueChanged<bool>? onSelectedChanged;
+  final VoidCallback? onLongPress;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     final theme = Theme.of(context);
     final isIncome = tx.amount > 0;
     final accentColor = isIncome ? Colors.green : Colors.red;
@@ -44,7 +45,7 @@ class TransactionListItem extends ConsumerWidget {
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: theme.colorScheme.onSurface.withOpacity(0.14),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.14),
           ),
         ),
         // Left accent bar for income/expense distinction
@@ -60,13 +61,13 @@ class TransactionListItem extends ConsumerWidget {
         child: Row(
           children: [
             if (selectionMode) ...[
-              Checkbox(value: selected, onChanged: (v) => onSelectedChanged?.call(v ?? false)),
+              Checkbox(value: selected, onChanged: (final v) => onSelectedChanged?.call(v ?? false)),
               const SizedBox(width: 8),
             ] else ...[
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurface.withOpacity(0.06),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -97,13 +98,13 @@ class TransactionListItem extends ConsumerWidget {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: theme.colorScheme.onSurface.withOpacity(0.08),
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: Builder(builder: (ctx) {
+                              child: Builder(builder: (final ctx) {
                                 final cats = ref.watch(userCategoriesProvider).maybeWhen(
-                                      data: (d) => d,
-                                      orElse: () => const [],
+                                      data: (final d) => d,
+                                      orElse: () => const <CategoryModel>[],
                                     );
                                 final rawId = tx.categoryId?.trim();
                                 final nameFallback = tx.categoryName?.trim();
@@ -116,7 +117,7 @@ class TransactionListItem extends ConsumerWidget {
                                 // but allow the transaction-provided `categoryName` to
                                 // override when it differs (handles race/rename cases).
                                 if (rawId != null && rawId.isNotEmpty) {
-                                  final byIdList = cats.where((c) => c.id == rawId).toList();
+                                  final byIdList = cats.where((final c) => c.id == rawId).toList();
                                   if (byIdList.isNotEmpty) {
                                     final catName = byIdList.first.name;
                                     if (nameFallback != null && nameFallback.isNotEmpty && catName.trim().toLowerCase() != nameFallback.toLowerCase()) {
@@ -129,7 +130,7 @@ class TransactionListItem extends ConsumerWidget {
                                 // Try matching by name (either the explicit fallback or
                                 // the id-as-name); otherwise show the fallback or raw value.
                                 final lookup = (nameFallback ?? rawId) ?? '';
-                                final byNameList = cats.where((c) => (c.name ?? '').toLowerCase() == lookup.toLowerCase()).toList();
+                                final byNameList = cats.where((final c) => c.name.toLowerCase() == lookup.toLowerCase()).toList();
                                 if (byNameList.isNotEmpty) {
                                   return Text(byNameList.first.name, style: theme.textTheme.bodySmall, overflow: TextOverflow.ellipsis, maxLines: 1);
                                 }
@@ -144,7 +145,7 @@ class TransactionListItem extends ConsumerWidget {
                       Text(
                         formatDate(tx.date, datePattern),
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,

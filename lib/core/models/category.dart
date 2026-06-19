@@ -1,9 +1,4 @@
 class CategoryModel {
-  final String id;
-  final String userId;
-  final String name;
-  final String? icon;
-  final int? color;
 
   const CategoryModel({
     required this.id,
@@ -13,7 +8,7 @@ class CategoryModel {
     this.color,
   });
 
-  factory CategoryModel.fromRTDB(String id, Map<String, dynamic> data) {
+  factory CategoryModel.fromRTDB(final String id, final Map<String, dynamic> data) {
     return CategoryModel(
       id: id,
       userId: data['userId'] as String,
@@ -22,6 +17,11 @@ class CategoryModel {
       color: data['color'] as int?,
     );
   }
+  final String id;
+  final String userId;
+  final String name;
+  final String? icon;
+  final int? color;
 
   Map<String, dynamic> toRTDB() {
     return {

@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 
 /// Enhanced category picker modal with search and favorites
 class EnhancedCategoryPicker extends StatefulWidget {
-  final List<String> categories;
-  final String selectedCategory;
-  final ValueChanged<String> onSelect;
 
   const EnhancedCategoryPicker({
     super.key,
@@ -12,6 +9,9 @@ class EnhancedCategoryPicker extends StatefulWidget {
     required this.selectedCategory,
     required this.onSelect,
   });
+  final List<String> categories;
+  final String selectedCategory;
+  final ValueChanged<String> onSelect;
 
   @override
   State<EnhancedCategoryPicker> createState() => _EnhancedCategoryPickerState();
@@ -42,7 +42,7 @@ class _EnhancedCategoryPickerState extends State<EnhancedCategoryPicker> {
       _filteredCategories = widget.categories;
     } else {
       _filteredCategories = widget.categories
-          .where((cat) => cat.toLowerCase().contains(query))
+          .where((final cat) => cat.toLowerCase().contains(query))
           .toList();
     }
     setState(() {});
@@ -64,9 +64,9 @@ class _EnhancedCategoryPickerState extends State<EnhancedCategoryPicker> {
 
     // Separate into favorites and others
     final favorites =
-        _filteredCategories.where((c) => _favorites.contains(c)).toList();
+        _filteredCategories.where((final c) => _favorites.contains(c)).toList();
     final others =
-        _filteredCategories.where((c) => !_favorites.contains(c)).toList();
+        _filteredCategories.where((final c) => !_favorites.contains(c)).toList();
 
     return Container(
       decoration: BoxDecoration(

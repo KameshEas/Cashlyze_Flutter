@@ -6,7 +6,7 @@ import '../repositories/transaction_repository.dart';
 import '../services/analytics_service.dart';
 import '../services/auth_service.dart';
 
-DateTime _nextDue(DateTime from, RecurringFrequency f) {
+DateTime _nextDue(final DateTime from, final RecurringFrequency f) {
   if (f == RecurringFrequency.weekly) {
     return from.add(const Duration(days: 7));
   }
@@ -16,7 +16,7 @@ DateTime _nextDue(DateTime from, RecurringFrequency f) {
   return DateTime(m.year, m.month, day);
 }
 
-final recurringProcessorProvider = FutureProvider<int>((ref) async {
+final recurringProcessorProvider = FutureProvider<int>((final ref) async {
   final user = ref.read(currentUserProvider);
   if (user == null) return 0;
   final repo = ref.read(recurringRepositoryProvider);

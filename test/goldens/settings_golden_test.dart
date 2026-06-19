@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:cashlyze/core/theme/app_theme.dart';
 import 'package:cashlyze/core/providers/shared_prefs_provider.dart';
+import 'package:cashlyze/core/theme/app_theme.dart';
 import 'package:cashlyze/features/settings/settings_screen.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -15,16 +15,15 @@ void main() {
     try {
       // Disable google_fonts runtime use inside the app theme so tests
       // don't attempt network fetches for fonts.
-      disableGoogleFontsForTests();
       GoogleFonts.config.allowRuntimeFetching = false;
     } catch (_) {}
   });
 
-  testWidgets('Settings screen dark theme golden', (WidgetTester tester) async {
+  testWidgets('Settings screen dark theme golden', (final WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final router = GoRouter(
-      routes: [GoRoute(path: '/', builder: (_, __) => const SettingsScreen())],
+      routes: [GoRoute(path: '/', builder: (_, _) => const SettingsScreen())],
     );
     await tester.pumpWidget(
       ProviderScope(
@@ -43,12 +42,12 @@ void main() {
   });
 
   testWidgets('Settings screen light theme golden', (
-    WidgetTester tester,
+    final WidgetTester tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final router = GoRouter(
-      routes: [GoRoute(path: '/', builder: (_, __) => const SettingsScreen())],
+      routes: [GoRoute(path: '/', builder: (_, _) => const SettingsScreen())],
     );
     await tester.pumpWidget(
       ProviderScope(
@@ -67,12 +66,12 @@ void main() {
   });
 
   testWidgets('Settings screen 200% text scale golden', (
-    WidgetTester tester,
+    final WidgetTester tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final router = GoRouter(
-      routes: [GoRoute(path: '/', builder: (_, __) => const SettingsScreen())],
+      routes: [GoRoute(path: '/', builder: (_, _) => const SettingsScreen())],
     );
     await tester.pumpWidget(
       ProviderScope(

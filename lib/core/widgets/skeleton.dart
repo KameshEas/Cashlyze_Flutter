@@ -7,19 +7,19 @@ import '../ui/constants.dart';
 // Light mode: dark-on-light shimmer  (onSurface = black)
 // Dark mode : light-on-dark shimmer  (onSurface = white)
 // ─────────────────────────────────────────────────────────────────────────────
-Color _shimmerColor(BuildContext context, double opacity) =>
+Color _shimmerColor(final BuildContext context, final double opacity) =>
     Theme.of(context).colorScheme.onSurface.withValues(alpha: opacity);
 
 class SkeletonLine extends StatefulWidget {
-  final double height;
-  final double width;
-  final BorderRadius borderRadius;
   const SkeletonLine({
     super.key,
     required this.height,
     required this.width,
     this.borderRadius = const BorderRadius.all(Radius.circular(AppRadius.sm)),
   });
+  final double height;
+  final double width;
+  final BorderRadius borderRadius;
 
   @override
   State<SkeletonLine> createState() => _SkeletonLineState();
@@ -47,7 +47,7 @@ class _SkeletonLineState extends State<SkeletonLine>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final reduceMotion = MediaQuery.of(context).disableAnimations;
     return TickerMode(
       enabled: !reduceMotion,
@@ -63,7 +63,7 @@ class _SkeletonLineState extends State<SkeletonLine>
             )
           : AnimatedBuilder(
               animation: _anim,
-              builder: (ctx, _) => Container(
+              builder: (final ctx, _) => Container(
                 height: widget.height,
                 width: widget.width,
                 decoration: BoxDecoration(
@@ -81,7 +81,7 @@ class SkeletonListTile extends StatelessWidget {
   const SkeletonListTile({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final borderColor = theme.colorScheme.onSurface.withValues(alpha: 0.08);
     return Container(
@@ -91,15 +91,15 @@ class SkeletonListTile extends StatelessWidget {
         borderRadius: AppRadius.lgAll,
         border: Border.all(color: borderColor),
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const SkeletonLine(
+          SkeletonLine(
             height: 40,
             width: 40,
             borderRadius: BorderRadius.all(Radius.circular(AppRadius.full)),
           ),
-          const SizedBox(width: AppSpacing.s16),
-          const Expanded(
+          SizedBox(width: AppSpacing.s16),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -116,11 +116,11 @@ class SkeletonListTile extends StatelessWidget {
 }
 
 class SkeletonChartBox extends StatelessWidget {
-  final double height;
   const SkeletonChartBox({super.key, required this.height});
+  final double height;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final borderColor = theme.colorScheme.onSurface.withValues(alpha: 0.08);
     return Container(

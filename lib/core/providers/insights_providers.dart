@@ -6,6 +6,7 @@ import '../models/transaction.dart';
 import '../providers/transaction_providers.dart';
 
 class Kpis {
+  const Kpis(this.income, this.expense, this.net, this.savingsRate, this.avgDailySpend, this.txCount, this.largestExpense);
   final num income;
   final num expense;
   final num net;
@@ -13,10 +14,9 @@ class Kpis {
   final num avgDailySpend;
   final int txCount;
   final num largestExpense;
-  const Kpis(this.income, this.expense, this.net, this.savingsRate, this.avgDailySpend, this.txCount, this.largestExpense);
 }
 
-final kpisProvider = Provider<Kpis>((ref) {
+final kpisProvider = Provider<Kpis>((final ref) {
   final txs = ref.watch(filteredTransactionsProvider);
   final range = ref.watch(selectedTimeRangeProvider);
   int days;
@@ -27,8 +27,8 @@ final kpisProvider = Provider<Kpis>((ref) {
   } else {
     days = 90;
   }
-  final income = txs.where((t) => t.amount > 0).fold<num>(0, (p, t) => p + t.amount);
-  final expense = txs.where((t) => t.amount < 0).fold<num>(0, (p, t) => p + t.amount.abs());
+  final income = txs.where((final t) => t.amount > 0).fold<num>(0, (final p, final t) => p + t.amount);
+  final expense = txs.where((final t) => t.amount < 0).fold<num>(0, (final p, final t) => p + t.amount.abs());
   final num net = income - expense;
   final num savingsRate = income == 0
       ? 0
@@ -36,9 +36,9 @@ final kpisProvider = Provider<Kpis>((ref) {
   final int txCount = txs.length;
   final num avgDailySpend = days == 0 ? 0 : (expense / days);
   final num largestExpense = txs
-      .where((t) => t.amount < 0)
-      .map((t) => t.amount.abs())
-      .fold<num>(0, (p, a) => a > p ? a : p);
+      .where((final t) => t.amount < 0)
+      .map((final t) => t.amount.abs())
+      .fold<num>(0, (final p, final a) => a > p ? a : p);
   return Kpis(income, expense, net, savingsRate, avgDailySpend, txCount,
       largestExpense);
 });
@@ -46,9 +46,9 @@ final kpisProvider = Provider<Kpis>((ref) {
 /// KPIs for the current calendar month (used on Home so the
 /// "This Month" card matches the underlying data, independent of the
 /// Insights time-range selector).
-final currentMonthKpisProvider = Provider<Kpis>((ref) {
+final currentMonthKpisProvider = Provider<Kpis>((final ref) {
   var txs = ref.watch(recentTransactionsProvider).maybeWhen(
-    data: (d) => d,
+    data: (final d) => d,
     orElse: () => ref.watch(transactionsCacheProvider),
   );
 
@@ -58,7 +58,7 @@ final currentMonthKpisProvider = Provider<Kpis>((ref) {
 
   txs = txs
       .where(
-        (t) =>
+        (final t) =>
             t.date.isAfter(
               monthStart.subtract(const Duration(seconds: 1)),
             ) &&
@@ -69,11 +69,11 @@ final currentMonthKpisProvider = Provider<Kpis>((ref) {
   final int days = now.difference(monthStart).inDays + 1;
 
   final income = txs
-      .where((t) => t.amount > 0)
-      .fold<num>(0, (p, t) => p + t.amount);
+      .where((final t) => t.amount > 0)
+      .fold<num>(0, (final p, final t) => p + t.amount);
   final expense = txs
-      .where((t) => t.amount < 0)
-      .fold<num>(0, (p, t) => p + t.amount.abs());
+      .where((final t) => t.amount < 0)
+      .fold<num>(0, (final p, final t) => p + t.amount.abs());
   final num net = income - expense;
   final num savingsRate = income == 0
       ? 0
@@ -81,9 +81,9 @@ final currentMonthKpisProvider = Provider<Kpis>((ref) {
   final int txCount = txs.length;
   final num avgDailySpend = days == 0 ? 0 : (expense / days);
   final num largestExpense = txs
-      .where((t) => t.amount < 0)
-      .map((t) => t.amount.abs())
-      .fold<num>(0, (p, a) => a > p ? a : p);
+      .where((final t) => t.amount < 0)
+      .map((final t) => t.amount.abs())
+      .fold<num>(0, (final p, final a) => a > p ? a : p);
 
   return Kpis(
     income,
@@ -96,10 +96,10 @@ final currentMonthKpisProvider = Provider<Kpis>((ref) {
   );
 });
 
-final anomaliesProvider = Provider<List<TransactionModel>>((ref) {
+final anomaliesProvider = Provider<List<TransactionModel>>((final ref) {
   final txs = ref.watch(filteredTransactionsProvider);
   final byCat = <String, List<double>>{};
-  for (final t in txs.where((t) => t.amount < 0)) {
+  for (final t in txs.where((final t) => t.amount < 0)) {
     final key = t.categoryId ?? 'Other';
     byCat.putIfAbsent(key, () => []).add(t.amount.abs());
   }
@@ -107,15 +107,15 @@ final anomaliesProvider = Provider<List<TransactionModel>>((ref) {
   for (final entry in byCat.entries) {
     final values = entry.value;
     if (values.length < 5) continue;
-    final mean = values.reduce((a, b) => a + b) / values.length;
+    final mean = values.reduce((final a, final b) => a + b) / values.length;
     final variance =
-        values.map((v) => pow(v - mean, 2)).reduce((a, b) => a + b) /
+        values.map((final v) => pow(v - mean, 2)).reduce((final a, final b) => a + b) /
         values.length;
     final std = sqrt(variance);
     outliers.addAll(
       txs
           .where(
-            (t) =>
+            (final t) =>
                 (t.categoryId ?? 'Other') == entry.key &&
                 t.amount.abs() > mean + 2 * std,
           )
@@ -125,7 +125,7 @@ final anomaliesProvider = Provider<List<TransactionModel>>((ref) {
   return outliers;
 });
 
-final recommendationsProvider = Provider<List<String>>((ref) {
+final recommendationsProvider = Provider<List<String>>((final ref) {
   final breakdown = ref.watch(categoryBreakdownProvider);
   final suggestions = <String>[];
   for (final e in breakdown.entries) {
@@ -141,63 +141,63 @@ final recommendationsProvider = Provider<List<String>>((ref) {
 // ── Top Spends ────────────────────────────────────────────────────────────
 
 class TopMerchant {
+  const TopMerchant(this.name, this.amount);
   final String name;
   final double amount;
-  const TopMerchant(this.name, this.amount);
 }
 
-final topMerchantsProvider = Provider<List<TopMerchant>>((ref) {
+final topMerchantsProvider = Provider<List<TopMerchant>>((final ref) {
   final txs = ref.watch(filteredTransactionsProvider);
   final map = <String, double>{};
-  for (final t in txs.where((t) => t.amount < 0)) {
+  for (final t in txs.where((final t) => t.amount < 0)) {
     map[t.title] = (map[t.title] ?? 0) + t.amount.abs();
   }
   final sorted = map.entries.toList()
-    ..sort((a, b) => b.value.compareTo(a.value));
-  return sorted.take(5).map((e) => TopMerchant(e.key, e.value)).toList();
+    ..sort((final a, final b) => b.value.compareTo(a.value));
+  return sorted.take(5).map((final e) => TopMerchant(e.key, e.value)).toList();
 });
 
 // ── Recurring payments ───────────────────────────────────────────────────────
 
 class RecurringPayment {
-  final String title;
-  final double avgAmount;
-  final int occurrences;
-  final Duration avgInterval;
   const RecurringPayment({
     required this.title,
     required this.avgAmount,
     required this.occurrences,
     required this.avgInterval,
   });
+  final String title;
+  final double avgAmount;
+  final int occurrences;
+  final Duration avgInterval;
 }
 
-final recurringPaymentsProvider = Provider<List<RecurringPayment>>((ref) {
+final recurringPaymentsProvider = Provider<List<RecurringPayment>>((final ref) {
   final txsAsync = ref.watch(recentTransactionsProvider);
   final txs = txsAsync.maybeWhen(
-    data: (d) => d,
+    data: (final d) => d,
     orElse: () => <TransactionModel>[],
   );
   final byTitle = <String, List<TransactionModel>>{};
-  for (final t in txs.where((t) => t.amount < 0)) {
+  for (final t in txs.where((final t) => t.amount < 0)) {
     byTitle.putIfAbsent(t.title, () => []).add(t);
   }
   final result = <RecurringPayment>[];
   for (final entry in byTitle.entries) {
-    final list = entry.value..sort((a, b) => a.date.compareTo(b.date));
+    final list = entry.value..sort((final a, final b) => a.date.compareTo(b.date));
     if (list.length < 2) continue;
-    final amounts = list.map((t) => t.amount.abs()).toList();
-    final avgAmount = amounts.reduce((a, b) => a + b) / amounts.length;
+    final amounts = list.map((final t) => t.amount.abs()).toList();
+    final avgAmount = amounts.reduce((final a, final b) => a + b) / amounts.length;
     final intervals = <int>[];
     for (int i = 1; i < list.length; i++) {
       intervals.add(list[i].date.difference(list[i - 1].date).inDays);
     }
     final avgDays =
-        intervals.reduce((a, b) => a + b) / intervals.length;
+        intervals.reduce((final a, final b) => a + b) / intervals.length;
     if (avgDays < 20 || avgDays > 42) continue;
     final variance = amounts
-            .map((a) => pow(a - avgAmount, 2))
-            .reduce((a, b) => a + b) /
+            .map((final a) => pow(a - avgAmount, 2))
+            .reduce((final a, final b) => a + b) /
         amounts.length;
     final stdDev = sqrt(variance);
     if (avgAmount > 0 && stdDev / avgAmount > 0.25) continue;
@@ -208,16 +208,16 @@ final recurringPaymentsProvider = Provider<List<RecurringPayment>>((ref) {
       avgInterval: Duration(days: avgDays.round()),
     ));
   }
-  result.sort((a, b) => b.avgAmount.compareTo(a.avgAmount));
+  result.sort((final a, final b) => b.avgAmount.compareTo(a.avgAmount));
   return result;
 });
 
 // ── Forecast next month ──────────────────────────────────────────────────────
 
-final forecastExpenseNextMonthProvider = Provider<double?>((ref) {
+final forecastExpenseNextMonthProvider = Provider<double?>((final ref) {
   final monthly = ref.watch(monthlyTrendProvider);
   if (monthly.length < 2) return null;
   final last =
       monthly.length >= 3 ? monthly.sublist(monthly.length - 3) : monthly;
-  return last.reduce((a, b) => a + b) / last.length;
+  return last.reduce((final a, final b) => a + b) / last.length;
 });

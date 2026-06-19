@@ -6,7 +6,7 @@
 /// NEVER show `error.toString()` directly to users.
 library;
 
-String friendlyAuthError(Object error) {
+String friendlyAuthError(final Object error) {
   final raw = error.toString().toLowerCase();
 
   // ── Firebase Auth ──────────────────────────────────────────────────
@@ -63,7 +63,7 @@ String friendlyAuthError(Object error) {
   return 'Something went wrong. Please try again.';
 }
 
-String friendlyFirestoreError(Object error) {
+String friendlyFirestoreError(final Object error) {
   final raw = error.toString().toLowerCase();
 
   if (raw.contains('permission-denied')) {

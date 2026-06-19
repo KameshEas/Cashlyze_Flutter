@@ -20,8 +20,8 @@ import 'retry_interceptor.dart';
 /// - Typed error mapping ([ApiException] subtypes)
 class ApiClient {
   factory ApiClient.create({
-    required SecureStorageService secureStorage,
-    required void Function() onForceLogout,
+    required final SecureStorageService secureStorage,
+    required final void Function() onForceLogout,
   }) {
     final dio = Dio(
       BaseOptions(
@@ -39,7 +39,7 @@ class ApiClient {
     // Expose the Dio instance in request extras so interceptors can use it.
     dio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) {
+        onRequest: (final options, final handler) {
           options.extra['dio'] = dio;
           handler.next(options);
         },
@@ -63,7 +63,7 @@ class ApiClient {
         LogInterceptor(
           requestHeader: false, // avoid leaking auth headers in debug logs
           responseHeader: false,
-          logPrint: (obj) => debugApiLog(obj.toString()),
+          logPrint: (final obj) => debugApiLog(obj.toString()),
         ),
       );
     }
@@ -71,7 +71,7 @@ class ApiClient {
     return ApiClient._(dio: dio);
   }
 
-  ApiClient._({required Dio dio}) : _dio = dio;
+  ApiClient._({required final Dio dio}) : _dio = dio;
 
   final Dio _dio;
 
@@ -127,11 +127,11 @@ class ApiClient {
   Future<Response<T>> _execute<T>(final Future<Response<T>> Function() call) async {
     try {
       return await call();
-    } on DioException catch (final e) {
+    } on DioException catch (e) {
       throw _mapDioException(e);
     } on ApiException {
       rethrow;
-    } catch (final e) {
+    } catch (e) {
       throw UnknownApiException(e.toString());
     }
   }
@@ -197,7 +197,7 @@ void debugApiLog(final String message) {
 ///
 /// On a permanent 401 (token refresh failure), calls [AuthService.signOut]
 /// and clears locally stored tokens so the router guard redirects to login.
-final apiClientProvider = Provider<ApiClient>((ref) {
+final apiClientProvider = Provider<ApiClient>((final ref) {
   final storage = ref.watch(secureStorageServiceProvider);
   return ApiClient.create(
     secureStorage: storage,

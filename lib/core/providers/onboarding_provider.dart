@@ -26,7 +26,7 @@ class CurrencyNotifier extends Notifier<String> {
     return prefsService.currency;
   }
 
-  Future<void> set(String value) async {
+  Future<void> set(final String value) async {
     final prefsService = ref.read(sharedPrefsServiceProvider);
     await prefsService.setCurrency(value);
     state = value;

@@ -42,10 +42,10 @@ class OtpPendingNotifier extends Notifier<bool> {
   }
 
   void setPending({
-    String email = '',
-    String password = '',
-    String name = '',
-    String mobile = '',
+    final String email = '',
+    final String password = '',
+    final String name = '',
+    final String mobile = '',
   }) {
     final prefs = ref.read(sharedPrefsProvider);
     pendingEmail = email;

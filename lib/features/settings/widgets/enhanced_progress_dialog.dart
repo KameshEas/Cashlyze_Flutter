@@ -4,14 +4,6 @@ enum ProgressDialogType { backup, restore, export }
 
 /// A customizable progress dialog with support for multiple steps and phases.
 class EnhancedProgressDialog extends StatefulWidget {
-  final String title;
-  final String? subtitle;
-  final ProgressDialogType type;
-  final Stream<({String phase, double progress, String? errorMessage})>
-      progressStream;
-  final VoidCallback? onCancel;
-  final bool canCancel;
-  final Duration dismissDelay;
 
   const EnhancedProgressDialog({
     super.key,
@@ -23,18 +15,26 @@ class EnhancedProgressDialog extends StatefulWidget {
     this.canCancel = true,
     this.dismissDelay = const Duration(seconds: 2),
   });
+  final String title;
+  final String? subtitle;
+  final ProgressDialogType type;
+  final Stream<({String phase, double progress, String? errorMessage})>
+      progressStream;
+  final VoidCallback? onCancel;
+  final bool canCancel;
+  final Duration dismissDelay;
 
   static Future<void> show({
-    required BuildContext context,
-    required String title,
-    String? subtitle,
-    ProgressDialogType type = ProgressDialogType.backup,
-    required Stream<({String phase, double progress, String? errorMessage})>
+    required final BuildContext context,
+    required final String title,
+    final String? subtitle,
+    final ProgressDialogType type = ProgressDialogType.backup,
+    required final Stream<({String phase, double progress, String? errorMessage})>
         progressStream,
-    VoidCallback? onCancel,
-    bool canCancel = true,
-    Duration dismissDelay = const Duration(seconds: 2),
-    bool barrierDismissible = false,
+    final VoidCallback? onCancel,
+    final bool canCancel = true,
+    final Duration dismissDelay = const Duration(seconds: 2),
+    final bool barrierDismissible = false,
   }) {
     return showDialog(
       context: context,
@@ -70,7 +70,7 @@ class _EnhancedProgressDialogState extends State<EnhancedProgressDialog> {
 
   void _listenToProgress() {
     widget.progressStream.listen(
-      (update) {
+      (final update) {
         if (!mounted) return;
 
         setState(() {
@@ -92,7 +92,7 @@ class _EnhancedProgressDialogState extends State<EnhancedProgressDialog> {
           }
         });
       },
-      onError: (error) {
+      onError: (final error) {
         if (!mounted) return;
         setState(() {
           _hasError = true;
@@ -115,7 +115,7 @@ class _EnhancedProgressDialogState extends State<EnhancedProgressDialog> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return AlertDialog(
       backgroundColor: Theme.of(context).colorScheme.surface,
       title: Row(

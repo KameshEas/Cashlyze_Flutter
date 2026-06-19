@@ -5,12 +5,6 @@ import 'package:flutter/material.dart';
 /// Uses TweenAnimationBuilder to animate the progress value from 0.0-1.0 (and beyond),
 /// and AnimatedOpacity to smoothly transition between colors based on budget status.
 class AnimatedProgressIndicator extends StatefulWidget {
-  final double progress;
-  final double minHeight;
-  final Duration duration;
-  final BorderRadiusGeometry borderRadius;
-  final Color? backgroundColor;
-  final Curve curve;
 
   const AnimatedProgressIndicator({
     super.key,
@@ -21,6 +15,12 @@ class AnimatedProgressIndicator extends StatefulWidget {
     this.backgroundColor,
     this.curve = Curves.easeInOut,
   });
+  final double progress;
+  final double minHeight;
+  final Duration duration;
+  final BorderRadiusGeometry borderRadius;
+  final Color? backgroundColor;
+  final Curve curve;
 
   @override
   State<AnimatedProgressIndicator> createState() =>
@@ -37,7 +37,7 @@ class _AnimatedProgressIndicatorState extends State<AnimatedProgressIndicator> {
   }
 
   @override
-  void didUpdateWidget(AnimatedProgressIndicator oldWidget) {
+  void didUpdateWidget(final AnimatedProgressIndicator oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.progress != widget.progress) {
       _lastProgress = oldWidget.progress.clamp(0.0, 1.0);
@@ -48,7 +48,7 @@ class _AnimatedProgressIndicatorState extends State<AnimatedProgressIndicator> {
   /// - Green (0-90%): Safe spending
   /// - Orange (90-100%): Warning threshold
   /// - Red (≥100%): Overspent state - clear red indication
-  Color _getProgressColor(double progress) {
+  Color _getProgressColor(final double progress) {
     if (progress >= 1.0) {
       return Colors.red; // Over budget - bold red for overspend
     }
@@ -59,7 +59,7 @@ class _AnimatedProgressIndicatorState extends State<AnimatedProgressIndicator> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final clampedProgress = widget.progress.clamp(0.0, 1.0);
     final progressColor = _getProgressColor(widget.progress);
 
@@ -70,7 +70,7 @@ class _AnimatedProgressIndicatorState extends State<AnimatedProgressIndicator> {
       ),
       duration: widget.duration,
       curve: widget.curve,
-      builder: (context, animatedProgress, child) {
+      builder: (final context, final animatedProgress, final child) {
         return AnimatedOpacity(
           opacity: 1.0,
           duration: widget.duration,

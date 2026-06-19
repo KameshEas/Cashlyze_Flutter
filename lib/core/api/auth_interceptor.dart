@@ -125,7 +125,7 @@ class AuthInterceptor extends Interceptor {
 /// Consumers must supply a [onForceLogout] callback when constructing the
 /// interceptor; this provider supplies a no-op version that is replaced at
 /// the [ApiClient] layer with the real logout handler.
-final authInterceptorProvider = Provider<AuthInterceptor>((ref) {
+final authInterceptorProvider = Provider<AuthInterceptor>((final ref) {
   final storage = ref.watch(secureStorageServiceProvider);
   return AuthInterceptor(
     secureStorage: storage,

@@ -1,11 +1,11 @@
 import 'package:intl/intl.dart';
 
-String formatAmount(num amount, String currencyCode) {
+String formatAmount(final num amount, final String currencyCode) {
   final fmt = NumberFormat.simpleCurrency(name: currencyCode);
   return fmt.format(amount);
 }
 
-String formatDate(DateTime date, String pattern) {
+String formatDate(final DateTime date, final String pattern) {
   return DateFormat(pattern).format(date);
 }
 
@@ -15,16 +15,16 @@ String formatDate(DateTime date, String pattern) {
 /// - 'message': Clear status text (e.g., "₹2,400 left" or "Overspent by ₹630")
 /// - 'isPositive': true if balance >= 0, false if overspent
 class BalanceStatus {
-  final String message;
-  final bool isPositive;
   
   const BalanceStatus({
     required this.message,
     required this.isPositive,
   });
+  final String message;
+  final bool isPositive;
 }
 
-BalanceStatus getBalanceStatus(num balance, String currencyCode) {
+BalanceStatus getBalanceStatus(final num balance, final String currencyCode) {
   final absBalance = balance.abs();
   final fmt = NumberFormat.simpleCurrency(name: currencyCode);
   final formattedAmount = fmt.format(absBalance);

@@ -7,21 +7,21 @@ import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
 
 class _GoogleAuthClient extends http.BaseClient {
+  _GoogleAuthClient(this._headers);
   final Map<String, String> _headers;
   final http.Client _client = http.Client();
-  _GoogleAuthClient(this._headers);
   @override
-  Future<http.StreamedResponse> send(http.BaseRequest request) {
+  Future<http.StreamedResponse> send(final http.BaseRequest request) {
     request.headers.addAll(_headers);
     return _client.send(request);
   }
 }
 
 class DriveBackupService {
-  final GoogleSignIn _signIn;
 
   DriveBackupService()
     : _signIn = GoogleSignIn(scopes: <String>[drive.DriveApi.driveFileScope]);
+  final GoogleSignIn _signIn;
 
   Future<drive.DriveApi> _api() async {
     var account = await _signIn.signInSilently();
@@ -35,8 +35,8 @@ class DriveBackupService {
   }
 
   Future<String> uploadJson({
-    required String filename,
-    required String json,
+    required final String filename,
+    required final String json,
   }) async {
     final api = await _api();
     final q = "name='$filename' and trashed=false";
@@ -62,7 +62,7 @@ class DriveBackupService {
     }
   }
 
-  Future<String?> downloadJson({required String filename}) async {
+  Future<String?> downloadJson({required final String filename}) async {
     final api = await _api();
     final q = "name='$filename' and trashed=false";
     final list = await api.files.list(q: q, spaces: 'drive');
@@ -74,11 +74,11 @@ class DriveBackupService {
               downloadOptions: drive.DownloadOptions.fullMedia,
             )
             as drive.Media;
-    final bytes = await media.stream.expand((x) => x).toList();
+    final bytes = await media.stream.expand((final x) => x).toList();
     return utf8.decode(bytes);
   }
 }
 
 final driveBackupServiceProvider = Provider<DriveBackupService>(
-  (ref) => DriveBackupService(),
+  (final ref) => DriveBackupService(),
 );

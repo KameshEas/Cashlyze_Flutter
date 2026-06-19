@@ -6,14 +6,14 @@ import '../services/analytics_service.dart';
 import '../services/app_version_service.dart';
 
 /// Provider for AppVersionService
-final appVersionServiceProvider = Provider<AppVersionService>((ref) {
+final appVersionServiceProvider = Provider<AppVersionService>((final ref) {
   final analyticsService = ref.watch(analyticsServiceProvider);
   return AppVersionService(analyticsService);
 });
 
 /// FutureProvider that fetches version config for current platform
 final currentPlatformVersionProvider =
-    FutureProvider<AppVersionModel?>((ref) async {
+    FutureProvider<AppVersionModel?>((final ref) async {
   final repository = ref.watch(appVersionRepositoryProvider);
   final service = ref.watch(appVersionServiceProvider);
 
@@ -23,7 +23,7 @@ final currentPlatformVersionProvider =
 });
 
 /// FutureProvider that checks if force update is required for current platform
-final forceUpdateRequiredProvider = FutureProvider<bool>((ref) async {
+final forceUpdateRequiredProvider = FutureProvider<bool>((final ref) async {
   final versionConfig = await ref.watch(currentPlatformVersionProvider.future);
 
   if (versionConfig == null) {
@@ -37,7 +37,7 @@ final forceUpdateRequiredProvider = FutureProvider<bool>((ref) async {
 
 /// FutureProvider that fetches all version configs
 final allVersionsProvider = FutureProvider<Map<String, AppVersionModel?>>(
-  (ref) async {
+  (final ref) async {
     final repository = ref.watch(appVersionRepositoryProvider);
     final platform = ref.watch(appVersionServiceProvider).getPlatformName();
     final version = await repository.getVersionByPlatform(platform);
@@ -77,7 +77,7 @@ class ForceUpdateStateNotifier extends Notifier<ForceUpdateState> {
 
   /// Log that user initiated update
   Future<void> logUpdateInitiated() async {
-    final versionConfig = state.whenOrNull(updateRequired: (config) => config);
+    final versionConfig = state.whenOrNull(updateRequired: (final config) => config);
     if (versionConfig != null) {
       final service = ref.read(appVersionServiceProvider);
       await service.logUpdateInitiated(versionConfig.minimumVersion);
@@ -85,7 +85,7 @@ class ForceUpdateStateNotifier extends Notifier<ForceUpdateState> {
   }
 
   /// Log that user was redirected to store
-  Future<void> logRedirectedToStore(String platform) async {
+  Future<void> logRedirectedToStore(final String platform) async {
     final service = ref.read(appVersionServiceProvider);
     await service.logRedirectedToStore(platform);
   }
@@ -97,15 +97,15 @@ sealed class ForceUpdateState {
 
   const factory ForceUpdateState.initial() = _Initial;
   const factory ForceUpdateState.loading() = _Loading;
-  const factory ForceUpdateState.updateRequired(AppVersionModel config) =
+  const factory ForceUpdateState.updateRequired(final AppVersionModel config) =
       _UpdateRequired;
   const factory ForceUpdateState.noUpdateRequired() = _NoUpdateRequired;
 
   T? whenOrNull<T>({
-    T? Function()? initial,
-    T? Function()? loading,
-    T? Function(AppVersionModel config)? updateRequired,
-    T? Function()? noUpdateRequired,
+    final T? Function()? initial,
+    final T? Function()? loading,
+    final T? Function(AppVersionModel config)? updateRequired,
+    final T? Function()? noUpdateRequired,
   }) {
     return switch (this) {
       _Initial() => initial?.call(),
@@ -131,8 +131,8 @@ class _Loading extends ForceUpdateState {
 }
 
 class _UpdateRequired extends ForceUpdateState {
-  final AppVersionModel config;
   const _UpdateRequired(this.config);
+  final AppVersionModel config;
 }
 
 class _NoUpdateRequired extends ForceUpdateState {

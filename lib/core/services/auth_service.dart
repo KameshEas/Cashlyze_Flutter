@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../models/auth_user.dart';
-import '../api/api_client.dart';
-import 'secure_storage_service.dart';
 import '../../features/auth/data/auth_remote_data_source.dart';
+import '../api/api_client.dart';
+import '../models/auth_user.dart';
+import 'secure_storage_service.dart';
 
 // ── SharedPreferences keys ────────────────────────────────────────────────────
 const _kUserId = 'auth_user_id';
@@ -16,7 +16,7 @@ const _kUserEmail = 'auth_user_email';
 
 /// Provides the [AuthService] singleton. Depends on [apiClientProvider] and
 /// [secureStorageServiceProvider] so those must be in scope.
-final authServiceProvider = Provider<AuthService>((ref) {
+final authServiceProvider = Provider<AuthService>((final ref) {
   return AuthService(
     authDataSource: ref.watch(authRemoteDataSourceProvider),
     secureStorage: ref.watch(secureStorageServiceProvider),
@@ -28,14 +28,14 @@ final authServiceProvider = Provider<AuthService>((ref) {
 /// Replaces the Firebase `authStateChanges()` stream.  The first emission
 /// is synchronous (via a seeded broadcast controller) so route guards never
 /// see a spurious loading state on cold start.
-final authStateChangesProvider = StreamProvider<AuthUser?>((ref) {
+final authStateChangesProvider = StreamProvider<AuthUser?>((final ref) {
   return ref.watch(authServiceProvider).authStateChanges;
 });
 
 /// Synchronous snapshot of the currently signed-in user.
 ///
 /// Returns `null` when no user is authenticated.
-final currentUserProvider = Provider<AuthUser?>((ref) {
+final currentUserProvider = Provider<AuthUser?>((final ref) {
   return ref.watch(authStateChangesProvider).value;
 });
 
@@ -47,8 +47,8 @@ final currentUserProvider = Provider<AuthUser?>((ref) {
 /// lightweight user identity cached in [SharedPreferences] (non-sensitive).
 class AuthService {
   AuthService({
-    required AuthRemoteDataSource authDataSource,
-    required SecureStorageService secureStorage,
+    required final AuthRemoteDataSource authDataSource,
+    required final SecureStorageService secureStorage,
   })  : _auth = authDataSource,
         _storage = secureStorage {
     _init();
@@ -84,8 +84,8 @@ class AuthService {
 
   /// Signs in with email + password via `POST /auth/login`.
   Future<void> signInWithEmailAndPassword({
-    required String email,
-    required String password,
+    required final String email,
+    required final String password,
   }) async {
     final tokens = await _auth.login(email: email, password: password);
     // Decode userId from the access token payload (sub claim).
@@ -101,9 +101,9 @@ class AuthService {
   /// [otpToken] is optional because some backend deployments track OTP
   /// verification server-side and do not return an explicit token.
   Future<void> createUserWithEmailAndPassword({
-    required String email,
-    required String password,
-    String? otpToken,
+    required final String email,
+    required final String password,
+    final String? otpToken,
   }) async {
     final tokens = await _auth.register(
       email: email,
@@ -137,8 +137,8 @@ class AuthService {
   // ── Helpers ─────────────────────────────────────────────────────────────
 
   Future<void> _persistUser({
-    required String userId,
-    required String email,
+    required final String userId,
+    required final String email,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kUserId, userId);
@@ -166,7 +166,7 @@ class AuthService {
 
   /// Decodes the `sub` claim from a JWT without verifying the signature.
   /// Returns `null` on any parse failure.
-  static String? _extractSubject(String jwt) {
+  static String? _extractSubject(final String jwt) {
     try {
       final parts = jwt.split('.');
       if (parts.length != 3) return null;

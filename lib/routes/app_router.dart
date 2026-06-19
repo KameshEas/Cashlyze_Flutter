@@ -1,32 +1,33 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../core/providers/onboarding_provider.dart';
-import '../core/services/auth_service.dart';
-import '../core/providers/otp_pending_provider.dart';
+import 'package:go_router/go_router.dart';
+
 import '../core/providers/first_time_feature_provider.dart';
+import '../core/providers/onboarding_provider.dart';
+import '../core/providers/otp_pending_provider.dart';
+import '../core/services/auth_service.dart';
 import '../features/auth/auth_screen.dart';
 import '../features/auth/loader_screen.dart';
-import '../features/onboarding/onboarding_screen.dart';
-import '../features/onboarding/first_time_walkthrough.dart';
-import '../features/home/home_screen.dart';
-import '../features/transactions/transactions_screen.dart';
+import '../features/auth/otp_screen.dart';
 import '../features/budgets/budget_planner_screen.dart';
+import '../features/categories/categories_screen.dart';
+import '../features/emi/emi_dashboard_screen.dart';
+import '../features/emi/emi_form_screen.dart';
+import '../features/home/home_screen.dart';
 import '../features/insights/insights_screen.dart';
+import '../features/onboarding/first_time_walkthrough.dart';
+import '../features/onboarding/help_center_screen.dart';
+import '../features/onboarding/onboarding_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/splash/splash_screen.dart';
-import '../features/auth/otp_screen.dart';
-import '../features/categories/categories_screen.dart';
-import '../features/emi/emi_form_screen.dart';
-import '../features/emi/emi_dashboard_screen.dart';
-import '../features/onboarding/help_center_screen.dart';
+import '../features/transactions/transactions_screen.dart';
 
 // Root navigator key for accessing Navigator context from anywhere
-final rootNavigatorKeyProvider = Provider<GlobalKey<NavigatorState>>((ref) {
+final rootNavigatorKeyProvider = Provider<GlobalKey<NavigatorState>>((final ref) {
   return GlobalKey<NavigatorState>();
 });
 
-final appRouterProvider = Provider<GoRouter>((ref) {
+final appRouterProvider = Provider<GoRouter>((final ref) {
   final rootKey = ref.watch(rootNavigatorKeyProvider);
   final onboardingCompleted = ref.watch(onboardingCompletedProvider);
   final authState = ref.watch(authStateChangesProvider);
@@ -43,10 +44,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/loading',
         name: 'loading',
-        pageBuilder: (context, state) => CustomTransitionPage(
+        pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: const LoaderScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+          transitionsBuilder: (final context, final animation, final secondaryAnimation, final child) =>
               FadeTransition(opacity: animation, child: child),
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
@@ -56,10 +57,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/splash',
         name: 'splash',
-        pageBuilder: (context, state) => CustomTransitionPage(
+        pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: const SplashScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+          transitionsBuilder: (final context, final animation, final secondaryAnimation, final child) =>
               FadeTransition(opacity: animation, child: child),
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
@@ -67,12 +68,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) {
+        builder: (final context, final state, final navigationShell) {
           return Scaffold(
             body: navigationShell,
             bottomNavigationBar: NavigationBar(
               selectedIndex: navigationShell.currentIndex,
-              onDestinationSelected: (index) {
+              onDestinationSelected: (final index) {
                 if (index == 4) {
                   navigationShell.goBranch(index, initialLocation: true);
                 } else {
@@ -116,11 +117,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/',
                 name: 'home',
-                pageBuilder: (context, state) => CustomTransitionPage(
+                pageBuilder: (final context, final state) => CustomTransitionPage(
                   key: state.pageKey,
                   child: const HomeScreen(),
                   transitionsBuilder:
-                      (context, animation, secondaryAnimation, child) =>
+                      (final context, final animation, final secondaryAnimation, final child) =>
                           FadeTransition(opacity: animation, child: child),
                   transitionDuration: MediaQuery.of(context).disableAnimations
                       ? Duration.zero
@@ -134,11 +135,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/transactions',
                 name: 'transactions',
-                pageBuilder: (context, state) => CustomTransitionPage(
+                pageBuilder: (final context, final state) => CustomTransitionPage(
                   key: state.pageKey,
                   child: const TransactionsScreen(),
                   transitionsBuilder:
-                      (context, animation, secondaryAnimation, child) =>
+                      (final context, final animation, final secondaryAnimation, final child) =>
                           FadeTransition(opacity: animation, child: child),
                   transitionDuration: MediaQuery.of(context).disableAnimations
                       ? Duration.zero
@@ -152,11 +153,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/budgets',
                 name: 'budgets',
-                pageBuilder: (context, state) => CustomTransitionPage(
+                pageBuilder: (final context, final state) => CustomTransitionPage(
                   key: state.pageKey,
                   child: const BudgetPlannerScreen(),
                   transitionsBuilder:
-                      (context, animation, secondaryAnimation, child) =>
+                      (final context, final animation, final secondaryAnimation, final child) =>
                           FadeTransition(opacity: animation, child: child),
                   transitionDuration: MediaQuery.of(context).disableAnimations
                       ? Duration.zero
@@ -170,11 +171,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/insights',
                 name: 'insights',
-                pageBuilder: (context, state) => CustomTransitionPage(
+                pageBuilder: (final context, final state) => CustomTransitionPage(
                   key: state.pageKey,
                   child: const InsightsScreen(),
                   transitionsBuilder:
-                      (context, animation, secondaryAnimation, child) =>
+                      (final context, final animation, final secondaryAnimation, final child) =>
                           FadeTransition(opacity: animation, child: child),
                   transitionDuration: MediaQuery.of(context).disableAnimations
                       ? Duration.zero
@@ -188,11 +189,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/settings',
                 name: 'settings',
-                pageBuilder: (context, state) => CustomTransitionPage(
+                pageBuilder: (final context, final state) => CustomTransitionPage(
                   key: state.pageKey,
                   child: const SettingsScreen(),
                   transitionsBuilder:
-                      (context, animation, secondaryAnimation, child) =>
+                      (final context, final animation, final secondaryAnimation, final child) =>
                           FadeTransition(opacity: animation, child: child),
                   transitionDuration: MediaQuery.of(context).disableAnimations
                       ? Duration.zero
@@ -202,11 +203,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/emi',
                 name: 'emi_dashboard',
-                pageBuilder: (context, state) => CustomTransitionPage(
+                pageBuilder: (final context, final state) => CustomTransitionPage(
                   key: state.pageKey,
                   child: const EMIDashboardScreen(),
                   transitionsBuilder:
-                      (context, animation, secondaryAnimation, child) =>
+                      (final context, final animation, final secondaryAnimation, final child) =>
                           FadeTransition(opacity: animation, child: child),
                   transitionDuration: MediaQuery.of(context).disableAnimations
                       ? Duration.zero
@@ -216,11 +217,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/emi/new',
                 name: 'emi_new',
-                pageBuilder: (context, state) => CustomTransitionPage(
+                pageBuilder: (final context, final state) => CustomTransitionPage(
                   key: state.pageKey,
                   child: const EMIFormScreen(),
                   transitionsBuilder:
-                      (context, animation, secondaryAnimation, child) =>
+                      (final context, final animation, final secondaryAnimation, final child) =>
                           FadeTransition(opacity: animation, child: child),
                   transitionDuration: MediaQuery.of(context).disableAnimations
                       ? Duration.zero
@@ -234,10 +235,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/auth',
         name: 'auth',
-        pageBuilder: (context, state) => CustomTransitionPage(
+        pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: const AuthScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+          transitionsBuilder: (final context, final animation, final secondaryAnimation, final child) =>
               FadeTransition(opacity: animation, child: child),
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
@@ -247,10 +248,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         name: 'login',
-        pageBuilder: (context, state) => CustomTransitionPage(
+        pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
-          child: const AuthScreen(initialIsLogin: true),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+          child: const AuthScreen(),
+          transitionsBuilder: (final context, final animation, final secondaryAnimation, final child) =>
               FadeTransition(opacity: animation, child: child),
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
@@ -260,10 +261,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/signup',
         name: 'signup',
-        pageBuilder: (context, state) => CustomTransitionPage(
+        pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: const AuthScreen(initialIsLogin: false),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+          transitionsBuilder: (final context, final animation, final secondaryAnimation, final child) =>
               FadeTransition(opacity: animation, child: child),
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
@@ -273,10 +274,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/onboarding',
         name: 'onboarding',
-        pageBuilder: (context, state) => CustomTransitionPage(
+        pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: const OnboardingScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+          transitionsBuilder: (final context, final animation, final secondaryAnimation, final child) =>
               FadeTransition(opacity: animation, child: child),
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
@@ -286,12 +287,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/otp',
         name: 'otp',
-        pageBuilder: (context, state) {
+        pageBuilder: (final context, final state) {
           final email = state.uri.queryParameters['email'] ?? '';
           return CustomTransitionPage(
             key: state.pageKey,
             child: OtpScreen(email: email),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+            transitionsBuilder: (final context, final animation, final secondaryAnimation, final child) =>
                 FadeTransition(opacity: animation, child: child),
             transitionDuration: MediaQuery.of(context).disableAnimations
                 ? Duration.zero
@@ -302,10 +303,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/categories',
         name: 'categories',
-        pageBuilder: (context, state) => CustomTransitionPage(
+        pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: const CategoriesScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+          transitionsBuilder: (final context, final animation, final secondaryAnimation, final child) =>
               FadeTransition(opacity: animation, child: child),
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
@@ -315,10 +316,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/onboarding_preview',
         name: 'onboarding_preview',
-        pageBuilder: (context, state) => CustomTransitionPage(
+        pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: const OnboardingScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+          transitionsBuilder: (final context, final animation, final secondaryAnimation, final child) =>
               FadeTransition(opacity: animation, child: child),
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
@@ -328,10 +329,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/help_center',
         name: 'help_center',
-        pageBuilder: (context, state) => CustomTransitionPage(
+        pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: const HelpCenterScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+          transitionsBuilder: (final context, final animation, final secondaryAnimation, final child) =>
               FadeTransition(opacity: animation, child: child),
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
@@ -341,10 +342,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/walkthrough',
         name: 'walkthrough',
-        pageBuilder: (context, state) => CustomTransitionPage(
+        pageBuilder: (final context, final state) => CustomTransitionPage(
           key: state.pageKey,
           child: const FirstTimeWalkthrough(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+          transitionsBuilder: (final context, final animation, final secondaryAnimation, final child) =>
               FadeTransition(opacity: animation, child: child),
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
@@ -353,7 +354,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
 
     ],
-    redirect: (context, state) {
+    redirect: (final context, final state) {
       final isOnboarding = state.matchedLocation == '/onboarding';
       final isAuthRoute =
           state.matchedLocation == '/auth' ||

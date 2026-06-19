@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 
 /// Wrapper widget that adds pin and collapse/expand functionality to EMI cards
 class EMICardWrapper extends StatefulWidget {
-  final String planId;
-  final Widget child;
-  final bool canPin;
-  final bool canCollapse;
 
   const EMICardWrapper({
     super.key,
@@ -14,6 +10,10 @@ class EMICardWrapper extends StatefulWidget {
     this.canPin = true,
     this.canCollapse = true,
   });
+  final String planId;
+  final Widget child;
+  final bool canPin;
+  final bool canCollapse;
 
   @override
   State<EMICardWrapper> createState() => _EMICardWrapperState();
@@ -57,7 +57,7 @@ class _EMICardWrapperState extends State<EMICardWrapper> {
             ),
             child: Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.pin,
                   size: 14,
                   color: Colors.amber,

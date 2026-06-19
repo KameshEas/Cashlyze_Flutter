@@ -5,7 +5,7 @@ class LoaderScreen extends ConsumerWidget {
   const LoaderScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     final theme = Theme.of(context);
     return Scaffold(
       body: Center(

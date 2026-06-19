@@ -11,14 +11,14 @@ enum TimeRange { last7d, last30d, last90d }
 class TimeRangeNotifier extends Notifier<TimeRange> {
   @override
   TimeRange build() => TimeRange.last30d;
-  void setRange(TimeRange r) => state = r;
+  void setRange(final TimeRange r) => state = r;
 }
 
 final selectedTimeRangeProvider =
     NotifierProvider<TimeRangeNotifier, TimeRange>(TimeRangeNotifier.new);
 
 final recentTransactionsProvider = StreamProvider<List<TransactionModel>>((
-  ref,
+  final ref,
 ) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(<TransactionModel>[]);
@@ -32,11 +32,11 @@ class TransactionsCacheNotifier extends Notifier<List<TransactionModel>> {
   List<TransactionModel> build() {
     state = <TransactionModel>[];
     ref.listen<AsyncValue<List<TransactionModel>>>(recentTransactionsProvider, (
-      prev,
-      next,
+      final prev,
+      final next,
     ) {
       next.when(
-        data: (d) {
+        data: (final d) {
           state = d;
         },
         loading: () {
@@ -56,14 +56,14 @@ final transactionsCacheProvider =
       TransactionsCacheNotifier.new,
     );
 
-final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {
+final filteredTransactionsProvider = Provider<List<TransactionModel>>((final ref) {
   final txsAsync = ref.watch(recentTransactionsProvider);
   // For Insights we want the filtered list to reflect the selected time
   // range exactly. Falling back to the full transactions cache while the
   // stream is loading can surface stale/all-time values in KPIs — avoid
   // that by treating loading/error as an empty list here.
   final txs = txsAsync.maybeWhen(
-    data: (d) => d,
+    data: (final d) => d,
     orElse: () => <TransactionModel>[],
   );
   final range = ref.watch(selectedTimeRangeProvider);
@@ -78,25 +78,25 @@ final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {
     cutoff = now.subtract(const Duration(days: 90));
   }
   return txs
-      .where((t) => t.date.isAfter(cutoff))
+      .where((final t) => t.date.isAfter(cutoff))
       .where(
-        (t) =>
+        (final t) =>
             selectedCats.isEmpty ||
             selectedCats.contains(t.categoryId ?? 'Other'),
       )
       .toList();
 });
 
-final monthlyTrendProvider = Provider<List<double>>((ref) {
+final monthlyTrendProvider = Provider<List<double>>((final ref) {
   final txsAsync = ref.watch(recentTransactionsProvider);
   final txs = txsAsync.maybeWhen(
-    data: (d) => d,
+    data: (final d) => d,
     orElse: () => ref.watch(transactionsCacheProvider),
   );
   final now = DateTime.now();
   final months = List.generate(
     6,
-    (i) => DateTime(now.year, now.month - (5 - i)),
+    (final i) => DateTime(now.year, now.month - (5 - i)),
   );
   final values = List<double>.filled(6, 0);
   for (final t in txs) {
@@ -111,10 +111,10 @@ final monthlyTrendProvider = Provider<List<double>>((ref) {
   return values;
 });
 
-final categoryBreakdownProvider = Provider<Map<String, double>>((ref) {
+final categoryBreakdownProvider = Provider<Map<String, double>>((final ref) {
   final txs = ref.watch(filteredTransactionsProvider);
   final map = <String, double>{};
-  for (final t in txs.where((t) => t.amount < 0)) {
+  for (final t in txs.where((final t) => t.amount < 0)) {
     final cat = t.categoryId ?? 'Other';
     map[cat] = (map[cat] ?? 0) + t.amount.abs();
   }
@@ -124,7 +124,7 @@ final categoryBreakdownProvider = Provider<Map<String, double>>((ref) {
 class SelectedCategoriesNotifier extends Notifier<Set<String>> {
   @override
   Set<String> build() => <String>{};
-  void toggle(String cat) {
+  void toggle(final String cat) {
     final s = Set<String>.from(state);
     if (s.contains(cat)) {
       s.remove(cat);

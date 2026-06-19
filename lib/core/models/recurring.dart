@@ -4,15 +4,6 @@ enum RecurringFrequency { weekly, monthly }
 
 @immutable
 class RecurringRule {
-  final String id;
-  final String userId;
-  final String title;
-  final double amount;
-  final bool isIncome;
-  final String? categoryId;
-  final DateTime startDate;
-  final DateTime? lastPostedDate;
-  final RecurringFrequency frequency;
 
   const RecurringRule({
     required this.id,
@@ -26,7 +17,7 @@ class RecurringRule {
     required this.frequency,
   });
 
-  factory RecurringRule.fromRTDB(String id, Map<String, dynamic> data) {
+  factory RecurringRule.fromRTDB(final String id, final Map<String, dynamic> data) {
     return RecurringRule(
       id: id,
       userId: data['userId'] as String,
@@ -47,6 +38,15 @@ class RecurringRule {
           : RecurringFrequency.monthly,
     );
   }
+  final String id;
+  final String userId;
+  final String title;
+  final double amount;
+  final bool isIncome;
+  final String? categoryId;
+  final DateTime startDate;
+  final DateTime? lastPostedDate;
+  final RecurringFrequency frequency;
 
   Map<String, dynamic> toRTDB() {
     return {
@@ -64,17 +64,17 @@ class RecurringRule {
   }
 
   RecurringRule copyWith({
-    String? id,
-    String? userId,
-    String? title,
-    double? amount,
-    bool? isIncome,
-    String? categoryId,
-    DateTime? startDate,
-    DateTime? lastPostedDate,
-    RecurringFrequency? frequency,
-    bool clearCategoryId = false,
-    bool clearLastPostedDate = false,
+    final String? id,
+    final String? userId,
+    final String? title,
+    final double? amount,
+    final bool? isIncome,
+    final String? categoryId,
+    final DateTime? startDate,
+    final DateTime? lastPostedDate,
+    final RecurringFrequency? frequency,
+    final bool clearCategoryId = false,
+    final bool clearLastPostedDate = false,
   }) {
     return RecurringRule(
       id: id ?? this.id,
@@ -90,7 +90,7 @@ class RecurringRule {
   }
 
   @override
-  bool operator ==(Object other) =>
+  bool operator ==(final Object other) =>
       identical(this, other) ||
       other is RecurringRule &&
           runtimeType == other.runtimeType &&

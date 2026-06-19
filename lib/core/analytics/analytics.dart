@@ -12,13 +12,13 @@ class AnalyticsService {
   /// Log onboarding completion.
   /// See core/analytics/event_spec.md for parameter definitions.
   Future<void> logOnboardingCompleted({
-    required String method,
-    required int steps,
-    required int durationMs,
-    required bool success,
-    String? reason,
-    int? accountCount,
-    bool? hasLinkedAccount,
+    required final String method,
+    required final int steps,
+    required final int durationMs,
+    required final bool success,
+    final String? reason,
+    final int? accountCount,
+    final bool? hasLinkedAccount,
   }) async {
     final paramsOnboarding = <String, Object>{
       'method': method,
@@ -43,13 +43,13 @@ class AnalyticsService {
   /// Log transaction import events.
   /// `count` should reflect number of transactions persisted in this operation.
   Future<void> logTransactionImported({
-    required String importMethod,
-    String? provider,
-    required int count,
-    required int importDurationMs,
-    required bool success,
-    String? errorCode,
-    String? sampleTxnId,
+    required final String importMethod,
+    final String? provider,
+    required final int count,
+    required final int importDurationMs,
+    required final bool success,
+    final String? errorCode,
+    final String? sampleTxnId,
   }) async {
     final paramsImport = <String, Object>{
       'import_method': importMethod,

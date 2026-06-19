@@ -6,36 +6,36 @@ import '../services/bill_parser_service.dart';
 import '../services/merchant_categorizer_service.dart';
 
 // OCR Service
-final billOCRServiceProvider = Provider<BillOCRService>((ref) {
+final billOCRServiceProvider = Provider<BillOCRService>((final ref) {
   return BillOCRService();
 });
 
 // Bill Parser Service
-final billParserServiceProvider = Provider<BillParserService>((ref) {
+final billParserServiceProvider = Provider<BillParserService>((final ref) {
   return BillParserService();
 });
 
 // Merchant Categorizer Service
-final merchantCategorizerProvider = Provider<MerchantCategorizerService>((ref) {
+final merchantCategorizerProvider = Provider<MerchantCategorizerService>((final ref) {
   return MerchantCategorizerService();
 });
 
 // Scanning state
 class ScanState {
-  final bool isProcessing;
-  final String? errorMessage;
-  final ScannedBill? result;
 
   ScanState({
     this.isProcessing = false,
     this.errorMessage,
     this.result,
   });
+  final bool isProcessing;
+  final String? errorMessage;
+  final ScannedBill? result;
 
   ScanState copyWith({
-    bool? isProcessing,
-    String? errorMessage,
-    ScannedBill? result,
+    final bool? isProcessing,
+    final String? errorMessage,
+    final ScannedBill? result,
   }) {
     return ScanState(
       isProcessing: isProcessing ?? this.isProcessing,
@@ -58,7 +58,7 @@ class ScanNotifier extends Notifier<ScanState> {
     return ScanState();
   }
 
-  Future<void> scanImage(String imagePath) async {
+  Future<void> scanImage(final String imagePath) async {
     state = state.copyWith(isProcessing: true);
     
     try {
@@ -78,7 +78,7 @@ class ScanNotifier extends Notifier<ScanState> {
     } catch (e) {
       state = state.copyWith(
         isProcessing: false,
-        errorMessage: 'Failed to scan bill: ${e.toString()}',
+        errorMessage: 'Failed to scan bill: $e',
       );
     }
   }
@@ -87,7 +87,7 @@ class ScanNotifier extends Notifier<ScanState> {
     state = ScanState();
   }
 
-  void updateBill(ScannedBill bill) {
+  void updateBill(final ScannedBill bill) {
     state = state.copyWith(result: bill);
   }
 }

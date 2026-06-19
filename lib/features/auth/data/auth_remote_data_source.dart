@@ -14,10 +14,7 @@ class AuthTokens {
     required this.refreshToken,
   });
 
-  final String accessToken;
-  final String refreshToken;
-
-  factory AuthTokens.fromJson(Map<String, dynamic> json) {
+  factory AuthTokens.fromJson(final Map<String, dynamic> json) {
     final access = json['access_token'] as String?;
     final refresh = json['refresh_token'] as String?;
     if (access == null || refresh == null) {
@@ -25,6 +22,9 @@ class AuthTokens {
     }
     return AuthTokens(accessToken: access, refreshToken: refresh);
   }
+
+  final String accessToken;
+  final String refreshToken;
 }
 
 // ── Data source ───────────────────────────────────────────────────────────────
@@ -35,8 +35,8 @@ class AuthTokens {
 /// - `POST /auth/refresh`
 class AuthRemoteDataSource {
   const AuthRemoteDataSource({
-    required ApiClient apiClient,
-    required SecureStorageService secureStorage,
+    required final ApiClient apiClient,
+    required final SecureStorageService secureStorage,
   })  : _api = apiClient,
         _storage = secureStorage;
 
@@ -52,13 +52,13 @@ class AuthRemoteDataSource {
   /// Some deployments return only a user profile object for register; in that
   /// case this returns `null` and callers should navigate to login.
   Future<AuthTokens?> register({
-    required String email,
-    required String password,
-    String? otpToken,
-    String? name,
-    String? mobile,
-    String? displayName,
-    String? photoUrl,
+    required final String email,
+    required final String password,
+    final String? otpToken,
+    final String? name,
+    final String? mobile,
+    final String? displayName,
+    final String? photoUrl,
   }) async {
     final response = await _api.post<Map<String, dynamic>>(
       ApiEndpoints.register,
@@ -93,8 +93,8 @@ class AuthRemoteDataSource {
   ///
   /// On success, persists [AuthTokens] to secure storage.
   Future<AuthTokens> login({
-    required String email,
-    required String password,
+    required final String email,
+    required final String password,
   }) async {
     final response = await _api.post<Map<String, dynamic>>(
       ApiEndpoints.login,
@@ -143,8 +143,8 @@ class AuthRemoteDataSource {
 
   /// Changes the authenticated user's password.
   Future<void> changePassword({
-    required String currentPassword,
-    required String newPassword,
+    required final String currentPassword,
+    required final String newPassword,
   }) async {
     await _api.patch<void>(
       ApiEndpoints.changePassword,
@@ -164,7 +164,7 @@ class AuthRemoteDataSource {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  Future<void> _persistTokens(AuthTokens tokens) async {
+  Future<void> _persistTokens(final AuthTokens tokens) async {
     await _storage.saveAuthToken(tokens.accessToken);
     await _storage.saveRefreshToken(tokens.refreshToken);
   }
@@ -172,7 +172,7 @@ class AuthRemoteDataSource {
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
-final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
+final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((final ref) {
   return AuthRemoteDataSource(
     apiClient: ref.watch(apiClientProvider),
     secureStorage: ref.watch(secureStorageServiceProvider),

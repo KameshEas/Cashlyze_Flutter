@@ -10,34 +10,34 @@ enum TutorialEvent {
   emiTracking('emi_tracking', 'EMI Tracking'),
   settingsAccess('settings_access', 'App Settings');
 
+  const TutorialEvent(this.id, this.title);
+
   final String id;
   final String title;
-
-  const TutorialEvent(this.id, this.title);
 }
 
 /// Base class for all tutorial overlays
 abstract class BaseTutorialOverlay extends ConsumerWidget {
-  final VoidCallback onComplete;
 
   const BaseTutorialOverlay({
     required this.onComplete,
     super.key,
   });
+  final VoidCallback onComplete;
 
   /// Get the tutorial event for tracking
   TutorialEvent get tutorialEvent;
 
   /// Get the tutorial sections to display
-  List<TutorialSection> getTutorialSections(BuildContext context);
+  List<TutorialSection> getTutorialSections(final BuildContext context);
 
   /// Mark tutorial as seen (override if needed)
-  Future<void> markAsSeen(WidgetRef ref) async {
+  Future<void> markAsSeen(final WidgetRef ref) async {
     // Override in subclasses
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     final sections = getTutorialSections(context);
 
     return Stack(
@@ -129,7 +129,7 @@ abstract class BaseTutorialOverlay extends ConsumerWidget {
           const SizedBox(height: 16),
 
           // Content sections
-          ...sections.map((final section) {
+          ...sections.map((final TutorialSection section) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: Row(
@@ -199,10 +199,6 @@ abstract class BaseTutorialOverlay extends ConsumerWidget {
 
 /// Tutorial section data
 class TutorialSection {
-  final String title;
-  final String description;
-  final IconData icon;
-  final Color color;
 
   TutorialSection({
     required this.title,
@@ -210,6 +206,10 @@ class TutorialSection {
     required this.icon,
     required this.color,
   });
+  final String title;
+  final String description;
+  final IconData icon;
+  final Color color;
 }
 
 /// Tutorial manager to coordinate when tutorials show
@@ -221,10 +221,10 @@ class TutorialManager {
     final Widget Function(VoidCallback) tutorialBuilder,
   ) {
     // Check if tutorial has been seen before
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((final _) {
       showDialog(
         context: context,
-        builder: (_) => tutorialBuilder(() {
+        builder: (final _) => tutorialBuilder(() {
           Navigator.of(context).pop();
         }),
       );

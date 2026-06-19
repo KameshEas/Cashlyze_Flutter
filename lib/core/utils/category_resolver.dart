@@ -35,7 +35,7 @@ class CategoryResolver {
   /// 3. Return categoryName if provided and no match found
   /// 4. Return categoryId if provided and no match found
   /// 5. Return 'General' if nothing provided
-  String resolveDisplayName(String? categoryId, String? categoryName) {
+  String resolveDisplayName(final String? categoryId, final String? categoryName) {
     final id = categoryId?.trim();
     final nameFallback = categoryName?.trim();
 
@@ -75,20 +75,20 @@ class CategoryResolver {
   }
 
   /// Maps a category id to its display name.
-  String? idToName(String? id) {
+  String? idToName(final String? id) {
     if (id == null || id.isEmpty) return null;
     return _idToName[id.trim()];
   }
 
   /// Returns all category IDs matching the given name (case-insensitive).
-  Set<String> nameToIds(String name) {
+  Set<String> nameToIds(final String name) {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return const <String>{};
     return _nameToIds[trimmed.toLowerCase()] ?? const <String>{};
   }
 
   /// Checks if a category ID or name string matches any budget-associated category.
-  bool matchesAny(String value, Iterable<String> budgetCategoryIds) {
+  bool matchesAny(final String value, final Iterable<String> budgetCategoryIds) {
     final v = value.trim().toLowerCase();
     for (final bId in budgetCategoryIds) {
       if (bId.trim().toLowerCase() == v) return true;
@@ -98,7 +98,7 @@ class CategoryResolver {
 
   // ── Private ──────────────────────────────────────────────────────────────
 
-  static Map<String, String> _buildIdToName(List<CategoryModel> categories) {
+  static Map<String, String> _buildIdToName(final List<CategoryModel> categories) {
     final map = <String, String>{};
     for (final c in categories) {
       final nameTrim = (c.name).trim();
@@ -107,7 +107,7 @@ class CategoryResolver {
     return map;
   }
 
-  static Map<String, Set<String>> _buildNameToIds(List<CategoryModel> categories) {
+  static Map<String, Set<String>> _buildNameToIds(final List<CategoryModel> categories) {
     final map = <String, Set<String>>{};
     for (final c in categories) {
       final nameTrim = (c.name).trim();
@@ -122,5 +122,5 @@ class CategoryResolver {
 ///
 /// Automatically rebuilds when categories change.
 final categoryResolverProvider = Provider.family<CategoryResolver, List<CategoryModel>>(
-  (ref, categories) => CategoryResolver(categories),
+  (final ref, final categories) => CategoryResolver(categories),
 );

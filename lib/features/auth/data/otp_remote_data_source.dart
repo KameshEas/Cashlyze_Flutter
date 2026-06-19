@@ -13,16 +13,16 @@ import '../../../core/api/api_exception.dart';
 class OtpVerifyResult {
   const OtpVerifyResult({this.otpToken, this.message});
 
-  final String? otpToken;
-  final String? message;
-
-  factory OtpVerifyResult.fromJson(Map<String, dynamic> json) {
+  factory OtpVerifyResult.fromJson(final Map<String, dynamic> json) {
     final token = json['otp_token'] as String? ?? json['token'] as String?;
     return OtpVerifyResult(
       otpToken: token,
       message: json['message'] as String?,
     );
   }
+
+  final String? otpToken;
+  final String? message;
 }
 
 // ── Data source ───────────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ class OtpVerifyResult {
 /// [AuthRemoteDataSource.register] so that the backend-issued [OtpVerifyResult.otpToken]
 /// can be forwarded.
 class OtpRemoteDataSource {
-  const OtpRemoteDataSource({required ApiClient apiClient})
+  const OtpRemoteDataSource({required final ApiClient apiClient})
       : _api = apiClient;
 
   final ApiClient _api;
@@ -45,7 +45,7 @@ class OtpRemoteDataSource {
   /// Requests the backend to send a 6-digit OTP to [email].
   ///
   /// Throws an [ApiException] subtype on failure.
-  Future<void> sendOtp({required String email}) async {
+  Future<void> sendOtp({required final String email}) async {
     await _api.post<Map<String, dynamic>>(
       ApiEndpoints.otpSend,
       data: {'email': email},
@@ -59,8 +59,8 @@ class OtpRemoteDataSource {
   ///
   /// Throws [ValidationException] if the OTP is incorrect or expired.
   Future<OtpVerifyResult> verifyOtp({
-    required String email,
-    required String otp,
+    required final String email,
+    required final String otp,
   }) async {
     final response = await _api.post<Map<String, dynamic>>(
       ApiEndpoints.otpVerify,
@@ -74,6 +74,6 @@ class OtpRemoteDataSource {
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
-final otpRemoteDataSourceProvider = Provider<OtpRemoteDataSource>((ref) {
+final otpRemoteDataSourceProvider = Provider<OtpRemoteDataSource>((final ref) {
   return OtpRemoteDataSource(apiClient: ref.watch(apiClientProvider));
 });
