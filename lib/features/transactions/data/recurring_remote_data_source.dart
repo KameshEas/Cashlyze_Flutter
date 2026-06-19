@@ -12,7 +12,7 @@ import '../../../core/models/recurring.dart';
 /// - `DELETE /recurring-rules/{id}`
 /// - `POST /recurring-rules/{id}/trigger`
 class RecurringRemoteDataSource {
-  const RecurringRemoteDataSource({required ApiClient apiClient})
+  const RecurringRemoteDataSource({required final ApiClient apiClient})
       : _api = apiClient;
 
   final ApiClient _api;
@@ -20,12 +20,12 @@ class RecurringRemoteDataSource {
   // ── Create ────────────────────────────────────────────────────────────────
 
   Future<RecurringRule> create({
-    required String title,
-    required double amount,
-    required bool isIncome,
-    required DateTime startDate,
-    required RecurringFrequency frequency,
-    String? categoryId,
+    required final String title,
+    required final double amount,
+    required final bool isIncome,
+    required final DateTime startDate,
+    required final RecurringFrequency frequency,
+    final String? categoryId,
   }) async {
     final response = await _api.post<Map<String, dynamic>>(
       ApiEndpoints.recurringRules,
@@ -47,12 +47,12 @@ class RecurringRemoteDataSource {
     final response =
         await _api.get<List<dynamic>>(ApiEndpoints.recurringRules);
     final list = (response.data as List).cast<Map<dynamic, dynamic>>();
-    return list.map((e) => _fromApiJson(e.cast<String, dynamic>())).toList();
+    return list.map((final e) => _fromApiJson(e.cast<String, dynamic>())).toList();
   }
 
   // ── Get by id ─────────────────────────────────────────────────────────────
 
-  Future<RecurringRule> getById(String id) async {
+  Future<RecurringRule> getById(final String id) async {
     final response = await _api.get<Map<String, dynamic>>(
       ApiEndpoints.recurringRuleById(id),
     );
@@ -62,13 +62,13 @@ class RecurringRemoteDataSource {
   // ── Update ────────────────────────────────────────────────────────────────
 
   Future<RecurringRule> update(
-    String id, {
-    String? title,
-    double? amount,
-    bool? isIncome,
-    DateTime? startDate,
-    RecurringFrequency? frequency,
-    String? categoryId,
+    final String id, {
+    final String? title,
+    final double? amount,
+    final bool? isIncome,
+    final DateTime? startDate,
+    final RecurringFrequency? frequency,
+    final String? categoryId,
   }) async {
     final response = await _api.put<Map<String, dynamic>>(
       ApiEndpoints.recurringRuleById(id),
@@ -86,20 +86,20 @@ class RecurringRemoteDataSource {
 
   // ── Delete ────────────────────────────────────────────────────────────────
 
-  Future<void> delete(String id) async {
+  Future<void> delete(final String id) async {
     await _api.delete<void>(ApiEndpoints.recurringRuleById(id));
   }
 
   // ── Manual trigger ────────────────────────────────────────────────────────
 
   /// Manually triggers the recurring rule to post a transaction immediately.
-  Future<void> trigger(String id) async {
+  Future<void> trigger(final String id) async {
     await _api.post<void>(ApiEndpoints.recurringRuleTrigger(id));
   }
 
   // ── Mapper ────────────────────────────────────────────────────────────────
 
-  RecurringRule _fromApiJson(Map<String, dynamic> json) {
+  RecurringRule _fromApiJson(final Map<String, dynamic> json) {
     final startRaw = json['start_date'] ?? json['start_ms'];
     final startDate = startRaw is String
         ? DateTime.parse(startRaw)
@@ -133,6 +133,6 @@ class RecurringRemoteDataSource {
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 final recurringRemoteDataSourceProvider =
-    Provider<RecurringRemoteDataSource>((ref) {
+    Provider<RecurringRemoteDataSource>((final ref) {
   return RecurringRemoteDataSource(apiClient: ref.watch(apiClientProvider));
 });

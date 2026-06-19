@@ -8,7 +8,7 @@ class AppVersionRemoteDataSource {
   const AppVersionRemoteDataSource(this._client);
   final ApiClient _client;
 
-  Future<AppVersionModel?> getVersionByPlatform(String platform) async {
+  Future<AppVersionModel?> getVersionByPlatform(final String platform) async {
     try {
       final response = await _client.get<Map<String, dynamic>>(
         ApiEndpoints.appVersion,
@@ -24,6 +24,6 @@ class AppVersionRemoteDataSource {
 }
 
 final appVersionRemoteDataSourceProvider =
-    Provider<AppVersionRemoteDataSource>((ref) {
+    Provider<AppVersionRemoteDataSource>((final ref) {
   return AppVersionRemoteDataSource(ref.watch(apiClientProvider));
 });

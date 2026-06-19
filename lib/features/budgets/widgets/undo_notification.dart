@@ -3,12 +3,6 @@ import '../../../core/utils/format.dart';
 
 /// Widget for displaying undo/redo notifications for budget changes
 class UndoNotification extends StatefulWidget {
-  final String budgetName;
-  final double oldValue;
-  final double newValue;
-  final String currency;
-  final VoidCallback onUndo;
-  final Duration displayDuration;
 
   const UndoNotification({
     super.key,
@@ -19,6 +13,12 @@ class UndoNotification extends StatefulWidget {
     required this.onUndo,
     this.displayDuration = const Duration(seconds: 5),
   });
+  final String budgetName;
+  final double oldValue;
+  final double newValue;
+  final String currency;
+  final VoidCallback onUndo;
+  final Duration displayDuration;
 
   @override
   State<UndoNotification> createState() => _UndoNotificationState();
@@ -29,7 +29,6 @@ class _UndoNotificationState extends State<UndoNotification>
   late AnimationController _animationController;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _opacityAnimation;
-  late Future<void> _dismissTimer;
 
   @override
   void initState() {
@@ -57,7 +56,7 @@ class _UndoNotificationState extends State<UndoNotification>
   }
 
   void _scheduleDismissal() {
-    _dismissTimer = Future.delayed(widget.displayDuration, () {
+    Future.delayed(widget.displayDuration, () {
       if (mounted) {
         _animationController.reverse().then((_) {
           if (mounted) Navigator.of(context).pop();
@@ -206,7 +205,7 @@ void showUndoNotification(
   late OverlayEntry overlayEntry;
 
   overlayEntry = OverlayEntry(
-    builder: (final context) {
+    builder: (final BuildContext context) {
       return Positioned(
         bottom: 0,
         left: 0,

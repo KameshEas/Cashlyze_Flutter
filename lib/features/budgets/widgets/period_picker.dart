@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 
 /// Calendar-based period picker for budget filtering
 class PeriodPicker extends StatefulWidget {
-  final String selectedPeriod;
-  final ValueChanged<String> onPeriodChanged;
 
   const PeriodPicker({
     super.key,
     required this.selectedPeriod,
     required this.onPeriodChanged,
   });
+  final String selectedPeriod;
+  final ValueChanged<String> onPeriodChanged;
 
   @override
   State<PeriodPicker> createState() => _PeriodPickerState();
@@ -33,7 +33,7 @@ class _PeriodPickerState extends State<PeriodPicker> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (final context) {
+      builder: (final BuildContext context) {
         return SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -189,7 +189,6 @@ class _PeriodPickerState extends State<PeriodPicker> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: theme.colorScheme.outline.withValues(alpha: 0.2),
-                  width: 1,
                 ),
                 color: theme.colorScheme.surface,
               ),

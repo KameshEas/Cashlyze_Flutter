@@ -2,15 +2,6 @@ import 'package:flutter/foundation.dart';
 
 @immutable
 class TransactionModel {
-  final String id;
-  final String userId;
-  final String title;
-  final double amount;
-  final String? categoryId;
-  final String? categoryName;
-  final DateTime date;
-  final String? notes;
-  final List<String>? tags;
 
   const TransactionModel({
     required this.id,
@@ -24,7 +15,7 @@ class TransactionModel {
     this.tags,
   });
 
-  factory TransactionModel.fromRTDB(String id, Map<String, dynamic> data) {
+  factory TransactionModel.fromRTDB(final String id, final Map<String, dynamic> data) {
     return TransactionModel(
       id: id,
       userId: data['userId'] as String,
@@ -37,6 +28,15 @@ class TransactionModel {
       tags: (data['tags'] as List?)?.cast<String>(),
     );
   }
+  final String id;
+  final String userId;
+  final String title;
+  final double amount;
+  final String? categoryId;
+  final String? categoryName;
+  final DateTime date;
+  final String? notes;
+  final List<String>? tags;
 
   Map<String, dynamic> toRTDB() {
     return {
@@ -52,19 +52,19 @@ class TransactionModel {
   }
 
   TransactionModel copyWith({
-    String? id,
-    String? userId,
-    String? title,
-    double? amount,
-    String? categoryId,
-    String? categoryName,
-    DateTime? date,
-    String? notes,
-    List<String>? tags,
-    bool clearCategoryId = false,
-    bool clearCategoryName = false,
-    bool clearNotes = false,
-    bool clearTags = false,
+    final String? id,
+    final String? userId,
+    final String? title,
+    final double? amount,
+    final String? categoryId,
+    final String? categoryName,
+    final DateTime? date,
+    final String? notes,
+    final List<String>? tags,
+    final bool clearCategoryId = false,
+    final bool clearCategoryName = false,
+    final bool clearNotes = false,
+    final bool clearTags = false,
   }) {
     return TransactionModel(
       id: id ?? this.id,
@@ -80,7 +80,7 @@ class TransactionModel {
   }
 
   @override
-  bool operator ==(Object other) =>
+  bool operator ==(final Object other) =>
       identical(this, other) ||
       other is TransactionModel &&
           runtimeType == other.runtimeType &&

@@ -1,21 +1,22 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/notification_service.dart';
-import '../services/local_notification_service.dart';
-import '../services/auth_service.dart';
+
 import '../providers/shared_prefs_provider.dart';
-import 'budget_providers.dart';
 import '../repositories/budget_repository.dart';
+import '../services/auth_service.dart';
+import '../services/local_notification_service.dart';
+import '../services/notification_service.dart';
+import 'budget_providers.dart';
 
 /// Provider that listens to budget utilization changes and sends a
 /// push notification when a budget crosses the user-configured threshold.
 ///
 /// This provider must be watched (e.g. in `main.dart` App build) so it
 /// registers its listener on app startup.
-final budgetAlertsHandlerProvider = Provider<void>((ref) {
+final budgetAlertsHandlerProvider = Provider<void>((final ref) {
   final notified = <String>{};
 
-  ref.listen<Map<String, double>>(budgetsUtilizationProvider, (previous, next) {
+  ref.listen<Map<String, double>>(budgetsUtilizationProvider, (final previous, final next) {
     final prefs = ref.read(sharedPrefsServiceProvider);
     if (!prefs.alertsEnabled) return;
     final threshold = prefs.alertThreshold;
@@ -23,7 +24,7 @@ final budgetAlertsHandlerProvider = Provider<void>((ref) {
     // Access the latest budgets (async stream provider). Use whenData
     // to avoid awaiting inside the listener directly.
     final budgetsAsync = ref.read(userBudgetsProvider);
-    budgetsAsync.whenData((budgets) async {
+    budgetsAsync.whenData((final budgets) async {
       final user = ref.read(currentUserProvider);
       if (user == null) return;
       for (final b in budgets) {

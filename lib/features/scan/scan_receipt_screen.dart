@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/ui/constants.dart';
+import 'package:image_picker/image_picker.dart';
+
 import '../../core/providers/scan_providers.dart';
+import '../../core/ui/constants.dart';
 
 class ScanReceiptScreen extends ConsumerStatefulWidget {
   const ScanReceiptScreen({super.key});
@@ -16,13 +19,13 @@ class _ScanReceiptScreenState extends ConsumerState<ScanReceiptScreen> {
   final ImagePicker _imagePicker = ImagePicker();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Scan Receipt'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
+          onPressed: context.pop,
         ),
       ),
       body: SafeArea(
@@ -73,7 +76,7 @@ class _ScanReceiptScreenState extends ConsumerState<ScanReceiptScreen> {
                   width: double.infinity,
                   height: 56,
                   child: FilledButton.icon(
-                    onPressed: () => _pickFromCamera(),
+                    onPressed: _pickFromCamera,
                     icon: const Icon(Icons.camera_alt_rounded),
                     label: const Text('Take Photo'),
                   ),
@@ -85,7 +88,7 @@ class _ScanReceiptScreenState extends ConsumerState<ScanReceiptScreen> {
                   width: double.infinity,
                   height: 56,
                   child: OutlinedButton.icon(
-                    onPressed: () => _pickFromGallery(),
+                    onPressed: _pickFromGallery,
                     icon: const Icon(Icons.image_rounded),
                     label: const Text('Choose from Gallery'),
                   ),
@@ -128,7 +131,7 @@ class _ScanReceiptScreenState extends ConsumerState<ScanReceiptScreen> {
     );
   }
 
-  Widget _buildTip(String tip) {
+  Widget _buildTip(final String tip) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.s8),
       child: Row(
@@ -153,27 +156,28 @@ class _ScanReceiptScreenState extends ConsumerState<ScanReceiptScreen> {
   Future<void> _pickFromCamera() async {
     final file = await _imagePicker.pickImage(source: ImageSource.camera);
     if (file != null) {
-      _processImage(file.path);
+      await _processImage(file.path);
     }
   }
 
   Future<void> _pickFromGallery() async {
     final file = await _imagePicker.pickImage(source: ImageSource.gallery);
     if (file != null) {
-      _processImage(file.path);
+      await _processImage(file.path);
     }
   }
 
-  Future<void> _processImage(String imagePath) async {
+  Future<void> _processImage(final String imagePath) async {
     // Show loading dialog
     if (!mounted) return;
-    showDialog(
+    // Loading dialog is dismissed below via Navigator.pop, so we don't await it.
+    unawaited(showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => const Center(
+      builder: (final ctx) => const Center(
         child: CircularProgressIndicator(),
       ),
-    );
+    ));
 
     // Start OCR processing
     await ref.read(scanProvider.notifier).scanImage(imagePath);
@@ -192,7 +196,7 @@ class _ScanReceiptScreenState extends ConsumerState<ScanReceiptScreen> {
       } else if (scanState.result != null) {
         // Navigate to result screen
         if (mounted) {
-          context.push('/scan/result');
+          await context.push('/scan/result');
         }
       }
     }

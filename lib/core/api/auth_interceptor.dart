@@ -30,8 +30,8 @@ class AuthInterceptor extends Interceptor {
 
   @override
   Future<void> onRequest(
-    RequestOptions options,
-    RequestInterceptorHandler handler,
+    final RequestOptions options,
+    final RequestInterceptorHandler handler,
   ) async {
     final token = await secureStorage.getAuthToken();
     if (token != null) {
@@ -42,8 +42,8 @@ class AuthInterceptor extends Interceptor {
 
   @override
   Future<void> onError(
-    DioException err,
-    ErrorInterceptorHandler handler,
+    final DioException err,
+    final ErrorInterceptorHandler handler,
   ) async {
     final response = err.response;
     if (response?.statusCode != 401) {
@@ -86,12 +86,12 @@ class AuthInterceptor extends Interceptor {
 
   /// Runs a single token refresh and caches the in-flight future so parallel
   /// requests share the result.
-  Future<String?> _getOrRunRefresh(Dio? dio) {
+  Future<String?> _getOrRunRefresh(final Dio? dio) {
     _refreshLock ??= _runRefresh(dio).whenComplete(() => _refreshLock = null);
     return _refreshLock!;
   }
 
-  Future<String?> _runRefresh(Dio? dio) async {
+  Future<String?> _runRefresh(final Dio? dio) async {
     final refreshToken = await secureStorage.getRefreshToken();
     if (refreshToken == null || dio == null) return null;
 
@@ -125,7 +125,7 @@ class AuthInterceptor extends Interceptor {
 /// Consumers must supply a [onForceLogout] callback when constructing the
 /// interceptor; this provider supplies a no-op version that is replaced at
 /// the [ApiClient] layer with the real logout handler.
-final authInterceptorProvider = Provider<AuthInterceptor>((ref) {
+final authInterceptorProvider = Provider<AuthInterceptor>((final ref) {
   final storage = ref.watch(secureStorageServiceProvider);
   return AuthInterceptor(
     secureStorage: storage,

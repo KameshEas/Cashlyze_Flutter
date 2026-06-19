@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/repositories/emi_repository.dart';
-import '../../core/models/emi.dart';
-import '../../core/utils/format.dart';
-import '../../core/providers/onboarding_provider.dart';
-import '../../core/services/auth_service.dart';
-import '../../core/widgets/skeleton.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../core/models/emi.dart';
+import '../../core/providers/onboarding_provider.dart';
+import '../../core/repositories/emi_repository.dart';
+import '../../core/services/auth_service.dart';
+import '../../core/utils/format.dart';
 import '../../core/widgets/animated_progress_indicator.dart';
+import '../../core/widgets/skeleton.dart';
 import 'emi_form_screen.dart';
 
 class EMIDashboardScreen extends ConsumerWidget {
   const EMIDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     final theme = Theme.of(context);
     final plansAsync = ref.watch(userEMIPlansProvider);
     return Scaffold(
@@ -44,11 +45,10 @@ class EMIDashboardScreen extends ConsumerWidget {
           ref.invalidate(userEMIPlansProvider);
           await ref.read(userEMIPlansProvider.future);
         },
-        displacement: 40.0,
         child: plansAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Failed to load: $e')),
-        data: (plans) {
+          error: (final e, final _) => Center(child: Text('Failed to load: $e')),
+        data: (final plans) {
           if (plans.isEmpty) {
             return Center(
               child: Column(
@@ -69,8 +69,8 @@ class EMIDashboardScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: plans.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (ctx, i) {
+            separatorBuilder: (final _, final _) => const SizedBox(height: 12),
+            itemBuilder: (final ctx, final i) {
               final p = plans[i];
               return _PlanCard(plan: p);
             },
@@ -83,16 +83,16 @@ class EMIDashboardScreen extends ConsumerWidget {
 }
 
 class _PlanCard extends ConsumerWidget {
-  final EMIPlan plan;
   const _PlanCard({required this.plan});
+  final EMIPlan plan;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     final scheduleAsync = ref.watch(emiScheduleProvider(plan.id));
     final currency = ref.watch(currencyProvider);
     return scheduleAsync.when(
       loading: () => const SkeletonListTile(),
-      error: (e, _) => AnimatedContainer(
+      error: (final e, final _) => AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
         padding: const EdgeInsets.all(16),
@@ -103,32 +103,15 @@ class _PlanCard extends ConsumerWidget {
         ),
         child: Text('Failed to load schedule: $e'),
       ),
-      data: (items) {
-        final paidCount = items.where((e) => e.paid).length;
+      data: (final items) {
+        final paidCount = items.where((final e) => e.paid).length;
         final total = items.length;
         final progress = total == 0 ? 0.0 : paidCount / total;
         final pending = total - paidCount;
-        final nextDue = items.firstWhere(
-          (e) => !e.paid,
-          orElse: () => items.isNotEmpty
-              ? items.last
-              : EMIPayment(
-                  id: 'x',
-                  planId: plan.id,
-                  dueDate: plan.startDate,
-                  installment: 0,
-                  interest: 0,
-                  principal: 0,
-                  remainingPrincipal: 0,
-                  paid: false,
-                ),
-        );
-        final days = nextDue.dueDate.difference(DateTime.now()).inDays;
-        double remainingAmount = items.where((x) => !x.paid).fold<double>(0, (p, e) => p + e.installment);
+        final remainingAmount = items.where((final x) => !x.paid).fold<double>(0, (final p, final e) => p + e.installment);
 
         return Dismissible(
           key: ValueKey('emi_plan_${plan.id}'),
-          direction: DismissDirection.horizontal,
           background: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             alignment: Alignment.centerLeft,
@@ -136,7 +119,7 @@ class _PlanCard extends ConsumerWidget {
               color: Colors.green.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Row(children: const [Icon(Icons.check, color: Colors.green), SizedBox(width: 8), Text('Mark as paid')]),
+            child: const Row(children: [Icon(Icons.check, color: Colors.green), SizedBox(width: 8), Text('Mark as paid')]),
           ),
           secondaryBackground: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -145,22 +128,22 @@ class _PlanCard extends ConsumerWidget {
               color: Colors.red.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Row(mainAxisAlignment: MainAxisAlignment.end, children: const [Text('Delete'), SizedBox(width: 8), Icon(Icons.delete, color: Colors.red)]),
+            child: const Row(mainAxisAlignment: MainAxisAlignment.end, children: [Text('Delete'), SizedBox(width: 8), Icon(Icons.delete, color: Colors.red)]),
           ),
-          confirmDismiss: (dir) async {
+          confirmDismiss: (final dir) async {
             final messenger = ScaffoldMessenger.of(context);
             final user = ref.read(currentUserProvider);
             if (user == null) return false;
             if (dir == DismissDirection.startToEnd) {
               // Mark next unpaid as paid
-              final unpaid = items.where((x) => !x.paid).toList();
+              final unpaid = items.where((final x) => !x.paid).toList();
               if (unpaid.isEmpty) {
                 messenger.showSnackBar(const SnackBar(content: Text('All EMIs already paid')));
                 return false;
               }
               final next = unpaid.first;
               try {
-                HapticFeedback.lightImpact();
+                await HapticFeedback.lightImpact();
                 await ref.read(emiRepositoryProvider).markPaid(user.uid, plan.id, next.id);
                 messenger.showSnackBar(const SnackBar(content: Text('Marked as paid')));
               } catch (e) {
@@ -170,7 +153,7 @@ class _PlanCard extends ConsumerWidget {
             } else {
               final confirm = await showDialog<bool>(
                 context: context,
-                builder: (ctx) => AlertDialog(
+                builder: (final ctx) => AlertDialog(
                   title: const Text('Delete EMI plan'),
                   content: const Text('Delete this EMI plan and its schedule? This action cannot be undone.'),
                   actions: [
@@ -239,13 +222,14 @@ class _PlanCard extends ConsumerWidget {
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                           ),
                           PopupMenuButton<int>(
-                            onSelected: (v) async {
+                            onSelected: (final v) async {
+                              final messenger = ScaffoldMessenger.of(context);
                               if (v == 1) {
-                                Navigator.of(context).push(MaterialPageRoute(builder: (_) => EMIFormScreen(initialPlan: plan)));
+                                await Navigator.of(context).push(MaterialPageRoute(builder: (_) => EMIFormScreen(initialPlan: plan)));
                               } else if (v == 2) {
                                 final confirm = await showDialog<bool>(
                                   context: context,
-                                  builder: (ctx) => AlertDialog(
+                                  builder: (final ctx) => AlertDialog(
                                     title: const Text('Delete EMI plan'),
                                     content: const Text('Delete this EMI plan and its schedule? This action cannot be undone.'),
                                     actions: [
@@ -259,15 +243,15 @@ class _PlanCard extends ConsumerWidget {
                                 if (user == null) return;
                                 try {
                                   await ref.read(emiRepositoryProvider).deletePlan(user.uid, plan.id);
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('EMI plan deleted')));
+                                  messenger.showSnackBar(const SnackBar(content: Text('EMI plan deleted')));
                                     // Invalidate provider to refresh the list
                                     ref.invalidate(userEMIPlansProvider);
                                 } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+                                  messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
                                 }
                               }
                             },
-                            itemBuilder: (_) => const [
+                            itemBuilder: (final _) => const [
                               PopupMenuItem(value: 1, child: Text('Edit')),
                               PopupMenuItem(value: 2, child: Text('Delete')),
                             ],
@@ -280,17 +264,16 @@ class _PlanCard extends ConsumerWidget {
                   // Progress
                   AnimatedProgressIndicator(
                     progress: progress.clamp(0.0, double.infinity),
-                    minHeight: 8,
                     backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
                   ),
                   const SizedBox(height: 8),
                   Text('$paidCount of $total paid', style: Theme.of(context).textTheme.bodySmall),
                   const SizedBox(height: 12),
                   // Payment row (first unpaid installment)
-                  if (items.where((x) => !x.paid).isNotEmpty) ...[
+                  if (items.where((final x) => !x.paid).isNotEmpty) ...[
                     const SizedBox(height: 4),
-                    Builder(builder: (ctx) {
-                      final e = items.firstWhere((x) => !x.paid);
+                    Builder(builder: (final ctx) {
+                      final e = items.firstWhere((final x) => !x.paid);
                       final now = DateTime.now();
                       final dueDays = e.dueDate.difference(DateTime(now.year, now.month, now.day)).inDays;
                       // due pill
@@ -343,7 +326,7 @@ class _PlanCard extends ConsumerWidget {
                               final messenger = ScaffoldMessenger.of(context);
                               final user = ref.read(currentUserProvider);
                               if (user == null) return;
-                              HapticFeedback.mediumImpact();
+                              await HapticFeedback.mediumImpact();
                               try {
                                 await ref.read(emiRepositoryProvider).markPaid(user.uid, plan.id, e.id);
                                 messenger.showSnackBar(const SnackBar(content: Text('Marked as paid')));

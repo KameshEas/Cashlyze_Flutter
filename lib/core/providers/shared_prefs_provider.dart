@@ -1,13 +1,14 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../services/shared_prefs_service.dart';
 
-final sharedPrefsProvider = Provider<SharedPreferences>((ref) {
+final sharedPrefsProvider = Provider<SharedPreferences>((final ref) {
   throw UnimplementedError('sharedPrefsProvider must be overridden in main.dart');
 });
 
-final sharedPrefsServiceProvider = Provider<SharedPrefsService>((ref) {
+final sharedPrefsServiceProvider = Provider<SharedPrefsService>((final ref) {
   final prefs = ref.watch(sharedPrefsProvider);
   return SharedPrefsService(prefs);
 });
@@ -19,7 +20,7 @@ class LocaleNotifier extends Notifier<Locale?> {
     return _toLocale(code);
   }
 
-  Locale _toLocale(String code) {
+  Locale _toLocale(final String code) {
     switch (code) {
       case 'ENG':
         return const Locale('en');
@@ -32,7 +33,7 @@ class LocaleNotifier extends Notifier<Locale?> {
     }
   }
 
-  Future<void> setCode(String code) async {
+  Future<void> setCode(final String code) async {
     await ref.read(sharedPrefsServiceProvider).setLanguageCode(code);
     state = _toLocale(code);
   }

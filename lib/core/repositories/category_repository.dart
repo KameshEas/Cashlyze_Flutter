@@ -1,25 +1,25 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/categories/data/category_remote_data_source.dart';
 import '../models/category.dart';
 import '../services/auth_service.dart';
-import '../../features/categories/data/category_remote_data_source.dart';
 
 class CategoryRepository {
   const CategoryRepository(this._dataSource);
   final CategoryRemoteDataSource _dataSource;
 
   Future<CategoryModel> create({
-    required String userId,
-    required String name,
-    String? icon,
-    int? color,
+    required final String userId,
+    required final String name,
+    final String? icon,
+    final int? color,
   }) =>
       _dataSource.create(name: name, icon: icon, color: color);
 
   Future<void> update(
-    String userId,
-    String id,
-    Map<String, dynamic> data,
+    final String userId,
+    final String id,
+    final Map<String, dynamic> data,
   ) async {
     await _dataSource.update(
       id,
@@ -29,25 +29,25 @@ class CategoryRepository {
     );
   }
 
-  Future<void> delete(String userId, String id) =>
+  Future<void> delete(final String userId, final String id) =>
       _dataSource.delete(id);
 
-  Future<List<CategoryModel>> getAllForUser(String userId) =>
+  Future<List<CategoryModel>> getAllForUser(final String userId) =>
       _dataSource.getAll();
 
-  Stream<List<CategoryModel>> streamForUser(String userId) =>
+  Stream<List<CategoryModel>> streamForUser(final String userId) =>
       Stream.fromFuture(_dataSource.getAll());
 }
 
-final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
+final categoryRepositoryProvider = Provider<CategoryRepository>((final ref) {
   return CategoryRepository(ref.watch(categoryRemoteDataSourceProvider));
 });
 
-final userCategoriesProvider = StreamProvider<List<CategoryModel>>((ref) {
+final userCategoriesProvider = StreamProvider<List<CategoryModel>>((final ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(<CategoryModel>[]);
   return ref
       .watch(categoryRepositoryProvider)
       .streamForUser(user.userId)
-      .handleError((_, __) {});
+      .handleError((_, _) {});
 });

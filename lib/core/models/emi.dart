@@ -1,14 +1,6 @@
 enum PaymentFrequency { weekly, monthly, quarterly }
 
 class EMIPlan {
-  final String id;
-  final String userId;
-  final double loanAmount;
-  final double annualInterestRate;
-  final int tenureMonths;
-  final DateTime startDate;
-  final PaymentFrequency frequency;
-  final bool active;
 
   const EMIPlan({
     required this.id,
@@ -21,7 +13,7 @@ class EMIPlan {
     required this.active,
   });
 
-  factory EMIPlan.fromRTDB(String id, Map<String, dynamic> data) {
+  factory EMIPlan.fromRTDB(final String id, final Map<String, dynamic> data) {
     return EMIPlan(
       id: id,
       userId: data['userId'] as String,
@@ -29,10 +21,18 @@ class EMIPlan {
       annualInterestRate: (data['annualInterestRate'] as num).toDouble(),
       tenureMonths: data['tenureMonths'] as int,
       startDate: DateTime.fromMillisecondsSinceEpoch((data['startDate_ms'] as num).toInt()),
-      frequency: PaymentFrequency.values.firstWhere((e) => e.name == data['frequency'] as String),
+      frequency: PaymentFrequency.values.firstWhere((final e) => e.name == data['frequency'] as String),
       active: data['active'] as bool? ?? true,
     );
   }
+  final String id;
+  final String userId;
+  final double loanAmount;
+  final double annualInterestRate;
+  final int tenureMonths;
+  final DateTime startDate;
+  final PaymentFrequency frequency;
+  final bool active;
 
   Map<String, dynamic> toRTDB() {
     return {
@@ -48,15 +48,6 @@ class EMIPlan {
 }
 
 class EMIPayment {
-  final String id;
-  final String planId;
-  final DateTime dueDate;
-  final double installment;
-  final double interest;
-  final double principal;
-  final double remainingPrincipal;
-  final bool paid;
-  final DateTime? paidAt;
 
   const EMIPayment({
     required this.id,
@@ -70,7 +61,7 @@ class EMIPayment {
     this.paidAt,
   });
 
-  factory EMIPayment.fromRTDB(String id, Map<String, dynamic> data) {
+  factory EMIPayment.fromRTDB(final String id, final Map<String, dynamic> data) {
     return EMIPayment(
       id: id,
       planId: data['planId'] as String,
@@ -83,6 +74,15 @@ class EMIPayment {
       paidAt: data['paidAt_ms'] != null ? DateTime.fromMillisecondsSinceEpoch((data['paidAt_ms'] as num).toInt()) : null,
     );
   }
+  final String id;
+  final String planId;
+  final DateTime dueDate;
+  final double installment;
+  final double interest;
+  final double principal;
+  final double remainingPrincipal;
+  final bool paid;
+  final DateTime? paidAt;
 
   Map<String, dynamic> toRTDB() {
     return {

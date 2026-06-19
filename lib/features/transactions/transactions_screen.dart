@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/repositories/transaction_repository.dart';
-import '../../core/services/auth_service.dart';
+
 import '../../core/models/transaction.dart';
 import '../../core/providers/onboarding_provider.dart';
-import '../../core/widgets/skeleton.dart';
-import '../../core/widgets/empty_state.dart';
 import '../../core/providers/shared_prefs_provider.dart';
-import '../../l10n/app_localizations.dart';
+import '../../core/repositories/transaction_repository.dart';
+import '../../core/services/auth_service.dart';
+import '../../core/utils/repo_error_handler.dart';
 import '../../core/widgets/dialogs.dart';
-import 'transaction_list_item.dart';
+import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/skeleton.dart';
+import '../../l10n/app_localizations.dart';
 import 'transaction_filter_sheet.dart';
 import 'transaction_filters.dart';
 import 'transaction_form_sheet.dart';
-import '../../core/utils/repo_error_handler.dart';
+import 'transaction_list_item.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
@@ -47,7 +48,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   }
 
   // ── Filter bottom sheet ─────────────────────────────────────────────────
-  void _openFilterSheet(BuildContext context) {
+  void _openFilterSheet(final BuildContext context) {
     final theme = Theme.of(context);
     showModalBottomSheet<void>(
       context: context,
@@ -57,12 +58,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (sheetCtx) => const TransactionFilterSheet(),
+      builder: (final sheetCtx) => const TransactionFilterSheet(),
     );
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final txsAsync = ref.watch(userTransactionsProvider);
     final prefs = ref.watch(sharedPrefsServiceProvider);
@@ -91,7 +92,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     if (_selectedIds.length == allFiltered.length) {
                       _selectedIds.clear();
                     } else {
-                      _selectedIds.addAll(allFiltered.map((e) => e.id));
+                      _selectedIds.addAll(allFiltered.map((final e) => e.id));
                     }
                   }),
                 ),
@@ -142,7 +143,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               )
                             : null,
                       ),
-                      onChanged: (v) => ref.read(transactionFilterProvider.notifier).setQueryImmediate(v),
+                      onChanged: (final v) => ref.read(transactionFilterProvider.notifier).setQueryImmediate(v),
                     ),
                   ),
                 ),
@@ -154,7 +155,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     onTap: () => _openFilterSheet(context),
                     borderRadius: BorderRadius.circular(12),
                     child: Consumer(
-                      builder: (ctx, consumerRef, _) {
+                      builder: (final ctx, final consumerRef, final _) {
                         final activeCount = consumerRef.watch(activeFilterCountProvider);
                         return Container(
                           padding: const EdgeInsets.all(12),
@@ -190,8 +191,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           ),
           const SizedBox(height: 4),
           Expanded(
-            child: Builder(builder: (ctx) {
-              final filterState = ref.watch(transactionFilterProvider);
+            child: Builder(builder: (final ctx) {
               if (txsAsync.isLoading) {
                 return RefreshIndicator(
                   onRefresh: () async {
@@ -200,8 +200,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   },
                   child: ListView.separated(
                     padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 88),
-                    itemBuilder: (listCtx, i) => const SkeletonListTile(),
-                    separatorBuilder: (sepCtx, i) => const SizedBox(height: 12),
+                    itemBuilder: (final listCtx, final i) => const SkeletonListTile(),
+                    separatorBuilder: (final sepCtx, final i) => const SizedBox(height: 12),
                     itemCount: 6,
                   ),
                 );
@@ -259,7 +259,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 // Group transactions by date for better UX
                 final grouped = groupTransactionsByDate(paged);
                 final groupOrder = ['Today', 'Yesterday', 'This Week', 'This Month', 'Last Month', 'Older'];
-                final activeGroups = groupOrder.where((g) => grouped.containsKey(g)).toList();
+                final activeGroups = groupOrder.where(grouped.containsKey).toList();
                 
                 // Build flat list with headers: [Header, Item, Item, Header, Item, ...]
                 final listItems = <Widget>[];
@@ -276,7 +276,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             groupKey,
                             style: theme.textTheme.labelMedium?.copyWith(
                               fontWeight: FontWeight.w600,
-                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -284,7 +284,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           Expanded(
                             child: Container(
                               height: 1,
-                              color: theme.colorScheme.onSurface.withOpacity(0.12),
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.12),
                             ),
                           ),
                         ],
@@ -302,7 +302,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           alignment: Alignment.centerLeft,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.15),
+                            color: Colors.green.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(children: [const Icon(Icons.edit, color: Colors.green), const SizedBox(width: 8), Text(t?.edit ?? 'Edit')]),
@@ -311,12 +311,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           alignment: Alignment.centerRight,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.15),
+                            color: Colors.red.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [Text(t?.delete ?? 'Delete'), const SizedBox(width: 8), const Icon(Icons.delete, color: Colors.red)]),
                         ),
-                        confirmDismiss: (dir) async {
+                        confirmDismiss: (final dir) async {
                           if (dir == DismissDirection.startToEnd) {
                             await _openEditForm(context, tx.id, tx.title, tx.amount, tx.categoryId, tx.date);
                             return false;
@@ -352,7 +352,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                             amount: payload['amount'] as double,
                                             categoryId: payload['categoryId'] as String?,
                                             date: payload['date'] as DateTime,
-                                            notes: null,
                                           );
                                     } catch (_) {}
                                   },
@@ -379,7 +378,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           datePattern: datePattern,
                           selectionMode: _selectionMode,
                           selected: _selectedIds.contains(tx.id),
-                          onSelectedChanged: (v) => setState(() {
+                          onSelectedChanged: (final v) => setState(() {
                             if (v) {
                               _selectedIds.add(tx.id);
                               _selectionMode = true;
@@ -415,8 +414,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 // Add load more indicator if needed
                 if (hasMore) {
                   listItems.add(
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
                       child: Center(
                         child: SizedBox(
                           width: 24,
@@ -438,8 +437,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     controller: _scrollController,
                     padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 88),
                     itemCount: listItems.length,
-                    separatorBuilder: (ctx, i) => const SizedBox(height: 12),
-                    itemBuilder: (ctx, i) => listItems[i],
+                    separatorBuilder: (final ctx, final i) => const SizedBox(height: 12),
+                    itemBuilder: (final ctx, final i) => listItems[i],
                   ),
                 );
               }
@@ -451,7 +450,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
   }
 
-  Future<void> _openAddForm(BuildContext context) async {
+  Future<void> _openAddForm(final BuildContext context) async {
     final theme = Theme.of(context);
     final result = await showModalBottomSheet<bool?>(
       context: context,
@@ -461,11 +460,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) => const TransactionFormSheet.create(),
+      builder: (final ctx) => const TransactionFormSheet.create(),
     );
     // If the sheet indicated a successful save, refresh and show feedback.
     if (result == true) {
       ref.read(transactionFilterProvider.notifier).resetFilters();
+      if (!context.mounted) return;
       final messenger = ScaffoldMessenger.of(context);
       messenger.clearSnackBars();
       messenger.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)?.transactionSaved ?? 'Transaction saved')));
@@ -474,12 +474,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   }
 
   Future<void> _openEditForm(
-    BuildContext context,
-    String id,
-    String title,
-    double amount,
-    String? categoryId,
-    DateTime date,
+    final BuildContext context,
+    final String id,
+    final String title,
+    final double amount,
+    final String? categoryId,
+    final DateTime date,
   ) async {
     final theme = Theme.of(context);
     final result = await showModalBottomSheet<bool?>(
@@ -491,7 +491,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) => TransactionFormSheet.edit(
+      builder: (final ctx) => TransactionFormSheet.edit(
         id: id,
         initialTitle: title,
         initialAmount: amount,
@@ -501,13 +501,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
     if (result == true) {
       ref.read(transactionFilterProvider.notifier).resetFilters();
+      if (!context.mounted) return;
       final messenger = ScaffoldMessenger.of(context);
       messenger.clearSnackBars();
       messenger.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)?.transactionUpdated ?? 'Transaction updated')));
     }
   }
 
-  Future<void> _deleteSelected(BuildContext context) async {
+  Future<void> _deleteSelected(final BuildContext context) async {
     if (_selectedIds.isEmpty) return;
     final t = AppLocalizations.of(context);
     final confirm = await showConfirmDialog(
@@ -518,6 +519,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       cancelLabel: t?.cancel ?? 'Cancel',
     );
     if (confirm != true) return;
+    if (!context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     final user = ref.read(currentUserProvider);
     if (user == null) return;
@@ -526,7 +528,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final all = ref.read(filteredTransactionsProvider);
     final payloads = <String, TransactionModel>{};
     for (final id in _selectedIds) {
-      final found = all.where((x) => x.id == id).toList();
+      final found = all.where((final x) => x.id == id).toList();
       if (found.isNotEmpty) payloads[id] = found.first;
     }
 
@@ -537,7 +539,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       messenger.clearSnackBars();
       final snack = SnackBar(
         content: Text('${_selectedIds.length} deleted'),
-        duration: const Duration(seconds: 4),
         behavior: SnackBarBehavior.floating,
         action: SnackBarAction(
           label: 'Undo',

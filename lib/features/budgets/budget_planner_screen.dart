@@ -1,24 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/repositories/budget_repository.dart';
-import '../../core/repositories/transaction_repository.dart';
-import '../../core/services/auth_service.dart';
-import '../../core/providers/shared_prefs_provider.dart';
-import '../../core/providers/budget_providers.dart';
-import '../../core/widgets/skeleton.dart';
-import '../../core/utils/format.dart';
-import '../../core/providers/onboarding_provider.dart';
+
 import '../../core/models/budget.dart';
 import '../../core/models/category.dart';
-import 'budget_card.dart';
-import 'package:flutter/services.dart';
-import '../../core/utils/validation.dart';
+import '../../core/models/transaction.dart';
+import '../../core/providers/budget_providers.dart';
+import '../../core/providers/first_time_feature_provider.dart';
+import '../../core/providers/onboarding_provider.dart';
+import '../../core/providers/shared_prefs_provider.dart';
+import '../../core/repositories/budget_repository.dart';
 import '../../core/repositories/category_repository.dart';
+import '../../core/repositories/transaction_repository.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/ui/constants.dart';
+import '../../core/utils/format.dart';
+import '../../core/utils/validation.dart';
 import '../../core/widgets/animated_progress_indicator.dart';
 import '../../core/widgets/animated_progress_text.dart';
+import '../../core/widgets/skeleton.dart';
 import '../onboarding/budget_tutorial_overlay.dart';
-import '../../core/providers/first_time_feature_provider.dart';
+import 'budget_card.dart';
 
 class BudgetPlannerScreen extends ConsumerStatefulWidget {
   const BudgetPlannerScreen({super.key});
@@ -32,23 +34,23 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
   bool _showBudgetTutorial = false;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final prefs = ref.watch(sharedPrefsServiceProvider);
     final currency = ref.watch(currencyProvider);
     final budgetsAsync = ref.watch(userBudgetsProvider);
     final budgets = budgetsAsync.maybeWhen(
-      data: (d) => d,
-      orElse: () => const [],
+      data: (final d) => d,
+      orElse: () => const <BudgetModel>[],
     );
     final spentMap = ref.watch(budgetsUtilizationProvider);
     // Exclude the synthetic/read-only 'General' budget from totals so its
     // infinite allocation doesn't break utilization math.
-    final visibleBudgets = budgets.where((b) => b.id != '__general_budget').toList();
-    final totalAllocated = visibleBudgets.fold<double>(0.0, (p, e) => p + e.allocated);
+    final visibleBudgets = budgets.where((final b) => b.id != '__general_budget').toList();
+    final totalAllocated = visibleBudgets.fold<double>(0.0, (final p, final e) => p + e.allocated);
     final totalSpent = visibleBudgets.fold<double>(
       0.0,
-      (p, e) => p + (spentMap[e.id] ?? 0.0),
+      (final p, final e) => p + (spentMap[e.id] ?? 0.0),
     );
     final double utilization = totalAllocated == 0.0 ? 0.0 : totalSpent / totalAllocated;
 
@@ -127,7 +129,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                       child: FilterChip(
                         label: Text(period),
                         selected: selectedPeriodFilter == period,
-                        onSelected: (selected) {
+                        onSelected: (final selected) {
                           if (selected) {
                             ref.read(periodFilterProvider.notifier).setFilter(period);
                           }
@@ -143,14 +145,14 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: 4,
-                separatorBuilder: (sepCtx, i) => const SizedBox(height: 12),
-                itemBuilder: (ctx, i) {
+                separatorBuilder: (final sepCtx, final i) => const SizedBox(height: 12),
+                itemBuilder: (final ctx, final i) {
                   return const SkeletonListTile();
                 },
               ),
-              error: (e, _) =>
+              error: (final e, final _) =>
                   Center(child: Text('Failed to load budgets: $e')),
-              data: (list) {
+              data: (final list) {
                 if (orderedBudgets.isEmpty) {
                   return Column(
                     children: [
@@ -172,7 +174,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                 return ReorderableListView(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  onReorder: (oldIndex, newIndex) {
+                  onReorder: (final oldIndex, newIndex) {
                     final newOrderedList = [...orderedBudgets];
                     if (oldIndex < newIndex) {
                       newIndex -= 1;
@@ -181,7 +183,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                     newOrderedList.insert(newIndex, item);
 
                     // Extract IDs for persistence (including General budget)
-                    final orderToSave = newOrderedList.map((b) => b.id).toList();
+                    final orderToSave = newOrderedList.map((final b) => b.id).toList();
 
                     ref.read(budgetOrderProvider.notifier).updateOrder(orderToSave);
                   },
@@ -218,10 +220,10 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
   }
 
   Widget _buildBudgetItem(
-    BuildContext context,
-    BudgetModel budget,
-    String currency,
-    int index,
+    final BuildContext context,
+    final BudgetModel budget,
+    final String currency,
+    final int index,
   ) {
     
     final isSynthetic = budget.id == '__general_budget';
@@ -246,7 +248,6 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
 
     return Dismissible(
       key: ValueKey('budget_dismissible_${budget.id}'),
-      direction: DismissDirection.horizontal,
       background: Container(
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -254,8 +255,8 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           color: Colors.green.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Row(
-          children: const [
+        child: const Row(
+          children: [
             Icon(Icons.edit, color: Colors.green),
             SizedBox(width: 8),
             Text('Adjust'),
@@ -269,16 +270,16 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           color: Colors.red.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Row(
+        child: const Row(
           mainAxisAlignment: MainAxisAlignment.end,
-          children: const [
+          children: [
             Text('Delete'),
             SizedBox(width: 8),
             Icon(Icons.delete, color: Colors.red),
           ],
         ),
       ),
-      confirmDismiss: (dir) async {
+      confirmDismiss: (final dir) async {
         if (dir == DismissDirection.startToEnd) {
           await _openAdjustBudget(context, budget.id, budget.allocated, budget.name);
           return false;
@@ -287,7 +288,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
         if (!context.mounted) return false;
         final confirmed = await showDialog<bool>(
           context: context,
-          builder: (ctx) => AlertDialog(
+          builder: (final ctx) => AlertDialog(
             title: const Text('Delete Budget?'),
             content: Text('Are you sure you want to delete "${budget.name}"? You can undo this within 8 seconds.'),
             actions: [
@@ -302,7 +303,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
             ],
           ),
         ) ?? false;
-        if (!mounted) return false;
+        if (!context.mounted) return false;
 
         if (!confirmed) return false;
         
@@ -312,13 +313,13 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           if (user == null) return false;
 
           // Gather current transactions and categories to compute impact
-          final txs = ref.read(userTransactionsProvider).maybeWhen(data: (d) => d, orElse: () => const []);
-          final cats = ref.read(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+          final txs = ref.read(userTransactionsProvider).maybeWhen(data: (final d) => d, orElse: () => const <TransactionModel>[]);
+          final cats = ref.read(userCategoriesProvider).maybeWhen(data: (final d) => d, orElse: () => const <CategoryModel>[]);
 
           final idToName = <String, String>{};
           final nameToId = <String, String>{};
           for (final c in cats) {
-            final nm = (c.name ?? '').trim();
+            final nm = c.name.trim();
             if (nm.isEmpty) continue;
             idToName[c.id] = nm;
             nameToId[nm.toLowerCase()] = c.id;
@@ -350,7 +351,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           }
 
           // Find impacted transactions and collect their identifiers
-          final impactedTxs = <dynamic>[];
+          final impactedTxs = <TransactionModel>[];
           final impactedIdentifiers = <String>{};
           for (final t in txs) {
             final raw = (t.categoryId ?? t.categoryName ?? 'General').trim();
@@ -378,38 +379,38 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           if (impactedTxs.isNotEmpty) {
             final candidates = ref
               .read(filteredBudgetsProvider)
-              .where((b) => b.id != budget.id && (b.name?.trim().toLowerCase() != 'general'))
+              .where((final b) => b.id != budget.id && (b.name.trim().toLowerCase() != 'general'))
               .toList();
             final selectedTarget = await showDialog<String?>(
               context: context,
-              builder: (ctx) {
+              builder: (final ctx) {
                 String? sel = candidates.isNotEmpty ? candidates.first.id : '__general_budget';
-                return StatefulBuilder(builder: (ctx, setState) {
+                return StatefulBuilder(builder: (final ctx, final setState) {
                   return AlertDialog(
                     title: Text('Remap ${impactedTxs.length} transaction(s)'),
                     content: SizedBox(
                       width: double.maxFinite,
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: [
-                          RadioListTile<String>(
-                            value: '__general_budget',
-                            groupValue: sel,
-                            title: const Text('General'),
-                            onChanged: (v) => setState(() => sel = v),
-                          ),
-                          for (final t in candidates)
-                            RadioListTile<String>(
-                              value: t.id,
-                              groupValue: sel,
-                              title: Text(t.name),
-                              onChanged: (v) => setState(() => sel = v),
+                      child: RadioGroup<String>(
+                        groupValue: sel,
+                        onChanged: (final v) => setState(() => sel = v),
+                        child: ListView(
+                          shrinkWrap: true,
+                          children: [
+                            const RadioListTile<String>(
+                              value: '__general_budget',
+                              title: Text('General'),
                             ),
-                        ],
+                            for (final t in candidates)
+                              RadioListTile<String>(
+                                value: t.id,
+                                title: Text(t.name),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx, null), child: const Text('Cancel')),
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
                       TextButton(onPressed: () => Navigator.pop(ctx, sel), child: const Text('Confirm')),
                     ],
                   );
@@ -422,7 +423,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
             // If user chose a persisted budget to merge into, update it
             List<String>? previousTargetCats;
             if (selectedTarget != '__general_budget') {
-              final targetB = candidates.firstWhere((b) => b.id == selectedTarget);
+              final targetB = candidates.firstWhere((final b) => b.id == selectedTarget);
               previousTargetCats = List<String>.from(targetB.categoryIds);
               final union = <String>{...previousTargetCats, ...budget.categoryIds, ...impactedIdentifiers};
               try {
@@ -466,7 +467,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                         // If we merged into a target, revert its categories
                         if (rec?.remappedTargetId != null && rec?.targetPreviousCategoryIds != null) {
                           try {
-                            await repo.update(rec!.remappedTargetId!, {'userId': user.uid, 'categoryIds': rec.targetPreviousCategoryIds!});
+                            await repo.update(rec!.remappedTargetId!, {'userId': user.uid, 'categoryIds': rec.targetPreviousCategoryIds});
                           } catch (_) {}
                         }
                         ref.read(lastDeletedBudgetProvider.notifier).clear();
@@ -486,18 +487,18 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           final List<CategoryModel> categoriesToDelete = [];
           if (budget.categoryIds.isEmpty) {
             final matchName = budget.name.trim().toLowerCase();
-            final otherBudgets = ref.read(filteredBudgetsProvider).where((b) => b.id != budget.id).toList();
+            final otherBudgets = ref.read(filteredBudgetsProvider).where((final b) => b.id != budget.id).toList();
             for (final c in cats) {
-              final cname = (c.name ?? '').trim();
+              final cname = c.name.trim();
               if (cname.isEmpty) continue;
               if (cname.toLowerCase() != matchName) continue;
 
               // Skip if other budgets reference this category (by id or name)
-              final usedByOtherBudget = otherBudgets.any((b) {
+              final usedByOtherBudget = otherBudgets.any((final b) {
                 if (b.categoryIds.isEmpty) {
                   return b.name.trim().toLowerCase() == cname.toLowerCase();
                 }
-                return b.categoryIds.any((v) {
+                return b.categoryIds.any((final v) {
                   final vt = v.trim();
                   if (vt.isEmpty) return false;
                   if (vt == c.id) return true;
@@ -508,7 +509,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
               if (usedByOtherBudget) continue;
 
               // Skip if any transaction references this category (by id or name)
-              final usedByTx = txs.any((t) {
+              final usedByTx = txs.any((final t) {
                 final raw = (t.categoryId ?? t.categoryName ?? '').trim();
                 if (raw.isEmpty) return false;
                 if (raw == c.id) return true;
@@ -610,7 +611,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
 
   
 
-  Future<void> _openCreateBudget(BuildContext context) async {
+  Future<void> _openCreateBudget(final BuildContext context) async {
     final theme = Theme.of(context);
     final nameController = TextEditingController();
     final allocatedController = TextEditingController();
@@ -628,32 +629,31 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       if (periodStr != null) {
         try {
           selectedPeriod = BudgetPeriod.values.firstWhere(
-            (p) => p.toString() == 'BudgetPeriod.$periodStr',
+            (final p) => p.toString() == 'BudgetPeriod.$periodStr',
           );
         } catch (_) {
           selectedPeriod = BudgetPeriod.monthly;
         }
       }
     }
-    final result = await Future.microtask(() => showModalBottomSheet<bool>(
+    final result = await showModalBottomSheet<bool>(
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
-      isDismissible: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) {
+      builder: (final ctx) {
         final nav = Navigator.of(ctx);
-        
+
             return Padding(
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(ctx).viewInsets.bottom,
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            child: StatefulBuilder(builder: (ctx, setSheetState) => Consumer(builder: (cctx, wref, _) {
+            child: StatefulBuilder(builder: (final ctx, final setSheetState) => Consumer(builder: (final cctx, final wref, final _) {
               // Budget creation modal: no category selection UI
 
               return Column(
@@ -717,7 +717,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                       ),
                     ],
                     selected: <BudgetPeriod>{selectedPeriod},
-                    onSelectionChanged: (Set<BudgetPeriod> newSelection) {
+                    onSelectionChanged: (final Set<BudgetPeriod> newSelection) {
                       setSheetState(() {
                         selectedPeriod = newSelection.first;
                       });
@@ -772,6 +772,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                               return;
                             }
 
+                            final messenger = ScaffoldMessenger.of(ctx);
                             try {
                               await repo.create(
                                 userId: user.uid,
@@ -780,12 +781,12 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                                 period: selectedPeriod,
                               );
                               nav.pop(true);
-                                                      ScaffoldMessenger.of(ctx).showSnackBar(
+                              messenger.showSnackBar(
                                 const SnackBar(content: Text('Budget created')),
                               );
                             } catch (e) {
                               debugPrint('Budget creation failed: $e');
-                              ScaffoldMessenger.of(ctx).showSnackBar(
+                              messenger.showSnackBar(
                                 SnackBar(content: Text('Failed: $e')),
                               );
                             }
@@ -801,7 +802,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           ),
         );
       },
-    ));
+    );
     if (result == true) {
       // Show tutorial on first budget creation
       if (mounted) {
@@ -817,7 +818,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           'allocated': double.tryParse(allocatedController.text.trim()),
           'period': selectedPeriod.name,
         });
-        if (mounted) {
+        if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Draft saved')));
         }
       }
@@ -831,10 +832,10 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
   }
 
   Future<void> _openAdjustBudget(
-    BuildContext context,
-    String id,
-    double allocated,
-    String currentName,
+    final BuildContext context,
+    final String id,
+    final double allocated,
+    final String currentName,
   ) async {
     final theme = Theme.of(context);
     final nameController = TextEditingController(text: currentName);
@@ -851,16 +852,15 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       nameController.text = (adjustDraft['name'] as String?) ?? nameController.text;
       noteController.text = (adjustDraft['note'] as String?) ?? '';
     }
-    final result = await Future.microtask(() => showModalBottomSheet<bool>(
+    final result = await showModalBottomSheet<bool>(
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
-      isDismissible: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) {
+      builder: (final ctx) {
         final nav = Navigator.of(ctx);
         return Padding(
           padding: EdgeInsets.only(
@@ -937,10 +937,11 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                             );
                             return;
                           }
+                          final messenger = ScaffoldMessenger.of(ctx);
                           try {
                             final user = ref.read(currentUserProvider);
                             if (user == null) return;
-                            
+
                             // Store the old allocation for undo
                             ref.read(lastBudgetAdjustmentProvider.notifier).setAdjustment(
                               BudgetAdjustmentRecord(
@@ -969,9 +970,9 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                                   oldAllocated: allocated,
                                 );
                             nav.pop(true);
-                            
+
                             // Show undo SnackBar
-                            ScaffoldMessenger.of(ctx).showSnackBar(
+                            messenger.showSnackBar(
                               SnackBar(
                                 content: const Text('Budget adjusted'),
                                 duration: const Duration(seconds: 3),
@@ -988,11 +989,11 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                                           );
                                       // Clear the adjustment record
                                       ref.read(lastBudgetAdjustmentProvider.notifier).clear();
-                                      ScaffoldMessenger.of(ctx).showSnackBar(
+                                      messenger.showSnackBar(
                                         const SnackBar(content: Text('Adjustment undone')),
                                       );
                                     } catch (err) {
-                                      ScaffoldMessenger.of(ctx).showSnackBar(
+                                      messenger.showSnackBar(
                                         SnackBar(content: Text('Failed to undo: $err')),
                                       );
                                     }
@@ -1001,7 +1002,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                               ),
                             );
                           } catch (e) {
-                            ScaffoldMessenger.of(ctx).showSnackBar(
+                            messenger.showSnackBar(
                                 SnackBar(content: Text('Failed: $e')),
                               );
                           }
@@ -1016,7 +1017,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           ),
         );
       },
-    ));
+    );
     if (result != true) {
       final hasData =
           amountController.text.trim().isNotEmpty ||
@@ -1032,7 +1033,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
               ? null
               : nameController.text.trim(),
         });
-        if (mounted) {
+        if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Draft saved')));
         }
       }
@@ -1048,12 +1049,12 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
 // Shared small UI primitives (visual parity with Insights)
 
 class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, required this.icon});
   final String title;
   final IconData icon;
-  const _SectionHeader({required this.title, required this.icon});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     return Row(
       children: [
@@ -1071,19 +1072,17 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _BaseCard extends StatelessWidget {
-  final Widget child;
-  final EdgeInsets? padding;
   const _BaseCard({
     required this.child,
-    this.padding,
   });
+  final Widget child;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     return Container(
       width: double.infinity,
-      padding: padding ?? const EdgeInsets.all(AppSpacing.cardPadding),
+      padding: const EdgeInsets.all(AppSpacing.cardPadding),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: AppRadius.lgAll,
@@ -1098,12 +1097,12 @@ class _BaseCard extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.message, required this.icon});
   final String message;
   final IconData icon;
-  const _EmptyState({required this.message, required this.icon});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     return _BaseCard(
       child: SizedBox(
@@ -1127,11 +1126,6 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _BudgetsHeroCard extends StatelessWidget {
-  final double totalAllocated;
-  final double totalSpent;
-  final double utilization;
-  final String currency;
-  final bool isLoading;
   const _BudgetsHeroCard({
     required this.totalAllocated,
     required this.totalSpent,
@@ -1139,12 +1133,16 @@ class _BudgetsHeroCard extends StatelessWidget {
     required this.currency,
     required this.isLoading,
   });
+  final double totalAllocated;
+  final double totalSpent;
+  final double utilization;
+  final String currency;
+  final bool isLoading;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final color = theme.colorScheme.primary;
-    final over = utilization > 1.0;
 
     return Container(
       width: double.infinity,
@@ -1202,7 +1200,6 @@ class _BudgetsHeroCard extends StatelessWidget {
               Expanded(
                 child: AnimatedProgressIndicator(
                   progress: utilization.clamp(0.0, double.infinity),
-                  minHeight: 8,
                   backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.06),
                 ),
               ),
@@ -1220,5 +1217,3 @@ class _BudgetsHeroCard extends StatelessWidget {
     );
   }
 }
-
-

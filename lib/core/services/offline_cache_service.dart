@@ -4,13 +4,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Service for caching API responses to enable offline functionality
 class OfflineCacheService {
+
+  OfflineCacheService(this._prefs);
   static const String _cachePrefix = 'offline_cache_';
   static const String _cacheTimestampSuffix = '_timestamp';
   static const Duration _defaultCacheDuration = Duration(hours: 24);
 
   final SharedPreferences _prefs;
-
-  OfflineCacheService(this._prefs);
 
   // ── Public Methods ────────────────────────────────────────────────────────────
 

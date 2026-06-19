@@ -4,14 +4,6 @@ enum BudgetPeriod { daily, weekly, monthly }
 
 @immutable
 class BudgetModel {
-  final String id;
-  final String userId;
-  final String name;
-  final double allocated;
-  final BudgetPeriod period;
-  final List<String> categoryIds;
-  final DateTime createdAt;
-  final DateTime? updatedAt;
 
   const BudgetModel({
     required this.id,
@@ -24,14 +16,14 @@ class BudgetModel {
     this.updatedAt,
   });
 
-  factory BudgetModel.fromRTDB(String id, Map<String, dynamic> data) {
+  factory BudgetModel.fromRTDB(final String id, final Map<String, dynamic> data) {
     return BudgetModel(
       id: id,
       userId: data['userId'] as String,
       name: data['name'] as String,
       allocated: (data['allocated'] as num).toDouble(),
       period: BudgetPeriod.values.firstWhere(
-        (p) => p.name == (data['period'] as String),
+        (final p) => p.name == (data['period'] as String),
         orElse: () => BudgetPeriod.monthly,
       ),
       categoryIds: (data['categoryIds'] as List?)?.cast<String>() ?? const [],
@@ -39,6 +31,14 @@ class BudgetModel {
       updatedAt: data['updated_at_ms'] != null ? DateTime.fromMillisecondsSinceEpoch((data['updated_at_ms'] as num).toInt()) : null,
     );
   }
+  final String id;
+  final String userId;
+  final String name;
+  final double allocated;
+  final BudgetPeriod period;
+  final List<String> categoryIds;
+  final DateTime createdAt;
+  final DateTime? updatedAt;
 
   Map<String, dynamic> toRTDB() {
     return {
@@ -53,15 +53,15 @@ class BudgetModel {
   }
 
   BudgetModel copyWith({
-    String? id,
-    String? userId,
-    String? name,
-    double? allocated,
-    BudgetPeriod? period,
-    List<String>? categoryIds,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    bool clearUpdatedAt = false,
+    final String? id,
+    final String? userId,
+    final String? name,
+    final double? allocated,
+    final BudgetPeriod? period,
+    final List<String>? categoryIds,
+    final DateTime? createdAt,
+    final DateTime? updatedAt,
+    final bool clearUpdatedAt = false,
   }) {
     return BudgetModel(
       id: id ?? this.id,
@@ -76,7 +76,7 @@ class BudgetModel {
   }
 
   @override
-  bool operator ==(Object other) =>
+  bool operator ==(final Object other) =>
       identical(this, other) ||
       other is BudgetModel &&
           runtimeType == other.runtimeType &&

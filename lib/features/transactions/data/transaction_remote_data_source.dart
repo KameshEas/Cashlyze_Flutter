@@ -28,7 +28,7 @@ class TransactionFilters {
         if (categoryId != null) 'category_id': categoryId,
       };
 
-  String _toQueryDate(DateTime date) {
+  String _toQueryDate(final DateTime date) {
     final d = DateTime(date.year, date.month, date.day);
     final mm = d.month.toString().padLeft(2, '0');
     final dd = d.day.toString().padLeft(2, '0');
@@ -43,19 +43,19 @@ class TransactionFilters {
 /// - `PUT /transactions/{id}`
 /// - `DELETE /transactions/{id}`
 class TransactionRemoteDataSource {
-  const TransactionRemoteDataSource({required ApiClient apiClient})
+  const TransactionRemoteDataSource({required final ApiClient apiClient})
       : _api = apiClient;
 
   final ApiClient _api;
 
-  String _toApiDate(DateTime value) {
+  String _toApiDate(final DateTime value) {
     final d = DateTime(value.year, value.month, value.day);
     final mm = d.month.toString().padLeft(2, '0');
     final dd = d.day.toString().padLeft(2, '0');
     return '${d.year}-$mm-$dd';
   }
 
-  String? _normalizeCategoryId(String? value) {
+  String? _normalizeCategoryId(final String? value) {
     if (value == null) return null;
     final v = value.trim();
     if (v.isEmpty) return null;
@@ -71,14 +71,14 @@ class TransactionRemoteDataSource {
   // ── Create ────────────────────────────────────────────────────────────────
 
   Future<TransactionModel> create({
-    required String title,
-    required double amount,
-    required DateTime date,
-    String? categoryId,
-    String? categoryName,
-    bool isIncome = false,
-    String? notes,
-    List<String>? tags,
+    required final String title,
+    required final double amount,
+    required final DateTime date,
+    final String? categoryId,
+    final String? categoryName,
+    final bool isIncome = false,
+    final String? notes,
+    final List<String>? tags,
   }) async {
     final normalizedCategoryId = _normalizeCategoryId(categoryId);
     final transactionType = isIncome ? 'income' : 'expense';
@@ -104,20 +104,20 @@ class TransactionRemoteDataSource {
 
   // ── List ──────────────────────────────────────────────────────────────────
 
-  Future<List<TransactionModel>> getAll([TransactionFilters? filters]) async {
+  Future<List<TransactionModel>> getAll([final TransactionFilters? filters]) async {
     final response = await _api.get<List<dynamic>>(
       ApiEndpoints.transactions,
       queryParameters: filters?.toQueryParameters(),
     );
     final list = (response.data as List).cast<Map<dynamic, dynamic>>();
     return list
-        .map((e) => _fromApiJson(e.cast<String, dynamic>()))
+        .map((final e) => _fromApiJson(e.cast<String, dynamic>()))
         .toList();
   }
 
   // ── Get by id ─────────────────────────────────────────────────────────────
 
-  Future<TransactionModel> getById(String id) async {
+  Future<TransactionModel> getById(final String id) async {
     final response = await _api.get<Map<String, dynamic>>(
       ApiEndpoints.transactionById(id),
     );
@@ -127,15 +127,15 @@ class TransactionRemoteDataSource {
   // ── Update ────────────────────────────────────────────────────────────────
 
   Future<TransactionModel> update(
-    String id, {
-    String? title,
-    double? amount,
-    DateTime? date,
-    String? categoryId,
-    String? categoryName,
-    bool? isIncome,
-    String? notes,
-    List<String>? tags,
+    final String id, {
+    final String? title,
+    final double? amount,
+    final DateTime? date,
+    final String? categoryId,
+    final String? categoryName,
+    final bool? isIncome,
+    final String? notes,
+    final List<String>? tags,
   }) async {
     final normalizedCategoryId = _normalizeCategoryId(categoryId);
     final transactionType = isIncome == true ? 'income' : 'expense';
@@ -161,13 +161,13 @@ class TransactionRemoteDataSource {
 
   // ── Delete ────────────────────────────────────────────────────────────────
 
-  Future<void> delete(String id) async {
+  Future<void> delete(final String id) async {
     await _api.delete<void>(ApiEndpoints.transactionById(id));
   }
 
   // ── Mapper ────────────────────────────────────────────────────────────────
 
-  TransactionModel _fromApiJson(Map<String, dynamic> json) {
+  TransactionModel _fromApiJson(final Map<String, dynamic> json) {
     final dateRaw = json['transaction_date'] ?? json['date'];
     final date = dateRaw is String
         ? DateTime.parse(dateRaw)
@@ -190,6 +190,6 @@ class TransactionRemoteDataSource {
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 final transactionRemoteDataSourceProvider =
-    Provider<TransactionRemoteDataSource>((ref) {
+    Provider<TransactionRemoteDataSource>((final ref) {
   return TransactionRemoteDataSource(apiClient: ref.watch(apiClientProvider));
 });

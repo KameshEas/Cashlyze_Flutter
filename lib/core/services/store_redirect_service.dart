@@ -1,12 +1,13 @@
 import 'dart:io';
-import 'package:url_launcher/url_launcher.dart';
+
 import 'package:flutter/foundation.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class StoreRedirectService {
   /// Open Play Store for Android
   static Future<bool> openPlayStore({
-    required String packageName,
-    String? appName,
+    required final String packageName,
+    final String? appName,
   }) async {
     if (!Platform.isAndroid) return false;
 
@@ -43,8 +44,8 @@ class StoreRedirectService {
 
   /// Open App Store for iOS
   static Future<bool> openAppStore({
-    required String appId,
-    String? appName,
+    required final String appId,
+    final String? appName,
   }) async {
     if (!Platform.isIOS) return false;
 
@@ -77,9 +78,9 @@ class StoreRedirectService {
   /// For Android, pass packageName (e.g., 'com.cashlyze.app')
   /// For iOS, pass appId (e.g., '1234567890')
   static Future<bool> openStore({
-    String? androidPackageName,
-    String? iosAppId,
-    String? appName,
+    final String? androidPackageName,
+    final String? iosAppId,
+    final String? appName,
   }) async {
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
       return false;
@@ -97,7 +98,7 @@ class StoreRedirectService {
   }
 
   /// Open store using direct URLs (fallback method)
-  static Future<bool> openStoreFromUrl(String storeUrl) async {
+  static Future<bool> openStoreFromUrl(final String storeUrl) async {
     try {
       final url = Uri.parse(storeUrl);
       if (await canLaunchUrl(url)) {

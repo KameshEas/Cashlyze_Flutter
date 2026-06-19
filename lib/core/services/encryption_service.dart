@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:typed_data';
+
+import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:crypto/crypto.dart';
+
 import 'secure_storage_service.dart';
 
 /// Encryption service for encrypting and decrypting sensitive data.
@@ -19,11 +21,11 @@ import 'secure_storage_service.dart';
 /// final decrypted = await encryptionService.decryptString(encrypted);
 /// ```
 class EncryptionService {
+
+  EncryptionService(this._secureStorage);
   final SecureStorageService _secureStorage;
   encrypt.Key? _key;
   bool _initialized = false;
-
-  EncryptionService(this._secureStorage);
 
   /// Initializes the encryption service.
   ///
@@ -61,7 +63,7 @@ class EncryptionService {
   /// Returns the encrypted string in base64 format with IV prepended.
   ///
   /// Throws [StateError] if the service is not initialized.
-  Future<String> encryptString(String plainText) async {
+  Future<String> encryptString(final String plainText) async {
     _ensureInitialized();
 
     final iv = encrypt.IV.fromSecureRandom(16); // 128-bit IV
@@ -82,7 +84,7 @@ class EncryptionService {
   ///
   /// Throws [StateError] if the service is not initialized.
   /// Throws [FormatException] if the input format is invalid.
-  Future<String> decryptString(String encryptedText) async {
+  Future<String> decryptString(final String encryptedText) async {
     _ensureInitialized();
 
     try {
@@ -107,13 +109,13 @@ class EncryptionService {
   /// Encrypts a map to JSON string.
   ///
   /// Useful for encrypting structured data like user preferences.
-  Future<String> encryptMap(Map<String, dynamic> data) async {
+  Future<String> encryptMap(final Map<String, dynamic> data) async {
     final jsonString = jsonEncode(data);
     return await encryptString(jsonString);
   }
 
   /// Decrypts a JSON string to a map.
-  Future<Map<String, dynamic>> decryptMap(String encryptedText) async {
+  Future<Map<String, dynamic>> decryptMap(final String encryptedText) async {
     final jsonString = await decryptString(encryptedText);
     return jsonDecode(jsonString) as Map<String, dynamic>;
   }
@@ -121,7 +123,7 @@ class EncryptionService {
   /// Encrypts binary data (Uint8List).
   ///
   /// Useful for encrypting files or images.
-  Future<Uint8List> encryptBytes(Uint8List plainBytes) async {
+  Future<Uint8List> encryptBytes(final Uint8List plainBytes) async {
     _ensureInitialized();
 
     final iv = encrypt.IV.fromSecureRandom(16);
@@ -137,7 +139,7 @@ class EncryptionService {
   }
 
   /// Decrypts binary data (Uint8List).
-  Future<Uint8List> decryptBytes(Uint8List encryptedBytes) async {
+  Future<Uint8List> decryptBytes(final Uint8List encryptedBytes) async {
     _ensureInitialized();
 
     try {
@@ -158,14 +160,14 @@ class EncryptionService {
   /// Generates a hash of the input string using SHA-256.
   ///
   /// Useful for hashing passwords or PINs before storage.
-  String hashString(String input) {
+  String hashString(final String input) {
     final bytes = utf8.encode(input);
     final digest = sha256.convert(bytes);
     return digest.toString();
   }
 
   /// Verifies if a plain text matches a hash.
-  bool verifyHash(String plainText, String hash) {
+  bool verifyHash(final String plainText, final String hash) {
     final computedHash = hashString(plainText);
     return computedHash == hash;
   }
@@ -173,7 +175,7 @@ class EncryptionService {
   /// Generates a secure random string of specified length.
   ///
   /// Useful for generating tokens or keys.
-  String generateRandomString(int length) {
+  String generateRandomString(final int length) {
     final random = encrypt.Key.fromSecureRandom(length);
     return random.base64.substring(0, length);
   }
@@ -193,6 +195,6 @@ class EncryptionService {
 }
 
 /// Provider for EncryptionService.
-final encryptionServiceProvider = Provider<EncryptionService>((ref) {
+final encryptionServiceProvider = Provider<EncryptionService>((final ref) {
   return EncryptionService(ref.watch(secureStorageServiceProvider));
 });

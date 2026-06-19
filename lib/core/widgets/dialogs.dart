@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
-Future<bool?> showConfirmDialog(BuildContext context, {
-  required String title,
-  required String content,
-  String confirmLabel = 'Confirm',
-  String cancelLabel = 'Cancel',
+Future<bool?> showConfirmDialog(final BuildContext context, {
+  required final String title,
+  required final String content,
+  final String confirmLabel = 'Confirm',
+  final String cancelLabel = 'Cancel',
 }) {
   return showDialog<bool>(
     context: context,
-    builder: (ctx) => AlertDialog(
+    builder: (final ctx) => AlertDialog(
       title: Text(title),
       content: Text(content),
       actions: [
@@ -19,17 +19,17 @@ Future<bool?> showConfirmDialog(BuildContext context, {
   );
 }
 
-Future<String?> showInputDialog(BuildContext context, {
-  required String title,
-  required String label,
-  bool obscure = false,
-  String? initial,
+Future<String?> showInputDialog(final BuildContext context, {
+  required final String title,
+  required final String label,
+  final bool obscure = false,
+  final String? initial,
 }) async {
   final controller = TextEditingController(text: initial ?? '');
   try {
     final res = await showDialog<String?>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (final ctx) => AlertDialog(
         title: Text(title),
         content: TextField(
           controller: controller,
@@ -37,7 +37,7 @@ Future<String?> showInputDialog(BuildContext context, {
           decoration: InputDecoration(labelText: label),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
           FilledButton(onPressed: () => Navigator.of(ctx).pop(controller.text.trim()), child: const Text('Save')),
         ],
       ),

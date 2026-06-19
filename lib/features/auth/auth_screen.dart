@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/services/auth_service.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/services/analytics_service.dart';
-import '../../core/providers/otp_pending_provider.dart';
+
 import '../../core/api/api_exception.dart';
+import '../../core/providers/otp_pending_provider.dart';
+import '../../core/services/analytics_service.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/utils/error_messages.dart';
 import 'data/auth_remote_data_source.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
-  final bool initialIsLogin;
 
   const AuthScreen({super.key, this.initialIsLogin = true});
+  final bool initialIsLogin;
 
   @override
   ConsumerState<AuthScreen> createState() => _AuthScreenState();
@@ -63,8 +64,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   /// Backend currently returns 409 Conflict with "Email already registered"
   /// on duplicate registration attempts, which lets us fail fast in signup.
   Future<bool> _isEmailAlreadyRegistered({
-    required String email,
-    required String password,
+    required final String email,
+    required final String password,
   }) async {
     try {
       await ref.read(authRemoteDataSourceProvider).register(
@@ -197,7 +198,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
       body: Container(
@@ -257,7 +258,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.06),
+                              color: Colors.black.withValues(alpha: 0.06),
                               blurRadius: 12,
                               offset: const Offset(0, 6),
                             ),
@@ -289,7 +290,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                         padding: const EdgeInsets.symmetric(vertical: 12),
                                         decoration: BoxDecoration(
                                           color: _isLogin
-                                              ? theme.colorScheme.primary.withOpacity(0.12)
+                                              ? theme.colorScheme.primary.withValues(alpha: 0.12)
                                               : Colors.transparent,
                                           borderRadius: BorderRadius.circular(8),
                                         ),
@@ -321,7 +322,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                         padding: const EdgeInsets.symmetric(vertical: 12),
                                         decoration: BoxDecoration(
                                           color: !_isLogin
-                                              ? theme.colorScheme.primary.withOpacity(0.12)
+                                              ? theme.colorScheme.primary.withValues(alpha: 0.12)
                                               : Colors.transparent,
                                           borderRadius: BorderRadius.circular(8),
                                         ),
@@ -354,7 +355,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                   duration: const Duration(milliseconds: 220),
                                   switchInCurve: Curves.easeIn,
                                   switchOutCurve: Curves.easeOut,
-                                  layoutBuilder: (currentChild, previousChildren) {
+                                  layoutBuilder: (final Widget? currentChild, final List<Widget> previousChildren) {
                                     return Stack(
                                       alignment: Alignment.topCenter,
                                       children: [
@@ -363,14 +364,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                       ],
                                     );
                                   },
-                                  transitionBuilder: (child, animation) {
+                                  transitionBuilder: (final Widget child, final Animation<double> animation) {
                                     final fade = CurvedAnimation(parent: animation, curve: Curves.easeIn);
                                     final size = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
                                     return FadeTransition(
                                       opacity: fade,
                                       child: SizeTransition(
                                         sizeFactor: size,
-                                        axis: Axis.vertical,
                                         axisAlignment: -1.0,
                                         child: child,
                                       ),
@@ -392,7 +392,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                             ),
                                             filled: true,
                                           ),
-                                          validator: (value) {
+                                          validator: (final String? value) {
                                             if (!_isLogin) {
                                               if (value == null || value.trim().isEmpty) {
                                                 return 'Please enter your name';
@@ -413,7 +413,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                             ),
                                             filled: true,
                                           ),
-                                          validator: (value) {
+                                          validator: (final String? value) {
                                             if (!_isLogin) {
                                               if (value == null || value.trim().isEmpty) {
                                                 return 'Please enter your mobile number';
@@ -440,7 +440,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                           ),
                                           filled: true,
                                         ),
-                                        validator: (value) {
+                                        validator: (final String? value) {
                                           if (value == null || value.isEmpty) {
                                             return 'Please enter your email';
                                           }
@@ -473,7 +473,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                             onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                                           ),
                                         ),
-                                        validator: (value) {
+                                        validator: (final String? value) {
                                           if (value == null || value.isEmpty) {
                                             return 'Please enter your password';
                                           }

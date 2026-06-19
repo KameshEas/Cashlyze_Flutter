@@ -7,10 +7,10 @@ enum EMIStatus {
   overdue('Overdue', Colors.red),
   dueToday('Due Today', Colors.orange);
 
+  const EMIStatus(this.label, this.color);
+
   final String label;
   final Color color;
-
-  const EMIStatus(this.label, this.color);
 }
 
 /// Determines EMI status based on due date and payment status
@@ -41,14 +41,14 @@ class EMIStatusHelper {
 
 /// Badge widget for displaying EMI status
 class EMIStatusBadge extends StatelessWidget {
-  final EMIStatus status;
-  final int? daysUntilDue;
 
   const EMIStatusBadge({
     super.key,
     required this.status,
     this.daysUntilDue,
   });
+  final EMIStatus status;
+  final int? daysUntilDue;
 
   @override
   Widget build(final BuildContext context) {
@@ -58,7 +58,7 @@ class EMIStatusBadge extends StatelessWidget {
 
     String displayText = status.label;
     if (daysUntilDue != null && status == EMIStatus.upcoming) {
-      displayText = 'In ${daysUntilDue} days';
+      displayText = 'In $daysUntilDue days';
     } else if (daysUntilDue != null && status == EMIStatus.overdue) {
       displayText = '${daysUntilDue!.abs()} days overdue';
     }
@@ -97,9 +97,6 @@ class EMIStatusBadge extends StatelessWidget {
 
 /// Large status indicator for detailed view
 class EMIStatusIndicator extends StatelessWidget {
-  final EMIStatus status;
-  final int? daysUntilDue;
-  final bool isPaid;
 
   const EMIStatusIndicator({
     super.key,
@@ -107,6 +104,9 @@ class EMIStatusIndicator extends StatelessWidget {
     this.daysUntilDue,
     required this.isPaid,
   });
+  final EMIStatus status;
+  final int? daysUntilDue;
+  final bool isPaid;
 
   @override
   Widget build(final BuildContext context) {

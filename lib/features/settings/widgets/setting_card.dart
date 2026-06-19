@@ -2,13 +2,6 @@ import 'package:flutter/material.dart';
 
 /// A single setting card with icon, title, description, optional status badge, and interactive element
 class SettingCard extends StatefulWidget {
-  final IconData icon;
-  final String title;
-  final String? description;
-  final Widget? statusBadge;
-  final Widget? trailing;
-  final VoidCallback? onTap;
-  final Color? iconColor;
 
   const SettingCard({
     super.key,
@@ -20,6 +13,13 @@ class SettingCard extends StatefulWidget {
     this.onTap,
     this.iconColor,
   });
+  final IconData icon;
+  final String title;
+  final String? description;
+  final Widget? statusBadge;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+  final Color? iconColor;
 
   @override
   State<SettingCard> createState() => _SettingCardState();
@@ -29,7 +29,7 @@ class _SettingCardState extends State<SettingCard> {
   bool _isHovered = false;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final iconColor = widget.iconColor ?? theme.colorScheme.primary;
 

@@ -3,18 +3,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../core/api/api_exception.dart';
 import '../../core/providers/otp_pending_provider.dart';
 import '../../core/services/auth_service.dart';
-import '../../core/api/api_exception.dart';
 import 'data/auth_remote_data_source.dart';
 import 'data/otp_remote_data_source.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
+
+  const OtpScreen({super.key, required this.email});
   /// Email is passed via route query parameter so the screen never depends
   /// on the auth provider being ready (avoids timing issues after signup).
   final String email;
-
-  const OtpScreen({super.key, required this.email});
 
   @override
   ConsumerState<OtpScreen> createState() => _OtpScreenState();
@@ -54,7 +55,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   void _startCooldown() {
     _cooldownTimer?.cancel();
     setState(() => _resendCooldown = _kCooldownSeconds);
-    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (final Timer t) {
       if (!mounted) {
         t.cancel();
         return;
@@ -176,7 +177,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final email = _userEmail;
     return Scaffold(

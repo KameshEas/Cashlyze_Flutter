@@ -16,6 +16,21 @@ enum TooltipPosition {
 /// Supports multiple positions and auto-dismissal after duration
 /// Tracks dismissed tooltips in SharedPreferences
 class ContextualTooltip extends ConsumerWidget {
+
+  const ContextualTooltip({
+    required this.tooltipId,
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.accentColor,
+    this.position = TooltipPosition.bottom,
+    this.targetWidget,
+    this.onDismiss,
+    this.autoDismissAfter,
+    this.showCloseButton = true,
+    this.showGotItButton = false,
+    super.key,
+  });
   /// Unique identifier for this tooltip (used for tracking dismissals)
   final String tooltipId;
 
@@ -50,23 +65,8 @@ class ContextualTooltip extends ConsumerWidget {
   /// Whether to show a "Got It" button instead of close
   final bool showGotItButton;
 
-  const ContextualTooltip({
-    required this.tooltipId,
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.accentColor,
-    this.position = TooltipPosition.bottom,
-    this.targetWidget,
-    this.onDismiss,
-    this.autoDismissAfter,
-    this.showCloseButton = true,
-    this.showGotItButton = false,
-    super.key,
-  });
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     final dismissedTooltips = ref.watch(dismissedTooltipsProvider);
     final isDismissed = dismissedTooltips.contains(tooltipId);
 
@@ -97,7 +97,6 @@ class ContextualTooltip extends ConsumerWidget {
               borderRadius: BorderRadius.circular(AppRadius.lg),
               border: Border.all(
                 color: accentColor.withValues(alpha: 0.3),
-                width: 1,
               ),
               boxShadow: [
                 BoxShadow(
@@ -191,7 +190,7 @@ class ContextualTooltip extends ConsumerWidget {
     );
   }
 
-  Future<void> _handleDismiss(BuildContext context, WidgetRef ref) async {
+  Future<void> _handleDismiss(final BuildContext context, final WidgetRef ref) async {
     await ref.read(dismissedTooltipsProvider.notifier).dismiss(tooltipId);
     onDismiss?.call();
   }
@@ -199,27 +198,25 @@ class ContextualTooltip extends ConsumerWidget {
 
 /// Timer widget that auto-dismisses after specified duration
 class _AutoDismissTimer extends StatefulWidget {
-  final Duration duration;
-  final VoidCallback onExpire;
 
   const _AutoDismissTimer({
     required this.duration,
     required this.onExpire,
   });
+  final Duration duration;
+  final VoidCallback onExpire;
 
   @override
   State<_AutoDismissTimer> createState() => _AutoDismissTimerState();
 }
 
 class _AutoDismissTimerState extends State<_AutoDismissTimer> {
-  late Future<void> _future;
-
   @override
   void initState() {
     super.initState();
-    _future = Future.delayed(widget.duration, widget.onExpire);
+    Future.delayed(widget.duration, widget.onExpire);
   }
 
   @override
-  Widget build(BuildContext context) => const SizedBox.shrink();
+  Widget build(final BuildContext context) => const SizedBox.shrink();
 }

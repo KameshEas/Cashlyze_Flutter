@@ -1,13 +1,13 @@
+import 'package:cashlyze/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:cashlyze/main.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('Authentication Flow Integration Tests', () {
-    testWidgets('complete sign up flow', (WidgetTester tester) async {
+    testWidgets('complete sign up flow', (final WidgetTester tester) async {
       await tester.pumpWidget(const App());
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
@@ -39,7 +39,7 @@ void main() {
       expect(find.byType(MaterialApp), findsOneWidget);
     });
 
-    testWidgets('sign in form validation', (WidgetTester tester) async {
+    testWidgets('sign in form validation', (final WidgetTester tester) async {
       await tester.pumpWidget(const App());
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
@@ -58,16 +58,14 @@ void main() {
       expect(find.byType(MaterialApp), findsOneWidget);
     });
 
-    testWidgets('toggle between sign in and sign up', (WidgetTester tester) async {
+    testWidgets('toggle between sign in and sign up', (final WidgetTester tester) async {
       await tester.pumpWidget(const App());
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
       // Look for toggle button
       final toggleFinder = find.textContaining('Sign Up');
-      
+
       if (toggleFinder.evaluate().isNotEmpty) {
-        final initialText = tester.widget<Text>(toggleFinder.first).data;
-        
         // Tap toggle
         await tester.tap(toggleFinder.first);
         await tester.pumpAndSettle();
@@ -82,7 +80,7 @@ void main() {
   });
 
   group('Password Reset Flow', () {
-    testWidgets('navigate to password reset', (WidgetTester tester) async {
+    testWidgets('navigate to password reset', (final WidgetTester tester) async {
       await tester.pumpWidget(const App());
       await tester.pumpAndSettle(const Duration(seconds: 5));
 

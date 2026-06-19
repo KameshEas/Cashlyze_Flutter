@@ -42,7 +42,7 @@ enum WsConnectionState {
 /// - Thread-safe: all state mutations happen on the main isolate.
 class WsService {
   WsService({
-    required SecureStorageService secureStorage,
+    required final SecureStorageService secureStorage,
     this.maxConsecutiveFailures = 6,
   }) : _secureStorage = secureStorage;
 
@@ -81,7 +81,7 @@ class WsService {
   // ── Public API ─────────────────────────────────────────────────────────────
 
   /// Connects (or reconnects) for [userId].  Safe to call multiple times.
-  Future<void> connect(String userId) async {
+  Future<void> connect(final String userId) async {
     _userId = userId;
     _consecutiveFailures = 0;
     _reconnectDelay = 1;
@@ -126,8 +126,8 @@ class WsService {
     _debugLog('Connecting to WebSocket for user $_userId');
 
     try {
-      _channelSub?.cancel();
-      _channel?.sink.close();
+      await _channelSub?.cancel();
+      await _channel?.sink.close();
 
       _channel = WebSocketChannel.connect(Uri.parse(url));
       await _channel!.ready;
@@ -150,7 +150,7 @@ class WsService {
     }
   }
 
-  void _onMessage(dynamic raw) {
+  void _onMessage(final dynamic raw) {
     if (raw is! String) return;
     try {
       final json = jsonDecode(raw) as Map<String, dynamic>;
@@ -163,7 +163,7 @@ class WsService {
     }
   }
 
-  void _onError(Object error, [StackTrace? _]) {
+  void _onError(final Object error, [StackTrace? _]) {
     _debugLog('WebSocket error: $error');
     _consecutiveFailures++;
     _scheduleReconnect();
@@ -193,13 +193,13 @@ class WsService {
     _setConnectionState(WsConnectionState.reconnecting);
   }
 
-  void _setConnectionState(WsConnectionState state) {
+  void _setConnectionState(final WsConnectionState state) {
     if (_state == state) return;
     _state = state;
     _stateController.add(state);
   }
 
-  static void _debugLog(String msg) {
+  static void _debugLog(final String msg) {
     if (kDebugMode) {
       debugPrint('[WsService] $msg');
     }
@@ -208,7 +208,7 @@ class WsService {
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
-final wsServiceProvider = Provider<WsService>((ref) {
+final wsServiceProvider = Provider<WsService>((final ref) {
   final storage = ref.watch(secureStorageServiceProvider);
   final service = WsService(secureStorage: storage);
   ref.onDispose(service.dispose);

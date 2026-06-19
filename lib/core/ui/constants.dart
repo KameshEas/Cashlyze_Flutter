@@ -66,7 +66,7 @@ abstract final class AppShadow {
   ];
 
   /// Brand-tinted glow — hero balance card
-  static List<BoxShadow> brand(Color primary) => [
+  static List<BoxShadow> brand(final Color primary) => [
     BoxShadow(
       color: primary.withValues(alpha: 0.25),
       blurRadius: 24,

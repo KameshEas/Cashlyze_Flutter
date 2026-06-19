@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../l10n/app_localizations.dart';
-import '../../core/utils/format.dart';
+import '../../core/models/budget.dart';
 import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/repositories/budget_repository.dart';
 import '../../core/repositories/category_repository.dart';
+import '../../core/utils/format.dart';
+import '../../l10n/app_localizations.dart';
 import 'transaction_filters.dart';
 
 class TransactionFilterSheet extends ConsumerStatefulWidget {
@@ -48,11 +49,11 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final t = AppLocalizations.of(context);
     final catsAsync = ref.watch(userCategoriesProvider);
-    final budgets = ref.watch(userBudgetsProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+    final budgets = ref.watch(userBudgetsProvider).maybeWhen(data: (final d) => d, orElse: () => const <BudgetModel>[]);
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 24, top: 16, left: 12, right: 12),
@@ -65,7 +66,7 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withOpacity(0.2),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -91,8 +92,8 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: 13,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (_, i) {
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (final _, final i) {
                 if (i == 0) {
                   return FilterChip(
                     label: const Text('All time'),
@@ -101,7 +102,7 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
                   );
                 }
                 final now = DateTime.now();
-                final m = DateTime(now.year, now.month - (i - 1), 1);
+                final m = DateTime(now.year, now.month - (i - 1));
                 final label = '${m.year}-${m.month.toString().padLeft(2, '0')}';
                 final isSelected = localMonth != null && localMonth!.year == m.year && localMonth!.month == m.month;
                 return FilterChip(label: Text(label), selected: isSelected, onSelected: (_) => setState(() => localMonth = m));
@@ -187,7 +188,7 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
               ButtonSegment(value: 'Expense', label: Text(t?.filterExpense ?? 'Expense'), icon: const Icon(Icons.arrow_upward, size: 14)),
             ],
             selected: {localFilter},
-            onSelectionChanged: (v) => setState(() => localFilter = v.first),
+            onSelectionChanged: (final v) => setState(() => localFilter = v.first),
           ),
           const SizedBox(height: 20),
 
@@ -196,12 +197,12 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
           const SizedBox(height: 8),
           catsAsync.when(
             loading: () => const LinearProgressIndicator(),
-            error: (_, __) => const SizedBox.shrink(),
-            data: (list) {
+            error: (_, _) => const SizedBox.shrink(),
+            data: (final list) {
               final cats = <String>['All', 'General'];
               final seenLower = <String>{'all', 'general'};
               for (final c in list) {
-                final nm = (c.name ?? '').trim();
+                final nm = (c.name).trim();
                 if (nm.isEmpty) continue;
                 final nl = nm.toLowerCase();
                 if (!seenLower.contains(nl)) {
@@ -211,20 +212,23 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
               }
               final idToName = <String, String>{};
               for (final c in list) {
-                final nm = (c.name ?? '').trim();
+                final nm = (c.name).trim();
                 if (nm.isNotEmpty) idToName[c.id] = nm;
               }
               for (final b in budgets) {
-                final catIds = b.categoryIds ?? <String>[];
+                final catIds = b.categoryIds;
                 String key = '';
                 if (catIds.isNotEmpty) {
                   final raw = catIds.first.trim();
                   if (raw.isEmpty) {
-                    key = (b.name ?? '').trim();
-                  } else if (idToName.containsKey(raw)) key = idToName[raw]!.trim();
-                  else key = (b.name ?? raw).trim();
+                    key = b.name.trim();
+                  } else if (idToName.containsKey(raw)) {
+                    key = idToName[raw]!.trim();
+                  } else {
+                    key = b.name.trim();
+                  }
                 } else {
-                  key = (b.name ?? '').trim();
+                  key = b.name.trim();
                 }
                 if (key.isEmpty) continue;
                 final kl = key.toLowerCase();
@@ -237,7 +241,7 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
               return Wrap(
                 spacing: 8,
                 runSpacing: 4,
-                children: cats.map((c) => FilterChip(label: Text(c), selected: localCategory == c, onSelected: (_) => setState(() => localCategory = c))).toList(),
+                children: cats.map((final c) => FilterChip(label: Text(c), selected: localCategory == c, onSelected: (final _) => setState(() => localCategory = c))).toList(),
               );
             },
           ),

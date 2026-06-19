@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../repositories/category_repository.dart';
+import '../models/budget.dart';
 import '../repositories/budget_repository.dart';
+import '../repositories/category_repository.dart';
 
 class CategoryPickerField extends ConsumerWidget {
-  final String value;
-  final ValueChanged<String> onChanged;
-  final String? label;
-  final double heightFactor;
-  final bool budgetsOnly;
 
   const CategoryPickerField({
     super.key,
@@ -19,9 +15,14 @@ class CategoryPickerField extends ConsumerWidget {
     this.heightFactor = 0.6,
     this.budgetsOnly = false,
   });
+  final String value;
+  final ValueChanged<String> onChanged;
+  final String? label;
+  final double heightFactor;
+  final bool budgetsOnly;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     final theme = Theme.of(context);
     final catsAsync = ref.watch(userCategoriesProvider);
     final budgetsAsync = ref.watch(userBudgetsProvider);
@@ -29,10 +30,10 @@ class CategoryPickerField extends ConsumerWidget {
     List<String> categoryNames = [];
 
     if (budgetsOnly) {
-      final budgets = budgetsAsync.maybeWhen(data: (d) => d, orElse: () => const []);
+      final budgets = budgetsAsync.maybeWhen(data: (final d) => d, orElse: () => const <BudgetModel>[]);
       final Map<String, String> uniqueByName = {};
       for (final b in budgets) {
-        final name = (b.name ?? '').trim();
+        final name = b.name.trim();
         if (name.isEmpty) continue;
         final key = name.toLowerCase();
         uniqueByName.putIfAbsent(key, () => name);
@@ -43,10 +44,10 @@ class CategoryPickerField extends ConsumerWidget {
 
       catsAsync.when(
         loading: () {},
-        error: (error, stack) {},
-        data: (list) {
+        error: (final dynamic error, final StackTrace stack) {},
+        data: (final list) {
           for (final c in list) {
-            final name = (c.name ?? '').trim();
+            final name = (c.name).trim();
             if (name.isEmpty) continue;
             final key = name.toLowerCase();
             if (!unique.containsKey(key)) unique[key] = name;
@@ -56,10 +57,10 @@ class CategoryPickerField extends ConsumerWidget {
 
       budgetsAsync.when(
         loading: () {},
-        error: (error, stack) {},
-        data: (list) {
+        error: (final dynamic error, final StackTrace stack) {},
+        data: (final list) {
           for (final b in list) {
-            final name = (b.name ?? '').trim();
+            final name = (b.name).trim();
             if (name.isEmpty) continue;
             final key = name.toLowerCase();
             if (!unique.containsKey(key)) unique[key] = name;
@@ -77,12 +78,11 @@ class CategoryPickerField extends ConsumerWidget {
           context: context,
           useRootNavigator: true,
           isScrollControlled: true,
-          isDismissible: true,
           backgroundColor: theme.colorScheme.surface,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
           ),
-          builder: (sheetCtx) {
+          builder: (final BuildContext sheetCtx) {
             return SizedBox(
               height: MediaQuery.of(sheetCtx).size.height * heightFactor,
               child: Column(
@@ -100,8 +100,8 @@ class CategoryPickerField extends ConsumerWidget {
                     child: ListView.separated(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       itemCount: categoryNames.length,
-                      separatorBuilder: (ctx, idx) => const Divider(height: 1),
-                      itemBuilder: (cctx, i) {
+                      separatorBuilder: (final BuildContext ctx, final int idx) => const Divider(height: 1),
+                      itemBuilder: (final BuildContext cctx, final int i) {
                         final name = categoryNames[i];
                         return ListTile(
                           title: Text(name, overflow: TextOverflow.ellipsis),

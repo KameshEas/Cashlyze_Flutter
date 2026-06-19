@@ -17,7 +17,7 @@ class CategorizationService {
     'payment': 'EMI',
   };
 
-  String? suggestCategory(String title) {
+  String? suggestCategory(final String title) {
     final t = title.toLowerCase();
     if (t.trim().isEmpty) return null;
 
@@ -41,6 +41,6 @@ class CategorizationService {
   }
 }
 
-final categorizationServiceProvider = Provider<CategorizationService>((ref) {
+final categorizationServiceProvider = Provider<CategorizationService>((final ref) {
   return CategorizationService();
 });

@@ -1,23 +1,25 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/providers/shared_prefs_provider.dart';
-import '../../core/services/auth_service.dart';
-import '../../core/services/analytics_service.dart';
-import '../../features/auth/data/auth_remote_data_source.dart';
+
 import '../../core/providers/onboarding_provider.dart';
-import '../../core/repositories/category_repository.dart';
-import '../../core/repositories/transaction_repository.dart';
+import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/repositories/budget_repository.dart';
+import '../../core/repositories/category_repository.dart';
 import '../../core/repositories/emi_repository.dart';
-import 'package:flutter/services.dart';
-import 'dart:convert';
-import 'dart:async';
+import '../../core/repositories/transaction_repository.dart';
+import '../../core/services/analytics_service.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/drive_backup_service.dart';
+import '../../features/auth/data/auth_remote_data_source.dart';
 import '../../l10n/app_localizations.dart';
 import '../../routes/app_router.dart';
-import 'widgets/extracted_dialogs.dart';
 import 'widgets/enhanced_progress_dialog.dart';
+import 'widgets/extracted_dialogs.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -28,7 +30,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// Enhanced section card with better visual hierarchy, spacing, and icons
-  Widget sectionCard(IconData icon, String title, List<Widget> children, {String? description}) {
+  Widget sectionCard(final IconData icon, final String title, final List<Widget> children, {final String? description}) {
     final theme = Theme.of(context);
     return Container(
       width: double.infinity,
@@ -93,19 +95,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   /// Enhanced preference row with icon, status indicator, and better styling
   Widget _preferenceRow({
-    required IconData icon,
-    required String title,
-    String? description,
-    required Widget trailing,
-    bool showDivider = false,
-    Color? iconColor,
+    required final IconData icon,
+    required final String title,
+    final String? description,
+    required final Widget trailing,
+    final bool showDivider = false,
+    final Color? iconColor,
   }) {
     final theme = Theme.of(context);
     final bgColor = iconColor ?? theme.colorScheme.primary;
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             children: [
               Container(
@@ -158,7 +160,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   /// Status badge widget for showing active/inactive states
-  Widget _statusBadge(bool isActive) {
+  Widget _statusBadge(final bool isActive) {
     final theme = Theme.of(context);
     final color = isActive ? Colors.green : Colors.grey;
     final text = isActive ? 'Active' : 'Inactive';
@@ -179,8 +181,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _showExportDataDialog(
-    BuildContext context,
-    WidgetRef ref,
+    final BuildContext context,
+    final WidgetRef ref,
   ) async {
     final messenger = ScaffoldMessenger.of(context);
     final user = ref.read(currentUserProvider);
@@ -203,7 +205,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final data = {
         'transactions': transactions
             .map(
-              (e) => {
+              (final e) => {
                 'id': e.id,
                 'title': e.title,
                 'amount': e.amount,
@@ -215,7 +217,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             .toList(),
         'budgets': budgets
             .map(
-              (b) => {
+              (final b) => {
                 'id': b.id,
                 'name': b.name,
                 'allocated': b.allocated,
@@ -224,11 +226,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             )
             .toList(),
         'categories': categories
-            .map((c) => {'id': c.id, 'name': c.name})
+            .map((final c) => {'id': c.id, 'name': c.name})
             .toList(),
         'emiPlans': emiPlans
             .map(
-              (p) => {
+              (final p) => {
                 'id': p.id,
                 'loanAmount': p.loanAmount,
                 'annualInterestRate': p.annualInterestRate,
@@ -252,12 +254,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   /// Enhanced action tile with better visual hierarchy and hover effects
   Widget _actionTile({
-    required IconData icon,
-    required String title,
-    String? subtitle,
-    required VoidCallback onTap,
-    Color? color,
-    bool isDangerous = false,
+    required final IconData icon,
+    required final String title,
+    final String? subtitle,
+    required final VoidCallback onTap,
+    final Color? color,
+    final bool isDangerous = false,
   }) {
     final theme = Theme.of(context);
     final iconColor = isDangerous ? Colors.red : (color ?? theme.colorScheme.primary);
@@ -315,14 +317,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final prefs = ref.watch(sharedPrefsServiceProvider);
     final messenger = ScaffoldMessenger.of(context);
     final router = GoRouter.of(context);
-    bool alertsEnabled = prefs.alertsEnabled;
+    final bool alertsEnabled = prefs.alertsEnabled;
     final currency = ref.watch(currencyProvider);
-    String dateFormat = prefs.dateFormat;
+    final String dateFormat = prefs.dateFormat;
 
     final t = AppLocalizations.of(context);
     final preferences = sectionCard(
@@ -341,7 +343,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(width: 8),
               Switch.adaptive(
                 value: alertsEnabled,
-                onChanged: (v) async {
+                onChanged: (final v) async {
                   await prefs.setAlertsEnabled(v);
                   setState(() {});
                 },
@@ -354,7 +356,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         // Alert threshold slider (shown when enabled)
         if (prefs.alertsEnabled) ...[
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+            padding: const EdgeInsets.symmetric(vertical: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -390,14 +392,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   child: Slider(
                     value: (prefs.alertThreshold.clamp(0.5, 1.0)),
                     min: 0.5,
-                    max: 1.0,
                     divisions: 10,
                     label: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}% threshold',
-                    onChanged: (v) {
+                    onChanged: (final v) {
                       prefs.setAlertThreshold(v);
                       setState(() {});
                     },
-                    onChangeEnd: (v) async {
+                    onChangeEnd: (final v) async {
                       await ref.read(analyticsServiceProvider).logEvent(
                         'alert_threshold_change',
                         params: {'threshold_percent': (v * 100).round()},
@@ -417,7 +418,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         
         // Currency setting
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             children: [
               Container(
@@ -445,7 +446,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               const SizedBox(width: 12),
               Flexible(
-                flex: 1,
                 child: DropdownButtonFormField<String>(
                   initialValue: currency,
                   items: const [
@@ -453,7 +453,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     DropdownMenuItem(value: 'EUR', child: Text('EUR')),
                     DropdownMenuItem(value: 'INR', child: Text('INR')),
                   ],
-                  onChanged: (v) async {
+                  onChanged: (final v) async {
                     if (v == null) return;
                     await ref.read(currencyProvider.notifier).set(v);
                   },
@@ -464,7 +464,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     filled: true,
                   ),
-                  isDense: true,
                 ),
               ),
             ],
@@ -478,7 +477,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         
         // Date format setting
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             children: [
               Container(
@@ -511,7 +510,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     DropdownMenuItem(value: 'dd/MM/yyyy', child: Text('dd/MM/yyyy')),
                     DropdownMenuItem(value: 'MM/dd/yyyy', child: Text('MM/dd/yyyy')),
                   ],
-                  onChanged: (v) async {
+                  onChanged: (final v) async {
                     if (v == null) return;
                     await prefs.setDateFormat(v);
                     setState(() {});
@@ -523,8 +522,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     filled: true,
                   ),
-                  isDense: true,
-                  isExpanded: true,
                 ),
               ),
             ],
@@ -596,7 +593,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             final newController = TextEditingController();
             final confirm = await showDialog<bool>(
               context: context,
-              builder: (ctx) => AlertDialog(
+              builder: (final ctx) => AlertDialog(
                 title: const Text('Change Password'),
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -651,7 +648,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           onTap: () async {
             final confirm = await showDialog<bool>(
               context: context,
-              builder: (ctx) {
+              builder: (final ctx) {
                 return AlertDialog(
                   title: const Text('Sign Out'),
                   content: const Text('Are you sure you want to sign out?'),
@@ -707,7 +704,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           onTap: () async {
             final confirm = await showDialog<bool>(
               context: context,
-              builder: (ctx) => DeleteAccountDialog(
+              builder: (final ctx) => DeleteAccountDialog(
                 userEmail: ref.read(currentUserProvider)?.email,
                 onExportPressed: () async {
                   Navigator.pop(ctx);
@@ -740,7 +737,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: LayoutBuilder(
-        builder: (ctx, constraints) {
+        builder: (final ctx, final constraints) {
           final wide = constraints.maxWidth >= 900;
           if (wide) {
             return SingleChildScrollView(
@@ -797,8 +794,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   
 
   Future<void> _backupTransactionsToDrive(
-    BuildContext context,
-    WidgetRef ref,
+    final BuildContext context,
+    final WidgetRef ref,
   ) async {
     final messenger = ScaffoldMessenger.of(context);
     final user = ref.read(currentUserProvider);
@@ -806,18 +803,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     final progressController = StreamController<({String phase, double progress, String? errorMessage})>();
 
-    // Show enhanced progress dialog
-    EnhancedProgressDialog.show(
+    // Show enhanced progress dialog (dismissed later; not awaited).
+    unawaited(EnhancedProgressDialog.show(
       context: context,
       title: 'Backup to Drive',
       subtitle: 'Uploading transactions...',
-      type: ProgressDialogType.backup,
       progressStream: progressController.stream,
-      onCancel: () {
-        progressController.close();
-      },
-      canCancel: true,
-    );
+      onCancel: progressController.close,
+    ));
 
     try {
       // Phase 1: Fetch transactions
@@ -841,7 +834,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         'version': 1,
         'exported_at_ms': DateTime.now().millisecondsSinceEpoch,
         'transactions': transactions
-            .map((e) => {
+            .map((final e) => {
                   'title': e.title,
                   'amount': e.amount,
                   'categoryId': e.categoryId,
@@ -901,13 +894,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         messenger.showSnackBar(SnackBar(content: Text(errorMsg)));
       }
     } finally {
-      progressController.close();
+      await progressController.close();
     }
   }
 
   Future<void> _restoreTransactionsFromDrive(
-    BuildContext context,
-    WidgetRef ref,
+    final BuildContext context,
+    final WidgetRef ref,
   ) async {
     final messenger = ScaffoldMessenger.of(context);
     final user = ref.read(currentUserProvider);
@@ -915,18 +908,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     final progressController = StreamController<({String phase, double progress, String? errorMessage})>();
 
-    // Show enhanced progress dialog
-    EnhancedProgressDialog.show(
+    // Show enhanced progress dialog (dismissed later; not awaited).
+    unawaited(EnhancedProgressDialog.show(
       context: context,
       title: 'Restore from Drive',
       subtitle: 'Downloading transactions...',
       type: ProgressDialogType.restore,
       progressStream: progressController.stream,
-      onCancel: () {
-        progressController.close();
-      },
-      canCancel: true,
-    );
+      onCancel: progressController.close,
+    ));
 
     try {
       // Phase 1: Download from Drive
@@ -1042,14 +1032,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         messenger.showSnackBar(SnackBar(content: Text(errorMsg)));
       }
     } finally {
-      progressController.close();
+      await progressController.close();
     }
   }
 
-  void _showPrivacyPolicyDialog(BuildContext context) {
+  void _showPrivacyPolicyDialog(final BuildContext context) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (final ctx) => AlertDialog(
         title: const Text('Privacy & Data Safety'),
         content: const SingleChildScrollView(
           child: Column(
@@ -1107,7 +1097,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
 
 
-  Future<void> _clearAllUserData(WidgetRef ref, String userId) async {
+  Future<void> _clearAllUserData(final WidgetRef ref, final String userId) async {
     // Clear transactions
     try {
       final transactions = await ref

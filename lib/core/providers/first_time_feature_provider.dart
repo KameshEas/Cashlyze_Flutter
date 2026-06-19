@@ -134,6 +134,32 @@ final firstTimeSettingsProvider = NotifierProvider<FirstTimeSettingsNotifier, bo
   FirstTimeSettingsNotifier.new,
 );
 
+// First-time app launch walkthrough
+class FirstTimeAppLaunchNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    final prefs = ref.read(sharedPrefsProvider);
+    final seen = prefs.getBool('first_time_app_launch_walkthrough_seen') ?? false;
+    return !seen;
+  }
+
+  Future<void> markAsSeen() async {
+    final prefs = ref.read(sharedPrefsProvider);
+    await prefs.setBool('first_time_app_launch_walkthrough_seen', true);
+    state = false;
+  }
+
+  Future<void> reset() async {
+    final prefs = ref.read(sharedPrefsProvider);
+    await prefs.setBool('first_time_app_launch_walkthrough_seen', false);
+    state = true;
+  }
+}
+
+final firstTimeAppLaunchProvider = NotifierProvider<FirstTimeAppLaunchNotifier, bool>(
+  FirstTimeAppLaunchNotifier.new,
+);
+
 // Dismissed tooltips (tracking which tooltips user has dismissed)
 class DismissedTooltipsNotifier extends Notifier<Set<String>> {
   @override
@@ -143,8 +169,8 @@ class DismissedTooltipsNotifier extends Notifier<Set<String>> {
     try {
       // Simple parsing: "tooltip_id1,tooltip_id2"
       final tooltips = (savedJson.replaceAll('[', '').replaceAll(']', '').replaceAll('"', '').split(',')
-          .map((s) => s.trim())
-          .where((s) => s.isNotEmpty)
+          .map((final s) => s.trim())
+          .where((final s) => s.isNotEmpty)
           .toSet());
       return tooltips;
     } catch (_) {
@@ -152,10 +178,10 @@ class DismissedTooltipsNotifier extends Notifier<Set<String>> {
     }
   }
 
-  Future<void> dismiss(String tooltipId) async {
+  Future<void> dismiss(final String tooltipId) async {
     state = {...state, tooltipId};
     final prefs = ref.read(sharedPrefsProvider);
-    final json = state.map((id) => '"$id"').toList();
+    final json = state.map((final id) => '"$id"').toList();
     await prefs.setString('dismissed_tooltips', '[${json.join(',')}]');
   }
 

@@ -1,13 +1,13 @@
+import 'package:cashlyze/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:cashlyze/main.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('Transaction Flow Integration Tests', () {
-    testWidgets('navigate to transactions screen', (WidgetTester tester) async {
+    testWidgets('navigate to transactions screen', (final WidgetTester tester) async {
       await tester.pumpWidget(const App());
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
@@ -23,7 +23,7 @@ void main() {
       }
     });
 
-    testWidgets('add new transaction flow', (WidgetTester tester) async {
+    testWidgets('add new transaction flow', (final WidgetTester tester) async {
       await tester.pumpWidget(const App());
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
@@ -45,14 +45,12 @@ void main() {
       }
     });
 
-    testWidgets('quick add transaction from home', (WidgetTester tester) async {
+    testWidgets('quick add transaction from home', (final WidgetTester tester) async {
       await tester.pumpWidget(const App());
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
       // Look for quick action buttons on home screen
       final transferFinder = find.text('Transfer');
-      final topUpFinder = find.text('Top-up');
-      final billFinder = find.text('Bill');
 
       if (transferFinder.evaluate().isNotEmpty) {
         await tester.tap(transferFinder.first);
@@ -64,7 +62,7 @@ void main() {
       }
     });
 
-    testWidgets('view transaction details', (WidgetTester tester) async {
+    testWidgets('view transaction details', (final WidgetTester tester) async {
       await tester.pumpWidget(const App());
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
@@ -86,7 +84,7 @@ void main() {
       }
     });
 
-    testWidgets('filter transactions', (WidgetTester tester) async {
+    testWidgets('filter transactions', (final WidgetTester tester) async {
       await tester.pumpWidget(const App());
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
@@ -108,7 +106,7 @@ void main() {
       }
     });
 
-    testWidgets('search transactions', (WidgetTester tester) async {
+    testWidgets('search transactions', (final WidgetTester tester) async {
       await tester.pumpWidget(const App());
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
@@ -138,7 +136,7 @@ void main() {
   });
 
   group('Transaction Form Validation', () {
-    testWidgets('validate transaction form fields', (WidgetTester tester) async {
+    testWidgets('validate transaction form fields', (final WidgetTester tester) async {
       await tester.pumpWidget(const App());
       await tester.pumpAndSettle(const Duration(seconds: 5));
 

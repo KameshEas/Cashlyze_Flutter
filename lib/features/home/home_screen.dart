@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/models/transaction.dart';
 import '../../core/providers/insights_providers.dart';
-import '../../core/providers/transaction_providers.dart';
 import '../../core/providers/recurring_providers.dart';
 import '../../core/providers/shared_prefs_provider.dart';
-import '../../core/models/transaction.dart';
+import '../../core/providers/transaction_providers.dart';
 import '../../core/repositories/emi_repository.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/skeleton.dart';
@@ -16,15 +17,15 @@ class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     ref.watch(recurringProcessorProvider);
     final currency = ref.watch(
-      sharedPrefsServiceProvider.select((s) => s.currency),
+      sharedPrefsServiceProvider.select((final s) => s.currency),
     );
     final txsAsync = ref.watch(recentTransactionsProvider);
     final plansAsync = ref.watch(userEMIPlansProvider);
     final hasEmis = plansAsync.maybeWhen(
-      data: (list) => list.isNotEmpty,
+      data: (final list) => list.isNotEmpty,
       orElse: () => false,
     );
     final t = AppLocalizations.of(context);
@@ -63,7 +64,6 @@ class HomeScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () => _performRefresh(context, ref),
-        displacement: 40.0,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           physics: const AlwaysScrollableScrollPhysics(),
@@ -108,19 +108,18 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildUpcomingEmi(
-    BuildContext context,
-    WidgetRef ref,
-    String currency,
+    final BuildContext context,
+    final WidgetRef ref,
+    final String currency,
   ) {
     final upcomingAsync = ref.watch(emiUpcomingProvider);
     final theme = Theme.of(context);
-    final t = AppLocalizations.of(context);
     return upcomingAsync.when(
       loading: () => const SizedBox(
         height: 60,
         child: Center(child: CircularProgressIndicator()),
       ),
-      error: (e, _) => Container(
+      error: (final e, final _) => Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.red.withValues(alpha: 0.08),
@@ -129,10 +128,10 @@ class HomeScreen extends ConsumerWidget {
         ),
         child: Text('EMI load error: $e'),
       ),
-      data: (items) {
+      data: (final items) {
         if (items.isEmpty) return const SizedBox.shrink();
         return Column(
-          children: items.take(3).map((e) {
+          children: items.take(3).map((final e) {
             final now = DateTime.now();
             final today = DateTime(now.year, now.month, now.day);
             final dueDays = e.dueDate.difference(today).inDays;
@@ -173,14 +172,14 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildRecentTransactions(
-    BuildContext context,
-    WidgetRef ref,
-    String currency,
-    AsyncValue<List<TransactionModel>> txsAsync,
+    final BuildContext context,
+    final WidgetRef ref,
+    final String currency,
+    final AsyncValue<List<TransactionModel>> txsAsync,
   ) {
     return txsAsync.when(
-      loading: () => Column(
-        children: const [
+      loading: () => const Column(
+        children: [
           SkeletonListTile(),
           SizedBox(height: 12),
           SkeletonListTile(),
@@ -188,7 +187,7 @@ class HomeScreen extends ConsumerWidget {
           SkeletonListTile(),
         ],
       ),
-      error: (e, _) => Container(
+      error: (final e, final _) => Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.red.withValues(alpha: 0.08),
@@ -203,13 +202,13 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
       ),
-      data: (items) {
+      data: (final items) {
         final now = DateTime.now();
-        final monthStart = DateTime(now.year, now.month, 1);
-        final nextMonthStart = DateTime(now.year, now.month + 1, 1);
+        final monthStart = DateTime(now.year, now.month);
+        final nextMonthStart = DateTime(now.year, now.month + 1);
         final monthItems = items
             .where(
-              (t) =>
+              (final t) =>
                   t.date.isAfter(
                     monthStart.subtract(const Duration(seconds: 1)),
                   ) &&
@@ -236,7 +235,7 @@ class HomeScreen extends ConsumerWidget {
           );
         }
         return Column(
-          children: monthItems.take(2).map((tx) {
+          children: monthItems.take(2).map((final tx) {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: RecentTransactionItem(
@@ -281,17 +280,17 @@ class HomeScreen extends ConsumerWidget {
 
 /// A single recent transaction item displayed on the home screen.
 class RecentTransactionItem extends StatelessWidget {
-  final TransactionModel tx;
-  final String currency;
 
   const RecentTransactionItem({
     super.key,
     required this.tx,
     required this.currency,
   });
+  final TransactionModel tx;
+  final String currency;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final displayCategory = tx.categoryName ?? tx.categoryId ?? 'General';
     final isIncome = tx.amount >= 0;

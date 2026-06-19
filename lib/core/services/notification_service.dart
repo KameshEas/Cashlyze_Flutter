@@ -18,18 +18,18 @@ import 'package:http/http.dart' as http;
 /// - Otherwise attempts to use the OneSignal SDK `postNotification`.
 /// - If both fail, logs the payload in debug mode.
 class NotificationService {
+
+  NotificationService({required this.appId, required this.restKey});
   final String appId;
   final String? restKey;
 
-  NotificationService({required this.appId, required this.restKey});
-
   Future<void> sendBudgetThresholdNotification({
-    required String userPlayerId,
-    required String budgetId,
-    required String budgetName,
-    required double allocated,
-    required double spent,
-    required double thresholdPercent,
+    required final String userPlayerId,
+    required final String budgetId,
+    required final String budgetName,
+    required final double allocated,
+    required final double spent,
+    required final double thresholdPercent,
   }) async {
     final title = 'Budget alert: $budgetName';
     final utilPercent = (allocated == 0) ? 100.0 : (spent / allocated * 100);
@@ -75,7 +75,7 @@ class NotificationService {
   }
 }
 
-final notificationServiceProvider = Provider<NotificationService>((ref) {
+final notificationServiceProvider = Provider<NotificationService>((final ref) {
   final appId = dotenv.env['ONESIGNAL_APP_ID'] ?? '37af7f2d-22d4-4eac-972b-50cb1377fbb8';
   final restKey = dotenv.env['ONESIGNAL_REST_KEY'];
   return NotificationService(appId: appId, restKey: restKey);

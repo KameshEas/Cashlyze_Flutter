@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 
 /// A small colored pill badge indicating status (Active, Disabled, etc.)
 class StatusBadge extends StatelessWidget {
-  final String status;
-  final IconData icon;
-  final Color color;
-  final Color? backgroundColor;
 
   const StatusBadge({
     super.key,
@@ -14,9 +10,13 @@ class StatusBadge extends StatelessWidget {
     required this.color,
     this.backgroundColor,
   });
+  final String status;
+  final IconData icon;
+  final Color color;
+  final Color? backgroundColor;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final bgColor = backgroundColor ?? color.withValues(alpha: 0.12);
 

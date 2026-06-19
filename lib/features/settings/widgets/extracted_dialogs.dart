@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// A reusable delete account confirmation dialog.
 class DeleteAccountDialog extends StatefulWidget {
-  final String? userEmail;
-  final Future<void> Function()? onExportPressed;
-  final Function(bool) onConfirm;
 
   const DeleteAccountDialog({
     super.key,
@@ -13,24 +9,27 @@ class DeleteAccountDialog extends StatefulWidget {
     this.onExportPressed,
     required this.onConfirm,
   });
+  final String? userEmail;
+  final Future<void> Function()? onExportPressed;
+  final Function(bool) onConfirm;
 
   @override
   State<DeleteAccountDialog> createState() => _DeleteAccountDialogState();
 
   static Future<bool?> show(
-    BuildContext context, {
-    String? userEmail,
-    Future<void> Function()? onExportPressed,
-    required Function(bool) onConfirm,
+    final BuildContext context, {
+    final String? userEmail,
+    final Future<void> Function()? onExportPressed,
+    required final Function(bool) onConfirm,
   }) {
     return showDialog<bool>(
       context: context,
-      builder: (ctx) => DeleteAccountDialog(
+      builder: (final ctx) => DeleteAccountDialog(
         userEmail: userEmail,
         onExportPressed: onExportPressed,
         onConfirm: onConfirm,
       ),
-    ).then((result) {
+    ).then((final result) {
       if (result == true) {
         onConfirm(true);
         return true;
@@ -46,7 +45,7 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
   bool _isExporting = false;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final confirmed = exportAcknowledged && typed == 'DELETE';
 
     return AlertDialog(
@@ -121,13 +120,13 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
             ),
             CheckboxListTile(
               value: exportAcknowledged,
-              onChanged: (v) => setState(() => exportAcknowledged = v ?? false),
+              onChanged: (final v) => setState(() => exportAcknowledged = v ?? false),
               title: const Text('I have exported my data'),
               contentPadding: EdgeInsets.zero,
             ),
             const SizedBox(height: 8),
             TextField(
-              onChanged: (v) => setState(() => typed = v),
+              onChanged: (final v) => setState(() => typed = v),
               decoration: const InputDecoration(
                 labelText: 'Type DELETE to confirm',
                 filled: true,
@@ -153,21 +152,21 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
 
 /// A reusable clear all data confirmation dialog.
 class ClearDataDialog extends StatefulWidget {
-  final Function(bool) onConfirm;
 
   const ClearDataDialog({
     super.key,
     required this.onConfirm,
   });
+  final Function(bool) onConfirm;
 
   static Future<bool?> show(
-    BuildContext context, {
-    required Function(bool) onConfirm,
+    final BuildContext context, {
+    required final Function(bool) onConfirm,
   }) {
     return showDialog<bool>(
       context: context,
-      builder: (ctx) => ClearDataDialog(onConfirm: onConfirm),
-    ).then((result) {
+      builder: (final ctx) => ClearDataDialog(onConfirm: onConfirm),
+    ).then((final result) {
       if (result == true) {
         onConfirm(true);
         return true;
@@ -185,7 +184,7 @@ class _ClearDataDialogState extends State<ClearDataDialog> {
   bool acknowledged = false;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final confirmed = acknowledged && typed == 'DELETE';
 
     return AlertDialog(
@@ -214,13 +213,13 @@ class _ClearDataDialogState extends State<ClearDataDialog> {
             const SizedBox(height: 16),
             CheckboxListTile(
               value: acknowledged,
-              onChanged: (v) => setState(() => acknowledged = v ?? false),
+              onChanged: (final v) => setState(() => acknowledged = v ?? false),
               title: const Text('I understand the consequences'),
               contentPadding: EdgeInsets.zero,
             ),
             const SizedBox(height: 8),
             TextField(
-              onChanged: (v) => setState(() => typed = v),
+              onChanged: (final v) => setState(() => typed = v),
               decoration: const InputDecoration(
                 labelText: 'Type DELETE to confirm',
                 filled: true,

@@ -2,31 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/repositories/transaction_repository.dart';
-import '../../core/repositories/budget_repository.dart';
-import '../../core/repositories/recurring_repository.dart';
-import '../../core/services/transaction_ingest_service.dart';
-import '../../core/repositories/category_repository.dart';
-import '../../core/services/auth_service.dart';
 import '../../core/models/budget.dart';
-import '../../core/providers/onboarding_provider.dart';
+import '../../core/models/category.dart';
 import '../../core/models/recurring.dart';
+import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/shared_prefs_provider.dart';
+import '../../core/repositories/budget_repository.dart';
+import '../../core/repositories/category_repository.dart';
+import '../../core/repositories/recurring_repository.dart';
+import '../../core/repositories/transaction_repository.dart';
+import '../../core/services/auth_service.dart';
+import '../../core/services/transaction_ingest_service.dart';
 import '../../core/utils/format.dart';
+import '../../core/utils/repo_error_handler.dart';
 import '../../core/utils/validation.dart';
 import '../../core/widgets/category_picker_field.dart';
 import '../../l10n/app_localizations.dart';
-import '../../core/utils/repo_error_handler.dart';
 
 enum TransactionFormMode { create, edit }
 
 class TransactionFormSheet extends ConsumerStatefulWidget {
-  final TransactionFormMode mode;
-  final String? id;
-  final String? initialTitle;
-  final double? initialAmount; // absolute value
-  final String? initialCategory;
-  final DateTime? initialDate;
 
   const TransactionFormSheet.create({
     super.key,
@@ -45,6 +40,12 @@ class TransactionFormSheet extends ConsumerStatefulWidget {
     this.initialCategory,
     this.initialDate,
   })  : mode = TransactionFormMode.edit;
+  final TransactionFormMode mode;
+  final String? id;
+  final String? initialTitle;
+  final double? initialAmount; // absolute value
+  final String? initialCategory;
+  final DateTime? initialDate;
 
   @override
   ConsumerState<TransactionFormSheet> createState() => _TransactionFormSheetState();
@@ -67,7 +68,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     amountController = TextEditingController(
       text: widget.initialAmount == null
           ? ''
-          : widget.initialAmount!.abs().toStringAsFixed(2).replaceFirst(RegExp(r"\.?0+$"), ''),
+          : widget.initialAmount!.abs().toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), ''),
     );
     if (widget.initialAmount != null && widget.initialAmount! >= 0) type = 'Income';
     if (widget.initialCategory != null) {
@@ -76,7 +77,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       final raw = widget.initialCategory!.trim();
       if (raw.isNotEmpty) {
         Future.microtask(() async {
-          var cats = ref.read(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+          var cats = ref.read(userCategoriesProvider).maybeWhen(data: (final d) => d, orElse: () => const <CategoryModel>[]);
           if (cats.isEmpty) {
             try {
               final user = ref.read(currentUserProvider);
@@ -85,7 +86,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               }
             } catch (_) {}
           }
-          final byId = cats.where((c) => c.id == raw).toList();
+          final byId = cats.where((final c) => c.id == raw).toList();
           if (byId.isNotEmpty) {
             if (mounted) setState(() => category = byId.first.name);
           } else {
@@ -105,8 +106,8 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   }
 
   Future<String?> _resolveCategoryId({
-    required String userId,
-    required String? selectedCategory,
+    required final String userId,
+    required final String? selectedCategory,
   }) async {
     if (selectedCategory == null || selectedCategory.trim().isEmpty) return null;
     final raw = selectedCategory.trim();
@@ -114,7 +115,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
 
     var categories = ref
         .read(userCategoriesProvider)
-        .maybeWhen(data: (d) => d, orElse: () => const []);
+        .maybeWhen(data: (final d) => d, orElse: () => const <CategoryModel>[]);
 
     if (categories.isEmpty) {
       categories = await ref.read(categoryRepositoryProvider).getAllForUser(userId);
@@ -136,7 +137,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     return created.id;
   }
 
-  Future<bool?> _openCreateBudgetForCategory(BuildContext parentCtx, String categoryName, Map<String, dynamic> transactionData) async {
+  Future<bool?> _openCreateBudgetForCategory(final BuildContext parentCtx, final String categoryName, final Map<String, dynamic> transactionData) async {
     final theme = Theme.of(parentCtx);
     final allocatedController = TextEditingController();
     final pageMessenger = ScaffoldMessenger.of(parentCtx);
@@ -145,12 +146,11 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       context: parentCtx,
       useRootNavigator: true,
       isScrollControlled: true,
-      isDismissible: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) {
+      builder: (final ctx) {
         final nav = Navigator.of(ctx);
         return Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
@@ -159,13 +159,13 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(width: 48, height: 4, decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(2))),
+                Container(width: 48, height: 4, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2))),
                 const SizedBox(height: 12),
                 Text('Create Budget for "$categoryName"', style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 Text('Set a monthly budget amount for this category', style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: Colors.grey)),
                 const SizedBox(height: 12),
-                TextFormField(controller: allocatedController, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'Monthly Budget Amount', filled: true, prefixText: '${ref.read(currencyProvider)} ')),
+                TextFormField(controller: allocatedController, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'Monthly Budget Amount', filled: true, prefixText: '${ref.read(currencyProvider)} ')),
                 const SizedBox(height: 12),
                 Row(children: [
                   Expanded(child: OutlinedButton(onPressed: () { FocusScope.of(ctx).unfocus(); nav.pop(false); }, child: const Text('Skip'))),
@@ -176,10 +176,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     final repo = ref.read(budgetRepositoryProvider);
                     final amount = double.tryParse(allocatedController.text) ?? 0;
                     try {
-                      final catsListForCreate = ref.read(userCategoriesProvider).maybeWhen(data: (d) => d, orElse: () => const []);
+                      final catsListForCreate = ref.read(userCategoriesProvider).maybeWhen(data: (final d) => d, orElse: () => const <CategoryModel>[]);
                       final nameToIdForCreate = <String, String>{};
                       for (final c in catsListForCreate) {
-                        final nm = (c.name ?? '').trim();
+                        final nm = c.name.trim();
                         if (nm.isEmpty) continue;
                         nameToIdForCreate[nm.toLowerCase()] = c.id;
                       }
@@ -187,7 +187,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                       String storageKey = rawKey;
                       if (nameToIdForCreate.containsKey(rawKey.toLowerCase())) {
                         storageKey = nameToIdForCreate[rawKey.toLowerCase()]!;
-                      } else if (catsListForCreate.any((c) => c.id == rawKey)) {
+                      } else if (catsListForCreate.any((final c) => c.id == rawKey)) {
                         storageKey = rawKey;
                       }
                       await repo.create(userId: user.uid, name: categoryName, allocated: amount, period: BudgetPeriod.monthly, categoryIds: [storageKey]);
@@ -206,8 +206,6 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                         categoryId: transactionData['categoryId'] as String?,
                         categoryName: transactionData['categoryName'] as String?,
                         date: transactionData['date'] as DateTime,
-                        notes: null,
-                        tags: null,
                       );
                     } catch (e) {
                       nav.pop(false);
@@ -227,7 +225,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final t = AppLocalizations.of(context);
     final prefs = ref.watch(sharedPrefsServiceProvider);
     if (widget.mode == TransactionFormMode.create) {
@@ -255,7 +253,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 48, height: 4, decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(2))),
+            Container(width: 48, height: 4, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 12),
             Row(children: [
               Expanded(child: DropdownButtonFormField<String>(
@@ -264,14 +262,14 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   DropdownMenuItem(value: 'Expense', child: Text(t?.expense ?? 'Expense')),
                   DropdownMenuItem(value: 'Income', child: Text(t?.income ?? 'Income')),
                 ],
-                onChanged: (v) => setState(() => type = v ?? 'Expense'),
+                onChanged: (final v) => setState(() => type = v ?? 'Expense'),
                 decoration: InputDecoration(labelText: t?.typeLabel ?? 'Type', filled: true),
               )),
               const SizedBox(width: 12),
               Expanded(
                 child: CategoryPickerField(
                   value: category,
-                  onChanged: (v) => setState(() => category = v),
+                  onChanged: (final v) => setState(() => category = v),
                   label: t?.categoryLabel ?? 'Category',
                   budgetsOnly: true,
                 ),
@@ -320,9 +318,9 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   );
 
                   if (widget.mode == TransactionFormMode.create) {
-                    if (!isIncome && localCategoryName != null && localCategoryName.toLowerCase() != 'general') {
+                    if (!isIncome && localCategoryName.toLowerCase() != 'general') {
                       final budgets = await ref.read(budgetRepositoryProvider).streamForUser(user.uid).first;
-                      final hasBudget = budgets.any((b) => b.name.toLowerCase() == localCategoryName.toLowerCase());
+                      final hasBudget = budgets.any((final b) => b.name.toLowerCase() == localCategoryName.toLowerCase());
                       if (!hasBudget) {
                         final transactionData = {
                           'userId': user.uid,
@@ -333,8 +331,9 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                           'categoryName': localCategoryName,
                           'date': date,
                         };
+                        if (!context.mounted) return;
                         final res = await _openCreateBudgetForCategory(context, localCategoryName, transactionData);
-                        if (!mounted) return;
+                        if (!context.mounted) return;
                         if (res == true) {
                           FocusScope.of(context).unfocus();
                           Navigator.of(context).pop(true);
@@ -344,7 +343,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     }
 
                     final ingest = ref.read(transactionIngestServiceProvider);
-                    await ingest.addManual(userId: user.uid, title: titleController.text, amount: amt, isIncome: isIncome, categoryId: localCategoryId, categoryName: localCategoryName, date: date, notes: null, tags: null);
+                    await ingest.addManual(userId: user.uid, title: titleController.text, amount: amt, isIncome: isIncome, categoryId: localCategoryId, categoryName: localCategoryName, date: date);
                     if (repeatEnabled) {
                       final freq = repeatFreq == 'Weekly' ? RecurringFrequency.weekly : RecurringFrequency.monthly;
                       await ref.read(recurringRepositoryProvider).createRule(userId: user.uid, title: titleController.text, amount: amt, isIncome: isIncome, categoryId: localCategoryId, startDate: date, frequency: freq);
@@ -375,7 +374,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               }, child: Text(t?.save ?? 'Save')),
             ]),
             const SizedBox(height: 12),
-            CheckboxListTile(value: repeatEnabled, onChanged: (v) => setState(() => repeatEnabled = v ?? false), title: Text(t?.repeatLabel ?? 'Repeat'), contentPadding: EdgeInsets.zero),
+            CheckboxListTile(value: repeatEnabled, onChanged: (final v) => setState(() => repeatEnabled = v ?? false), title: Text(t?.repeatLabel ?? 'Repeat'), contentPadding: EdgeInsets.zero),
             if (repeatEnabled) const SizedBox(height: 8),
             if (repeatEnabled)
               DropdownButtonFormField<String>(
@@ -384,7 +383,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   DropdownMenuItem(value: 'Monthly', child: Text(t?.monthlyLabel ?? 'Monthly')),
                   DropdownMenuItem(value: 'Weekly', child: Text(t?.weeklyLabel ?? 'Weekly')),
                 ],
-                onChanged: (v) => setState(() => repeatFreq = v ?? 'Monthly'),
+                onChanged: (final v) => setState(() => repeatFreq = v ?? 'Monthly'),
                 decoration: InputDecoration(labelText: t?.frequencyLabel ?? 'Frequency', filled: true),
               ),
           ],

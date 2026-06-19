@@ -1,21 +1,21 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/transactions/data/recurring_remote_data_source.dart';
 import '../models/recurring.dart';
 import '../services/auth_service.dart';
-import '../../features/transactions/data/recurring_remote_data_source.dart';
 
 class RecurringRepository {
   const RecurringRepository(this._dataSource);
   final RecurringRemoteDataSource _dataSource;
 
   Future<RecurringRule> createRule({
-    required String userId,
-    required String title,
-    required double amount,
-    required bool isIncome,
-    String? categoryId,
-    required DateTime startDate,
-    required RecurringFrequency frequency,
+    required final String userId,
+    required final String title,
+    required final double amount,
+    required final bool isIncome,
+    final String? categoryId,
+    required final DateTime startDate,
+    required final RecurringFrequency frequency,
   }) =>
       _dataSource.create(
         title: title,
@@ -26,25 +26,25 @@ class RecurringRepository {
         frequency: frequency,
       );
 
-  Future<void> updateLastPosted(String userId, String id, DateTime last) =>
-      _dataSource.update(id, startDate: last).then((_) {});
+  Future<void> updateLastPosted(final String userId, final String id, final DateTime last) =>
+      _dataSource.update(id, startDate: last).then((final _) {});
 
-  Future<List<RecurringRule>> getAllForUser(String userId) =>
+  Future<List<RecurringRule>> getAllForUser(final String userId) =>
       _dataSource.getAll();
 
-  Stream<List<RecurringRule>> streamForUser(String userId) =>
+  Stream<List<RecurringRule>> streamForUser(final String userId) =>
       Stream.fromFuture(_dataSource.getAll());
 }
 
-final recurringRepositoryProvider = Provider<RecurringRepository>((ref) {
+final recurringRepositoryProvider = Provider<RecurringRepository>((final ref) {
   return RecurringRepository(ref.watch(recurringRemoteDataSourceProvider));
 });
 
-final userRecurringRulesProvider = StreamProvider<List<RecurringRule>>((ref) {
+final userRecurringRulesProvider = StreamProvider<List<RecurringRule>>((final ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return const Stream.empty();
   return ref
       .watch(recurringRepositoryProvider)
       .streamForUser(user.userId)
-      .handleError((_, __) {});
+      .handleError((_, _) {});
 });

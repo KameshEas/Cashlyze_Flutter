@@ -5,11 +5,11 @@ import '../api/api_exception.dart';
 
 /// Standard error handler that provides consistent error handling and recovery
 class ErrorHandler {
-  static final ErrorHandler _instance = ErrorHandler._();
 
   factory ErrorHandler() => _instance;
 
   ErrorHandler._();
+  static final ErrorHandler _instance = ErrorHandler._();
 
   /// Convert Dio exception to typed ApiException
   ApiException mapDioException(final DioException error) {
@@ -55,7 +55,7 @@ class ErrorHandler {
     final Map<String, dynamic>? extraData,
   }) async {
     try {
-      final eventId = await Sentry.captureException(
+      await Sentry.captureException(
         error,
         stackTrace: stackTrace,
       );
@@ -63,12 +63,10 @@ class ErrorHandler {
       if (context != null || extraData != null) {
         await Sentry.configureScope((final scope) {
           if (context != null) {
-            scope.setExtra('error_context', context);
+            scope.setContexts('error_context', context);
           }
           if (extraData != null) {
-            extraData.forEach((final key, final value) {
-              scope.setExtra(key, value);
-            });
+            scope.setContexts('extra_data', extraData);
           }
         });
       }
