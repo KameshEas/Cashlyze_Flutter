@@ -6,6 +6,7 @@ import '../../core/providers/recurring_providers.dart';
 import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/models/transaction.dart';
 import '../../core/repositories/emi_repository.dart';
+import '../../core/ui/motion.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../l10n/app_localizations.dart';
@@ -67,7 +68,7 @@ class HomeScreen extends ConsumerWidget {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
+          child: MotionStagger(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const BalanceCard(),
