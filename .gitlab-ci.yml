@@ -6,7 +6,7 @@ stages:
 runner-test:
   stage: test
   script:
-    - echo "================================="
+    - echo "============================="
     - echo "GitLab Runner is working!"
     - echo "Runner: $CI_RUNNER_DESCRIPTION"
     - echo "Project: $CI_PROJECT_NAME"
