@@ -6,12 +6,12 @@ stages:
 runner-test:
   stage: test
   script:
-    - echo "============================="
-    - echo "GitLab Runner is working!"
-    - echo "Runner: $CI_RUNNER_DESCRIPTION"
-    - echo "Project: $CI_PROJECT_NAME"
-    - echo "Branch: $CI_COMMIT_REF_NAME"
-    - uname -a
-    - cat /etc/os-release
-    - ls -la
-    - echo "Pipeline completed successfully!"
+    - 'echo "============================="'
+    - 'echo "GitLab Runner is working!"'
+    - 'echo "Runner: $CI_RUNNER_DESCRIPTION"'
+    - 'echo "Project: $CI_PROJECT_NAME"'
+    - 'echo "Branch: $CI_COMMIT_REF_NAME"'
+    - 'uname -a'
+    - 'cat /etc/os-release'
+    - 'ls -la'
+    - 'echo "Pipeline completed successfully!"'
