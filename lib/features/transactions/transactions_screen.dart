@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart' show Share, XFile;
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/export_service.dart';
 import '../../core/models/transaction.dart';
 import '../../core/providers/onboarding_provider.dart';
+import '../../core/providers/export_service_provider.dart';
 import '../../core/ui/motion.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../core/widgets/empty_state.dart';
@@ -103,7 +106,16 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 ),
               ],
             )
-          : AppBar(title: Text(t?.transactions ?? 'Transactions')),
+          : AppBar(
+              title: Text(t?.transactions ?? 'Transactions'),
+              actions: [
+                IconButton(
+                  tooltip: 'Export',
+                  icon: const Icon(Icons.download),
+                  onPressed: () => _exportTransactions(context),
+                ),
+              ],
+            ),
       floatingActionButton: Tooltip(
         message: t?.addTransaction ?? 'Add transaction',
         child: FloatingActionButton.extended(
@@ -565,6 +577,31 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       });
     } catch (err) {
       showRepoErrorSnackBar(messenger, err);
+    }
+  }
+
+  Future<void> _exportTransactions(final BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final currency = ref.read(currencyProvider);
+    final allFiltered = ref.read(filteredTransactionsProvider);
+
+    if (allFiltered.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('No transactions to export')),
+      );
+      return;
+    }
+
+    try {
+      final exportService = ref.read(exportServiceProvider);
+      final file =
+          await exportService.saveTransactionsCSV(allFiltered, currency);
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'Transactions export',
+      );
+    } catch (e) {
+      showRepoErrorSnackBar(messenger, e);
     }
   }
 

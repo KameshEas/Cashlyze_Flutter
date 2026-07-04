@@ -67,6 +67,9 @@ dependencies:
   # Realtime / WebSocket
   web_socket_channel: ^3.0.1
 
+  # Export functionality
+  csv: ^6.0.0
+  pdf: ^4.1.1
 
 dev_dependencies:
   sentry_dart_plugin: ^3.2.1

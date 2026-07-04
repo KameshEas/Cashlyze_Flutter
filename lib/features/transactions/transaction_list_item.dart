@@ -152,6 +152,21 @@ class TransactionListItem extends ConsumerWidget {
                       ),
                     ],
                   ),
+                  if (tx.tags != null && tx.tags!.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 2,
+                      children: tx.tags!.map((final tag) => Chip(
+                        label: Text(
+                          tag,
+                          style: theme.textTheme.labelSmall,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      )).toList(),
+                    ),
+                  ],
                 ],
               ),
             ),

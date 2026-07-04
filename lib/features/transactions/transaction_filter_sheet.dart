@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
-import '../../l10n/app_localizations.dart';
-import '../../core/utils/format.dart';
 import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/repositories/budget_repository.dart';
 import '../../core/repositories/category_repository.dart';
+import '../../core/repositories/transaction_repository.dart';
+import '../../core/utils/format.dart';
+import '../../l10n/app_localizations.dart';
 import 'transaction_filters.dart';
 
 class TransactionFilterSheet extends ConsumerStatefulWidget {
@@ -25,6 +26,7 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
   late bool localUseDateRange;
   late TextEditingController minController;
   late TextEditingController maxController;
+  late List<String> localSelectedTags;
 
   @override
   void initState() {
@@ -36,6 +38,7 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
     localFromDate = f.fromDate;
     localToDate = f.toDate;
     localUseDateRange = f.useDateRange;
+    localSelectedTags = List<String>.from(f.selectedTags);
     minController = TextEditingController(text: f.minAmount?.toString() ?? '');
     maxController = TextEditingController(text: f.maxAmount?.toString() ?? '');
   }
@@ -267,6 +270,29 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
               ),
             ],
           ),
+          const SizedBox(height: 20),
+
+          // Tags
+          Text('Tags', style: theme.textTheme.labelLarge),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              // Collect all unique tags from all transactions
+              ..._getAllTags(ref).map((final tag) => FilterChip(
+                label: Text(tag),
+                selected: localSelectedTags.contains(tag),
+                onSelected: (_) => setState(() {
+                  if (localSelectedTags.contains(tag)) {
+                    localSelectedTags.remove(tag);
+                  } else {
+                    localSelectedTags.add(tag);
+                  }
+                }),
+              )),
+            ],
+          ),
           const SizedBox(height: 24),
 
           Row(
@@ -298,6 +324,7 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
                     }
                     notifier.setMinAmount(double.tryParse(minController.text));
                     notifier.setMaxAmount(double.tryParse(maxController.text));
+                    notifier.setSelectedTags(localSelectedTags);
                     Navigator.of(context).pop();
                   },
                   child: const Text('Apply'),
@@ -308,5 +335,21 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
         ],
       ),
     );
+  }
+
+  List<String> _getAllTags(final WidgetRef ref) {
+    final txsAsync = ref.watch(userTransactionsProvider);
+    final tags = <String>{};
+    txsAsync.maybeWhen(
+      data: (final items) {
+        for (final tx in items) {
+          if (tx.tags != null) {
+            tags.addAll(tx.tags!);
+          }
+        }
+      },
+      orElse: () {},
+    );
+    return tags.toList()..sort();
   }
 }

@@ -17,6 +17,7 @@ class TransactionFilterState {
   final DateTime? toDate;
   final bool useDateRange;
   final DateTime? selectedMonth;
+  final List<String> selectedTags;
   final int page;
   final int pageSize;
 
@@ -30,6 +31,7 @@ class TransactionFilterState {
     DateTime? selectedMonth,
     DateTime? fromDate,
     DateTime? toDate,
+    this.selectedTags = const [],
     this.page = 1,
     this.pageSize = 20,
     bool? useDateRange,
@@ -49,6 +51,7 @@ class TransactionFilterState {
     DateTime? fromDate,
     DateTime? toDate,
     DateTime? selectedMonth,
+    final List<String>? selectedTags,
     int? page,
     int? pageSize,
     bool? useDateRange,
@@ -63,6 +66,7 @@ class TransactionFilterState {
       fromDate: fromDate ?? this.fromDate,
       toDate: toDate ?? this.toDate,
       selectedMonth: selectedMonth ?? this.selectedMonth,
+      selectedTags: selectedTags ?? this.selectedTags,
       page: page ?? this.page,
       pageSize: pageSize ?? this.pageSize,
       useDateRange: useDateRange ?? this.useDateRange,
@@ -139,7 +143,19 @@ class TransactionFilterNotifier extends Notifier<TransactionFilterState> {
     });
   }
 
-  
+  void setSelectedTags(final List<String> tags) {
+    state = state.copyWith(selectedTags: tags, page: 1);
+  }
+
+  void toggleTag(final String tag) {
+    final updated = List<String>.from(state.selectedTags);
+    if (updated.contains(tag)) {
+      updated.remove(tag);
+    } else {
+      updated.add(tag);
+    }
+    state = state.copyWith(selectedTags: updated, page: 1);
+  }
 }
 
 final transactionFilterProvider = NotifierProvider<TransactionFilterNotifier, TransactionFilterState>(TransactionFilterNotifier.new);
@@ -161,6 +177,7 @@ final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {
         final matchesCategory = f.category == 'All' || f.category == catLabel;
         final absAmount = e.amount.abs();
         final matchesAmount = (f.minAmount == null || absAmount >= f.minAmount!) && (f.maxAmount == null || absAmount <= f.maxAmount!);
+        final matchesTags = f.selectedTags.isEmpty || (e.tags != null && e.tags!.any(f.selectedTags.contains));
         bool inRange;
         if (f.useDateRange) {
           // If user enabled date-range but didn't provide endpoints, constrain to last ~6 months by default
@@ -172,7 +189,7 @@ final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {
         } else {
           inRange = monthStart == null || (e.date.isAtSameMomentAs(monthStart) || e.date.isAfter(monthStart)) && e.date.isBefore(monthEnd!);
         }
-        return matchesQuery && matchesType && matchesCategory && matchesAmount && inRange;
+        return matchesQuery && matchesType && matchesCategory && matchesAmount && matchesTags && inRange;
       }).toList();
       // Ensure newest transactions appear first before pagination.
       filtered.sort((a, b) => b.date.compareTo(a.date));
@@ -206,6 +223,7 @@ final activeFilterCountProvider = Provider<int>((ref) {
   if (state.minAmount != null) count++;
   if (state.maxAmount != null) count++;
   if (state.selectedMonth != null && state.selectedMonth != DateTime(DateTime.now().year, DateTime.now().month, 1)) count++;
+  if (state.selectedTags.isNotEmpty) count++;
   return count;
 });
 

@@ -33,6 +33,9 @@ abstract final class ApiEndpoints {
   // ── Budgets ───────────────────────────────────────────────────────────────
   static const String budgets = '/budgets';
   static String budgetById(String id) => '/budgets/$id';
+  static const String budgetsCategoryBreakdown = '/budgets/analytics/category-breakdown';
+  static const String budgetsUtilizationAll = '/budgets/utilization/all';
+  static const String budgetsAlertsCurrent = '/budgets/alerts/current';
 
   // ── EMI ───────────────────────────────────────────────────────────────────
   static const String emiPlans = '/emi-plans';
