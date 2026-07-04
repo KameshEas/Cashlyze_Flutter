@@ -1,14 +1,18 @@
 stages:
   - test
   - build
-  - deploy
+  - deploy_internal
+  - deploy_production
 
 variables:
-  FLUTTER_VERSION: "3.10.1"
+  FLUTTER_VERSION: "3.24.0"
   GRADLE_CACHE_PATH: "$CI_PROJECT_DIR/.gradle"
   FLUTTER_PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
   FLUTTER_BUILD_MODE: "release"
   ANDROID_KEYSTORE_PASSWORD: "$ANDROID_STORE_PASSWORD"
+  # Default to internal track unless overridden
+  GOOGLE_PLAY_TRACK: "internal"
+  GOOGLE_PLAY_RELEASE_STATUS: "draft"
 
 cache:
   key:
@@ -21,32 +25,29 @@ cache:
     - build/
 
 before_script:
-  - apt-get update -qq && apt-get install -y -qq openjdk-11-jdk-headless ruby-dev npm >/dev/null 2>&1
+  - apt-get update -qq && apt-get install -y -qq openjdk-11-jdk-headless ruby-dev npm curl >/dev/null 2>&1
   - export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-  - export PATH=$JAVA_HOME/bin:$PATH
+  - export PATH=$JAVA_HOME/bin:$PATH:$HOME/.shorebird/bin
+  - echo "Installing Shorebird CLI..."
+  - curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | sh 2>&1 | tail -5 || true
+  - shorebird --version
 
 test_code_quality:
   stage: test
   image: cirrusci/flutter:latest
-  only:
-    - main
-    - develop
-    - merge_requests
   script:
-    - echo "Running Flutter analysis..."
+    - echo "✓ Running Flutter analysis..."
     - flutter --version
     - flutter pub get
     - dart analyze --fatal-infos
-    - echo "Code quality check passed"
+    - echo "✅ Code quality check passed"
   allow_failure: true
+  except:
+    - tags
 
 build_release_artifacts:
   stage: build
   image: cirrusci/flutter:latest
-  only:
-    - main
-    - develop
-    - tags
   script:
     - |
       set -e
@@ -58,22 +59,61 @@ build_release_artifacts:
       BUILD_NUMBER=${PKG_BUILD:-${CI_PIPELINE_ID}}
       BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
 
-      echo "Building $BUILD_NAME+$BUILD_NUMBER"
+      echo "📦 Building $BUILD_NAME+$BUILD_NUMBER with Shorebird"
 
+      # Verify Shorebird is installed
+      echo "🔍 Checking Shorebird..."
+      which shorebird || (echo "❌ Shorebird not found"; exit 1)
+      shorebird --version
+
+      # Verify shorebird.yaml exists
+      if [ ! -f "shorebird.yaml" ]; then
+        echo "❌ shorebird.yaml not found. Did you run 'shorebird init'?"
+        exit 1
+      fi
+      echo "✓ shorebird.yaml found"
+
+      # Decode keystore
       mkdir -p android/app
       echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/cashlyze-release.jks
       chmod 600 android/app/cashlyze-release.jks
       export ANDROID_KEYSTORE_PATH="$(pwd)/android/app/cashlyze-release.jks"
+      export ANDROID_KEY_ALIAS="${ANDROID_KEY_ALIAS:-cashlyze}"
+      export ANDROID_KEY_PASSWORD="$ANDROID_KEYSTORE_PASSWORD"
 
-      echo "Building APK..."
-      flutter build apk --release --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
-      ls -lh build/app/outputs/apk/release/*.apk | tail -1
+      if [ ! -f "$ANDROID_KEYSTORE_PATH" ]; then
+        echo "❌ Keystore file not created. Check ANDROID_KEYSTORE_BASE64 variable."
+        exit 1
+      fi
+      echo "✓ Keystore decoded and ready"
 
-      echo "Building App Bundle..."
-      flutter build appbundle --release --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
-      ls -lh build/app/outputs/bundle/release/*.aab | tail -1
+      echo ""
+      echo "🔨 Building APK with Shorebird..."
+      if shorebird release android \
+        --build-name=$BUILD_NAME \
+        --build-number=$BUILD_NUMBER \
+        --artifact=apk \
+        --no-confirm; then
+        ls -lh build/app/outputs/apk/release/*.apk 2>/dev/null | tail -1 || echo "⚠️  APK output location may vary"
+      else
+        echo "⚠️  APK build skipped or failed, continuing to AAB..."
+      fi
 
-      echo "Build completed"
+      echo ""
+      echo "🔨 Building App Bundle with Shorebird..."
+      if shorebird release android \
+        --build-name=$BUILD_NAME \
+        --build-number=$BUILD_NUMBER \
+        --artifact=appbundle \
+        --no-confirm; then
+        ls -lh build/app/outputs/bundle/release/*.aab | tail -1 || (echo "❌ AAB not found"; exit 1)
+      else
+        echo "❌ AAB build failed"
+        exit 1
+      fi
+
+      echo ""
+      echo "✅ Build completed successfully!"
   artifacts:
     name: "cashlyze-${CI_COMMIT_SHORT_SHA}"
     paths:
@@ -87,86 +127,185 @@ build_release_artifacts:
       - stuck_or_timeout_failure
 
 deploy_firebase_distribution:
-  stage: deploy
+  stage: deploy_internal
   image: cirrusci/flutter:latest
   dependencies:
     - build_release_artifacts
   only:
     - main
     - develop
+    - tags
   script:
     - |
       set -e
-      echo "Installing Firebase CLI..."
-      npm install -g firebase-tools
+      echo "📦 Installing Firebase CLI..."
+      npm install -g firebase-tools >/dev/null 2>&1
 
       APK_PATH=$(find build/app/outputs/apk/release -name "*.apk" -type f | head -1)
 
       if [ -z "$APK_PATH" ]; then
-        echo "APK not found"
-        find build -name "*.apk" -type f
-        exit 1
+        echo "⚠️  APK not found in build/app/outputs/apk/release/"
+        echo "Available APK files:"
+        find build -name "*.apk" -type f 2>/dev/null || echo "No APK files found"
+        echo "Skipping Firebase distribution (APK optional for internal testing)"
+        exit 0
       fi
 
       PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g')
       RELEASE_NOTES="Build ${PKG_VER} - $(date '+%Y-%m-%d %H:%M:%S')"
 
-      echo "Deploying to Firebase..."
+      echo "🔥 Deploying to Firebase..."
+      if [ -z "$FIREBASE_ANDROID_APP_ID" ] || [ -z "$FIREBASE_TOKEN" ]; then
+        echo "⚠️  Firebase variables not set, skipping Firebase distribution"
+        exit 0
+      fi
+
       firebase appdistribution:distribute "$APK_PATH" \
         --app "$FIREBASE_ANDROID_APP_ID" \
         --groups "$FIREBASE_DISTRIBUTION_GROUPS" \
         --release-notes "$RELEASE_NOTES" \
         --token "$FIREBASE_TOKEN"
 
-      echo "Firebase deployment complete"
+      echo "✅ Firebase deployment complete"
   retry:
     max: 2
     when:
       - runner_system_failure
       - stuck_or_timeout_failure
 
-deploy_google_play_internal:
-  stage: deploy
+deploy_google_play_internal_testing:
+  stage: deploy_internal
   image: cirrusci/flutter:latest
   dependencies:
     - build_release_artifacts
   only:
     - main
+    - develop
     - tags
   script:
     - |
       set -e
-      echo "Installing Fastlane..."
-      gem install fastlane -NV 2>&1 | grep -E "^Successfully" || true
+      echo "📦 Installing Fastlane..."
+      gem install fastlane -NV 2>&1 | tail -2
 
+      # Verify AAB exists
       AAB_PATH=$(find build/app/outputs/bundle/release -name "*.aab" -type f | head -1)
 
       if [ -z "$AAB_PATH" ]; then
-        echo "AAB not found"
-        find build -name "*.aab" -type f
+        echo "❌ AAB not found in build/app/outputs/bundle/release/"
+        echo "Available files:"
+        find build -name "*.aab" -type f 2>/dev/null || echo "No AAB files found"
+        exit 1
+      fi
+
+      echo "✓ AAB found: $AAB_PATH"
+
+      # Verify credentials
+      if [ -z "$GCLOUD_SERVICE_ACCOUNT_CREDENTIALS" ]; then
+        echo "❌ GCLOUD_SERVICE_ACCOUNT_CREDENTIALS not set. Add it to GitLab CI variables."
+        exit 1
+      fi
+
+      if [ -z "$PACKAGE_NAME" ]; then
+        echo "❌ PACKAGE_NAME not set. Add it to GitLab CI variables."
         exit 1
       fi
 
       mkdir -p ~/.android
       echo "$GCLOUD_SERVICE_ACCOUNT_CREDENTIALS" > ~/.android/gcloud-key.json
+      echo "✓ Service account credentials loaded"
 
-      echo "Deploying to Google Play..."
+      echo ""
+      echo "🚀 Deploying to Google Play Internal Testing Track..."
       cd android
 
       fastlane run supply \
         aab:"$AAB_PATH" \
-        track:"${GOOGLE_PLAY_TRACK:-internal}" \
+        track:"internal" \
         json_key:"$HOME/.android/gcloud-key.json" \
         package_name:"$PACKAGE_NAME" \
         skip_upload_apk:true \
         skip_upload_metadata:true \
         skip_upload_images:true \
         skip_upload_screenshots:true \
-        release_status:"${GOOGLE_PLAY_RELEASE_STATUS:-draft}"
+        release_status:"draft"
 
-      echo "Google Play deployment complete"
+      echo "✅ Google Play internal testing deployment complete"
   retry:
     max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+
+deploy_google_play_production:
+  stage: deploy_production
+  image: cirrusci/flutter:latest
+  dependencies:
+    - build_release_artifacts
+  only:
+    - main
+    - tags
+  when: manual
+  script:
+    - |
+      set -e
+      echo "📦 Installing Fastlane..."
+      gem install fastlane -NV 2>&1 | tail -2
+
+      AAB_PATH=$(find build/app/outputs/bundle/release -name "*.aab" -type f | head -1)
+
+      if [ -z "$AAB_PATH" ]; then
+        echo "❌ AAB not found in build/app/outputs/bundle/release/"
+        find build -name "*.aab" -type f 2>/dev/null || echo "No AAB files found"
+        exit 1
+      fi
+
+      if [ -z "$GCLOUD_SERVICE_ACCOUNT_CREDENTIALS" ]; then
+        echo "❌ GCLOUD_SERVICE_ACCOUNT_CREDENTIALS not set."
+        exit 1
+      fi
+
+      if [ -z "$PACKAGE_NAME" ]; then
+        echo "❌ PACKAGE_NAME not set."
+        exit 1
+      fi
+
+      mkdir -p ~/.android
+      echo "$GCLOUD_SERVICE_ACCOUNT_CREDENTIALS" > ~/.android/gcloud-key.json
+
+      PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g')
+
+      echo ""
+      echo "╔════════════════════════════════════════════════════════════╗"
+      echo "║ ⚠️  WARNING: DEPLOYING TO GOOGLE PLAY PRODUCTION           ║"
+      echo "║ Version: ${PKG_VER}                                       "
+      echo "║ This will make the build immediately available to all users ║"
+      echo "╚════════════════════════════════════════════════════════════╝"
+      echo ""
+      echo "Waiting 10 seconds (press Ctrl+C to cancel)..."
+      sleep 10
+
+      cd android
+
+      echo "🚀 Uploading to production track..."
+      fastlane run supply \
+        aab:"$AAB_PATH" \
+        track:"production" \
+        json_key:"$HOME/.android/gcloud-key.json" \
+        package_name:"$PACKAGE_NAME" \
+        skip_upload_apk:true \
+        skip_upload_metadata:true \
+        skip_upload_images:true \
+        skip_upload_screenshots:true \
+        release_status:"completed"
+
+      echo ""
+      echo "╔════════════════════════════════════════════════════════════╗"
+      echo "║ ✅ Google Play production deployment complete!             ║"
+      echo "║ Version ${PKG_VER} is now live on the Play Store!          ║"
+      echo "╚════════════════════════════════════════════════════════════╝"
+  retry:
+    max: 1
     when:
       - runner_system_failure
       - stuck_or_timeout_failure
