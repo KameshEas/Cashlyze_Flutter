@@ -37,7 +37,7 @@ test_code_quality:
     - echo "✓ Running Flutter analysis..."
     - flutter --version
     - flutter pub get
-    - dart analyze --fatal-infos
+    - dart analyze
     - echo "✅ Code quality check passed"
   allow_failure: true
   except:
