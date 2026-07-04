@@ -3,9 +3,9 @@ import '../api/api_client.dart';
 import '../api/api_endpoints.dart';
 
 class BudgetAnalyticsService {
-  final ApiClient _client;
-
   BudgetAnalyticsService(this._client);
+
+  final ApiClient _client;
 
   /// Fetches category breakdown data from the server.
   /// Returns a map of category IDs to spending amounts.

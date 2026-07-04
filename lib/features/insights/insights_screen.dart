@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart' show Share, XFile;
 
+import '../../core/models/category.dart';
 import '../../core/models/transaction.dart';
 import '../../core/providers/budget_analytics_providers.dart';
 import '../../core/providers/export_service_provider.dart';
@@ -15,8 +16,6 @@ import '../../core/ui/constants.dart';
 import '../../core/utils/format.dart';
 import '../../core/utils/repo_error_handler.dart';
 import '../../core/widgets/animated_progress_indicator.dart';
-import '../../core/widgets/empty_state.dart';
-import '../../core/widgets/skeleton.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/skeleton.dart';
 
@@ -790,19 +789,20 @@ class _MonthlyTrendCard extends StatelessWidget {
 // ════════════════════════════════════════════════════════════════════════════
 
 class _CategoryBreakdownCard extends ConsumerWidget {
-  final Map<String, double> breakdown;
-  final String currency;
   const _CategoryBreakdownCard({
     required this.breakdown,
     required this.currency,
   });
 
+  final Map<String, double> breakdown;
+  final String currency;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     final theme = Theme.of(context);
     final cats = ref.watch(userCategoriesProvider).maybeWhen(
-      data: (d) => d,
-      orElse: () => const [],
+      data: (final d) => d,
+      orElse: () => const <CategoryModel>[],
     );
     final catById = <String, String>{};
     for (final c in cats) {
@@ -810,11 +810,11 @@ class _CategoryBreakdownCard extends ConsumerWidget {
     }
 
     final sorted = breakdown.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+      ..sort((final a, final b) => b.value.compareTo(a.value));
     final top = sorted.take(6).toList();
-    final total = sorted.fold<double>(0, (sum, e) => sum + e.value);
+    final total = sorted.fold<double>(0, (final sum, final e) => sum + e.value);
 
-    final sections = List.generate(top.length, (i) {
+    final sections = List.generate(top.length, (final i) {
       final entry = top[i];
       final color = _kPalette[i % _kPalette.length];
       final value = entry.value;
@@ -850,7 +850,7 @@ class _CategoryBreakdownCard extends ConsumerWidget {
           Wrap(
             spacing: AppSpacing.s12,
             runSpacing: AppSpacing.s8,
-            children: top.asMap().entries.map((e) {
+            children: top.asMap().entries.map((final e) {
               final idx = e.key;
               final entry = e.value;
               final color = _kPalette[idx % _kPalette.length];
@@ -875,7 +875,7 @@ class _CategoryBreakdownCard extends ConsumerWidget {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                ];
+                ],
               );
             }).toList(),
           ),

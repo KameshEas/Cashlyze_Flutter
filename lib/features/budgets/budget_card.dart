@@ -6,9 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/budget.dart';
 import '../../core/providers/budget_providers.dart';
 import '../../core/ui/constants.dart';
-import '../../core/utils/format.dart';
-import '../../core/ui/constants.dart';
 import '../../core/ui/motion.dart';
+import '../../core/utils/format.dart';
 import '../../core/widgets/animated_progress_indicator.dart';
 import '../../core/widgets/animated_progress_text.dart';
 

@@ -209,7 +209,6 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                         categoryId: transactionData['categoryId'] as String?,
                         categoryName: transactionData['categoryName'] as String?,
                         date: transactionData['date'] as DateTime,
-                        notes: null,
                         tags: (transactionData['tags'] as List<String>?)?.isNotEmpty ?? false ? transactionData['tags'] as List<String>? : null,
                       );
                     } catch (e) {
@@ -349,7 +348,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     }
 
                     final ingest = ref.read(transactionIngestServiceProvider);
-                    await ingest.addManual(userId: user.uid, title: titleController.text, amount: amt, isIncome: isIncome, categoryId: localCategoryId, categoryName: localCategoryName, date: date, notes: null, tags: tags.isNotEmpty ? tags : null);
+                    await ingest.addManual(userId: user.uid, title: titleController.text, amount: amt, isIncome: isIncome, categoryId: localCategoryId, categoryName: localCategoryName, date: date, tags: tags.isNotEmpty ? tags : null);
                     if (repeatEnabled) {
                       final freq = repeatFreq == 'Weekly' ? RecurringFrequency.weekly : RecurringFrequency.monthly;
                       await ref.read(recurringRepositoryProvider).createRule(userId: user.uid, title: titleController.text, amount: amt, isIncome: isIncome, categoryId: localCategoryId, startDate: date, frequency: freq);

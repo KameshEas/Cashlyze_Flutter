@@ -7,7 +7,6 @@ import '../../core/models/transaction.dart';
 import '../../core/repositories/transaction_repository.dart';
 
 class TransactionFilterState {
-
   TransactionFilterState({
     this.filter = 'All',
     this.category = 'All',
@@ -18,12 +17,13 @@ class TransactionFilterState {
     final DateTime? selectedMonth,
     this.fromDate,
     this.toDate,
+    this.selectedTags = const [],
     this.page = 1,
     this.pageSize = 20,
     final bool? useDateRange,
   }) : selectedMonth = selectedMonth ?? DateTime(DateTime.now().year, DateTime.now().month),
-        // By default don't use a date-range; allow user to enable it.
         useDateRange = useDateRange ?? false;
+
   final String filter; // 'All' | 'Income' | 'Expense'
   final String category; // 'All' or category label
   final String query; // immediate query (for textfield)
@@ -38,40 +38,20 @@ class TransactionFilterState {
   final int page;
   final int pageSize;
 
-  TransactionFilterState({
-    this.filter = 'All',
-    this.category = 'All',
-    this.query = '',
-    this.debouncedQuery = '',
-    this.minAmount,
-    this.maxAmount,
-    DateTime? selectedMonth,
-    DateTime? fromDate,
-    DateTime? toDate,
-    this.selectedTags = const [],
-    this.page = 1,
-    this.pageSize = 20,
-    bool? useDateRange,
-  }) : selectedMonth = selectedMonth ?? DateTime(DateTime.now().year, DateTime.now().month, 1),
-        // By default don't use a date-range; allow user to enable it.
-        useDateRange = useDateRange ?? false,
-        fromDate = fromDate,
-        toDate = toDate;
-
   TransactionFilterState copyWith({
-    String? filter,
-    String? category,
-    String? query,
-    String? debouncedQuery,
-    double? minAmount,
-    double? maxAmount,
-    DateTime? fromDate,
-    DateTime? toDate,
-    DateTime? selectedMonth,
+    final String? filter,
+    final String? category,
+    final String? query,
+    final String? debouncedQuery,
+    final double? minAmount,
+    final double? maxAmount,
+    final DateTime? fromDate,
+    final DateTime? toDate,
+    final DateTime? selectedMonth,
     final List<String>? selectedTags,
-    int? page,
-    int? pageSize,
-    bool? useDateRange,
+    final int? page,
+    final int? pageSize,
+    final bool? useDateRange,
   }) {
     return TransactionFilterState(
       filter: filter ?? this.filter,
@@ -239,7 +219,7 @@ final activeFilterCountProvider = Provider<int>((final ref) {
   if (state.category != 'All') count++;
   if (state.minAmount != null) count++;
   if (state.maxAmount != null) count++;
-  if (state.selectedMonth != null && state.selectedMonth != DateTime(DateTime.now().year, DateTime.now().month, 1)) count++;
+  if (state.selectedMonth != null && state.selectedMonth != DateTime(DateTime.now().year, DateTime.now().month)) count++;
   if (state.selectedTags.isNotEmpty) count++;
   return count;
 });

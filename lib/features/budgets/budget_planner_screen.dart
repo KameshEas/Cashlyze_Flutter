@@ -14,11 +14,9 @@ import '../../core/repositories/category_repository.dart';
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/ui/constants.dart';
+import '../../core/ui/motion.dart';
 import '../../core/utils/format.dart';
 import '../../core/utils/validation.dart';
-import '../../core/repositories/category_repository.dart';
-import '../../core/ui/constants.dart';
-import '../../core/ui/motion.dart';
 import '../../core/widgets/animated_progress_indicator.dart';
 import '../../core/widgets/animated_progress_text.dart';
 import '../../core/widgets/skeleton.dart';
@@ -155,11 +153,11 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                   return const SkeletonListTile();
                 },
               ),
-              error: (e, _) => Center(
+              error: (final e, final _) => Center(
                 key: const ValueKey('budgets-error'),
                 child: Text('Failed to load budgets: $e'),
               ),
-              data: (list) {
+              data: (final list) {
                 if (orderedBudgets.isEmpty) {
                   return Column(
                     key: const ValueKey('budgets-empty'),

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../core/ui/motion.dart';
+import 'package:go_router/go_router.dart';
+
 import '../core/providers/onboarding_provider.dart';
 import '../core/providers/otp_pending_provider.dart';
 import '../core/services/auth_service.dart';
+import '../core/ui/motion.dart';
 import '../features/auth/auth_screen.dart';
 import '../features/auth/loader_screen.dart';
 import '../features/auth/otp_screen.dart';
@@ -13,7 +15,6 @@ import '../features/emi/emi_dashboard_screen.dart';
 import '../features/emi/emi_form_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/insights/insights_screen.dart';
-import '../features/onboarding/first_time_walkthrough.dart';
 import '../features/onboarding/help_center_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/settings/settings_screen.dart';
@@ -42,7 +43,6 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         path: '/loading',
         name: 'loading',
         pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
           child: const LoaderScreen(),
           transitionsBuilder: AppMotion.fadeThrough,
           transitionDuration: MediaQuery.of(context).disableAnimations
@@ -54,7 +54,6 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         path: '/splash',
         name: 'splash',
         pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
           child: const SplashScreen(),
           transitionsBuilder: AppMotion.fadeThrough,
           transitionDuration: MediaQuery.of(context).disableAnimations
@@ -217,7 +216,6 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         path: '/auth',
         name: 'auth',
         pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
           child: const AuthScreen(),
           transitionsBuilder: AppMotion.fadeThrough,
           transitionDuration: MediaQuery.of(context).disableAnimations
@@ -229,12 +227,8 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         path: '/login',
         name: 'login',
         pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const AuthScreen(initialIsLogin: true),
-          transitionsBuilder: AppMotion.fadeThrough,
           child: const AuthScreen(),
-          transitionsBuilder: (final context, final animation, final secondaryAnimation, final child) =>
-              FadeTransition(opacity: animation, child: child),
+          transitionsBuilder: AppMotion.fadeThrough,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
               : kRouteFadeDuration,
@@ -244,7 +238,6 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         path: '/signup',
         name: 'signup',
         pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
           child: const AuthScreen(initialIsLogin: false),
           transitionsBuilder: AppMotion.fadeThrough,
           transitionDuration: MediaQuery.of(context).disableAnimations
@@ -256,7 +249,6 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         path: '/onboarding',
         name: 'onboarding',
         pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
           child: const OnboardingScreen(),
           transitionsBuilder: AppMotion.fadeThrough,
           transitionDuration: MediaQuery.of(context).disableAnimations
@@ -270,10 +262,8 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         pageBuilder: (final context, final state) {
           final email = state.uri.queryParameters['email'] ?? '';
           return CustomTransitionPage(
-            key: state.pageKey,
             child: OtpScreen(email: email),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-                AppMotion.fadeThrough(context, animation, secondaryAnimation, child),
+            transitionsBuilder: AppMotion.fadeThrough,
             transitionDuration: MediaQuery.of(context).disableAnimations
                 ? Duration.zero
                 : kRouteFadeDuration,
@@ -284,7 +274,6 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         path: '/categories',
         name: 'categories',
         pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
           child: const CategoriesScreen(),
           transitionsBuilder: AppMotion.fadeThrough,
           transitionDuration: MediaQuery.of(context).disableAnimations
@@ -296,7 +285,6 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         path: '/onboarding_preview',
         name: 'onboarding_preview',
         pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
           child: const OnboardingScreen(),
           transitionsBuilder: AppMotion.fadeThrough,
           transitionDuration: MediaQuery.of(context).disableAnimations
@@ -308,7 +296,6 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         path: '/help_center',
         name: 'help_center',
         pageBuilder: (final context, final state) => CustomTransitionPage(
-          key: state.pageKey,
           child: const HelpCenterScreen(),
           transitionsBuilder: AppMotion.fadeThrough,
           transitionDuration: MediaQuery.of(context).disableAnimations
@@ -357,12 +344,6 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       }
 
       if (user != null) {
-        // Show first-time walkthrough if user hasn't seen it yet
-        if (shouldShowWalkthrough) {
-          if (isWalkthrough) return null;
-          return '/walkthrough';
-        }
-
         if (isAuthRoute || isOnboarding || isWalkthrough) {
           return '/';
         }

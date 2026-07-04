@@ -1,18 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart' show Share, XFile;
-import '../../core/repositories/transaction_repository.dart';
-import '../../core/services/auth_service.dart';
-import '../../core/services/export_service.dart';
+
 import '../../core/models/transaction.dart';
-import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/export_service_provider.dart';
-import '../../core/ui/motion.dart';
-import '../../core/widgets/skeleton.dart';
-import '../../core/widgets/empty_state.dart';
+import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/ui/motion.dart';
 import '../../core/utils/repo_error_handler.dart';
 import '../../core/widgets/dialogs.dart';
 import '../../core/widgets/empty_state.dart';
@@ -450,8 +446,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     controller: _scrollController,
                     padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 88),
                     itemCount: listItems.length,
-                    separatorBuilder: (ctx, i) => const SizedBox(height: 12),
-                    itemBuilder: (ctx, i) => MotionFadeIn(
+                    separatorBuilder: (final ctx, final i) => const SizedBox(height: 12),
+                    itemBuilder: (final ctx, final i) => MotionFadeIn(
                       delay: MotionStagger.delayFor(i),
                       child: listItems[i],
                     ),

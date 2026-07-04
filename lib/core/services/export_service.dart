@@ -1,10 +1,11 @@
 import 'dart:io';
-import 'dart:typed_data';
+
 import 'package:csv/csv.dart';
+import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:path_provider/path_provider.dart';
-import 'package:intl/intl.dart';
+
 import '../models/transaction.dart';
 import '../utils/format.dart';
 
@@ -15,7 +16,7 @@ class ExportService {
   ) async {
     final csvData = <List<String>>[
       ['Date', 'Title', 'Category', 'Amount', 'Type', 'Tags'],
-      ...transactions.map((t) => [
+      ...transactions.map((final t) => [
         DateFormat('yyyy-MM-dd').format(t.date),
         t.title,
         t.categoryName ?? 'General',
@@ -121,9 +122,9 @@ class ExportService {
                   ),
                 ],
               ),
-              ...categoryBreakdown.entries.map((e) {
+              ...categoryBreakdown.entries.map((final e) {
                 final total = categoryBreakdown.values.fold<double>(
-                    0, (sum, value) => sum + value);
+                    0, (final sum, final value) => sum + value);
                 final pct = total > 0 ? (e.value / total * 100) : 0.0;
                 return pw.TableRow(
                   children: [
@@ -141,7 +142,7 @@ class ExportService {
                     ),
                   ],
                 );
-              }).toList(),
+              }),
             ],
           ),
         ],

@@ -115,7 +115,6 @@ class HomeScreen extends ConsumerWidget {
   ) {
     final upcomingAsync = ref.watch(emiUpcomingProvider);
     final theme = Theme.of(context);
-    final t = AppLocalizations.of(context);
     return MotionSwitcher(
       child: upcomingAsync.when(
       loading: () => const SizedBox(
@@ -123,7 +122,7 @@ class HomeScreen extends ConsumerWidget {
         height: 60,
         child: Center(child: CircularProgressIndicator()),
       ),
-      error: (e, _) => Container(
+      error: (final e, final _) => Container(
         key: const ValueKey('emi-error'),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -133,11 +132,11 @@ class HomeScreen extends ConsumerWidget {
         ),
         child: Text('EMI load error: $e'),
       ),
-      data: (items) {
+      data: (final items) {
         if (items.isEmpty) return const SizedBox.shrink(key: ValueKey('emi-empty'));
         return Column(
           key: const ValueKey('emi-data'),
-          children: items.take(3).map((e) {
+          children: items.take(3).map((final e) {
             final now = DateTime.now();
             final today = DateTime(now.year, now.month, now.day);
             final dueDays = e.dueDate.difference(today).inDays;
@@ -186,9 +185,9 @@ class HomeScreen extends ConsumerWidget {
   ) {
     return MotionSwitcher(
       child: txsAsync.when(
-      loading: () => Column(
-        key: const ValueKey('rt-loading'),
-        children: const [
+      loading: () => const Column(
+        key: ValueKey('rt-loading'),
+        children: [
           SkeletonListTile(),
           SizedBox(height: 12),
           SkeletonListTile(),
@@ -196,7 +195,7 @@ class HomeScreen extends ConsumerWidget {
           SkeletonListTile(),
         ],
       ),
-      error: (e, _) => Container(
+      error: (final e, final _) => Container(
         key: const ValueKey('rt-error'),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -247,7 +246,7 @@ class HomeScreen extends ConsumerWidget {
         }
         return Column(
           key: const ValueKey('rt-data'),
-          children: monthItems.take(2).map((tx) {
+          children: monthItems.take(2).map((final tx) {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: RecentTransactionItem(

@@ -3,9 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/category.dart';
 import '../../core/models/transaction.dart';
-import '../../core/ui/motion.dart';
-import '../../core/utils/format.dart';
 import '../../core/repositories/category_repository.dart';
+import '../../core/ui/motion.dart';
 import '../../core/utils/format.dart';
 
 class TransactionListItem extends ConsumerWidget {
