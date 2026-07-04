@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/models/transaction.dart';
 import '../../core/providers/insights_providers.dart';
@@ -34,6 +35,11 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(t?.dashboard ?? 'Dashboard'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search_outlined),
+            onPressed: () => GoRouter.of(context).go('/search'),
+            tooltip: 'Search',
+          ),
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () => ScaffoldMessenger.of(context).showSnackBar(

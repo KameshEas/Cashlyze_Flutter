@@ -56,6 +56,9 @@ abstract final class ApiEndpoints {
   static String savingsGoalProgress(final String id) =>
       '/savings-goals/$id/progress';
 
+  // ── Search ────────────────────────────────────────────────────────────────
+  static const String search = '/search';
+
   // ── WebSocket ─────────────────────────────────────────────────────────────
   /// Returns the full WebSocket URL for a given user.
   ///

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart' show Share, XFile;
 
 import '../../core/models/transaction.dart';
@@ -109,6 +110,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           : AppBar(
               title: Text(t?.transactions ?? 'Transactions'),
               actions: [
+                IconButton(
+                  tooltip: 'Global search',
+                  icon: const Icon(Icons.search),
+                  onPressed: () => GoRouter.of(context).go('/search'),
+                ),
                 IconButton(
                   tooltip: 'Export',
                   icon: const Icon(Icons.download),

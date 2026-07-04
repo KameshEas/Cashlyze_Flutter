@@ -16,6 +16,7 @@ import '../features/emi/emi_form_screen.dart';
 import '../features/goals/goals_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/insights/insights_screen.dart';
+import '../features/search/search_screen.dart';
 import '../features/onboarding/help_center_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/settings/settings_screen.dart';
@@ -310,6 +311,17 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'help_center',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const HelpCenterScreen(),
+          transitionsBuilder: AppMotion.fadeThrough,
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
+        ),
+      ),
+      GoRoute(
+        path: '/search',
+        name: 'search',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          child: const SearchScreen(),
           transitionsBuilder: AppMotion.fadeThrough,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
