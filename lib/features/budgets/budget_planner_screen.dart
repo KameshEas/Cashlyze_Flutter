@@ -15,6 +15,7 @@ import 'package:flutter/services.dart';
 import '../../core/utils/validation.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/ui/constants.dart';
+import '../../core/ui/motion.dart';
 import '../../core/widgets/animated_progress_indicator.dart';
 import '../../core/widgets/animated_progress_text.dart';
 import '../onboarding/budget_tutorial_overlay.dart';
@@ -138,8 +139,10 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            budgetsAsync.when(
+            MotionSwitcher(
+              child: budgetsAsync.when(
               loading: () => ListView.separated(
+                key: const ValueKey('budgets-loading'),
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: 4,
@@ -148,11 +151,14 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                   return const SkeletonListTile();
                 },
               ),
-              error: (e, _) =>
-                  Center(child: Text('Failed to load budgets: $e')),
+              error: (e, _) => Center(
+                key: const ValueKey('budgets-error'),
+                child: Text('Failed to load budgets: $e'),
+              ),
               data: (list) {
                 if (orderedBudgets.isEmpty) {
                   return Column(
+                    key: const ValueKey('budgets-empty'),
                     children: [
                       const SizedBox(height: AppSpacing.s8),
                       const _EmptyState(
@@ -170,6 +176,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                   );
                 }
                 return ReorderableListView(
+                  key: const ValueKey('budgets-data'),
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   onReorder: (oldIndex, newIndex) {
@@ -190,16 +197,20 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                       Padding(
                         key: ValueKey('budget_padding_${orderedBudgets[i].id}'),
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: _buildBudgetItem(
-                          context,
-                          orderedBudgets[i],
-                          currency,
-                          i,
+                        child: MotionFadeIn(
+                          delay: MotionStagger.delayFor(i),
+                          child: _buildBudgetItem(
+                            context,
+                            orderedBudgets[i],
+                            currency,
+                            i,
+                          ),
                         ),
                       ),
                   ],
                 );
               },
+            ),
             ),
           ],
         ),

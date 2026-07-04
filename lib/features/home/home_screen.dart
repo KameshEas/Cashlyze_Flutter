@@ -116,12 +116,15 @@ class HomeScreen extends ConsumerWidget {
     final upcomingAsync = ref.watch(emiUpcomingProvider);
     final theme = Theme.of(context);
     final t = AppLocalizations.of(context);
-    return upcomingAsync.when(
+    return MotionSwitcher(
+      child: upcomingAsync.when(
       loading: () => const SizedBox(
+        key: ValueKey('emi-loading'),
         height: 60,
         child: Center(child: CircularProgressIndicator()),
       ),
       error: (e, _) => Container(
+        key: const ValueKey('emi-error'),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.red.withValues(alpha: 0.08),
@@ -131,8 +134,9 @@ class HomeScreen extends ConsumerWidget {
         child: Text('EMI load error: $e'),
       ),
       data: (items) {
-        if (items.isEmpty) return const SizedBox.shrink();
+        if (items.isEmpty) return const SizedBox.shrink(key: ValueKey('emi-empty'));
         return Column(
+          key: const ValueKey('emi-data'),
           children: items.take(3).map((e) {
             final now = DateTime.now();
             final today = DateTime(now.year, now.month, now.day);
@@ -170,6 +174,7 @@ class HomeScreen extends ConsumerWidget {
           }).toList(),
         );
       },
+    ),
     );
   }
 
@@ -179,8 +184,10 @@ class HomeScreen extends ConsumerWidget {
     String currency,
     AsyncValue<List<TransactionModel>> txsAsync,
   ) {
-    return txsAsync.when(
+    return MotionSwitcher(
+      child: txsAsync.when(
       loading: () => Column(
+        key: const ValueKey('rt-loading'),
         children: const [
           SkeletonListTile(),
           SizedBox(height: 12),
@@ -190,6 +197,7 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
       error: (e, _) => Container(
+        key: const ValueKey('rt-error'),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.red.withValues(alpha: 0.08),
@@ -220,6 +228,7 @@ class HomeScreen extends ConsumerWidget {
 
         if (monthItems.isEmpty) {
           return Center(
+            key: const ValueKey('rt-empty'),
             child: Column(
               children: [
                 Icon(
@@ -237,6 +246,7 @@ class HomeScreen extends ConsumerWidget {
           );
         }
         return Column(
+          key: const ValueKey('rt-data'),
           children: monthItems.take(2).map((tx) {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -248,6 +258,7 @@ class HomeScreen extends ConsumerWidget {
           }).toList(),
         );
       },
+    ),
     );
   }
 

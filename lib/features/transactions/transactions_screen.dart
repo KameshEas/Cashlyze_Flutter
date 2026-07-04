@@ -4,6 +4,7 @@ import '../../core/repositories/transaction_repository.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/models/transaction.dart';
 import '../../core/providers/onboarding_provider.dart';
+import '../../core/ui/motion.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/providers/shared_prefs_provider.dart';
@@ -238,9 +239,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               final paged = ref.watch(paginatedTransactionsProvider);
               final hasMore = ref.watch(transactionsHasMoreProvider);
 
-              final reduceMotion = MediaQuery.of(context).disableAnimations;
-              final duration = reduceMotion ? Duration.zero : const Duration(milliseconds: 180);
-
               Widget listChild;
               if (allFiltered.isEmpty) {
                 listChild = Center(
@@ -439,11 +437,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 88),
                     itemCount: listItems.length,
                     separatorBuilder: (ctx, i) => const SizedBox(height: 12),
-                    itemBuilder: (ctx, i) => listItems[i],
+                    itemBuilder: (ctx, i) => MotionFadeIn(
+                      delay: MotionStagger.delayFor(i),
+                      child: listItems[i],
+                    ),
                   ),
                 );
               }
-              return AnimatedSwitcher(duration: duration, child: listChild);
+              return MotionSwitcher(child: listChild);
             }),
           ),
         ],

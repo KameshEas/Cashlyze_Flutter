@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/transaction.dart';
+import '../../core/ui/motion.dart';
 import '../../core/utils/format.dart';
 import '../../core/repositories/category_repository.dart';
 
@@ -33,7 +34,7 @@ class TransactionListItem extends ConsumerWidget {
     final isIncome = tx.amount > 0;
     final accentColor = isIncome ? Colors.green : Colors.red;
     
-    return InkWell(
+    return PressableScale(
       onTap: selectionMode
           ? () => onSelectedChanged?.call(!selected)
           : onTap,

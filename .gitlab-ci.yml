@@ -1,17 +1,203 @@
-image: alpine:3.20
+# Cashlyze Flutter App - GitLab CI/CD Pipeline
+# Automated builds and deployments to Firebase & Google Play Store
 
 stages:
   - test
+  - build
+  - deploy
 
-runner-test:
+variables:
+  FLUTTER_VERSION: "3.10.1"
+  GRADLE_CACHE_PATH: "$CI_PROJECT_DIR/.gradle"
+  FLUTTER_PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
+  FLUTTER_BUILD_MODE: "release"
+  # Note: Build.gradle.kts expects ANDROID_KEYSTORE_PASSWORD, not ANDROID_STORE_PASSWORD
+  ANDROID_KEYSTORE_PASSWORD: "$ANDROID_STORE_PASSWORD"
+
+cache:
+  key:
+    files:
+      - pubspec.lock
+    prefix: "${CI_COMMIT_REF_SLUG}"
+  paths:
+    - .pub-cache/
+    - .gradle/
+    - build/
+
+before_script:
+  - apt-get update -qq && apt-get install -y -qq openjdk-11-jdk-headless ruby-dev npm >/dev/null 2>&1
+  - export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+  - export PATH=$JAVA_HOME/bin:$PATH
+
+# ============================================================================
+# STAGE: TEST
+# ============================================================================
+
+test_code_quality:
   stage: test
+  image: cirrusci/flutter:latest
+  only:
+    - main
+    - develop
+    - merge_requests
   script:
-    - echo "============================="
-    - echo "GitLab Runner is working!"
-    - echo "Runner: $CI_RUNNER_DESCRIPTION"
-    - echo "Project: $CI_PROJECT_NAME"
-    - echo "Branch: $CI_COMMIT_REF_NAME"
-    - uname -a
-    - cat /etc/os-release
-    - ls -la
-    - echo "Pipeline completed successfully!"
+    - echo "🧪 Running Flutter analysis..."
+    - flutter --version
+    - flutter pub get
+    - dart analyze --fatal-infos
+    - echo "✅ Code quality check passed"
+  allow_failure: true
+
+# ============================================================================
+# STAGE: BUILD
+# ============================================================================
+
+build_release_artifacts:
+  stage: build
+  image: cirrusci/flutter:latest
+  only:
+    - main
+    - develop
+    - tags
+  script:
+    - echo "🔧 Setting up build environment..."
+    - flutter pub get
+
+    # Extract version info from pubspec.yaml
+    - export PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g')
+    - export PKG_BUILD=$(echo "$PKG_VER" | cut -d+ -f2)
+    - export BUILD_NUMBER=${PKG_BUILD:-${CI_PIPELINE_ID}}
+    - export BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
+    - echo "📦 Building: $BUILD_NAME+$BUILD_NUMBER"
+
+    # Restore Android keystore from Base64
+    - echo "🔐 Restoring Android signing keystore..."
+    - mkdir -p android/app
+    - echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/cashlyze-release.jks
+    - chmod 600 android/app/cashlyze-release.jks
+    - export ANDROID_KEYSTORE_PATH="$(pwd)/android/app/cashlyze-release.jks"
+    - echo "✅ Keystore restored"
+
+    # Build APK
+    - echo "📱 Building APK for Firebase distribution..."
+    - flutter build apk --release --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
+    - ls -lh build/app/outputs/apk/release/*.apk | tail -1
+
+    # Build AAB
+    - echo "📦 Building AAB for Google Play Store..."
+    - flutter build appbundle --release --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
+    - ls -lh build/app/outputs/bundle/release/*.aab | tail -1
+
+    - echo "✅ Build completed successfully"
+
+  artifacts:
+    name: "cashlyze-${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - build/app/outputs/apk/release/*.apk
+      - build/app/outputs/bundle/release/*.aab
+    expire_in: 1 week
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+
+# ============================================================================
+# STAGE: DEPLOY
+# ============================================================================
+
+deploy_firebase_distribution:
+  stage: deploy
+  image: cirrusci/flutter:latest
+  dependencies:
+    - build_release_artifacts
+  only:
+    - main
+    - develop
+  script:
+    - echo "🚀 Deploying APK to Firebase App Distribution..."
+    - npm install -g firebase-tools
+    - gem install fastlane -NV 2>&1 | grep -E "^(Successfully|ERROR)" || true
+
+    # Locate APK
+    - export APK_PATH=$(find build/app/outputs/apk/release -name '*.apk' -type f | head -1)
+    - |
+      if [ -z "$APK_PATH" ]; then
+        echo "❌ APK not found at expected path"
+        find build -name '*.apk' -type f
+        exit 1
+      fi
+    - echo "📤 APK found: $APK_PATH"
+
+    # Extract version for release notes
+    - export PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g')
+    - export RELEASE_NOTES="Build ${PKG_VER} - $(date +%Y-%m-%d\ %H:%M:%S)"
+
+    # Deploy using Firebase CLI
+    - echo "Authenticating with Firebase..."
+    - |
+      firebase appdistribution:distribute "$APK_PATH" \
+        --app "$FIREBASE_ANDROID_APP_ID" \
+        --groups "$FIREBASE_DISTRIBUTION_GROUPS" \
+        --release-notes "$RELEASE_NOTES" \
+        --token "$FIREBASE_TOKEN" 2>&1
+
+    - echo "✅ Firebase distribution deployment completed"
+  on_failure:
+    - echo "❌ Firebase deployment failed. Check Firebase project settings and credentials."
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+
+deploy_google_play_internal:
+  stage: deploy
+  image: cirrusci/flutter:latest
+  dependencies:
+    - build_release_artifacts
+  only:
+    - main
+    - tags
+  script:
+    - echo "🚀 Deploying AAB to Google Play Store Internal Testing..."
+    - gem install fastlane -NV 2>&1 | grep -E "^(Successfully|ERROR)" || true
+
+    # Locate AAB
+    - export AAB_PATH=$(find build/app/outputs/bundle/release -name '*.aab' -type f | head -1)
+    - |
+      if [ -z "$AAB_PATH" ]; then
+        echo "❌ AAB not found at expected path"
+        find build -name '*.aab' -type f
+        exit 1
+      fi
+    - echo "📤 AAB found: $AAB_PATH"
+
+    # Setup credentials for fastlane
+    - mkdir -p ~/.android
+    - echo "$GCLOUD_SERVICE_ACCOUNT_CREDENTIALS" > ~/.android/gcloud-key.json
+    - export GCLOUD_SERVICE_ACCOUNT_CREDENTIALS=$(cat ~/.android/gcloud-key.json)
+
+    # Deploy using Fastlane supply
+    - cd android
+    - |
+      fastlane run supply \
+        aab:"$AAB_PATH" \
+        track:"${GOOGLE_PLAY_TRACK:-internal}" \
+        json_key_data:"$GCLOUD_SERVICE_ACCOUNT_CREDENTIALS" \
+        package_name:"$PACKAGE_NAME" \
+        skip_upload_apk:true \
+        skip_upload_metadata:true \
+        skip_upload_images:true \
+        skip_upload_screenshots:true \
+        release_status:"${GOOGLE_PLAY_RELEASE_STATUS:-draft}" \
+        2>&1
+
+    - echo "✅ Google Play Store deployment completed"
+  on_failure:
+    - echo "❌ Google Play deployment failed. Check service account credentials and Play Console permissions."
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure

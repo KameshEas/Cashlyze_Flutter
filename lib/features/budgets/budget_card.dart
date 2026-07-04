@@ -7,6 +7,7 @@ import '../../core/models/budget.dart';
 import '../../core/providers/budget_providers.dart';
 import '../../core/utils/format.dart';
 import '../../core/ui/constants.dart';
+import '../../core/ui/motion.dart';
 import '../../core/widgets/animated_progress_indicator.dart';
 import '../../core/widgets/animated_progress_text.dart';
 
@@ -72,7 +73,7 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
     final allocatedLabel = allocated.isFinite ? formatAmount(allocated, widget.currency) : '∞';
     final remaining = allocated.isFinite ? (allocated - spent) : double.infinity;
 
-    return GestureDetector(
+    return PressableScale(
       onTap: _toggle,
       child: TweenAnimationBuilder<double>(
         tween: Tween(begin: 0, end: _showBack ? math.pi : 0),
