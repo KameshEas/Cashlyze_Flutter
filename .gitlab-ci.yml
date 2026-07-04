@@ -143,8 +143,8 @@ deploy_firebase_distribution:
         --token "$FIREBASE_TOKEN" 2>&1
 
     - echo "✅ Firebase distribution deployment completed"
-  on_failure:
-    - echo "❌ Firebase deployment failed. Check Firebase project settings and credentials."
+  after_script:
+    - echo "❌ Firebase deployment failed. Check Firebase project settings and credentials." || true
   retry:
     max: 2
     when:
@@ -194,8 +194,8 @@ deploy_google_play_internal:
         2>&1
 
     - echo "✅ Google Play Store deployment completed"
-  on_failure:
-    - echo "❌ Google Play deployment failed. Check service account credentials and Play Console permissions."
+  after_script:
+    - echo "❌ Google Play deployment failed. Check service account credentials and Play Console permissions." || true
   retry:
     max: 2
     when:
