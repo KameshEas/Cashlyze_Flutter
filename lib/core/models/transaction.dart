@@ -13,6 +13,7 @@ class TransactionModel {
     required this.date,
     this.notes,
     this.tags,
+    this.attachmentPath,
   });
 
   factory TransactionModel.fromRTDB(final String id, final Map<String, dynamic> data) {
@@ -26,6 +27,7 @@ class TransactionModel {
       date: DateTime.fromMillisecondsSinceEpoch((data['date_ms'] as num).toInt()),
       notes: data['notes'] as String?,
       tags: (data['tags'] as List?)?.cast<String>(),
+      attachmentPath: data['attachmentPath'] as String?,
     );
   }
   final String id;
@@ -37,6 +39,7 @@ class TransactionModel {
   final DateTime date;
   final String? notes;
   final List<String>? tags;
+  final String? attachmentPath;
 
   Map<String, dynamic> toRTDB() {
     return {
@@ -48,6 +51,7 @@ class TransactionModel {
       'date_ms': date.millisecondsSinceEpoch,
       'notes': notes,
       'tags': tags,
+      'attachmentPath': attachmentPath,
     };
   }
 
@@ -61,10 +65,12 @@ class TransactionModel {
     final DateTime? date,
     final String? notes,
     final List<String>? tags,
+    final String? attachmentPath,
     final bool clearCategoryId = false,
     final bool clearCategoryName = false,
     final bool clearNotes = false,
     final bool clearTags = false,
+    final bool clearAttachmentPath = false,
   }) {
     return TransactionModel(
       id: id ?? this.id,
@@ -76,6 +82,7 @@ class TransactionModel {
       date: date ?? this.date,
       notes: clearNotes ? null : (notes ?? this.notes),
       tags: clearTags ? null : (tags ?? this.tags),
+      attachmentPath: clearAttachmentPath ? null : (attachmentPath ?? this.attachmentPath),
     );
   }
 
@@ -92,8 +99,9 @@ class TransactionModel {
           categoryName == other.categoryName &&
           date == other.date &&
           notes == other.notes &&
-          listEquals(tags, other.tags);
+          listEquals(tags, other.tags) &&
+          attachmentPath == other.attachmentPath;
 
   @override
-  int get hashCode => Object.hash(id, userId, title, amount, categoryId, categoryName, date, notes, tags == null ? null : Object.hashAll(tags!));
+  int get hashCode => Object.hash(id, userId, title, amount, categoryId, categoryName, date, notes, attachmentPath, tags == null ? null : Object.hashAll(tags!));
 }
