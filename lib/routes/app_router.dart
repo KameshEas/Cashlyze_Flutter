@@ -13,6 +13,7 @@ import '../features/budgets/budget_planner_screen.dart';
 import '../features/categories/categories_screen.dart';
 import '../features/emi/emi_dashboard_screen.dart';
 import '../features/emi/emi_form_screen.dart';
+import '../features/goals/goals_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/insights/insights_screen.dart';
 import '../features/onboarding/help_center_screen.dart';
@@ -202,6 +203,18 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
                 pageBuilder: (final context, final state) => CustomTransitionPage(
                   key: state.pageKey,
                   child: const EMIFormScreen(),
+                  transitionsBuilder: AppMotion.fadeThrough,
+                  transitionDuration: MediaQuery.of(context).disableAnimations
+                      ? Duration.zero
+                      : kRouteFadeDuration,
+                ),
+              ),
+              GoRoute(
+                path: '/goals',
+                name: 'goals',
+                pageBuilder: (final context, final state) => CustomTransitionPage(
+                  key: state.pageKey,
+                  child: const GoalsScreen(),
                   transitionsBuilder: AppMotion.fadeThrough,
                   transitionDuration: MediaQuery.of(context).disableAnimations
                       ? Duration.zero

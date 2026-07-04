@@ -50,6 +50,12 @@ abstract final class ApiEndpoints {
   static String recurringRuleTrigger(final String id) =>
       '/recurring-rules/$id/trigger';
 
+  // ── Savings Goals ─────────────────────────────────────────────────────────
+  static const String savingsGoals = '/savings-goals';
+  static String savingsGoalById(final String id) => '/savings-goals/$id';
+  static String savingsGoalProgress(final String id) =>
+      '/savings-goals/$id/progress';
+
   // ── WebSocket ─────────────────────────────────────────────────────────────
   /// Returns the full WebSocket URL for a given user.
   ///
