@@ -5,11 +5,6 @@ import 'package:flutter/material.dart';
 /// Uses TweenAnimationBuilder to animate numeric percentage display,
 /// creating smooth transitions as budget progress changes.
 class AnimatedProgressText extends StatefulWidget {
-  final double progress;
-  final TextStyle? style;
-  final Duration duration;
-  final Curve curve;
-  final String suffix;
 
   const AnimatedProgressText({
     super.key,
@@ -19,6 +14,11 @@ class AnimatedProgressText extends StatefulWidget {
     this.curve = Curves.easeInOut,
     this.suffix = '%',
   });
+  final double progress;
+  final TextStyle? style;
+  final Duration duration;
+  final Curve curve;
+  final String suffix;
 
   @override
   State<AnimatedProgressText> createState() => _AnimatedProgressTextState();
@@ -34,7 +34,7 @@ class _AnimatedProgressTextState extends State<AnimatedProgressText> {
   }
 
   @override
-  void didUpdateWidget(AnimatedProgressText oldWidget) {
+  void didUpdateWidget(final AnimatedProgressText oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.progress != widget.progress) {
       _lastProgress = oldWidget.progress;
@@ -42,7 +42,7 @@ class _AnimatedProgressTextState extends State<AnimatedProgressText> {
   }
 
   /// Gets the color based on progress value for visual feedback.
-  Color _getTextColor(double progress) {
+  Color _getTextColor(final double progress) {
     final displayPercent = (progress * 100).clamp(0, double.infinity);
     
     if (displayPercent >= 100) {
@@ -55,7 +55,7 @@ class _AnimatedProgressTextState extends State<AnimatedProgressText> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(
         begin: _lastProgress,
@@ -63,7 +63,7 @@ class _AnimatedProgressTextState extends State<AnimatedProgressText> {
       ),
       duration: widget.duration,
       curve: widget.curve,
-      builder: (context, animatedProgress, child) {
+      builder: (final BuildContext context, final double animatedProgress, final Widget? child) {
         final displayPercent = (animatedProgress * 100).clamp(0, double.infinity);
         final textColor = _getTextColor(widget.progress);
 

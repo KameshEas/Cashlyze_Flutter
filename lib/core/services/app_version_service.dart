@@ -1,14 +1,16 @@
 import 'dart:io';
 import 'dart:math';
-import 'package:package_info_plus/package_info_plus.dart';
+
 import 'package:flutter/foundation.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+
 import '../models/app_version.dart';
 import 'analytics_service.dart';
 
 class AppVersionService {
-  final AnalyticsService _analyticsService;
 
   AppVersionService(this._analyticsService);
+  final AnalyticsService _analyticsService;
 
   /// Get the current app version from package info
   Future<String> getCurrentAppVersion() async {
@@ -32,7 +34,7 @@ class AppVersionService {
   /// Compare semantic versions
   /// Returns true if current < minimum (update required)
   /// Example: isVersionOutdated('1.0.0', '1.0.1') -> true
-  bool isVersionOutdated(String currentVersion, String minimumVersion) {
+  bool isVersionOutdated(final String currentVersion, final String minimumVersion) {
     try {
       final current = _parseVersion(currentVersion);
       final minimum = _parseVersion(minimumVersion);
@@ -54,11 +56,11 @@ class AppVersionService {
   }
 
   /// Parse semantic version string (e.g., "1.0.0") into list [major, minor, patch]
-  List<int> _parseVersion(String version) {
+  List<int> _parseVersion(final String version) {
     try {
       // Remove any '+' suffix (e.g., "1.0.0+6" -> "1.0.0")
       final cleanVersion = version.split('+').first;
-      final parts = cleanVersion.split('.').map((p) => int.parse(p)).toList();
+      final parts = cleanVersion.split('.').map(int.parse).toList();
 
       // Ensure we have [major, minor, patch]
       while (parts.length < 3) {
@@ -72,7 +74,7 @@ class AppVersionService {
 
   /// Check if current user is eligible for rollout based on percentage
   /// This uses a deterministic hash of deviceId to ensure consistent user assignment
-  Future<bool> isEligibleForRollout(int rolloutPercentage) async {
+  Future<bool> isEligibleForRollout(final int rolloutPercentage) async {
     if (rolloutPercentage >= 100) return true;
     if (rolloutPercentage <= 0) return false;
 
@@ -91,7 +93,7 @@ class AppVersionService {
   }
 
   /// Simple string hash for consistency
-  int _hashString(String str) {
+  int _hashString(final String str) {
     int hash = 0;
     for (int i = 0; i < str.length; i++) {
       final char = str.codeUnitAt(i);
@@ -103,7 +105,7 @@ class AppVersionService {
 
   /// Check if force update is required
   /// Returns tuple: (forceUpdateRequired, eligibleForRollout)
-  Future<bool> shouldForceUpdate(AppVersionModel versionConfig) async {
+  Future<bool> shouldForceUpdate(final AppVersionModel versionConfig) async {
     try {
       final currentVersion = await getCurrentAppVersion();
 
@@ -131,7 +133,7 @@ class AppVersionService {
   }
 
   /// Log when user initiates update (clicks button)
-  Future<void> logUpdateInitiated(String minimumVersion) async {
+  Future<void> logUpdateInitiated(final String minimumVersion) async {
     try {
       final currentVersion = await getCurrentAppVersion();
       await _analyticsService.logEvent(
@@ -149,7 +151,7 @@ class AppVersionService {
   }
 
   /// Log when user is redirected to store
-  Future<void> logRedirectedToStore(String platform) async {
+  Future<void> logRedirectedToStore(final String platform) async {
     try {
       final currentVersion = await getCurrentAppVersion();
       await _analyticsService.logEvent(

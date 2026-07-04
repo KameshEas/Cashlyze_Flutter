@@ -6,7 +6,7 @@ import '../api/api_exception.dart';
 ///
 /// Keeps error presentation consistent across the app without coupling
 /// individual screens to exception implementation details.
-String apiErrorMessage(ApiException e) {
+String apiErrorMessage(final ApiException e) {
   return switch (e) {
     ValidationException() => e.message,
     UnauthorizedException() =>
@@ -46,7 +46,7 @@ class ApiErrorView extends StatelessWidget {
   final VoidCallback? onRetry;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final isNetwork = error is NetworkException || error is TimeoutException;
 
@@ -100,9 +100,9 @@ class ApiErrorView extends StatelessWidget {
 ///
 /// Call from a [BuildContext] that has a [ScaffoldMessenger] ancestor.
 void showApiErrorSnackBar(
-  BuildContext context,
-  ApiException error, {
-  VoidCallback? onRetry,
+  final BuildContext context,
+  final ApiException error, {
+  final VoidCallback? onRetry,
 }) {
   final message = apiErrorMessage(error);
   ScaffoldMessenger.of(context).showSnackBar(

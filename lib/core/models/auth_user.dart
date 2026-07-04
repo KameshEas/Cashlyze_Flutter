@@ -30,7 +30,7 @@ class AuthUser {
   String toString() => 'AuthUser(userId: $userId, email: $email)';
 
   @override
-  bool operator ==(Object other) =>
+  bool operator ==(final Object other) =>
       identical(this, other) ||
       other is AuthUser &&
           runtimeType == other.runtimeType &&

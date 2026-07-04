@@ -4,16 +4,6 @@ import 'transaction_list_item.dart';
 
 /// Widget for rendering grouped transactions with date headers
 class TransactionGroupList extends StatelessWidget {
-  final Map<String, List<TransactionModel>> groupedTransactions;
-  final String currency;
-  final String datePattern;
-  final bool selectionMode;
-  final Set<String> selectedIds;
-  final ValueChanged<bool> onSelectionChanged;
-  final VoidCallback? onLongPress;
-  final ValueChanged<String> onTapTransaction;
-  final ScrollController? scrollController;
-  final EdgeInsets padding;
 
   const TransactionGroupList({
     super.key,
@@ -28,6 +18,16 @@ class TransactionGroupList extends StatelessWidget {
     this.scrollController,
     this.padding = const EdgeInsets.fromLTRB(16, 16, 16, 88),
   });
+  final Map<String, List<TransactionModel>> groupedTransactions;
+  final String currency;
+  final String datePattern;
+  final bool selectionMode;
+  final Set<String> selectedIds;
+  final ValueChanged<bool> onSelectionChanged;
+  final VoidCallback? onLongPress;
+  final ValueChanged<String> onTapTransaction;
+  final ScrollController? scrollController;
+  final EdgeInsets padding;
 
   // Order for date groups to display consistently
   static const _groupOrder = [
@@ -40,25 +40,24 @@ class TransactionGroupList extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     
     // Sort groups in consistent order
-    final sortedKeys = _groupOrder.where((k) => groupedTransactions.containsKey(k)).toList();
+    final sortedKeys = _groupOrder.where(groupedTransactions.containsKey).toList();
 
     return ListView.separated(
       controller: scrollController,
       padding: padding,
-      separatorBuilder: (ctx, i) => const SizedBox(height: 12),
+      separatorBuilder: (final ctx, final i) => const SizedBox(height: 12),
       itemCount: _buildItemCount(sortedKeys),
-      addAutomaticKeepAlives: true,
-      itemBuilder: (ctx, globalIndex) {
+      itemBuilder: (final ctx, final globalIndex) {
         return _buildItem(context, theme, sortedKeys, globalIndex);
       },
     );
   }
 
-  int _buildItemCount(List<String> sortedKeys) {
+  int _buildItemCount(final List<String> sortedKeys) {
     int count = 0;
     for (final key in sortedKeys) {
       count += 1; // header
@@ -67,7 +66,7 @@ class TransactionGroupList extends StatelessWidget {
     return count;
   }
 
-  Widget _buildItem(BuildContext context, ThemeData theme, List<String> sortedKeys, int globalIndex) {
+  Widget _buildItem(final BuildContext context, final ThemeData theme, final List<String> sortedKeys, final int globalIndex) {
     int currentIndex = 0;
     
     for (final groupKey in sortedKeys) {
@@ -89,7 +88,7 @@ class TransactionGroupList extends StatelessWidget {
           datePattern: datePattern,
           selectionMode: selectionMode,
           selected: selectedIds.contains(tx.id),
-          onSelectedChanged: (v) => onSelectionChanged(v),
+          onSelectedChanged: onSelectionChanged,
           onLongPress: onLongPress,
           onTap: () => onTapTransaction(tx.id),
         );
@@ -100,7 +99,7 @@ class TransactionGroupList extends StatelessWidget {
     return const SizedBox.shrink();
   }
 
-  Widget _buildDateHeader(BuildContext context, ThemeData theme, String groupLabel) {
+  Widget _buildDateHeader(final BuildContext context, final ThemeData theme, final String groupLabel) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       child: Row(
@@ -109,7 +108,7 @@ class TransactionGroupList extends StatelessWidget {
             groupLabel,
             style: theme.textTheme.labelMedium?.copyWith(
               fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               letterSpacing: 0.5,
             ),
           ),
@@ -117,7 +116,7 @@ class TransactionGroupList extends StatelessWidget {
           Expanded(
             child: Container(
               height: 1,
-              color: theme.colorScheme.onSurface.withOpacity(0.12),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.12),
             ),
           ),
         ],

@@ -1,11 +1,11 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/budgets/data/budget_remote_data_source.dart';
 import '../models/budget.dart';
 import '../services/auth_service.dart';
-import '../../features/budgets/data/budget_remote_data_source.dart';
 import 'category_repository.dart';
 
 class BudgetRepository {
@@ -17,20 +17,20 @@ class BudgetRepository {
   final Map<String, List<BudgetModel>> _cache = {};
   final Map<String, Timer> _pollers = {};
 
-  StreamController<List<BudgetModel>> _controllerFor(String userId) {
+  StreamController<List<BudgetModel>> _controllerFor(final String userId) {
     return _controllers.putIfAbsent(
       userId,
-      () => StreamController<List<BudgetModel>>.broadcast(),
+      StreamController<List<BudgetModel>>.broadcast,
     );
   }
 
-  List<BudgetModel> _sorted(List<BudgetModel> list) {
+  List<BudgetModel> _sorted(final List<BudgetModel> list) {
     final copy = [...list];
-    copy.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    copy.sort((final a, final b) => b.createdAt.compareTo(a.createdAt));
     return copy;
   }
 
-  int _signature(List<BudgetModel> list) {
+  int _signature(final List<BudgetModel> list) {
     int hash = 0;
     for (final b in list) {
       hash = hash * 31 + b.id.hashCode;
@@ -38,7 +38,7 @@ class BudgetRepository {
     return hash;
   }
 
-  Future<void> _refreshUser(String userId) async {
+  Future<void> _refreshUser(final String userId) async {
     try {
       final fresh = _sorted(await _dataSource.getAll());
       if (!_cache.containsKey(userId)) {
@@ -52,9 +52,9 @@ class BudgetRepository {
       // If the server returned budgets that appear to have been renamed
       // compared to our cached versions, merge previous categoryIds into
       // the fresh results so transient rename races don't drop mappings.
-      final mergedFresh = fresh.map((fb) {
+      final mergedFresh = fresh.map((final fb) {
         try {
-          final matches = prev.where((p) => p.id == fb.id).toList();
+          final matches = prev.where((final p) => p.id == fb.id).toList();
           if (matches.isNotEmpty) {
             final prevModel = matches.first;
             final oldName = prevModel.name.trim();
@@ -89,20 +89,20 @@ class BudgetRepository {
   }
 
 
-  void _startPolling(String userId) {
+  void _startPolling(final String userId) {
     if (_pollers.containsKey(userId)) return;
     _pollers[userId] = Timer.periodic(
       const Duration(seconds: 30),
-      (_) => _refreshUser(userId),
+      (final _) => _refreshUser(userId),
     );
   }
 
   Future<BudgetModel> create({
-    required String userId,
-    required String name,
-    required double allocated,
-    required BudgetPeriod period,
-    List<String> categoryIds = const [],
+    required final String userId,
+    required final String name,
+    required final double allocated,
+    required final BudgetPeriod period,
+    final List<String> categoryIds = const [],
   }) async {
     final created = await _dataSource.create(
       name: name,
@@ -111,7 +111,7 @@ class BudgetRepository {
       categoryIds: categoryIds,
     );
     final current = [...(_cache[userId] ?? const <BudgetModel>[])];
-    current.removeWhere((b) => b.id == created.id);
+    current.removeWhere((final b) => b.id == created.id);
     current.insert(0, created);
     final next = _sorted(current);
     _cache[userId] = next;
@@ -119,7 +119,7 @@ class BudgetRepository {
     return created;
   }
 
-  Future<void> update(String id, Map<String, dynamic> data) async {
+  Future<void> update(final String id, final Map<String, dynamic> data) async {
     // Determine userId early so we can look up local cache and categories
     final userId = (data['userId'] as String?) ?? '';
 
@@ -128,7 +128,7 @@ class BudgetRepository {
     BudgetModel? previousBudget;
     String? previousUserId;
     for (final entry in _cache.entries) {
-      final idx = entry.value.indexWhere((b) => b.id == id);
+      final idx = entry.value.indexWhere((final b) => b.id == id);
       if (idx >= 0) {
         previousBudget = entry.value[idx];
         previousUserId = entry.key;
@@ -144,7 +144,7 @@ class BudgetRepository {
           : null,
       period: data['period'] != null
           ? BudgetPeriod.values.firstWhere(
-              (p) => p.name == data['period'],
+              (final p) => p.name == data['period'],
               orElse: () => BudgetPeriod.monthly,
             )
           : null,
@@ -152,7 +152,7 @@ class BudgetRepository {
     );
     final resolvedUserId = userId.isNotEmpty ? userId : updated.userId;
     final current = [...(_cache[resolvedUserId] ?? const <BudgetModel>[])];
-    final idx = current.indexWhere((b) => b.id == id);
+    final idx = current.indexWhere((final b) => b.id == id);
     // If the update included a name change, merge the previous
     // budget's categoryIds with the server response so transient
     // rename races don't drop existing associations locally.
@@ -201,7 +201,7 @@ class BudgetRepository {
           // Look up categories for the user and find a case-insensitive match
           final lookupUserId = previousUserId ?? resolvedUserId;
           final cats = await _categoryRepo.getAllForUser(lookupUserId);
-          final matches = cats.where((c) => (c.name ?? '').trim().toLowerCase() == oldName.toLowerCase()).toList();
+          final matches = cats.where((final c) => (c.name).trim().toLowerCase() == oldName.toLowerCase()).toList();
           if (matches.isNotEmpty) {
             final match = matches.first;
             await _categoryRepo.update(resolvedUserId, match.id, {'name': newName});
@@ -213,16 +213,19 @@ class BudgetRepository {
     }
   }
 
-  Future<void> delete(String userId, String id) async {
+  Future<void> delete(final String userId, final String id) async {
     await _dataSource.delete(id);
     final current = [...(_cache[userId] ?? const <BudgetModel>[])];
-    current.removeWhere((b) => b.id == id);
+    current.removeWhere((final b) => b.id == id);
     _cache[userId] = current;
     _controllerFor(userId).add(current);
   }
 
-  Stream<List<BudgetModel>> streamForUser(String userId) =>
-      Stream<List<BudgetModel>>.multi((controller) async {
+  Stream<List<BudgetModel>> streamForUser(final String userId) =>
+      Stream<List<BudgetModel>>.multi((final controller) async {
+        // Shared, long-lived controller owned by `_controllers` and closed
+        // in `disposeForUser` — not this local scope.
+        // ignore: close_sinks
         final shared = _controllerFor(userId);
         final cached = _cache[userId];
         if (cached != null) {
@@ -235,22 +238,22 @@ class BudgetRepository {
 
         final sub = shared.stream.listen(
           controller.add,
-          onError: (err, _) {
+          onError: (final err, final _) {
             debugPrint('[BudgetRepository] stream error: $err');
           },
         );
 
-        controller.onCancel = () => sub.cancel();
+        controller.onCancel = sub.cancel;
       });
 
   /// Public control: enable periodic polling for a user (used when websocket
   /// fallback to polling is active).
-  void enablePollingForUser(String userId) {
+  void enablePollingForUser(final String userId) {
     _startPolling(userId);
   }
 
   /// Public control: disable periodic polling for a user.
-  void disablePollingForUser(String userId) {
+  void disablePollingForUser(final String userId) {
     final t = _pollers.remove(userId);
     try {
       t?.cancel();
@@ -260,13 +263,13 @@ class BudgetRepository {
   }
 
   /// Apply a remote websocket budget event to the local cache.
-  void applyRemoteBudgetEvent(String userId, String type, Map<String, dynamic> payload) {
+  void applyRemoteBudgetEvent(final String userId, final String type, final Map<String, dynamic> payload) {
     try {
       if (type == 'budget_deleted' || type == 'budget.deleted') {
         final id = payload['budget_id'] as String? ?? payload['id'] as String?;
         if (id != null) {
           final current = [...(_cache[userId] ?? const <BudgetModel>[])];
-          current.removeWhere((b) => b.id == id);
+          current.removeWhere((final b) => b.id == id);
           _cache[userId] = current;
           _controllerFor(userId).add(current);
         }
@@ -280,7 +283,7 @@ class BudgetRepository {
         final id = payload['id'] as String? ?? payload['budget_id'] as String?;
         if (id == null) return;
 
-        final checkDeleted = (Map<String, dynamic> p) {
+        bool checkDeleted(final Map<String, dynamic> p) {
           if (p.containsKey('deleted')) {
             final v = p['deleted'];
             if (v == true || v == 1 || v == '1') return true;
@@ -300,11 +303,11 @@ class BudgetRepository {
             if (v == true || v == 1 || v == '1') return true;
           }
           return false;
-        };
+        }
 
         if (checkDeleted(payload)) {
           final current = [...(_cache[userId] ?? const <BudgetModel>[])];
-          current.removeWhere((b) => b.id == id);
+          current.removeWhere((final b) => b.id == id);
           _cache[userId] = current;
           _controllerFor(userId).add(current);
           return;
@@ -317,7 +320,7 @@ class BudgetRepository {
         if (allocatedFromPayload != null) {
           allocated = allocatedFromPayload.toDouble();
         } else if (cachedList != null) {
-          final prev = cachedList.where((b) => b.id == id).toList();
+          final prev = cachedList.where((final b) => b.id == id).toList();
           if (prev.isNotEmpty) {
             allocated = prev.first.allocated;
           } else {
@@ -328,7 +331,7 @@ class BudgetRepository {
         }
         final periodRaw = payload['period'] as String? ?? 'monthly';
         final period = BudgetPeriod.values.firstWhere(
-          (p) => p.name == periodRaw.toLowerCase() || p.name == periodRaw,
+          (final p) => p.name == periodRaw.toLowerCase() || p.name == periodRaw,
           orElse: () => BudgetPeriod.monthly,
         );
         final rawCategoryIds = (payload['category_ids'] as List?) ?? (payload['categoryIds'] as List?);
@@ -336,7 +339,7 @@ class BudgetRepository {
         if (rawCategoryIds != null) {
           categoryIds = rawCategoryIds.cast<String>();
         } else if (cachedList != null) {
-          final prev = cachedList.where((b) => b.id == id).toList();
+          final prev = cachedList.where((final b) => b.id == id).toList();
           if (prev.isNotEmpty) {
             categoryIds = prev.first.categoryIds;
           } else {
@@ -385,7 +388,7 @@ class BudgetRepository {
         // rename races don't cause spend to disappear locally.
         try {
           if (cachedList != null) {
-            final prev = cachedList.where((b) => b.id == id).toList();
+            final prev = cachedList.where((final b) => b.id == id).toList();
             if (prev.isNotEmpty) {
               final prevModel = prev.first;
               final oldName = prevModel.name.trim();
@@ -410,7 +413,7 @@ class BudgetRepository {
         }
 
         final current = [...(_cache[userId] ?? const <BudgetModel>[])];
-        final idx = current.indexWhere((b) => b.id == id);
+        final idx = current.indexWhere((final b) => b.id == id);
         if (idx >= 0) {
           current[idx] = model;
         } else {
@@ -426,15 +429,15 @@ class BudgetRepository {
   }
 
   Future<void> addAdjustment({
-    required String userId,
-    required String id,
-    required double newAllocated,
-    String? note,
-    required double oldAllocated,
+    required final String userId,
+    required final String id,
+    required final double newAllocated,
+    final String? note,
+    required final double oldAllocated,
   }) async {
     final updated = await _dataSource.update(id, allocated: newAllocated);
     final current = [...(_cache[userId] ?? const <BudgetModel>[])];
-    final idx = current.indexWhere((b) => b.id == id);
+    final idx = current.indexWhere((final b) => b.id == id);
     if (idx >= 0) {
       current[idx] = updated;
     } else {
@@ -446,13 +449,13 @@ class BudgetRepository {
   }
 
   Future<void> undoAdjustment({
-    required String userId,
-    required String id,
-    required double previousAllocated,
+    required final String userId,
+    required final String id,
+    required final double previousAllocated,
   }) async {
     final updated = await _dataSource.update(id, allocated: previousAllocated);
     final current = [...(_cache[userId] ?? const <BudgetModel>[])];
-    final idx = current.indexWhere((b) => b.id == id);
+    final idx = current.indexWhere((final b) => b.id == id);
     if (idx >= 0) {
       current[idx] = updated;
     } else {
@@ -464,7 +467,7 @@ class BudgetRepository {
   }
 
   /// Cleans up all resources for a given userId (called on sign-out).
-  void disposeForUser(String userId) {
+  void disposeForUser(final String userId) {
     disablePollingForUser(userId);
     _cache.remove(userId);
     final controller = _controllers.remove(userId);
@@ -476,22 +479,22 @@ class BudgetRepository {
   }
 }
 
-final budgetRepositoryProvider = Provider<BudgetRepository>((ref) {
+final budgetRepositoryProvider = Provider<BudgetRepository>((final ref) {
   return BudgetRepository(
     ref.watch(budgetRemoteDataSourceProvider),
     ref.watch(categoryRepositoryProvider),
   );
 });
 
-final userBudgetsProvider = StreamProvider<List<BudgetModel>>((ref) {
+final userBudgetsProvider = StreamProvider<List<BudgetModel>>((final ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(<BudgetModel>[]);
   return ref
       .watch(budgetRepositoryProvider)
       .streamForUser(user.userId)
-      .map((list) {
+      .map((final list) {
     final hasGeneral =
-      list.any((b) => b.name.trim().toLowerCase() == 'general');
+      list.any((final b) => b.name.trim().toLowerCase() == 'general');
     if (hasGeneral) return list;
 
     final general = BudgetModel(
@@ -502,7 +505,6 @@ final userBudgetsProvider = StreamProvider<List<BudgetModel>>((ref) {
       period: BudgetPeriod.monthly,
       categoryIds: const [],
       createdAt: DateTime.fromMillisecondsSinceEpoch(0),
-      updatedAt: null,
     );
     return [general, ...list];
   });

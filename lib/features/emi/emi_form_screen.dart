@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/models/emi.dart';
-import '../../core/repositories/emi_repository.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../core/models/emi.dart';
+import '../../core/providers/shared_prefs_provider.dart';
+import '../../core/repositories/emi_repository.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/utils/format.dart';
-import '../../core/providers/shared_prefs_provider.dart';
 
 class EMIFormScreen extends ConsumerStatefulWidget {
-  final EMIPlan? initialPlan;
   const EMIFormScreen({super.key, this.initialPlan});
+  final EMIPlan? initialPlan;
 
   @override
   ConsumerState<EMIFormScreen> createState() => _EMIFormScreenState();
@@ -47,7 +48,7 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final isEditing = widget.initialPlan != null;
     final prefs = ref.read(sharedPrefsServiceProvider);
     return Scaffold(
@@ -69,7 +70,7 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                   filled: true,
                   helperText: 'Enter principal amount',
                 ),
-                validator: (v) {
+                validator: (final v) {
                   final d = double.tryParse(v ?? '');
                   if (d == null || d <= 0) return 'Enter valid amount';
                   return null;
@@ -80,7 +81,7 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                 title: const Text('Zero Cost EMI'),
                 subtitle: const Text('No interest will be charged on this EMI'),
                 value: _isZeroCostEMI,
-                onChanged: (value) {
+                onChanged: (final value) {
                   setState(() {
                     _isZeroCostEMI = value ?? false;
                     if (_isZeroCostEMI) {
@@ -101,7 +102,7 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                   filled: true,
                 ),
                 enabled: !_isZeroCostEMI,
-                validator: (v) {
+                validator: (final v) {
                   final d = double.tryParse(v ?? '');
                   if (d == null || d < 0) return 'Enter valid rate';
                   return null;
@@ -115,7 +116,7 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                   labelText: 'Tenure (months)',
                   filled: true,
                 ),
-                validator: (v) {
+                validator: (final v) {
                   final d = int.tryParse(v ?? '');
                   if (d == null || d <= 0) return 'Enter valid months';
                   return null;
@@ -158,7 +159,7 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                           child: Text('Quarterly'),
                         ),
                       ],
-                      onChanged: (v) => setState(
+                      onChanged: (final v) => setState(
                         () => _frequency = v ?? PaymentFrequency.monthly,
                       ),
                       decoration: const InputDecoration(
@@ -225,6 +226,7 @@ class _EMIFormScreenState extends ConsumerState<EMIFormScreen> {
                       ),
                     );
                   }
+                  if (!context.mounted) return;
                   GoRouter.of(context).go('/emi');
                 },
                 child: Text(isEditing ? 'Update Plan' : 'Create Plan'),

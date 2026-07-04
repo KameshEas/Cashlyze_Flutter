@@ -98,9 +98,9 @@ class MerchantCategorizerService {
 
   /// Categorizes a scanned bill based on merchant name
   /// Returns ScannedBill with suggested category and confidence score
-  ScannedBill categorize(ScannedBill bill) {
+  ScannedBill categorize(final ScannedBill bill) {
     final merchantLower = bill.merchantName.toLowerCase();
-    
+
     // Try exact keyword match first
     for (final entry in _merchantCategories.entries) {
       if (merchantLower.contains(entry.key)) {
@@ -136,7 +136,7 @@ class MerchantCategorizerService {
     );
   }
 
-  String? _fuzzyMatch(String merchant) {
+  String? _fuzzyMatch(final String merchant) {
     // Simple fuzzy matching: check if any key is a substring or has significant overlap
     for (final entry in _merchantCategories.entries) {
       if (_stringSimilarity(merchant, entry.key) > 0.6) {
@@ -146,30 +146,30 @@ class MerchantCategorizerService {
     return null;
   }
 
-  double _stringSimilarity(String a, String b) {
+  double _stringSimilarity(final String a, final String b) {
     final aWords = a.split(RegExp(r'\s+'));
     final bWords = b.split(RegExp(r'\s+'));
-    
+
     int matches = 0;
     for (final aWord in aWords) {
       for (final bWord in bWords) {
         if (aWord == bWord) matches++;
       }
     }
-    
+
     return matches / (aWords.length > bWords.length ? aWords.length : bWords.length);
   }
 
-  String? _categorizeByItems(List<BillItem> items) {
+  String? _categorizeByItems(final List<BillItem> items) {
     // Look for keywords in item descriptions
-    final allItems = items.map((i) => i.description.toLowerCase()).join(' ');
-    
+    final allItems = items.map((final i) => i.description.toLowerCase()).join(' ');
+
     for (final entry in _merchantCategories.entries) {
       if (allItems.contains(entry.key)) {
         return entry.value;
       }
     }
-    
+
     return null;
   }
 }

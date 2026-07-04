@@ -2,13 +2,6 @@ import 'package:flutter/material.dart';
 
 /// Enhanced progress dialog for async operations (backup/restore)
 class ProgressDialog extends StatelessWidget {
-  final String title;
-  final String? subtitle;
-  final int? itemCount;
-  final double? progress; // 0.0 to 1.0
-  final String? estimatedTime;
-  final VoidCallback? onCancel;
-  final bool showCancel;
 
   const ProgressDialog({
     super.key,
@@ -20,9 +13,16 @@ class ProgressDialog extends StatelessWidget {
     this.onCancel,
     this.showCancel = false,
   });
+  final String title;
+  final String? subtitle;
+  final int? itemCount;
+  final double? progress; // 0.0 to 1.0
+  final String? estimatedTime;
+  final void Function()? onCancel;
+  final bool showCancel;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
 
     return AlertDialog(

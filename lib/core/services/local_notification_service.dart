@@ -10,17 +10,13 @@ class LocalNotificationService {
   Future<void> init() async {
     if (_initialized) return;
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    final ios = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
-    final settings = InitializationSettings(android: android, iOS: ios);
+    const ios = DarwinInitializationSettings();
+    const settings = InitializationSettings(android: android, iOS: ios);
 
     try {
       await _plugin.initialize(
         settings: settings,
-        onDidReceiveNotificationResponse: (response) {
+        onDidReceiveNotificationResponse: (final response) {
           if (kDebugMode) debugPrint('Local notification tapped: ${response.payload}');
         },
       );
@@ -32,22 +28,21 @@ class LocalNotificationService {
   }
 
   Future<void> showNotification({
-    required String id,
-    required String title,
-    required String body,
-    Map<String, dynamic>? data,
+    required final String id,
+    required final String title,
+    required final String body,
+    final Map<String, dynamic>? data,
   }) async {
     try {
-      final androidDetails = AndroidNotificationDetails(
+      const androidDetails = AndroidNotificationDetails(
         'budget_alerts_channel',
         'Budget Alerts',
         channelDescription: 'Notifications when budgets cross thresholds',
         importance: Importance.high,
         priority: Priority.high,
-        playSound: true,
       );
-      final iosDetails = DarwinNotificationDetails();
-      final notifDetails = NotificationDetails(android: androidDetails, iOS: iosDetails);
+      const iosDetails = DarwinNotificationDetails();
+      const notifDetails = NotificationDetails(android: androidDetails, iOS: iosDetails);
 
       final payload = data == null ? null : jsonEncode(data);
       await _plugin.show(
@@ -64,6 +59,6 @@ class LocalNotificationService {
   }
 }
 
-final localNotificationServiceProvider = Provider<LocalNotificationService>((ref) {
+final localNotificationServiceProvider = Provider<LocalNotificationService>((final ref) {
   return LocalNotificationService();
 });

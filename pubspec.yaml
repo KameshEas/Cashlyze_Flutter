@@ -69,8 +69,12 @@ dependencies:
 
   # Export functionality
   csv: ^6.0.0
-  pdf: ^4.1.1
+  pdf: ^3.12.0
 
+  riverpod: any
+  http: any
+  crypto: any
+  firebase_core: any
 dev_dependencies:
   sentry_dart_plugin: ^3.2.1
   flutter_test:
@@ -89,6 +93,7 @@ dev_dependencies:
   mockito: ^5.4.4
   build_runner: ^2.4.9
 
+  google_fonts: any
 flutter_launcher_icons:
   android: true
   ios: true

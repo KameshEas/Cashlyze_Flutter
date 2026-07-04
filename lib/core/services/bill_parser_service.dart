@@ -2,27 +2,27 @@ import '../models/scanned_bill.dart';
 
 class BillParserService {
   /// Parses OCR text into structured bill data
-  ScannedBill parseBillText(String ocrText) {
-    final lines = ocrText.split('\n').where((l) => l.trim().isNotEmpty).toList();
-    
+  ScannedBill parseBillText(final String ocrText) {
+    final lines = ocrText.split('\n').where((final l) => l.trim().isNotEmpty).toList();
+
     if (lines.isEmpty) {
       throw BillParseException('No text extracted from bill');
     }
 
     // Extract merchant name (typically first non-empty line)
-    String merchantName = _extractMerchantName(lines);
-    
+    final String merchantName = _extractMerchantName(lines);
+
     // Extract total amount
-    double amount = _extractAmount(ocrText);
-    
+    final double amount = _extractAmount(ocrText);
+
     // Extract date
-    DateTime? date = _extractDate(ocrText);
-    
+    final DateTime? date = _extractDate(ocrText);
+
     // Extract payment method
-    String? paymentMethod = _extractPaymentMethod(ocrText);
-    
+    final String? paymentMethod = _extractPaymentMethod(ocrText);
+
     // Extract line items
-    List<BillItem> items = _extractItems(lines);
+    final List<BillItem> items = _extractItems(lines);
 
     return ScannedBill(
       merchantName: merchantName,
@@ -35,7 +35,7 @@ class BillParserService {
     );
   }
 
-  String _extractMerchantName(List<String> lines) {
+  String _extractMerchantName(final List<String> lines) {
     // First non-empty line is usually the merchant name
     for (final line in lines) {
       final trimmed = line.trim();
@@ -49,7 +49,7 @@ class BillParserService {
     return 'Unknown Merchant';
   }
 
-  double _extractAmount(String text) {
+  double _extractAmount(final String text) {
     // Match currency patterns: $123.45, ₹999, etc.
     final amountPattern = RegExp(r'(?:total|amount|sub.?total|balance|payable)[:\s]+([₹$€£¥]?\s*[\d,]+\.?\d*)');
     final match = amountPattern.firstMatch(text.toLowerCase());
@@ -65,7 +65,7 @@ class BillParserService {
     final numberPattern = RegExp(r'[\d,]+\.?\d*');
     final matches = numberPattern.allMatches(text);
     double maxAmount = 0.0;
-    
+
     for (final match in matches) {
       final numStr = match.group(0)?.replaceAll(',', '') ?? '0';
       final num = double.tryParse(numStr) ?? 0.0;
@@ -73,11 +73,11 @@ class BillParserService {
         maxAmount = num;
       }
     }
-    
+
     return maxAmount > 0 ? maxAmount : 0.0;
   }
 
-  DateTime? _extractDate(String text) {
+  DateTime? _extractDate(final String text) {
     // Match common date patterns
     final datePatterns = [
       RegExp(r'(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})'), // DD/MM/YYYY or MM/DD/YYYY
@@ -97,9 +97,9 @@ class BillParserService {
     return DateTime.now(); // Default to today
   }
 
-  DateTime _parseMatchedDate(RegExpMatch match) {
+  DateTime _parseMatchedDate(final RegExpMatch match) {
     final groups = match.groups([1, 2, 3]);
-    
+
     if (groups[0]!.length == 4) {
       // YYYY format first
       final year = int.parse(groups[0]!);
@@ -116,7 +116,7 @@ class BillParserService {
     }
   }
 
-  String? _extractPaymentMethod(String text) {
+  String? _extractPaymentMethod(final String text) {
     final lowerText = text.toLowerCase();
     
     if (lowerText.contains('credit card') || lowerText.contains('visa') || lowerText.contains('mastercard')) {
@@ -135,13 +135,13 @@ class BillParserService {
     return null;
   }
 
-  List<BillItem> _extractItems(List<String> lines) {
+  List<BillItem> _extractItems(final List<String> lines) {
     final items = <BillItem>[];
-    
+
     // Lines that look like items (contain description and possibly price)
     for (final line in lines) {
       final trimmed = line.trim();
-      
+
       // Skip headers, totals, and short lines
       if (trimmed.isEmpty || trimmed.length < 3) continue;
       if (trimmed.toLowerCase().contains('total') || trimmed.toLowerCase().contains('amount')) continue;
@@ -149,13 +149,12 @@ class BillParserService {
 
       // Try to extract price from line
       final priceMatch = RegExp(r'[\d,]+\.?\d*\s*$').firstMatch(trimmed);
-      final price = priceMatch != null 
+      final price = priceMatch != null
           ? double.tryParse(priceMatch.group(0)!.replaceAll(',', ''))
           : null;
 
       items.add(BillItem(
         description: trimmed,
-        quantity: null,
         price: price,
       ));
     }
@@ -163,19 +162,19 @@ class BillParserService {
     return items.take(10).toList(); // Limit to 10 items for brevity
   }
 
-  bool _looksLikeAmount(String text) {
+  bool _looksLikeAmount(final String text) {
     return RegExp(r'^[\d,]+\.?\d*\s*(?:₹|\$|€|£)?$').hasMatch(text);
   }
 
-  bool _looksLikeDate(String text) {
+  bool _looksLikeDate(final String text) {
     return RegExp(r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}').hasMatch(text);
   }
 }
 
 class BillParseException implements Exception {
-  final String message;
   BillParseException(this.message);
-  
+  final String message;
+
   @override
   String toString() => message;
 }

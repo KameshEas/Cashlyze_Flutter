@@ -2,20 +2,20 @@ import 'dart:math';
 import '../models/emi.dart';
 
 class EMICalculatorResult {
+  const EMICalculatorResult(this.installment, this.totalInterest, this.schedule);
   final double installment;
   final double totalInterest;
   final List<EMIPayment> schedule;
-  const EMICalculatorResult(this.installment, this.totalInterest, this.schedule);
 }
 
 class EMICalculator {
   static EMICalculatorResult compute({
-    required String planId,
-    required double loanAmount,
-    required double annualRate,
-    required int tenureMonths,
-    required DateTime startDate,
-    required PaymentFrequency frequency,
+    required final String planId,
+    required final double loanAmount,
+    required final double annualRate,
+    required final int tenureMonths,
+    required final DateTime startDate,
+    required final PaymentFrequency frequency,
   }) {
     final periodsPerYear = frequency == PaymentFrequency.weekly
         ? 52
@@ -26,7 +26,7 @@ class EMICalculator {
         ? tenureMonths
         : frequency == PaymentFrequency.quarterly
             ? (tenureMonths / 3).ceil()
-            : (tenureMonths * 4).ceil();
+            : (tenureMonths * 4);
     final r = annualRate / 100 / periodsPerYear;
     final installment = r == 0
         ? loanAmount / totalPeriods
@@ -56,7 +56,7 @@ class EMICalculator {
     return EMICalculatorResult(doubleParse(installment), doubleParse(totalInterest), schedule);
   }
 
-  static DateTime nextDueDate(DateTime date, PaymentFrequency f) {
+  static DateTime nextDueDate(final DateTime date, final PaymentFrequency f) {
     switch (f) {
       case PaymentFrequency.weekly:
         return date.add(const Duration(days: 7));
@@ -67,5 +67,5 @@ class EMICalculator {
     }
   }
 
-  static double doubleParse(double v) => double.parse(v.toStringAsFixed(2));
+  static double doubleParse(final double v) => double.parse(v.toStringAsFixed(2));
 }

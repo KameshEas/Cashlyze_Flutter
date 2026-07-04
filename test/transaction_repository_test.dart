@@ -70,7 +70,7 @@ void main() {
 }
 
 /// Test validation logic (copied from TransactionRepository)
-void _testValidation(String title, double amount, DateTime date) {
+void _testValidation(final String title, final double amount, final DateTime date) {
   if (title.trim().isEmpty) {
     throw ArgumentError('Title is required');
   }
@@ -83,6 +83,6 @@ void _testValidation(String title, double amount, DateTime date) {
 }
 
 /// Test sorting logic (copied from TransactionRepository)
-List<TransactionModel> _testSorting(List<TransactionModel> transactions) {
-  return List.from(transactions)..sort((a, b) => b.date.compareTo(a.date));
+List<TransactionModel> _testSorting(final List<TransactionModel> transactions) {
+  return List.from(transactions)..sort((final a, final b) => b.date.compareTo(a.date));
 }

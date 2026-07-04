@@ -1,25 +1,26 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
 import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, TargetPlatform, kReleaseMode;
-import 'core/theme/app_theme.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
-import 'routes/app_router.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'l10n/app_localizations.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+    show kReleaseMode;
+import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'core/providers/shared_prefs_provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'core/providers/app_version_providers.dart';
 import 'core/providers/budget_alerts_handler.dart';
 import 'core/providers/realtime_provider.dart';
+import 'core/providers/shared_prefs_provider.dart';
 import 'core/services/local_notification_service.dart';
-import 'package:onesignal_flutter/onesignal_flutter.dart';
-import 'core/providers/app_version_providers.dart';
+import 'core/theme/app_theme.dart';
 import 'features/force_update/widgets/force_update_dialog.dart';
+import 'firebase_options.dart';
+import 'l10n/app_localizations.dart';
+import 'routes/app_router.dart';
 
 // Tracks whether Sentry has finished initialization.
 bool _sentryReady = false;
@@ -53,10 +54,10 @@ Future<void> _appRunner() async {
   // Use runZonedGuarded so we can capture uncaught errors from the zone.
   // Initialize bindings inside the zone so `ensureInitialized` and
   // `runApp` execute in the same zone (prevents zone mismatch assertions).
-  runZonedGuarded(() async {
+  unawaited(runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
     await _runAppWithPrefs();
-  }, (error, stack) async {
+  }, (final error, final stack) async {
     // Forward to Sentry only after initialization completed.
     if (_sentryReady) {
       try {
@@ -65,12 +66,12 @@ Future<void> _appRunner() async {
     } else {
       if (!kReleaseMode) debugPrint('Uncaught error: $error');
     }
-  });
+  }));
 }
 
 void main() async {
   try {
-    await dotenv.load(fileName: '.env');
+    await dotenv.load();
   } catch (e) {
     if (!kReleaseMode) debugPrint('Failed to load .env file: $e');
   }
@@ -82,7 +83,7 @@ void main() async {
   await _appRunner();
 
   // Initialize OneSignal (fire-and-forget). App ID from .env.
-  () async {
+  unawaited(() async {
     try {
       final oneSignalAppId = dotenv.env['ONESIGNAL_APP_ID'];
       if (oneSignalAppId == null || oneSignalAppId.isEmpty) {
@@ -105,7 +106,7 @@ void main() async {
     } catch (e) {
       if (!kReleaseMode) debugPrint('OneSignal init failed: $e');
     }
-  }();
+  }());
 
   // Resolve DSN from .env first then compile-time env. If provided,
   // initialize Sentry asynchronously (do not await) so the app UI is not
@@ -127,10 +128,10 @@ void main() async {
   }
 
   // Fire-and-forget Sentry initialization.
-  () async {
+  unawaited(() async {
     try {
       await SentryFlutter.init(
-        (options) {
+        (final options) {
           options.dsn = sentryDsn;
           options.tracesSampleRate = 0.0;
           options.environment = const String.fromEnvironment(
@@ -140,11 +141,15 @@ void main() async {
 
           // Use dynamic assignment to avoid signature mismatches across
           // different Sentry package versions.
-          (options as dynamic).beforeSend = (event, {hint}) {
+          (options as dynamic).beforeSend = (final event, {final hint}) {
             if (!kReleaseMode) return null;
 
+            // event is intentionally dynamic to stay compatible across
+            // Sentry package versions; see the cast above.
+            // ignore: avoid_dynamic_calls
             final ex = event.exceptions?.first;
-            final exType = ex?.type ?? '';
+            // ignore: avoid_dynamic_calls
+            final exType = (ex?.type ?? '').toString();
             const skipTypes = [
               'FormatException',
               'AssertionError',
@@ -162,7 +167,7 @@ void main() async {
       _sentryReady = true;
 
       // Forward Flutter framework errors to Sentry in release builds.
-      FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.onError = (final FlutterErrorDetails details) {
         if (kReleaseMode) {
           Sentry.captureException(details.exception, stackTrace: details.stack);
         } else {
@@ -174,14 +179,14 @@ void main() async {
     } catch (e) {
       if (!kReleaseMode) debugPrint('Sentry init failed: $e');
     }
-  }();
+  }());
 }
 
 class App extends ConsumerWidget {
   const App({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     final appRouter = ref.watch(appRouterProvider);
     // Ensure budget alert handler is initialized
     ref.watch(budgetAlertsHandlerProvider);
@@ -202,7 +207,6 @@ class App extends ConsumerWidget {
       title: AppLocalizations.of(context)?.appTitle ?? 'Cashlyze',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
       routerConfig: appRouter,
       locale: locale,
       localizationsDelegates: const [
@@ -212,7 +216,7 @@ class App extends ConsumerWidget {
       ],
       supportedLocales: AppLocalizations.supportedLocales,
       debugShowCheckedModeBanner: false,
-      builder: (context, child) {
+      builder: (final context, final child) {
         return _ForceUpdateMonitor(child: child!);
       },
     );
@@ -221,9 +225,9 @@ class App extends ConsumerWidget {
 
 /// Widget that monitors force update state and shows dialog when needed
 class _ForceUpdateMonitor extends ConsumerStatefulWidget {
-  final Widget child;
 
   const _ForceUpdateMonitor({required this.child});
+  final Widget child;
 
   @override
   ConsumerState<_ForceUpdateMonitor> createState() => _ForceUpdateMonitorState();
@@ -245,24 +249,24 @@ class _ForceUpdateMonitorState extends ConsumerState<_ForceUpdateMonitor> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     // Listen for force update state changes
-    ref.listen<ForceUpdateState>(forceUpdateStateProvider, (previous, next) {
+    ref.listen<ForceUpdateState>(forceUpdateStateProvider, (final previous, final next) {
       next.whenOrNull(
-        updateRequired: (config) {
+        updateRequired: (final config) {
           if (mounted) {
             // Use Future.microtask to navigate after frame is complete
             Future.microtask(() {
               final rootKey = ref.read(rootNavigatorKeyProvider);
               final navigatorContext = rootKey.currentContext;
-              
-              if (navigatorContext != null) {
+
+              if (navigatorContext != null && navigatorContext.mounted) {
                 // Push full-page force update screen
                 Navigator.of(navigatorContext).pushReplacement(
                   PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) =>
+                    pageBuilder: (final context, final animation, final secondaryAnimation) =>
                         ForceUpdateDialog(versionConfig: config),
-                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    transitionsBuilder: (final context, final animation, final secondaryAnimation, final child) {
                       return FadeTransition(
                         opacity: animation,
                         child: child,
@@ -276,12 +280,12 @@ class _ForceUpdateMonitorState extends ConsumerState<_ForceUpdateMonitor> {
                 Future.delayed(const Duration(milliseconds: 500), () {
                   if (mounted) {
                     final navContext = ref.read(rootNavigatorKeyProvider).currentContext;
-                    if (navContext != null) {
+                    if (navContext != null && navContext.mounted) {
                       Navigator.of(navContext).pushReplacement(
                         PageRouteBuilder(
-                          pageBuilder: (context, animation, secondaryAnimation) =>
+                          pageBuilder: (final context, final animation, final secondaryAnimation) =>
                               ForceUpdateDialog(versionConfig: config),
-                          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                          transitionsBuilder: (final context, final animation, final secondaryAnimation, final child) {
                             return FadeTransition(
                               opacity: animation,
                               child: child,

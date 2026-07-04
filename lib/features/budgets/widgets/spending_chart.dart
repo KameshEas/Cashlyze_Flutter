@@ -3,11 +3,6 @@ import '../../../core/utils/format.dart';
 
 /// Spending trend visualization for budget analysis
 class SpendingTrendChart extends StatelessWidget {
-  final String budgetName;
-  final double allocated;
-  final double spent;
-  final String currency;
-  final List<SpendingDataPoint> trendData;
 
   const SpendingTrendChart({
     super.key,
@@ -17,6 +12,11 @@ class SpendingTrendChart extends StatelessWidget {
     required this.currency,
     required this.trendData,
   });
+  final String budgetName;
+  final double allocated;
+  final double spent;
+  final String currency;
+  final List<SpendingDataPoint> trendData;
 
   @override
   Widget build(final BuildContext context) {
@@ -170,7 +170,7 @@ class SpendingTrendChart extends StatelessWidget {
     final List<SpendingDataPoint> data,
   ) {
     final theme = Theme.of(context);
-    final maxValue = data.fold<double>(0, (max, point) => point.value > max ? point.value : max);
+    final maxValue = data.fold<double>(0, (final max, final point) => point.value > max ? point.value : max);
 
     return SizedBox(
       height: 60,
@@ -257,11 +257,11 @@ class SpendingTrendChart extends StatelessWidget {
 
 /// Data point for spending trend
 class SpendingDataPoint {
-  final String label;
-  final double value;
 
   const SpendingDataPoint({
     required this.label,
     required this.value,
   });
+  final String label;
+  final double value;
 }

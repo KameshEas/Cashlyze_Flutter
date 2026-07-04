@@ -24,11 +24,11 @@ abstract final class ApiEndpoints {
 
   // ── Categories ────────────────────────────────────────────────────────────
   static const String categories = '/categories';
-  static String categoryById(String id) => '/categories/$id';
+  static String categoryById(final String id) => '/categories/$id';
 
   // ── Transactions ──────────────────────────────────────────────────────────
   static const String transactions = '/transactions';
-  static String transactionById(String id) => '/transactions/$id';
+  static String transactionById(final String id) => '/transactions/$id';
 
   // ── Budgets ───────────────────────────────────────────────────────────────
   static const String budgets = '/budgets';
@@ -39,22 +39,22 @@ abstract final class ApiEndpoints {
 
   // ── EMI ───────────────────────────────────────────────────────────────────
   static const String emiPlans = '/emi-plans';
-  static String emiPlanById(String id) => '/emi-plans/$id';
-  static String emiSchedules(String planId) => '/emi-plans/$planId/schedules';
-  static String emiScheduleById(String planId, String scheduleId) =>
+  static String emiPlanById(final String id) => '/emi-plans/$id';
+  static String emiSchedules(final String planId) => '/emi-plans/$planId/schedules';
+  static String emiScheduleById(final String planId, final String scheduleId) =>
       '/emi-plans/$planId/schedules/$scheduleId';
 
   // ── Recurring Rules ───────────────────────────────────────────────────────
   static const String recurringRules = '/recurring-rules';
-  static String recurringRuleById(String id) => '/recurring-rules/$id';
-  static String recurringRuleTrigger(String id) =>
+  static String recurringRuleById(final String id) => '/recurring-rules/$id';
+  static String recurringRuleTrigger(final String id) =>
       '/recurring-rules/$id/trigger';
 
   // ── WebSocket ─────────────────────────────────────────────────────────────
   /// Returns the full WebSocket URL for a given user.
   ///
   /// [token] is the JWT access token appended as a query parameter.
-  static String wsUser(String userId, String token) {
+  static String wsUser(final String userId, final String token) {
     final base = Uri.parse(EnvConfig.baseUrl);
     final scheme = base.scheme == 'https'
         ? 'wss'
@@ -75,5 +75,5 @@ abstract final class ApiEndpoints {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   /// Returns the absolute URL for [path].
-  static String resolve(String path) => '${EnvConfig.baseUrl}$path';
+  static String resolve(final String path) => '${EnvConfig.baseUrl}$path';
 }

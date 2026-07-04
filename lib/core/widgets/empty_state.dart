@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 
 class AppEmptyState extends StatelessWidget {
+
+  const AppEmptyState({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.icon,
+    this.actionLabel,
+    this.onAction,
+  });
   final String title;
   final String? subtitle;
   final IconData? icon;
   final String? actionLabel;
   final VoidCallback? onAction;
 
-  const AppEmptyState({
-    Key? key,
-    required this.title,
-    this.subtitle,
-    this.icon,
-    this.actionLabel,
-    this.onAction,
-  }) : super(key: key);
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -29,7 +29,7 @@ class AppEmptyState extends StatelessWidget {
               width: 86,
               height: 86,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withOpacity(0.04),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(24),
               ),
               alignment: Alignment.center,
@@ -48,7 +48,7 @@ class AppEmptyState extends StatelessWidget {
             subtitle!,
             textAlign: TextAlign.center,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         if (actionLabel != null && onAction != null) const SizedBox(height: 12),

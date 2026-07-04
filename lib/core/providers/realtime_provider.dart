@@ -3,24 +3,24 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../services/ws_service.dart';
-import '../services/auth_service.dart';
 import '../models/auth_user.dart';
+import '../repositories/budget_repository.dart';
 import '../repositories/category_repository.dart';
 import '../repositories/transaction_repository.dart';
-import '../repositories/budget_repository.dart';
+import '../services/auth_service.dart';
+import '../services/ws_service.dart';
 
 /// Provider that ensures the WebSocket service connects when a user signs
 /// in and listens to realtime events. On relevant events it invalidates
 /// the corresponding Riverpod providers so the UI refreshes immediately.
-final wsListenerProvider = Provider<void>((ref) {
+final wsListenerProvider = Provider<void>((final ref) {
   final ws = ref.watch(wsServiceProvider);
   StreamSubscription<WsEvent>? sub;
   StreamSubscription<WsConnectionState>? stateSub;
   StreamSubscription<void>? fallbackSub;
 
   // React to auth changes and connect/disconnect accordingly.
-  ref.listen<AuthUser?>(currentUserProvider, (previous, next) {
+  ref.listen<AuthUser?>(currentUserProvider, (final previous, final next) {
     // If a previous user exists, clean up their pollers and listeners.
     if (previous != null) {
       try {
@@ -95,7 +95,7 @@ final wsListenerProvider = Provider<void>((ref) {
         debugPrint('[wsListenerProvider] fallbackSub cancel 2 failed: $e');
       }
 
-      sub = ws.events.listen((event) {
+      sub = ws.events.listen((final event) {
         final t = event.type;
         final payload = event.payload;
 
@@ -139,7 +139,7 @@ final wsListenerProvider = Provider<void>((ref) {
       });
 
       // Connection state changes: when connected disable polling, otherwise keep current.
-      stateSub = ws.connectionStateStream.listen((state) {
+      stateSub = ws.connectionStateStream.listen((final state) {
         try {
           if (state == WsConnectionState.connected) {
             txnRepo.disablePollingForUser(next.userId);
@@ -151,7 +151,7 @@ final wsListenerProvider = Provider<void>((ref) {
       });
 
       // If websocket falls back to polling, enable periodic polling on repos.
-      fallbackSub = ws.onFallbackToPoll.listen((_) {
+      fallbackSub = ws.onFallbackToPoll.listen((final _) {
         try {
           txnRepo.enablePollingForUser(next.userId);
           budgetRepo.enablePollingForUser(next.userId);

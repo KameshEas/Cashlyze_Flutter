@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../core/ui/constants.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../core/ui/constants.dart';
 
 /// Help Center screen with FAQ sections grouped by feature
 class HelpCenterScreen extends StatelessWidget {
@@ -151,21 +152,21 @@ class HelpCenterScreen extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Help Center'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
+          onPressed: context.pop,
         ),
       ),
       body: SafeArea(
         child: ListView.separated(
           padding: const EdgeInsets.all(AppSpacing.s16),
           itemCount: _helpSections.length,
-          separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.s8),
-          itemBuilder: (context, index) {
+          separatorBuilder: (final _, final _) => const SizedBox(height: AppSpacing.s8),
+          itemBuilder: (final BuildContext context, final int index) {
             final section = _helpSections[index];
             return _buildHelpSection(context, section);
           },
@@ -174,7 +175,7 @@ class HelpCenterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHelpSection(BuildContext context, HelpSection section) {
+  Widget _buildHelpSection(final BuildContext context, final HelpSection section) {
     return ExpansionTile(
       title: Row(
         children: [
@@ -243,23 +244,23 @@ class HelpCenterScreen extends StatelessWidget {
 }
 
 class HelpSection {
-  final String title;
-  final IconData icon;
-  final List<FAQItem> faqs;
 
   const HelpSection({
     required this.title,
     required this.icon,
     required this.faqs,
   });
+  final String title;
+  final IconData icon;
+  final List<FAQItem> faqs;
 }
 
 class FAQItem {
-  final String question;
-  final String answer;
 
   const FAQItem({
     required this.question,
     required this.answer,
   });
+  final String question;
+  final String answer;
 }

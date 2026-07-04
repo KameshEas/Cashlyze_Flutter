@@ -1,22 +1,13 @@
 import 'package:flutter/material.dart';
 import '../ui/constants.dart';
 
-/// Whether to use Google Fonts via network fetching.
-///
-/// Set to `false` to avoid runtime network requests for font files.
-/// When `false`, the app uses the built-in system fonts.
-bool _useGoogleFontsNetwork = false;
-
-/// Call from tests to ensure no network fonts are used.
-void disableGoogleFontsForTests() => _useGoogleFontsNetwork = false;
-
 /// The text style to use when Google Fonts network fetch is disabled.
 /// Falls back to the default system font (Roboto on Android/iOS).
 TextStyle _fallbackTextStyle({
-  required double fontSize,
-  required FontWeight fontWeight,
-  required Color color,
-  double? height,
+  required final double fontSize,
+  required final FontWeight fontWeight,
+  required final Color color,
+  final double? height,
 }) {
   return TextStyle(
     fontSize: fontSize,
@@ -53,7 +44,6 @@ class AppTheme {
         error: errorColor,
         onPrimary: Colors.white,
         onSecondary: Colors.white,   // white on teal500 = readable
-        onSurface: Colors.white,
         onError: Colors.white,
       ),
       scaffoldBackgroundColor: darkBackground,
@@ -81,7 +71,7 @@ class AppTheme {
             horizontal: AppSpacing.s24,
             vertical: AppSpacing.s12,
           ),
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: AppRadius.mdAll,
           ),
           textStyle: _fallbackTextStyle(
@@ -98,7 +88,7 @@ class AppTheme {
             horizontal: AppSpacing.s24,
             vertical: AppSpacing.s12,
           ),
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: AppRadius.mdAll,
           ),
           textStyle: _fallbackTextStyle(
@@ -115,7 +105,7 @@ class AppTheme {
             horizontal: AppSpacing.s24,
             vertical: AppSpacing.s12,
           ),
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: AppRadius.mdAll,
           ),
           textStyle: _fallbackTextStyle(
@@ -146,7 +136,7 @@ class AppTheme {
             color: Colors.white,
           ),
         ),
-        iconTheme: WidgetStateProperty.resolveWith((states) {
+        iconTheme: WidgetStateProperty.resolveWith((final states) {
           if (states.contains(WidgetState.selected)) {
             return const IconThemeData(color: secondaryColor);
           }
@@ -166,12 +156,8 @@ class AppTheme {
       colorScheme: const ColorScheme.light(
         primary: primaryColor,
         secondary: secondaryColor,
-        surface: Colors.white,
         error: errorColor,
-        onPrimary: Colors.white,
         onSecondary: Colors.white, // white on teal500 = readable
-        onSurface: Colors.black,
-        onError: Colors.white,
       ),
       scaffoldBackgroundColor: AppColors.neutral100,
       textTheme: ThemeData.light().textTheme.apply(
@@ -198,7 +184,7 @@ class AppTheme {
             horizontal: AppSpacing.s24,
             vertical: AppSpacing.s12,
           ),
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: AppRadius.mdAll,
           ),
           textStyle: _fallbackTextStyle(
@@ -215,7 +201,7 @@ class AppTheme {
             horizontal: AppSpacing.s24,
             vertical: AppSpacing.s12,
           ),
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: AppRadius.mdAll,
           ),
           textStyle: _fallbackTextStyle(
@@ -232,7 +218,7 @@ class AppTheme {
             horizontal: AppSpacing.s24,
             vertical: AppSpacing.s12,
           ),
-          shape: RoundedRectangleBorder(
+          shape: const RoundedRectangleBorder(
             borderRadius: AppRadius.mdAll,
           ),
           textStyle: _fallbackTextStyle(
@@ -242,13 +228,13 @@ class AppTheme {
           ),
         ),
       ),
-      cardTheme: CardThemeData(
+      cardTheme: const CardThemeData(
         color: Colors.white,
         elevation: 0,
         shadowColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: AppRadius.lgAll,
-          side: const BorderSide(color: AppColors.neutral200),
+          side: BorderSide(color: AppColors.neutral200),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
@@ -261,7 +247,7 @@ class AppTheme {
             color: Colors.black,
           ),
         ),
-        iconTheme: WidgetStateProperty.resolveWith((states) {
+        iconTheme: WidgetStateProperty.resolveWith((final states) {
           if (states.contains(WidgetState.selected)) {
             return const IconThemeData(color: primaryColor);
           }
@@ -272,7 +258,7 @@ class AppTheme {
       splashFactory: InkRipple.splashFactory,
     );
   }
-  static InputDecorationTheme inputTheme({required bool isLight}) {
+  static InputDecorationTheme inputTheme({required final bool isLight}) {
     final fill = isLight ? Colors.white : surfaceColor;
     final onSurface = isLight ? Colors.black : Colors.white;
     return InputDecorationTheme(
@@ -285,7 +271,7 @@ class AppTheme {
       ),
       hintStyle: TextStyle(fontSize: AppType.b2, color: onSurface.withValues(alpha: 0.4)),
       helperStyle: TextStyle(fontSize: AppType.b3, color: onSurface.withValues(alpha: 0.6)),
-      errorStyle: TextStyle(fontSize: AppType.b3, color: errorColor),
+      errorStyle: const TextStyle(fontSize: AppType.b3, color: errorColor),
       border: OutlineInputBorder(
         borderRadius: AppRadius.mdAll,
         borderSide: BorderSide(color: onSurface.withValues(alpha: 0.14)),

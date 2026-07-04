@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart' show Share, XFile;
@@ -15,6 +15,8 @@ import '../../core/ui/constants.dart';
 import '../../core/utils/format.dart';
 import '../../core/utils/repo_error_handler.dart';
 import '../../core/widgets/animated_progress_indicator.dart';
+import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/skeleton.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/skeleton.dart';
 
@@ -105,7 +107,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
           ),
           _TimeRangePicker(
             selected: selectedRange,
-            onChanged: (r) =>
+            onChanged: (final r) =>
                 ref.read(selectedTimeRangeProvider.notifier).setRange(r),
           ),
           const SizedBox(width: AppSpacing.s16),
@@ -244,12 +246,12 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
 // ════════════════════════════════════════════════════════════════════════════
 
 class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, required this.icon});
   final String title;
   final IconData icon;
-  const _SectionHeader({required this.title, required this.icon});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     return Row(
       children: [
@@ -267,12 +269,12 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _BaseCard extends StatelessWidget {
+  const _BaseCard({required this.child, this.padding});
   final Widget child;
   final EdgeInsets? padding;
-  const _BaseCard({required this.child, this.padding});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     return Container(
       width: double.infinity,
@@ -297,12 +299,12 @@ class _BaseCard extends StatelessWidget {
 // ════════════════════════════════════════════════════════════════════════════
 
 class _TimeRangePicker extends StatelessWidget {
+  const _TimeRangePicker({required this.selected, required this.onChanged});
   final TimeRange selected;
   final ValueChanged<TimeRange> onChanged;
-  const _TimeRangePicker({required this.selected, required this.onChanged});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(3),
@@ -312,7 +314,7 @@ class _TimeRangePicker extends StatelessWidget {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: TimeRange.values.map((r) {
+        children: TimeRange.values.map((final r) {
           final label = switch (r) {
             TimeRange.last7d => '7d',
             TimeRange.last30d => '30d',
@@ -341,7 +343,7 @@ class _TimeRangePicker extends StatelessWidget {
               ),
             ),
           );
-        }).toList(),
+          }).toList(),
       ),
     );
   }
@@ -352,17 +354,17 @@ class _TimeRangePicker extends StatelessWidget {
 // ════════════════════════════════════════════════════════════════════════════
 
 class _NetHeroCard extends StatelessWidget {
-  final Kpis kpis;
-  final String currency;
-  final bool isLoading;
   const _NetHeroCard({
     required this.kpis,
     required this.currency,
     required this.isLoading,
   });
+  final Kpis kpis;
+  final String currency;
+  final bool isLoading;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final isPositive = kpis.net >= 0;
     final netColor = isPositive ? AppColors.success : AppColors.error;
@@ -396,7 +398,6 @@ class _NetHeroCard extends StatelessWidget {
             const SkeletonLine(height: 32, width: 160)
           else
             Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
                   child: Text(
@@ -450,17 +451,17 @@ class _NetHeroCard extends StatelessWidget {
 // ════════════════════════════════════════════════════════════════════════════
 
 class _MetricStrip extends StatelessWidget {
-  final Kpis kpis;
-  final String currency;
-  final bool isLoading;
   const _MetricStrip({
     required this.kpis,
     required this.currency,
     required this.isLoading,
   });
+  final Kpis kpis;
+  final String currency;
+  final bool isLoading;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final savingsPct = (kpis.savingsRate * 100).clamp(0, 100);
     return Row(
       children: [
@@ -508,20 +509,20 @@ class _MetricStrip extends StatelessWidget {
   }
 }
 
-class _MetricTile extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String label;
-  final String? value; // null = loading
+class _MetricTile extends StatelessWidget { // null = loading
   const _MetricTile({
     required this.icon,
     required this.color,
     required this.label,
     required this.value,
   });
+  final IconData icon;
+  final Color color;
+  final String label;
+  final String? value;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -570,17 +571,17 @@ class _MetricTile extends StatelessWidget {
 // ════════════════════════════════════════════════════════════════════════════
 
 class _ForecastCard extends StatelessWidget {
-  final double forecast;
-  final List<double> monthly;
-  final String currency;
   const _ForecastCard({
     required this.forecast,
     required this.monthly,
     required this.currency,
   });
+  final double forecast;
+  final List<double> monthly;
+  final String currency;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final lastMonth = monthly.isNotEmpty ? monthly.last : forecast;
     final diff = forecast - lastMonth;
@@ -665,11 +666,11 @@ class _ForecastCard extends StatelessWidget {
 // ════════════════════════════════════════════════════════════════════════════
 
 class _MonthlyTrendCard extends StatelessWidget {
-  final List<double> monthly;
   const _MonthlyTrendCard({required this.monthly});
+  final List<double> monthly;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final color = theme.colorScheme.primary;
     return _BaseCard(
@@ -684,7 +685,6 @@ class _MonthlyTrendCard extends StatelessWidget {
         child: LineChart(
           LineChartData(
             gridData: FlGridData(
-              show: true,
               drawVerticalLine: false,
               getDrawingHorizontalLine: (_) => FlLine(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
@@ -697,14 +697,14 @@ class _MonthlyTrendCard extends StatelessWidget {
                   showTitles: true,
                   reservedSize: 26,
                   interval: 1,
-                  getTitlesWidget: (value, _) {
+                  getTitlesWidget: (final value, final _) {
                     final idx = value.toInt();
                     if (idx < 0 || idx >= monthly.length) {
                       return const SizedBox.shrink();
                     }
                     final now = DateTime.now();
                     final offset = monthly.length - 1 - idx;
-                    final m = DateTime(now.year, now.month - offset, 1);
+                    final m = DateTime(now.year, now.month - offset);
                     return Padding(
                       padding: const EdgeInsets.only(top: 6),
                       child: Text(
@@ -719,14 +719,14 @@ class _MonthlyTrendCard extends StatelessWidget {
                   },
                 ),
               ),
-              leftTitles: AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
+              leftTitles: const AxisTitles(
+                
               ),
-              rightTitles: AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
+              rightTitles: const AxisTitles(
+                
               ),
-              topTitles: AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
+              topTitles: const AxisTitles(
+                
               ),
             ),
             borderData: FlBorderData(show: false),
@@ -734,9 +734,9 @@ class _MonthlyTrendCard extends StatelessWidget {
               touchTooltipData: LineTouchTooltipData(
                 fitInsideHorizontally: true,
                 fitInsideVertically: true,
-                getTooltipItems: (spots) => spots
+                getTooltipItems: (final spots) => spots
                     .map(
-                      (s) => LineTooltipItem(
+                      (final s) => LineTooltipItem(
                         s.y.toStringAsFixed(0),
                         const TextStyle(
                           color: Colors.white,
@@ -752,15 +752,13 @@ class _MonthlyTrendCard extends StatelessWidget {
               LineChartBarData(
                 spots: List.generate(
                   monthly.length,
-                  (i) => FlSpot(i.toDouble(), monthly[i]),
+                  (final i) => FlSpot(i.toDouble(), monthly[i]),
                 ),
                 isCurved: true,
-                curveSmoothness: 0.35,
                 barWidth: 2.5,
                 color: color,
                 dotData: FlDotData(
-                  show: true,
-                  getDotPainter: (spot, _, bar, i) => FlDotCirclePainter(
+                  getDotPainter: (final spot, final _, final bar, final i) => FlDotCirclePainter(
                     radius: 3.5,
                     color: color,
                     strokeWidth: 2,
@@ -892,19 +890,19 @@ class _CategoryBreakdownCard extends ConsumerWidget {
 // ════════════════════════════════════════════════════════════════════════════
 
 class _MerchantsCard extends StatelessWidget {
+  const _MerchantsCard({required this.merchants, required this.currency});
   final List<TopMerchant> merchants;
   final String currency;
-  const _MerchantsCard({required this.merchants, required this.currency});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final maxAmt = merchants.isNotEmpty ? merchants.first.amount : 1.0;
 
     return _BaseCard(
       padding: const EdgeInsets.all(AppSpacing.s16),
       child: Column(
-        children: List.generate(merchants.length, (i) {
+        children: List.generate(merchants.length, (final i) {
           final m = merchants[i];
           final fill = maxAmt > 0 ? (m.amount / maxAmt) : 0.0;
           final color = _kPalette[i % _kPalette.length];
@@ -984,12 +982,12 @@ class _MerchantsCard extends StatelessWidget {
 // ════════════════════════════════════════════════════════════════════════════
 
 class _RecurringCard extends StatelessWidget {
+  const _RecurringCard({required this.recurring, required this.currency});
   final List<RecurringPayment> recurring;
   final String currency;
-  const _RecurringCard({required this.recurring, required this.currency});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     return _BaseCard(
       padding: const EdgeInsets.symmetric(
@@ -997,7 +995,7 @@ class _RecurringCard extends StatelessWidget {
         vertical: AppSpacing.s8,
       ),
       child: Column(
-        children: recurring.map((r) {
+        children: recurring.map((final r) {
           final days = r.avgInterval.inDays;
           final label = days <= 10
               ? 'Weekly'
@@ -1088,12 +1086,12 @@ class _RecurringCard extends StatelessWidget {
 // ════════════════════════════════════════════════════════════════════════════
 
 class _AnomalyCard extends StatelessWidget {
+  const _AnomalyCard({required this.anomalies, required this.currency});
   final List<TransactionModel> anomalies;
   final String currency;
-  const _AnomalyCard({required this.anomalies, required this.currency});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final show = anomalies.take(3).toList();
 
@@ -1131,7 +1129,7 @@ class _AnomalyCard extends StatelessWidget {
           ),
           const Divider(height: 1),
           ...show.map(
-            (t) => ListTile(
+            (final t) => ListTile(
               dense: true,
               leading: Container(
                 width: 32,
@@ -1173,4 +1171,3 @@ class _AnomalyCard extends StatelessWidget {
     );
   }
 }
-

@@ -7,7 +7,7 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('App Integration Tests', () {
-    testWidgets('app launches successfully', (WidgetTester tester) async {
+    testWidgets('app launches successfully', (final WidgetTester tester) async {
       await tester.pumpWidget(const App());
       await tester.pumpAndSettle();
 
@@ -15,7 +15,7 @@ void main() {
       expect(find.byType(MaterialApp), findsOneWidget);
     });
 
-    testWidgets('splash screen appears on launch', (WidgetTester tester) async {
+    testWidgets('splash screen appears on launch', (final WidgetTester tester) async {
       await tester.pumpWidget(const App());
       
       // Give time for splash screen to appear
@@ -26,7 +26,7 @@ void main() {
       expect(find.byType(MaterialApp), findsOneWidget);
     });
 
-    testWidgets('app navigates through basic flow', (WidgetTester tester) async {
+    testWidgets('app navigates through basic flow', (final WidgetTester tester) async {
       await tester.pumpWidget(const App());
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
@@ -39,7 +39,7 @@ void main() {
   });
 
   group('Theme Tests', () {
-    testWidgets('app supports dark and light themes', (WidgetTester tester) async {
+    testWidgets('app supports dark and light themes', (final WidgetTester tester) async {
       await tester.pumpWidget(const App());
       await tester.pumpAndSettle();
 
@@ -53,7 +53,7 @@ void main() {
   });
 
   group('Localization Tests', () {
-    testWidgets('app has localization delegates', (WidgetTester tester) async {
+    testWidgets('app has localization delegates', (final WidgetTester tester) async {
       await tester.pumpWidget(const App());
       await tester.pumpAndSettle();
 

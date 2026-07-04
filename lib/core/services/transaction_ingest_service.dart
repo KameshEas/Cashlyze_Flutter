@@ -1,32 +1,30 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../repositories/transaction_repository.dart';
-import '../services/categorization_service.dart';
-import 'analytics_service.dart';
+
 import '../repositories/budget_repository.dart';
+import '../repositories/transaction_repository.dart';
+import 'analytics_service.dart';
 
 class TransactionIngestService {
-  final TransactionRepository _repo;
-  final CategorizationService _categorizer;
-  final AnalyticsService _analytics;
-  final BudgetRepository? _budgetRepo;
 
   TransactionIngestService(
     this._repo,
-    this._categorizer,
     this._analytics, [
     this._budgetRepo,
   ]);
+  final TransactionRepository _repo;
+  final AnalyticsService _analytics;
+  final BudgetRepository? _budgetRepo;
 
   Future<void> addManual({
-    required String userId,
-    required String title,
-    required double amount,
-    required bool isIncome,
-    String? categoryId,
-    String? categoryName,
-    required DateTime date,
-    String? notes,
-    List<String>? tags,
+    required final String userId,
+    required final String title,
+    required final double amount,
+    required final bool isIncome,
+    final String? categoryId,
+    final String? categoryName,
+    required final DateTime date,
+    final String? notes,
+    final List<String>? tags,
   }) async {
     final rawCat = categoryId?.trim();
     final cat = (rawCat == null || rawCat.isEmpty) ? null : rawCat;
@@ -42,14 +40,14 @@ class TransactionIngestService {
           // Skip budget existence check for General
         } else {
         final lcCat = lookupRaw.toLowerCase();
-        final hasBudgetForCategory = budgets.any((budget) {
+        final hasBudgetForCategory = budgets.any((final budget) {
           // Match by budget name
           if (budget.name.toLowerCase() == lcCat) return true;
           // Match by explicit budget id
           if (budget.id == lookupRaw) return true;
           // Match any listed category identifier (could be id or name)
           for (final bid in budget.categoryIds) {
-            final bTrim = (bid ?? '').trim();
+            final bTrim = bid.trim();
             if (bTrim.isEmpty) continue;
             if (bTrim.toLowerCase() == lcCat) return true;
             if (bTrim == lookupRaw) return true;
@@ -97,8 +95,8 @@ class TransactionIngestService {
   }
 
   Future<void> delete({
-    required String userId,
-    required String transactionId,
+    required final String userId,
+    required final String transactionId,
   }) async {
     await _repo.deleteForUser(userId, transactionId);
     await _analytics.logEvent('transaction_delete');
@@ -106,21 +104,20 @@ class TransactionIngestService {
 }
 
 final transactionIngestServiceProvider = Provider<TransactionIngestService>((
-  ref,
+  final ref,
 ) {
   return TransactionIngestService(
     ref.watch(transactionRepositoryProvider),
-    ref.watch(categorizationServiceProvider),
     ref.watch(analyticsServiceProvider),
     ref.watch(budgetRepositoryProvider),
   );
 });
 
 class BudgetMissingException implements Exception {
-  final String categoryName;
-  final Map<String, dynamic> transactionData;
 
   BudgetMissingException(this.categoryName, this.transactionData);
+  final String categoryName;
+  final Map<String, dynamic> transactionData;
 
   @override
   String toString() => 'No budget found for category: $categoryName';

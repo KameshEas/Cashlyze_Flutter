@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/services/auth_service.dart';
+
 import '../../core/providers/onboarding_provider.dart';
-import '../../core/providers/shared_prefs_provider.dart';
+import '../../core/services/auth_service.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
-  final Duration duration;
 
   const SplashScreen({
     super.key,
     this.duration = const Duration(milliseconds: 600),
   });
+  final Duration duration;
 
   @override
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
@@ -36,9 +36,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // Try navigating after the fade-in completes. Do not force a long
     // fixed delay here — if auth state is still loading, `_maybeNavigate`
     // will defer and be triggered again by listeners.
-    Future<void>.delayed(widget.duration, () {
-      _maybeNavigate();
-    });
+    Future<void>.delayed(widget.duration, _maybeNavigate);
   }
 
   void _maybeNavigate() {
@@ -84,12 +82,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    ref.listen(authStateChangesProvider, (previous, next) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeNavigate());
+  Widget build(final BuildContext context) {
+    ref.listen(authStateChangesProvider, (final previous, final next) {
+      WidgetsBinding.instance.addPostFrameCallback((final _) => _maybeNavigate());
     });
-    ref.listen(onboardingCompletedProvider, (previous, next) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeNavigate());
+    ref.listen(onboardingCompletedProvider, (final previous, final next) {
+      WidgetsBinding.instance.addPostFrameCallback((final _) => _maybeNavigate());
     });
     final theme = Theme.of(context);
     return Scaffold(

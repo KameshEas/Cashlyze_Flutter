@@ -93,7 +93,6 @@ class BalanceCard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Expanded(
                         child: Text(
@@ -200,7 +199,6 @@ class BalanceCard extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.08),
-          width: 1,
         ),
       ),
       child: Row(

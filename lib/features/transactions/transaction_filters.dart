@@ -7,6 +7,23 @@ import '../../core/models/transaction.dart';
 import '../../core/repositories/transaction_repository.dart';
 
 class TransactionFilterState {
+
+  TransactionFilterState({
+    this.filter = 'All',
+    this.category = 'All',
+    this.query = '',
+    this.debouncedQuery = '',
+    this.minAmount,
+    this.maxAmount,
+    final DateTime? selectedMonth,
+    this.fromDate,
+    this.toDate,
+    this.page = 1,
+    this.pageSize = 20,
+    final bool? useDateRange,
+  }) : selectedMonth = selectedMonth ?? DateTime(DateTime.now().year, DateTime.now().month),
+        // By default don't use a date-range; allow user to enable it.
+        useDateRange = useDateRange ?? false;
   final String filter; // 'All' | 'Income' | 'Expense'
   final String category; // 'All' or category label
   final String query; // immediate query (for textfield)
@@ -85,7 +102,7 @@ class TransactionFilterNotifier extends Notifier<TransactionFilterState> {
     });
     return TransactionFilterState();
   }
-  void setQueryImmediate(String q) {
+  void setQueryImmediate(final String q) {
     state = state.copyWith(query: q);
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 350), () {
@@ -93,35 +110,35 @@ class TransactionFilterNotifier extends Notifier<TransactionFilterState> {
     });
   }
 
-  void setFilterType(String v) {
+  void setFilterType(final String v) {
     state = state.copyWith(filter: v, page: 1);
   }
 
-  void setCategory(String v) {
+  void setCategory(final String v) {
     state = state.copyWith(category: v, page: 1);
   }
 
-  void setMinAmount(double? v) {
+  void setMinAmount(final double? v) {
     state = state.copyWith(minAmount: v, page: 1);
   }
 
-  void setMaxAmount(double? v) {
+  void setMaxAmount(final double? v) {
     state = state.copyWith(maxAmount: v, page: 1);
   }
 
-  void setFromDate(DateTime? v) {
+  void setFromDate(final DateTime? v) {
     state = state.copyWith(fromDate: v, page: 1);
   }
 
-  void setToDate(DateTime? v) {
+  void setToDate(final DateTime? v) {
     state = state.copyWith(toDate: v, page: 1);
   }
 
-  void setUseDateRange(bool v) {
+  void setUseDateRange(final bool v) {
     state = state.copyWith(useDateRange: v, page: 1);
   }
 
-  void setSelectedMonth(DateTime? v) {
+  void setSelectedMonth(final DateTime? v) {
     state = state.copyWith(selectedMonth: v, page: 1);
   }
 
@@ -160,17 +177,17 @@ class TransactionFilterNotifier extends Notifier<TransactionFilterState> {
 
 final transactionFilterProvider = NotifierProvider<TransactionFilterNotifier, TransactionFilterState>(TransactionFilterNotifier.new);
 
-final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {
+final filteredTransactionsProvider = Provider<List<TransactionModel>>((final ref) {
   final txsAsync = ref.watch(userTransactionsProvider);
   final f = ref.watch(transactionFilterProvider);
   return txsAsync.maybeWhen(
-    data: (items) {
+    data: (final items) {
       final q = f.debouncedQuery.trim().toLowerCase();
-      final monthStart = f.selectedMonth == null ? null : DateTime(f.selectedMonth!.year, f.selectedMonth!.month, 1);
-      final monthEnd = f.selectedMonth == null ? null : DateTime(f.selectedMonth!.year, f.selectedMonth!.month + 1, 1);
+      final monthStart = f.selectedMonth == null ? null : DateTime(f.selectedMonth!.year, f.selectedMonth!.month);
+      final monthEnd = f.selectedMonth == null ? null : DateTime(f.selectedMonth!.year, f.selectedMonth!.month + 1);
       final from = f.fromDate;
       final to = f.toDate;
-      final filtered = items.where((e) {
+      final filtered = items.where((final e) {
         final matchesQuery = q.isEmpty || e.title.toLowerCase().contains(q);
         final matchesType = f.filter == 'All' || (f.filter == 'Income' && e.amount > 0) || (f.filter == 'Expense' && e.amount < 0);
         final catLabel = e.categoryId ?? 'General';
@@ -192,14 +209,14 @@ final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {
         return matchesQuery && matchesType && matchesCategory && matchesAmount && matchesTags && inRange;
       }).toList();
       // Ensure newest transactions appear first before pagination.
-      filtered.sort((a, b) => b.date.compareTo(a.date));
+      filtered.sort((final a, final b) => b.date.compareTo(a.date));
       return filtered;
     },
     orElse: () => <TransactionModel>[],
   );
 });
 
-final paginatedTransactionsProvider = Provider<List<TransactionModel>>((ref) {
+final paginatedTransactionsProvider = Provider<List<TransactionModel>>((final ref) {
   final filtered = ref.watch(filteredTransactionsProvider);
   final f = ref.watch(transactionFilterProvider);
   final end = (f.page * f.pageSize) < filtered.length ? (f.page * f.pageSize) : filtered.length;
@@ -207,7 +224,7 @@ final paginatedTransactionsProvider = Provider<List<TransactionModel>>((ref) {
   return filtered.sublist(0, end);
 });
 
-final transactionsHasMoreProvider = Provider<bool>((ref) {
+final transactionsHasMoreProvider = Provider<bool>((final ref) {
   final filtered = ref.watch(filteredTransactionsProvider);
   final f = ref.watch(transactionFilterProvider);
   return filtered.length > f.page * f.pageSize;
@@ -215,7 +232,7 @@ final transactionsHasMoreProvider = Provider<bool>((ref) {
 
 /// Computes the active filter count (extracted for performance)
 /// Prevents quadruple computation in UI layer
-final activeFilterCountProvider = Provider<int>((ref) {
+final activeFilterCountProvider = Provider<int>((final ref) {
   final state = ref.watch(transactionFilterProvider);
   int count = 0;
   if (state.filter != 'All') count++;
@@ -228,7 +245,7 @@ final activeFilterCountProvider = Provider<int>((ref) {
 });
 
 /// Groups transactions by relative date (Today, Yesterday, This Week, etc.)
-Map<String, List<TransactionModel>> groupTransactionsByDate(List<TransactionModel> transactions) {
+Map<String, List<TransactionModel>> groupTransactionsByDate(final List<TransactionModel> transactions) {
   final grouped = <String, List<TransactionModel>>{};
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);

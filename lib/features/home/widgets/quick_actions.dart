@@ -102,7 +102,7 @@ class QuickActions extends ConsumerWidget {
   }
 
   List<_QuickAction> _buildActions(final AppLocalizations? t) => [
-        _QuickAction(
+        const _QuickAction(
           icon: Icons.remove_circle_outline,
           label: 'Expense',
           type: 'Expense',
@@ -114,19 +114,19 @@ class QuickActions extends ConsumerWidget {
           type: 'Income',
           colorType: ActionColorType.income,
         ),
-        _QuickAction(
+        const _QuickAction(
           icon: Icons.payments,
           label: 'Add EMI',
           route: '/emi/new',
           colorType: ActionColorType.emi,
         ),
-        _QuickAction(
+        const _QuickAction(
           icon: Icons.savings,
           label: 'Add Budget',
           route: '/budgets',
           colorType: ActionColorType.budget,
         ),
-        _QuickAction(
+        const _QuickAction(
           icon: Icons.camera_alt,
           label: 'Scan',
           isScanAction: true,
@@ -152,12 +152,6 @@ enum ActionColorType { expense, income, emi, budget, scan }
 
 /// Internal model for a quick action item.
 class _QuickAction {
-  final IconData icon;
-  final String label;
-  final String? type;
-  final String? route;
-  final bool isScanAction;
-  final ActionColorType colorType;
 
   const _QuickAction({
     required this.icon,
@@ -167,6 +161,12 @@ class _QuickAction {
     this.isScanAction = false,
     required this.colorType,
   });
+  final IconData icon;
+  final String label;
+  final String? type;
+  final String? route;
+  final bool isScanAction;
+  final ActionColorType colorType;
 
   Color getColor(final ColorScheme scheme) {
     return switch (colorType) {

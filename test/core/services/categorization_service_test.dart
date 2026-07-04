@@ -83,7 +83,7 @@ void main() {
 
     group('edge cases', () {
       test('handles very long transaction titles', () {
-        final longTitle = 'This is a very long transaction title that contains the word grocery somewhere in the middle of all this text';
+        const longTitle = 'This is a very long transaction title that contains the word grocery somewhere in the middle of all this text';
         expect(service.suggestCategory(longTitle), equals('Food'));
       });
 

@@ -1,14 +1,14 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:cashlyze/core/widgets/animated_progress_indicator.dart';
 import 'package:cashlyze/core/widgets/animated_progress_text.dart';
 import 'package:cashlyze/core/widgets/animated_status_indicator.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('AnimatedProgressIndicator', () {
-    testWidgets('renders without errors', (WidgetTester tester) async {
+    testWidgets('renders without errors', (final WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: AnimatedProgressIndicator(
               progress: 0.5,
@@ -21,19 +21,16 @@ void main() {
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
     });
 
-    testWidgets('animates progress value smoothly', (WidgetTester tester) async {
-      const duration = Duration(milliseconds: 500);
-      
+    testWidgets('animates progress value smoothly', (final WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: StatefulBuilder(
-              builder: (context, setState) {
+              builder: (final context, final setState) {
                 return Column(
                   children: [
-                    AnimatedProgressIndicator(
+                    const AnimatedProgressIndicator(
                       progress: 0.25,
-                      duration: duration,
                     ),
                     ElevatedButton(
                       onPressed: () => setState(() {}),
@@ -57,9 +54,9 @@ void main() {
     });
 
     testWidgets('handles over-budget progress (>1.0) with red color',
-        (WidgetTester tester) async {
+        (final WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: AnimatedProgressIndicator(
               progress: 1.5, // Over budget
@@ -72,9 +69,9 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('handles zero progress', (WidgetTester tester) async {
+    testWidgets('handles zero progress', (final WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: AnimatedProgressIndicator(
               progress: 0.0,
@@ -87,11 +84,11 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('respects custom duration', (WidgetTester tester) async {
+    testWidgets('respects custom duration', (final WidgetTester tester) async {
       const customDuration = Duration(milliseconds: 300);
       
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: AnimatedProgressIndicator(
               progress: 0.5,
@@ -105,9 +102,9 @@ void main() {
     });
 
     testWidgets('clamps progress between 0 and displayed value',
-        (WidgetTester tester) async {
+        (final WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: AnimatedProgressIndicator(
               progress: 2.5, // Should be clamped for display
@@ -122,9 +119,9 @@ void main() {
   });
 
   group('AnimatedProgressText', () {
-    testWidgets('renders without errors', (WidgetTester tester) async {
+    testWidgets('renders without errors', (final WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: AnimatedProgressText(
               progress: 0.75,
@@ -137,9 +134,9 @@ void main() {
       expect(find.textContaining(RegExp(r'\d+%')), findsOneWidget);
     });
 
-    testWidgets('displays percentage correctly', (WidgetTester tester) async {
+    testWidgets('displays percentage correctly', (final WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: AnimatedProgressText(
               progress: 0.5,
@@ -153,9 +150,9 @@ void main() {
     });
 
     testWidgets('animates text color based on progress',
-        (WidgetTester tester) async {
+        (final WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: AnimatedProgressText(
               progress: 1.2, // Over 100% - should be red
@@ -168,9 +165,9 @@ void main() {
       expect(find.byType(AnimatedProgressText), findsOneWidget);
     });
 
-    testWidgets('shows 0% for zero progress', (WidgetTester tester) async {
+    testWidgets('shows 0% for zero progress', (final WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: AnimatedProgressText(
               progress: 0.0,
@@ -183,9 +180,9 @@ void main() {
       expect(find.textContaining('0%'), findsOneWidget);
     });
 
-    testWidgets('respects custom suffix', (WidgetTester tester) async {
+    testWidgets('respects custom suffix', (final WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: AnimatedProgressText(
               progress: 0.5,
@@ -201,9 +198,9 @@ void main() {
   });
 
   group('AnimatedStatusIndicator', () {
-    testWidgets('renders without errors', (WidgetTester tester) async {
+    testWidgets('renders without errors', (final WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: AnimatedStatusIndicator(
               progress: 0.5,
@@ -216,9 +213,9 @@ void main() {
     });
 
     testWidgets('shows under-budget status when progress < 1.0',
-        (WidgetTester tester) async {
+        (final WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: AnimatedStatusIndicator(
               progress: 0.7,
@@ -232,9 +229,9 @@ void main() {
     });
 
     testWidgets('shows over-budget status when progress >= 1.0',
-        (WidgetTester tester) async {
+        (final WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: AnimatedStatusIndicator(
               progress: 1.2,
@@ -248,9 +245,9 @@ void main() {
     });
 
     testWidgets('animates color transitions smoothly',
-        (WidgetTester tester) async {
+        (final WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: AnimatedStatusIndicator(
               progress: 0.95, // Warning threshold
@@ -263,11 +260,11 @@ void main() {
       expect(find.byType(AnimatedStatusIndicator), findsOneWidget);
     });
 
-    testWidgets('respects custom duration', (WidgetTester tester) async {
+    testWidgets('respects custom duration', (final WidgetTester tester) async {
       const customDuration = Duration(milliseconds: 300);
       
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: AnimatedStatusIndicator(
               progress: 0.5,
@@ -283,9 +280,9 @@ void main() {
 
   group('Animation Integration', () {
     testWidgets('all three widgets animate together smoothly',
-        (WidgetTester tester) async {
+        (final WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: Column(
               children: [
@@ -305,7 +302,7 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('handles rapid progress updates', (WidgetTester tester) async {
+    testWidgets('handles rapid progress updates', (final WidgetTester tester) async {
       final key = GlobalKey<_TestWidgetState>();
       
       await tester.pumpWidget(
@@ -328,7 +325,7 @@ void main() {
 }
 
 class _TestWidget extends StatefulWidget {
-  const _TestWidget({required Key key}) : super(key: key);
+  const _TestWidget({required final Key key}) : super(key: key);
 
   @override
   State<_TestWidget> createState() => _TestWidgetState();
@@ -337,12 +334,12 @@ class _TestWidget extends StatefulWidget {
 class _TestWidgetState extends State<_TestWidget> {
   double _progress = 0.0;
 
-  void updateProgress(double value) {
+  void updateProgress(final double value) {
     setState(() => _progress = value);
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     return Column(
       children: [
         AnimatedProgressIndicator(progress: _progress),

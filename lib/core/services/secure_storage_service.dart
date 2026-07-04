@@ -1,5 +1,5 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Secure storage service for storing sensitive data.
 ///
@@ -16,13 +16,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// final token = await secureStorage.getAuthToken();
 /// ```
 class SecureStorageService {
-  final FlutterSecureStorage _storage;
 
   /// Creates a [SecureStorageService] with the given storage instance.
   ///
   /// Uses default Android options for better security:
   /// - encryptedSharedPreferences: true
   SecureStorageService(this._storage);
+  final FlutterSecureStorage _storage;
 
   // Storage keys
   static const String _keyAuthToken = 'auth_token';
@@ -34,7 +34,7 @@ class SecureStorageService {
   /// Saves the authentication token securely.
   ///
   /// This token is used for API authentication and should be stored securely.
-  Future<void> saveAuthToken(String token) async {
+  Future<void> saveAuthToken(final String token) async {
     await _storage.write(key: _keyAuthToken, value: token);
   }
 
@@ -51,7 +51,7 @@ class SecureStorageService {
   }
 
   /// Saves the refresh token securely.
-  Future<void> saveRefreshToken(String token) async {
+  Future<void> saveRefreshToken(final String token) async {
     await _storage.write(key: _keyRefreshToken, value: token);
   }
 
@@ -68,7 +68,7 @@ class SecureStorageService {
   /// Saves the encryption key for local data encryption.
   ///
   /// This key is used to encrypt/decrypt sensitive local data.
-  Future<void> saveEncryptionKey(String key) async {
+  Future<void> saveEncryptionKey(final String key) async {
     await _storage.write(key: _keyEncryptionKey, value: key);
   }
 
@@ -80,7 +80,7 @@ class SecureStorageService {
   }
 
   /// Saves the user ID.
-  Future<void> saveUserId(String userId) async {
+  Future<void> saveUserId(final String userId) async {
     await _storage.write(key: _keyUserId, value: userId);
   }
 
@@ -92,7 +92,7 @@ class SecureStorageService {
   /// Saves the PIN code securely (hashed).
   ///
   /// Note: The PIN should be hashed before storing.
-  Future<void> savePinCode(String hashedPin) async {
+  Future<void> savePinCode(final String hashedPin) async {
     await _storage.write(key: _keyPinCode, value: hashedPin);
   }
 
@@ -114,7 +114,7 @@ class SecureStorageService {
   }
 
   /// Checks if a specific key exists in secure storage.
-  Future<bool> containsKey(String key) async {
+  Future<bool> containsKey(final String key) async {
     return await _storage.containsKey(key: key);
   }
 
@@ -127,7 +127,7 @@ class SecureStorageService {
 }
 
 /// Provider for FlutterSecureStorage instance.
-final flutterSecureStorageProvider = Provider<FlutterSecureStorage>((ref) {
+final flutterSecureStorageProvider = Provider<FlutterSecureStorage>((final ref) {
   return const FlutterSecureStorage(
     aOptions: AndroidOptions(
       encryptedSharedPreferences: true,
@@ -139,6 +139,6 @@ final flutterSecureStorageProvider = Provider<FlutterSecureStorage>((ref) {
 });
 
 /// Provider for SecureStorageService.
-final secureStorageServiceProvider = Provider<SecureStorageService>((ref) {
+final secureStorageServiceProvider = Provider<SecureStorageService>((final ref) {
   return SecureStorageService(ref.watch(flutterSecureStorageProvider));
 });

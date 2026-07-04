@@ -1,7 +1,9 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
-import '../repositories/transaction_repository.dart';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../models/transaction.dart';
+import '../repositories/transaction_repository.dart';
 import '../services/auth_service.dart';
 
 enum TimeRange { last7d, last30d, last90d }
@@ -9,20 +11,20 @@ enum TimeRange { last7d, last30d, last90d }
 class TimeRangeNotifier extends Notifier<TimeRange> {
   @override
   TimeRange build() => TimeRange.last30d;
-  void setRange(TimeRange r) => state = r;
+  void setRange(final TimeRange r) => state = r;
 }
 
 final selectedTimeRangeProvider =
     NotifierProvider<TimeRangeNotifier, TimeRange>(TimeRangeNotifier.new);
 
 final recentTransactionsProvider = StreamProvider<List<TransactionModel>>((
-  ref,
+  final ref,
 ) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(<TransactionModel>[]);
   final repo = ref.watch(transactionRepositoryProvider);
   final stream = repo.streamForUser(user.uid);
-  return stream.timeout(const Duration(seconds: 15)).handleError((_, __) {});
+  return stream.timeout(const Duration(seconds: 15)).handleError((_, _) {});
 });
 
 class TransactionsCacheNotifier extends Notifier<List<TransactionModel>> {
@@ -30,17 +32,17 @@ class TransactionsCacheNotifier extends Notifier<List<TransactionModel>> {
   List<TransactionModel> build() {
     state = <TransactionModel>[];
     ref.listen<AsyncValue<List<TransactionModel>>>(recentTransactionsProvider, (
-      prev,
-      next,
+      final prev,
+      final next,
     ) {
       next.when(
-        data: (d) {
+        data: (final d) {
           state = d;
         },
         loading: () {
           // keep last known state during loading
         },
-        error: (_, __) {
+        error: (_, _) {
           // keep last known state on error
         },
       );
@@ -54,14 +56,14 @@ final transactionsCacheProvider =
       TransactionsCacheNotifier.new,
     );
 
-final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {
+final filteredTransactionsProvider = Provider<List<TransactionModel>>((final ref) {
   final txsAsync = ref.watch(recentTransactionsProvider);
   // For Insights we want the filtered list to reflect the selected time
   // range exactly. Falling back to the full transactions cache while the
   // stream is loading can surface stale/all-time values in KPIs — avoid
   // that by treating loading/error as an empty list here.
   final txs = txsAsync.maybeWhen(
-    data: (d) => d,
+    data: (final d) => d,
     orElse: () => <TransactionModel>[],
   );
   final range = ref.watch(selectedTimeRangeProvider);
@@ -76,31 +78,31 @@ final filteredTransactionsProvider = Provider<List<TransactionModel>>((ref) {
     cutoff = now.subtract(const Duration(days: 90));
   }
   return txs
-      .where((t) => t.date.isAfter(cutoff))
+      .where((final t) => t.date.isAfter(cutoff))
       .where(
-        (t) =>
+        (final t) =>
             selectedCats.isEmpty ||
             selectedCats.contains(t.categoryId ?? 'Other'),
       )
       .toList();
 });
 
-final monthlyTrendProvider = Provider<List<double>>((ref) {
+final monthlyTrendProvider = Provider<List<double>>((final ref) {
   final txsAsync = ref.watch(recentTransactionsProvider);
   final txs = txsAsync.maybeWhen(
-    data: (d) => d,
+    data: (final d) => d,
     orElse: () => ref.watch(transactionsCacheProvider),
   );
   final now = DateTime.now();
   final months = List.generate(
     6,
-    (i) => DateTime(now.year, now.month - (5 - i), 1),
+    (final i) => DateTime(now.year, now.month - (5 - i)),
   );
   final values = List<double>.filled(6, 0);
   for (final t in txs) {
     for (var i = 0; i < months.length; i++) {
       final m = months[i];
-      final next = DateTime(m.year, m.month + 1, 1);
+      final next = DateTime(m.year, m.month + 1);
       if (t.date.isAfter(m) && t.date.isBefore(next)) {
         values[i] += t.amount.abs();
       }
@@ -109,10 +111,10 @@ final monthlyTrendProvider = Provider<List<double>>((ref) {
   return values;
 });
 
-final categoryBreakdownProvider = Provider<Map<String, double>>((ref) {
+final categoryBreakdownProvider = Provider<Map<String, double>>((final ref) {
   final txs = ref.watch(filteredTransactionsProvider);
   final map = <String, double>{};
-  for (final t in txs.where((t) => t.amount < 0)) {
+  for (final t in txs.where((final t) => t.amount < 0)) {
     final cat = t.categoryId ?? 'Other';
     map[cat] = (map[cat] ?? 0) + t.amount.abs();
   }
@@ -122,7 +124,7 @@ final categoryBreakdownProvider = Provider<Map<String, double>>((ref) {
 class SelectedCategoriesNotifier extends Notifier<Set<String>> {
   @override
   Set<String> build() => <String>{};
-  void toggle(String cat) {
+  void toggle(final String cat) {
     final s = Set<String>.from(state);
     if (s.contains(cat)) {
       s.remove(cat);

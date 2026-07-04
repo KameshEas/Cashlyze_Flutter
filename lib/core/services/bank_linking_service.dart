@@ -2,14 +2,14 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final bankLinkingServiceProvider = Provider<BankLinkingService>((ref) {
+final bankLinkingServiceProvider = Provider<BankLinkingService>((final ref) {
   return BankLinkingService();
 });
 
 /// Mock bank linking service POC.
 class BankLinkingService {
   /// Simulate linking to a bank and returning a list of canonical transactions.
-  Future<List<Map<String, dynamic>>> linkBank(String providerId) async {
+  Future<List<Map<String, dynamic>>> linkBank(final String providerId) async {
     // Simulate network delay
     await Future.delayed(const Duration(seconds: 1));
 

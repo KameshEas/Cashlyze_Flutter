@@ -11,7 +11,7 @@ import '../../../core/models/budget.dart';
 /// - `PUT /budgets/{id}`
 /// - `DELETE /budgets/{id}`
 class BudgetRemoteDataSource {
-  const BudgetRemoteDataSource({required ApiClient apiClient})
+  const BudgetRemoteDataSource({required final ApiClient apiClient})
       : _api = apiClient;
 
   final ApiClient _api;
@@ -19,10 +19,10 @@ class BudgetRemoteDataSource {
   // ── Create ────────────────────────────────────────────────────────────────
 
   Future<BudgetModel> create({
-    required String name,
-    required double allocated,
-    required BudgetPeriod period,
-    List<String> categoryIds = const [],
+    required final String name,
+    required final double allocated,
+    required final BudgetPeriod period,
+    final List<String> categoryIds = const [],
   }) async {
     final response = await _api.post<Map<String, dynamic>>(
       ApiEndpoints.budgets,
@@ -39,7 +39,7 @@ class BudgetRemoteDataSource {
 
   // ── List ──────────────────────────────────────────────────────────────────
 
-  Future<List<BudgetModel>> getAll({int? skip, int? limit}) async {
+  Future<List<BudgetModel>> getAll({final int? skip, final int? limit}) async {
     final response = await _api.get<List<dynamic>>(
       ApiEndpoints.budgets,
       queryParameters: {
@@ -52,7 +52,7 @@ class BudgetRemoteDataSource {
     // sometimes includes deleted items with fields like `deleted`,
     // `deleted_at` or `deletedAt`. Exclude those so the UI does not show
     // stale/removed budgets.
-    final filtered = list.where((entry) {
+    final filtered = list.where((final entry) {
       final map = entry.cast<String, dynamic>();
       if (map.containsKey('deleted')) {
         final v = map['deleted'];
@@ -76,13 +76,13 @@ class BudgetRemoteDataSource {
     }).toList();
 
     return filtered
-        .map((e) => _fromApiJson(e.cast<String, dynamic>()))
+        .map((final e) => _fromApiJson(e.cast<String, dynamic>()))
         .toList();
   }
 
   // ── Get by id ─────────────────────────────────────────────────────────────
 
-  Future<BudgetModel> getById(String id) async {
+  Future<BudgetModel> getById(final String id) async {
     final response =
         await _api.get<Map<String, dynamic>>(ApiEndpoints.budgetById(id));
     return _fromApiJson((response.data as Map).cast<String, dynamic>());
@@ -91,11 +91,11 @@ class BudgetRemoteDataSource {
   // ── Update ────────────────────────────────────────────────────────────────
 
   Future<BudgetModel> update(
-    String id, {
-    String? name,
-    double? allocated,
-    BudgetPeriod? period,
-    List<String>? categoryIds,
+    final String id, {
+    final String? name,
+    final double? allocated,
+    final BudgetPeriod? period,
+    final List<String>? categoryIds,
   }) async {
     final response = await _api.put<Map<String, dynamic>>(
       ApiEndpoints.budgetById(id),
@@ -115,13 +115,13 @@ class BudgetRemoteDataSource {
 
   // ── Delete ────────────────────────────────────────────────────────────────
 
-  Future<void> delete(String id) async {
+  Future<void> delete(final String id) async {
     await _api.delete<void>(ApiEndpoints.budgetById(id));
   }
 
   // ── Mapper ────────────────────────────────────────────────────────────────
 
-  BudgetModel _fromApiJson(Map<String, dynamic> json) {
+  BudgetModel _fromApiJson(final Map<String, dynamic> json) {
     final createdAtRaw = json['created_at'] ?? json['createdAt'];
     final updatedAtRaw = json['updated_at'] ?? json['updatedAt'];
 
@@ -158,7 +158,7 @@ class BudgetRemoteDataSource {
       name: json['name'] as String,
       allocated: (json['allocated'] as num).toDouble(),
       period: BudgetPeriod.values.firstWhere(
-        (p) => p.name == (json['period'] as String),
+        (final p) => p.name == (json['period'] as String),
         orElse: () => BudgetPeriod.monthly,
       ),
       categoryIds: (rawCategoryIds as List?)?.cast<String>() ?? const [],
@@ -171,6 +171,6 @@ class BudgetRemoteDataSource {
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 final budgetRemoteDataSourceProvider =
-    Provider<BudgetRemoteDataSource>((ref) {
+    Provider<BudgetRemoteDataSource>((final ref) {
   return BudgetRemoteDataSource(apiClient: ref.watch(apiClientProvider));
 });

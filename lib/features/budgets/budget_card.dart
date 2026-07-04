@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/budget.dart';
 import '../../core/providers/budget_providers.dart';
+import '../../core/ui/constants.dart';
 import '../../core/utils/format.dart';
 import '../../core/ui/constants.dart';
 import '../../core/ui/motion.dart';
@@ -12,10 +13,6 @@ import '../../core/widgets/animated_progress_indicator.dart';
 import '../../core/widgets/animated_progress_text.dart';
 
 class BudgetCard extends ConsumerStatefulWidget {
-  final BudgetModel budget;
-  final String currency;
-  final bool isSynthetic;
-  final VoidCallback? onAdjust;
 
   const BudgetCard({
     super.key,
@@ -24,6 +21,10 @@ class BudgetCard extends ConsumerStatefulWidget {
     required this.isSynthetic,
     this.onAdjust,
   });
+  final BudgetModel budget;
+  final String currency;
+  final bool isSynthetic;
+  final VoidCallback? onAdjust;
 
   @override
   ConsumerState<BudgetCard> createState() => _BudgetCardState();
@@ -37,7 +38,7 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
     setState(() => _showBack = !_showBack);
   }
 
-  String _getPeriodLabel(BudgetPeriod period) {
+  String _getPeriodLabel(final BudgetPeriod period) {
     switch (period) {
       case BudgetPeriod.daily:
         return 'Daily';
@@ -48,7 +49,7 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
     }
   }
 
-  Color _getPeriodColor(ThemeData theme, BudgetPeriod period) {
+  Color _getPeriodColor(final ThemeData theme, final BudgetPeriod period) {
     switch (period) {
       case BudgetPeriod.daily:
         return Colors.green;
@@ -60,15 +61,15 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final allocated = widget.budget.allocated;
     final spent = ref.watch(
-      budgetsUtilizationProvider.select((m) => m[widget.budget.id] ?? 0.0),
+      budgetsUtilizationProvider.select((final m) => m[widget.budget.id] ?? 0.0),
     );
-    // Instrumentation: always print budget spend info so we can trace
-    // why a budget shows 0 spent during rename operations.
-    print('[BudgetCard] id=${widget.budget.id} name=${widget.budget.name} spent=$spent allocated=$allocated');
+    // Instrumentation: trace budget spend info to debug why a budget
+    // shows 0 spent during rename operations (debug builds only).
+    debugPrint('[BudgetCard] id=${widget.budget.id} name=${widget.budget.name} spent=$spent allocated=$allocated');
     final progress = allocated.isFinite ? (allocated == 0 ? 0.0 : (spent / allocated)) : 0.0;
     final allocatedLabel = allocated.isFinite ? formatAmount(allocated, widget.currency) : '∞';
     final remaining = allocated.isFinite ? (allocated - spent) : double.infinity;
@@ -78,7 +79,7 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
       child: TweenAnimationBuilder<double>(
         tween: Tween(begin: 0, end: _showBack ? math.pi : 0),
         duration: const Duration(milliseconds: 380),
-        builder: (ctx, angle, child) {
+        builder: (final ctx, final angle, final child) {
           final isUnder = angle > (math.pi / 2);
           Widget face;
           if (isUnder) {
@@ -102,7 +103,7 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
     );
   }
 
-  Widget _buildFront(ThemeData theme, String allocatedLabel, double spent, double progress) {
+  Widget _buildFront(final ThemeData theme, final String allocatedLabel, final double spent, final double progress) {
     final periodLabel = _getPeriodLabel(widget.budget.period);
     final periodColor = _getPeriodColor(theme, widget.budget.period);
     
@@ -172,7 +173,7 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
     );
   }
 
-  Widget _buildBack(ThemeData theme, double remaining) {
+  Widget _buildBack(final ThemeData theme, final double remaining) {
     final remLabel = remaining.isFinite ? formatAmount(remaining, widget.currency) : '∞';
     final over = remaining.isFinite ? remaining < 0 : false;
     return Container(

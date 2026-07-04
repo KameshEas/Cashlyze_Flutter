@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 
 /// A group of related SettingCards with a section header and optional description
 class SettingCardGroup extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final List<Widget> cards;
 
   const SettingCardGroup({
     super.key,
@@ -14,9 +10,13 @@ class SettingCardGroup extends StatelessWidget {
     this.subtitle,
     required this.cards,
   });
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final List<Widget> cards;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(final BuildContext context) {
     final theme = Theme.of(context);
 
     return Container(
@@ -72,7 +72,7 @@ class SettingCardGroup extends StatelessWidget {
           Column(
             children: List.generate(
               cards.length,
-              (index) {
+              (final index) {
                 final isLast = index == cards.length - 1;
                 return Column(
                   children: [

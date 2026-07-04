@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/transactions/data/transaction_remote_data_source.dart';
 import '../models/transaction.dart';
 import '../services/auth_service.dart';
-import '../../features/transactions/data/transaction_remote_data_source.dart';
 
 class TransactionRepository {
   TransactionRepository(this._dataSource);
@@ -15,20 +15,20 @@ class TransactionRepository {
   final Map<String, List<TransactionModel>> _cache = {};
   final Map<String, Timer> _pollers = {};
 
-  StreamController<List<TransactionModel>> _controllerFor(String userId) {
+  StreamController<List<TransactionModel>> _controllerFor(final String userId) {
     return _controllers.putIfAbsent(
       userId,
-      () => StreamController<List<TransactionModel>>.broadcast(),
+      StreamController<List<TransactionModel>>.broadcast,
     );
   }
 
-  List<TransactionModel> _sorted(List<TransactionModel> list) {
+  List<TransactionModel> _sorted(final List<TransactionModel> list) {
     final copy = [...list];
-    copy.sort((a, b) => b.date.compareTo(a.date));
+    copy.sort((final a, final b) => b.date.compareTo(a.date));
     return copy;
   }
 
-  int _signature(List<TransactionModel> list) {
+  int _signature(final List<TransactionModel> list) {
     int hash = 0;
     for (final t in list) {
       hash = hash * 31 + t.id.hashCode;
@@ -36,7 +36,7 @@ class TransactionRepository {
     return hash;
   }
 
-  Future<void> _refreshUser(String userId) async {
+  Future<void> _refreshUser(final String userId) async {
     try {
       // Fetch with a paginated limit to avoid loading all transactions on every poll.
       // Pass the current cache count as a guide for the limit.
@@ -58,24 +58,24 @@ class TransactionRepository {
     }
   }
 
-  void _startPolling(String userId) {
+  void _startPolling(final String userId) {
     if (_pollers.containsKey(userId)) return;
     _pollers[userId] = Timer.periodic(
       const Duration(seconds: 30),
-      (_) => _refreshUser(userId),
+      (final _) => _refreshUser(userId),
     );
   }
 
   Future<TransactionModel> create({
-    required String userId,
-    required String title,
-    required double amount,
-    String? categoryId,
-    String? categoryName,
-    bool isIncome = false,
-    required DateTime date,
-    String? notes,
-    List<String>? tags,
+    required final String userId,
+    required final String title,
+    required final double amount,
+    final String? categoryId,
+    final String? categoryName,
+    final bool isIncome = false,
+    required final DateTime date,
+    final String? notes,
+    final List<String>? tags,
   }) async {
     final created = await _dataSource.create(
       title: title,
@@ -88,7 +88,7 @@ class TransactionRepository {
       tags: tags,
     );
     final current = [...(_cache[userId] ?? const <TransactionModel>[])];
-    current.removeWhere((t) => t.id == created.id);
+    current.removeWhere((final t) => t.id == created.id);
     current.insert(0, created);
     final next = _sorted(current);
     _cache[userId] = next;
@@ -96,7 +96,7 @@ class TransactionRepository {
     return created;
   }
 
-  Future<void> update(String userId, String id, Map<String, dynamic> data) async {
+  Future<void> update(final String userId, final String id, final Map<String, dynamic> data) async {
     try {
       final updated = await _dataSource.update(
         id,
@@ -117,7 +117,7 @@ class TransactionRepository {
       );
 
       final current = [...(_cache[userId] ?? const <TransactionModel>[])];
-      final idx = current.indexWhere((t) => t.id == id);
+      final idx = current.indexWhere((final t) => t.id == id);
       if (idx >= 0) {
         current[idx] = updated;
       } else {
@@ -132,19 +132,22 @@ class TransactionRepository {
     }
   }
 
-  Future<void> deleteForUser(String userId, String id) async {
+  Future<void> deleteForUser(final String userId, final String id) async {
     await _dataSource.delete(id);
     final current = [...(_cache[userId] ?? const <TransactionModel>[])];
-    current.removeWhere((t) => t.id == id);
+    current.removeWhere((final t) => t.id == id);
     _cache[userId] = current;
     _controllerFor(userId).add(current);
   }
 
-  Future<List<TransactionModel>> getAllForUser(String userId) =>
+  Future<List<TransactionModel>> getAllForUser(final String userId) =>
       _dataSource.getAll();
 
-  Stream<List<TransactionModel>> streamForUser(String userId) =>
-      Stream<List<TransactionModel>>.multi((controller) async {
+  Stream<List<TransactionModel>> streamForUser(final String userId) =>
+      Stream<List<TransactionModel>>.multi((final controller) async {
+        // Shared, long-lived controller owned by `_controllers` and closed
+        // in `disposeForUser` — not this local scope.
+        // ignore: close_sinks
         final shared = _controllerFor(userId);
         final cached = _cache[userId];
         if (cached != null) {
@@ -157,22 +160,22 @@ class TransactionRepository {
 
         final sub = shared.stream.listen(
           controller.add,
-          onError: (err, _) {
+          onError: (final err, final _) {
             debugPrint('[TransactionRepository] stream error: $err');
           },
         );
 
-        controller.onCancel = () => sub.cancel();
+        controller.onCancel = sub.cancel;
       });
 
   /// Public control: enable periodic polling for a user (used when websocket
   /// fallback to polling is active).
-  void enablePollingForUser(String userId) {
+  void enablePollingForUser(final String userId) {
     _startPolling(userId);
   }
 
   /// Public control: disable periodic polling for a user.
-  void disablePollingForUser(String userId) {
+  void disablePollingForUser(final String userId) {
     final t = _pollers.remove(userId);
     try {
       t?.cancel();
@@ -182,13 +185,13 @@ class TransactionRepository {
   }
 
   /// Apply a remote websocket transaction event to the local cache.
-  void applyRemoteTransactionEvent(String userId, String type, Map<String, dynamic> payload) {
+  void applyRemoteTransactionEvent(final String userId, final String type, final Map<String, dynamic> payload) {
     try {
       if (type == 'transaction_deleted' || type == 'transaction.deleted') {
         final id = payload['transaction_id'] as String? ?? payload['id'] as String?;
         if (id != null) {
           final current = [...(_cache[userId] ?? const <TransactionModel>[])];
-          current.removeWhere((t) => t.id == id);
+          current.removeWhere((final t) => t.id == id);
           _cache[userId] = current;
           _controllerFor(userId).add(current);
         }
@@ -224,7 +227,7 @@ class TransactionRepository {
         );
 
         final current = [...(_cache[userId] ?? const <TransactionModel>[])];
-        final idx = current.indexWhere((t) => t.id == id);
+        final idx = current.indexWhere((final t) => t.id == id);
         if (idx >= 0) {
           current[idx] = created;
         } else {
@@ -240,7 +243,7 @@ class TransactionRepository {
   }
 
   /// Cleans up all resources for a given userId (called on sign-out).
-  void disposeForUser(String userId) {
+  void disposeForUser(final String userId) {
     disablePollingForUser(userId);
     _cache.remove(userId);
     final controller = _controllers.remove(userId);
@@ -252,7 +255,7 @@ class TransactionRepository {
   }
 }
 
-final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
+final transactionRepositoryProvider = Provider<TransactionRepository>((final ref) {
   final repo = TransactionRepository(ref.watch(transactionRemoteDataSourceProvider));
   ref.onDispose(() {
     // Clean up all resources when the provider is disposed
@@ -260,13 +263,13 @@ final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
   return repo;
 });
 
-final userTransactionsProvider = StreamProvider<List<TransactionModel>>((ref) {
+final userTransactionsProvider = StreamProvider<List<TransactionModel>>((final ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) return Stream.value(<TransactionModel>[]);
   return ref
       .watch(transactionRepositoryProvider)
       .streamForUser(user.userId)
-      .handleError((err, _) {
+      .handleError((final err, _) {
         debugPrint('[userTransactionsProvider] error: $err');
       });
 });

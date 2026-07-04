@@ -8,7 +8,7 @@ import '../../../core/models/user_model.dart';
 /// - `GET /users/me`
 /// - `PUT /users/me`
 class UserRemoteDataSource {
-  const UserRemoteDataSource({required ApiClient apiClient})
+  const UserRemoteDataSource({required final ApiClient apiClient})
       : _api = apiClient;
 
   final ApiClient _api;
@@ -30,9 +30,9 @@ class UserRemoteDataSource {
   /// Only pass the fields you want to change; omitted fields are left untouched
   /// by the backend.
   Future<UserModel> updateMe({
-    String? displayName,
-    String? photoURL,
-    Map<String, dynamic>? preferences,
+    final String? displayName,
+    final String? photoURL,
+    final Map<String, dynamic>? preferences,
   }) async {
     final body = <String, dynamic>{
       if (displayName != null) 'display_name': displayName,
@@ -49,7 +49,7 @@ class UserRemoteDataSource {
 
   // ── Mapper ────────────────────────────────────────────────────────────────
 
-  UserModel _fromApiJson(Map<String, dynamic> json) {
+  UserModel _fromApiJson(final Map<String, dynamic> json) {
     final createdAtRaw = json['created_at'];
     final updatedAtRaw = json['updated_at'];
     return UserModel(
@@ -73,6 +73,6 @@ class UserRemoteDataSource {
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
-final userRemoteDataSourceProvider = Provider<UserRemoteDataSource>((ref) {
+final userRemoteDataSourceProvider = Provider<UserRemoteDataSource>((final ref) {
   return UserRemoteDataSource(apiClient: ref.watch(apiClientProvider));
 });

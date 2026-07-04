@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../core/repositories/category_repository.dart';
 import '../../core/services/auth_service.dart';
-import '../../l10n/app_localizations.dart';
 import '../../core/widgets/dialogs.dart';
+import '../../l10n/app_localizations.dart';
 
 class CategoriesScreen extends ConsumerWidget {
   const CategoriesScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     final catsAsync = ref.watch(userCategoriesProvider);
     final t = AppLocalizations.of(context);
     return Scaffold(
@@ -21,8 +22,8 @@ class CategoriesScreen extends ConsumerWidget {
       ),
       body: catsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Failed to load: $e')),
-        data: (list) {
+        error: (final e, _) => Center(child: Text('Failed to load: $e')),
+        data: (final list) {
           if (list.isEmpty) {
             return Center(
               child: Column(
@@ -43,8 +44,8 @@ class CategoriesScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: list.length,
-            separatorBuilder: (sepCtx, i) => const SizedBox(height: 8),
-            itemBuilder: (ctx, i) {
+            separatorBuilder: (final sepCtx, final i) => const SizedBox(height: 8),
+            itemBuilder: (final ctx, final i) {
               final c = list[i];
               return Container(
                 padding: const EdgeInsets.all(12),
@@ -115,12 +116,13 @@ class CategoriesScreen extends ConsumerWidget {
   }
 
   Future<void> _openEdit(
-    BuildContext context,
-    WidgetRef ref, {
-    String? categoryId,
-    String? initialName,
+    final BuildContext context,
+    final WidgetRef ref, {
+    final String? categoryId,
+    final String? initialName,
   }) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     final name = await showInputDialog(
       context,
       title: categoryId == null
@@ -132,7 +134,7 @@ class CategoriesScreen extends ConsumerWidget {
     if (name == null) return;
     if (name.trim().isEmpty) {
       messenger.showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)?.nameEmptyError ?? 'Name cannot be empty')),
+        SnackBar(content: Text(l10n?.nameEmptyError ?? 'Name cannot be empty')),
       );
       return;
     }
@@ -149,7 +151,7 @@ class CategoriesScreen extends ConsumerWidget {
       try {
         ref.invalidate(userCategoriesProvider);
       } catch (_) {}
-      messenger.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)?.saved ?? 'Saved')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n?.saved ?? 'Saved')));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
     }

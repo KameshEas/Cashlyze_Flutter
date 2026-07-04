@@ -13,7 +13,7 @@ import '../../../core/models/emi.dart';
 /// - `GET /emi-plans/{id}/schedules`
 /// - `PUT /emi-plans/{planId}/schedules/{scheduleId}` (mark paid)
 class EmiRemoteDataSource {
-  const EmiRemoteDataSource({required ApiClient apiClient})
+  const EmiRemoteDataSource({required final ApiClient apiClient})
       : _api = apiClient;
 
   final ApiClient _api;
@@ -21,11 +21,11 @@ class EmiRemoteDataSource {
   // ── Plans ─────────────────────────────────────────────────────────────────
 
   Future<EMIPlan> createPlan({
-    required double loanAmount,
-    required double annualInterestRate,
-    required int tenureMonths,
-    required DateTime startDate,
-    required PaymentFrequency frequency,
+    required final double loanAmount,
+    required final double annualInterestRate,
+    required final int tenureMonths,
+    required final DateTime startDate,
+    required final PaymentFrequency frequency,
   }) async {
     final response = await _api.post<Map<String, dynamic>>(
       ApiEndpoints.emiPlans,
@@ -45,23 +45,23 @@ class EmiRemoteDataSource {
   Future<List<EMIPlan>> getAllPlans() async {
     final response = await _api.get<List<dynamic>>(ApiEndpoints.emiPlans);
     final list = (response.data as List).cast<Map<dynamic, dynamic>>();
-    return list.map((e) => _planFromApiJson(e.cast<String, dynamic>())).toList();
+    return list.map((final e) => _planFromApiJson(e.cast<String, dynamic>())).toList();
   }
 
-  Future<EMIPlan> getPlanById(String id) async {
+  Future<EMIPlan> getPlanById(final String id) async {
     final response =
         await _api.get<Map<String, dynamic>>(ApiEndpoints.emiPlanById(id));
     return _planFromApiJson((response.data as Map).cast<String, dynamic>());
   }
 
   Future<EMIPlan> updatePlan(
-    String id, {
-    double? loanAmount,
-    double? annualInterestRate,
-    int? tenureMonths,
-    DateTime? startDate,
-    PaymentFrequency? frequency,
-    bool? active,
+    final String id, {
+    final double? loanAmount,
+    final double? annualInterestRate,
+    final int? tenureMonths,
+    final DateTime? startDate,
+    final PaymentFrequency? frequency,
+    final bool? active,
   }) async {
     final response = await _api.put<Map<String, dynamic>>(
       ApiEndpoints.emiPlanById(id),
@@ -80,24 +80,24 @@ class EmiRemoteDataSource {
     return _planFromApiJson((response.data as Map).cast<String, dynamic>());
   }
 
-  Future<void> deletePlan(String id) async {
+  Future<void> deletePlan(final String id) async {
     await _api.delete<void>(ApiEndpoints.emiPlanById(id));
   }
 
   // ── Schedules ─────────────────────────────────────────────────────────────
 
-  Future<List<EMIPayment>> getSchedule(String planId) async {
+  Future<List<EMIPayment>> getSchedule(final String planId) async {
     final response = await _api.get<List<dynamic>>(
       ApiEndpoints.emiSchedules(planId),
     );
     final list = (response.data as List).cast<Map<dynamic, dynamic>>();
     return list
-        .map((e) => _paymentFromApiJson(planId, e.cast<String, dynamic>()))
+        .map((final e) => _paymentFromApiJson(planId, e.cast<String, dynamic>()))
         .toList();
   }
 
   /// Marks a schedule entry as paid.
-  Future<EMIPayment> markSchedulePaid(String planId, String scheduleId) async {
+  Future<EMIPayment> markSchedulePaid(final String planId, final String scheduleId) async {
     final response = await _api.put<Map<String, dynamic>>(
       ApiEndpoints.emiScheduleById(planId, scheduleId),
       data: {'paid': true},
@@ -110,7 +110,7 @@ class EmiRemoteDataSource {
 
   // ── Mappers ───────────────────────────────────────────────────────────────
 
-  EMIPlan _planFromApiJson(Map<String, dynamic> json) {
+  EMIPlan _planFromApiJson(final Map<String, dynamic> json) {
     final startDateRaw = json['start_date'] ?? json['startDate_ms'];
     final startDate = startDateRaw is String
         ? DateTime.parse(startDateRaw)
@@ -119,15 +119,15 @@ class EmiRemoteDataSource {
     return EMIPlan(
       id: json['id'] as String,
       userId: json['user_id'] as String? ?? json['userId'] as String? ?? '',
-      loanAmount: (json['loan_amount'] ?? json['loanAmount'] as num).toDouble(),
+      loanAmount: ((json['loan_amount'] ?? json['loanAmount']) as num).toDouble(),
       annualInterestRate:
-          (json['annual_interest_rate'] ?? json['annualInterestRate'] as num)
+          ((json['annual_interest_rate'] ?? json['annualInterestRate']) as num)
               .toDouble(),
       tenureMonths:
           (json['tenure_months'] ?? json['tenureMonths']) as int,
       startDate: startDate,
       frequency: PaymentFrequency.values.firstWhere(
-        (f) => f.name == (json['frequency'] as String? ?? 'monthly'),
+        (final f) => f.name == (json['frequency'] as String? ?? 'monthly'),
         orElse: () => PaymentFrequency.monthly,
       ),
       active: json['active'] as bool? ?? true,
@@ -135,7 +135,7 @@ class EmiRemoteDataSource {
   }
 
   EMIPayment _paymentFromApiJson(
-      String planId, Map<String, dynamic> json) {
+      final String planId, final Map<String, dynamic> json) {
     final dueDateRaw = json['due_date'] ?? json['dueDate_ms'];
     final dueDate = dueDateRaw is String
         ? DateTime.parse(dueDateRaw)
@@ -175,6 +175,6 @@ class EmiRemoteDataSource {
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
-final emiRemoteDataSourceProvider = Provider<EmiRemoteDataSource>((ref) {
+final emiRemoteDataSourceProvider = Provider<EmiRemoteDataSource>((final ref) {
   return EmiRemoteDataSource(apiClient: ref.watch(apiClientProvider));
 });

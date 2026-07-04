@@ -19,15 +19,9 @@ import 'retry_interceptor.dart';
 /// - Request/response logging in debug builds
 /// - Typed error mapping ([ApiException] subtypes)
 class ApiClient {
-  ApiClient._({required Dio dio}) : _dio = dio;
-
-  final Dio _dio;
-
-  // ── Factory ───────────────────────────────────────────────────────────────
-
   factory ApiClient.create({
-    required SecureStorageService secureStorage,
-    required void Function() onForceLogout,
+    required final SecureStorageService secureStorage,
+    required final void Function() onForceLogout,
   }) {
     final dio = Dio(
       BaseOptions(
@@ -45,7 +39,7 @@ class ApiClient {
     // Expose the Dio instance in request extras so interceptors can use it.
     dio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) {
+        onRequest: (final options, final handler) {
           options.extra['dio'] = dio;
           handler.next(options);
         },
@@ -67,13 +61,9 @@ class ApiClient {
     if (kDebugMode) {
       dio.interceptors.add(
         LogInterceptor(
-          request: true,
           requestHeader: false, // avoid leaking auth headers in debug logs
-          requestBody: true,
           responseHeader: false,
-          responseBody: true,
-          error: true,
-          logPrint: (obj) => debugApiLog(obj.toString()),
+          logPrint: (final obj) => debugApiLog(obj.toString()),
         ),
       );
     }
@@ -81,12 +71,16 @@ class ApiClient {
     return ApiClient._(dio: dio);
   }
 
+  ApiClient._({required final Dio dio}) : _dio = dio;
+
+  final Dio _dio;
+
   // ── Public HTTP helpers ───────────────────────────────────────────────────
 
   Future<Response<T>> get<T>(
-    String path, {
-    Map<String, dynamic>? queryParameters,
-    Options? options,
+    final String path, {
+    final Map<String, dynamic>? queryParameters,
+    final Options? options,
   }) =>
       _execute(() => _dio.get<T>(
             path,
@@ -95,10 +89,10 @@ class ApiClient {
           ));
 
   Future<Response<T>> post<T>(
-    String path, {
-    dynamic data,
-    Map<String, dynamic>? queryParameters,
-    Options? options,
+    final String path, {
+    final dynamic data,
+    final Map<String, dynamic>? queryParameters,
+    final Options? options,
   }) =>
       _execute(() => _dio.post<T>(
             path,
@@ -108,29 +102,29 @@ class ApiClient {
           ));
 
   Future<Response<T>> put<T>(
-    String path, {
-    dynamic data,
-    Options? options,
+    final String path, {
+    final dynamic data,
+    final Options? options,
   }) =>
       _execute(() => _dio.put<T>(path, data: data, options: options));
 
   Future<Response<T>> patch<T>(
-    String path, {
-    dynamic data,
-    Options? options,
+    final String path, {
+    final dynamic data,
+    final Options? options,
   }) =>
       _execute(() => _dio.patch<T>(path, data: data, options: options));
 
   Future<Response<T>> delete<T>(
-    String path, {
-    dynamic data,
-    Options? options,
+    final String path, {
+    final dynamic data,
+    final Options? options,
   }) =>
       _execute(() => _dio.delete<T>(path, data: data, options: options));
 
   // ── Error mapping ─────────────────────────────────────────────────────────
 
-  Future<Response<T>> _execute<T>(Future<Response<T>> Function() call) async {
+  Future<Response<T>> _execute<T>(final Future<Response<T>> Function() call) async {
     try {
       return await call();
     } on DioException catch (e) {
@@ -142,7 +136,7 @@ class ApiClient {
     }
   }
 
-  ApiException _mapDioException(DioException e) {
+  ApiException _mapDioException(final DioException e) {
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.receiveTimeout:
@@ -161,7 +155,7 @@ class ApiClient {
     }
   }
 
-  ApiException _mapHttpStatus(Response<dynamic>? response) {
+  ApiException _mapHttpStatus(final Response<dynamic>? response) {
     final statusCode = response?.statusCode ?? 0;
     final data = response?.data;
     final message = _extractMessage(data);
@@ -180,7 +174,7 @@ class ApiClient {
     };
   }
 
-  String? _extractMessage(dynamic data) {
+  String? _extractMessage(final dynamic data) {
     if (data is Map<String, dynamic>) {
       return (data['message'] ?? data['detail'] ?? data['error'])?.toString();
     }
@@ -192,7 +186,7 @@ class ApiClient {
 
 /// Override to redirect API debug logs to your preferred sink (e.g. Sentry
 /// breadcrumbs, custom logger).  Defaults to [print].
-void debugApiLog(String message) {
+void debugApiLog(final String message) {
   // ignore: avoid_print
   print('[ApiClient] $message');
 }
@@ -203,7 +197,7 @@ void debugApiLog(String message) {
 ///
 /// On a permanent 401 (token refresh failure), calls [AuthService.signOut]
 /// and clears locally stored tokens so the router guard redirects to login.
-final apiClientProvider = Provider<ApiClient>((ref) {
+final apiClientProvider = Provider<ApiClient>((final ref) {
   final storage = ref.watch(secureStorageServiceProvider);
   return ApiClient.create(
     secureStorage: storage,
