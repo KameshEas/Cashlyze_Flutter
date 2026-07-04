@@ -26,13 +26,7 @@ cache:
 
 before_script:
   - apt-get update -qq
-  - apt-get install -y -qq \
-      openjdk-17-jdk-headless \
-      curl \
-      git \
-      unzip \
-      ruby-dev \
-      npm
+  - apt-get install -y -qq openjdk-17-jdk-headless curl git unzip ruby-dev npm
 
   - export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
   - export PATH="$JAVA_HOME/bin:$PATH"
