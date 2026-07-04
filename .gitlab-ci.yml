@@ -62,32 +62,23 @@ build_release_artifacts:
   script:
     - echo "🔧 Setting up build environment..."
     - flutter pub get
-
-    # Extract version info from pubspec.yaml
     - export PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g')
     - export PKG_BUILD=$(echo "$PKG_VER" | cut -d+ -f2)
     - export BUILD_NUMBER=${PKG_BUILD:-${CI_PIPELINE_ID}}
     - export BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
     - echo "📦 Building: $BUILD_NAME+$BUILD_NUMBER"
-
-    # Restore Android keystore from Base64
     - echo "🔐 Restoring Android signing keystore..."
     - mkdir -p android/app
     - echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/cashlyze-release.jks
     - chmod 600 android/app/cashlyze-release.jks
     - export ANDROID_KEYSTORE_PATH="$(pwd)/android/app/cashlyze-release.jks"
     - echo "✅ Keystore restored"
-
-    # Build APK
     - echo "📱 Building APK for Firebase distribution..."
     - flutter build apk --release --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
     - ls -lh build/app/outputs/apk/release/*.apk | tail -1
-
-    # Build AAB
     - echo "📦 Building AAB for Google Play Store..."
     - flutter build appbundle --release --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
     - ls -lh build/app/outputs/bundle/release/*.aab | tail -1
-
     - echo "✅ Build completed successfully"
 
   artifacts:
