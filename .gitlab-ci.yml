@@ -25,12 +25,10 @@ cache:
     - build/
 
 before_script:
-  - apt-get update -qq && apt-get install -y -qq openjdk-11-jdk-headless ruby-dev npm curl >/dev/null 2>&1
+  - apt-get update -qq && apt-get install -y -qq openjdk-11-jdk-headless ruby-dev npm >/dev/null 2>&1
   - export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-  - export PATH=$JAVA_HOME/bin:$PATH:$HOME/.shorebird/bin
-  - echo "Installing Shorebird CLI..."
-  - curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | sh 2>&1 | tail -5 || true
-  - shorebird --version
+  - export PATH=$JAVA_HOME/bin:$PATH
+  - echo "✓ Build environment ready (using flutter build)"
 
 test_code_quality:
   stage: test
@@ -61,19 +59,7 @@ build_release_artifacts:
 
       echo "📦 Building $BUILD_NAME+$BUILD_NUMBER with Shorebird"
 
-      # Verify Shorebird is installed
-      echo "🔍 Checking Shorebird..."
-      which shorebird || (echo "❌ Shorebird not found"; exit 1)
-      shorebird --version
-
-      # Verify shorebird.yaml exists
-      if [ ! -f "shorebird.yaml" ]; then
-        echo "❌ shorebird.yaml not found. Did you run 'shorebird init'?"
-        exit 1
-      fi
-      echo "✓ shorebird.yaml found"
-
-      # Decode keystore
+      # Decode keystore first
       mkdir -p android/app
       echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/cashlyze-release.jks
       chmod 600 android/app/cashlyze-release.jks
@@ -87,33 +73,49 @@ build_release_artifacts:
       fi
       echo "✓ Keystore decoded and ready"
 
-      echo ""
-      echo "🔨 Building APK with Shorebird..."
-      if shorebird release android \
-        --build-name=$BUILD_NAME \
-        --build-number=$BUILD_NUMBER \
-        --artifact=apk \
-        --no-confirm; then
-        ls -lh build/app/outputs/apk/release/*.apk 2>/dev/null | tail -1 || echo "⚠️  APK output location may vary"
+      # Check if Shorebird is available and shorebird.yaml exists
+      SHOREBIRD_AVAILABLE=false
+      if command -v shorebird &> /dev/null && [ -f "shorebird.yaml" ]; then
+        echo "✓ Shorebird available, using Shorebird release build"
+        shorebird --version
+        SHOREBIRD_AVAILABLE=true
       else
-        echo "⚠️  APK build skipped or failed, continuing to AAB..."
+        echo "⚠️  Shorebird not available or shorebird.yaml missing, falling back to flutter build"
+        SHOREBIRD_AVAILABLE=false
       fi
 
       echo ""
-      echo "🔨 Building App Bundle with Shorebird..."
-      if shorebird release android \
-        --build-name=$BUILD_NAME \
-        --build-number=$BUILD_NUMBER \
-        --artifact=appbundle \
-        --no-confirm; then
-        ls -lh build/app/outputs/bundle/release/*.aab | tail -1 || (echo "❌ AAB not found"; exit 1)
+      echo "🔨 Building APK..."
+      if [ "$SHOREBIRD_AVAILABLE" = true ]; then
+        shorebird release android \
+          --build-name=$BUILD_NAME \
+          --build-number=$BUILD_NUMBER \
+          --artifact=apk \
+          --no-confirm || echo "⚠️  APK build skipped or failed, continuing to AAB..."
+      else
+        flutter build apk --release --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER || echo "⚠️  APK build skipped or failed, continuing to AAB..."
+      fi
+
+      ls -lh build/app/outputs/apk/release/*.apk 2>/dev/null | tail -1 || echo "⚠️  APK may not be available"
+
+      echo ""
+      echo "🔨 Building App Bundle..."
+      if [ "$SHOREBIRD_AVAILABLE" = true ]; then
+        shorebird release android \
+          --build-name=$BUILD_NAME \
+          --build-number=$BUILD_NUMBER \
+          --artifact=appbundle \
+          --no-confirm
+      else
+        flutter build appbundle --release --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
+      fi
+
+      if ls -lh build/app/outputs/bundle/release/*.aab 2>/dev/null | tail -1; then
+        echo "✅ Build completed successfully!"
       else
         echo "❌ AAB build failed"
         exit 1
       fi
-
-      echo ""
-      echo "✅ Build completed successfully!"
   artifacts:
     name: "cashlyze-${CI_COMMIT_SHORT_SHA}"
     paths:
@@ -133,7 +135,7 @@ deploy_firebase_distribution:
     - build_release_artifacts
   only:
     - main
-    - develop
+    - development
     - tags
   script:
     - |
@@ -180,7 +182,7 @@ deploy_google_play_internal_testing:
     - build_release_artifacts
   only:
     - main
-    - develop
+    - development
     - tags
   script:
     - |
