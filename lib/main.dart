@@ -17,6 +17,7 @@ import 'core/providers/realtime_provider.dart';
 import 'core/providers/shared_prefs_provider.dart';
 import 'core/services/local_notification_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/offline_sync_listener.dart';
 import 'features/force_update/widgets/force_update_dialog.dart';
 import 'firebase_options.dart';
 import 'l10n/app_localizations.dart';
@@ -217,7 +218,9 @@ class App extends ConsumerWidget {
       supportedLocales: AppLocalizations.supportedLocales,
       debugShowCheckedModeBanner: false,
       builder: (final context, final child) {
-        return _ForceUpdateMonitor(child: child!);
+        return OfflineSyncListener(
+          child: _ForceUpdateMonitor(child: child!),
+        );
       },
     );
   }
