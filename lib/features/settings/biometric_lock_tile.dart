@@ -5,7 +5,7 @@ import '../../core/providers/biometric_lock_providers.dart';
 import '../../core/services/biometric_service.dart';
 
 class BiometricLockTile extends ConsumerWidget {
-  const BiometricLockTile({final Key? key}) : super(key: key);
+  const BiometricLockTile({super.key});
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
@@ -13,7 +13,7 @@ class BiometricLockTile extends ConsumerWidget {
       data: (final isEnabled) {
         return FutureBuilder<bool>(
           future: BiometricService.isDeviceSupported(),
-          builder: (context, snapshot) {
+          builder: (final context, final snapshot) {
             final isSupported = snapshot.data ?? false;
 
             if (!isSupported) {
@@ -75,7 +75,7 @@ class BiometricLockTile extends ConsumerWidget {
         title: Text('Biometric Lock'),
         trailing: CircularProgressIndicator(),
       ),
-      error: (_, __) => const ListTile(
+      error: (final _, final _) => const ListTile(
         title: Text('Biometric Lock'),
         subtitle: Text('Failed to load settings'),
       ),

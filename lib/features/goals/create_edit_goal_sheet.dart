@@ -77,6 +77,7 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
   }
 
   void _selectIcon() {
+    if (!mounted) return;
     showDialog(
       context: context,
       builder: (final context) => _IconPickerDialog(
@@ -90,6 +91,7 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
   }
 
   void _selectColor() {
+    if (!mounted) return;
     showDialog(
       context: context,
       builder: (final context) => _ColorPickerDialog(
@@ -105,6 +107,7 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
   Future<void> _submit() async {
     if (_nameController.text.isEmpty ||
         _targetAmountController.text.isEmpty) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in required fields')),
       );
@@ -129,11 +132,13 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
     try {
       if (widget.goal == null) {
         await ref.read(goalsServiceProvider).createGoal(goal);
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Goal created successfully')),
         );
       } else {
         await ref.read(goalsServiceProvider).updateGoal(goal.id, goal);
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Goal updated successfully')),
         );
@@ -141,6 +146,7 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
       ref.invalidate(goalsListProvider);
       if (mounted) Navigator.pop(context);
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
@@ -292,7 +298,7 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
                 const Spacer(),
                 Switch(
                   value: _isActive,
-                  onChanged: (value) => setState(() => _isActive = value),
+                  onChanged: (final value) => setState(() => _isActive = value),
                 ),
               ],
             ),
@@ -342,7 +348,7 @@ class _IconPickerDialog extends StatelessWidget {
         shrinkWrap: true,
         children: icons
             .map(
-              (icon) => GestureDetector(
+              (final icon) => GestureDetector(
                 onTap: () => onSelected(icon),
                 child: Container(
                   decoration: BoxDecoration(
@@ -393,7 +399,7 @@ class _ColorPickerDialog extends StatelessWidget {
         shrinkWrap: true,
         children: colors
             .map(
-              (color) => GestureDetector(
+              (final color) => GestureDetector(
                 onTap: () => onSelected(color),
                 child: Container(
                   decoration: BoxDecoration(

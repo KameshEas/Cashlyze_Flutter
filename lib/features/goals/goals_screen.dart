@@ -162,7 +162,7 @@ class GoalsScreen extends ConsumerWidget {
     if (!context.mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (final context) => AlertDialog(
         title: const Text('Delete Goal?'),
         content: const Text('This action cannot be undone.'),
         actions: [

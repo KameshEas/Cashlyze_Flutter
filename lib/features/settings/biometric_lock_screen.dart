@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/providers/biometric_lock_providers.dart';
 import '../../core/services/biometric_service.dart';
 
 class BiometricLockScreen extends ConsumerStatefulWidget {
-  const BiometricLockScreen({final Key? key}) : super(key: key);
+  const BiometricLockScreen({super.key});
 
   @override
   ConsumerState<BiometricLockScreen> createState() =>
@@ -38,8 +37,8 @@ class _BiometricLockScreenState extends ConsumerState<BiometricLockScreen> {
 
   @override
   Widget build(final BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false,
+    return PopScope(
+      canPop: false,
       child: Scaffold(
         body: Center(
           child: Column(

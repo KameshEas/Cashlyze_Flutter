@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
 
 import '../../core/api/api_client.dart';
 import '../../core/api/api_endpoints.dart';
@@ -20,7 +19,7 @@ class GoalsService {
     final int limit = 100,
   }) async {
     try {
-      final response = await _apiClient.dio.get(
+      final response = await _apiClient.get<List<dynamic>>(
         ApiEndpoints.savingsGoals,
         queryParameters: {
           'active_only': activeOnly,
@@ -28,7 +27,7 @@ class GoalsService {
           'limit': limit,
         },
       );
-      final List<dynamic> data = response.data;
+      final List<dynamic> data = response.data ?? [];
       return data.map((final e) => GoalsModel.fromJson(e as Map<String, dynamic>)).toList();
     } catch (e) {
       rethrow;
@@ -37,7 +36,7 @@ class GoalsService {
 
   Future<GoalsModel> createGoal(final GoalsModel goal) async {
     try {
-      final response = await _apiClient.dio.post(
+      final response = await _apiClient.post<Map<String, dynamic>>(
         ApiEndpoints.savingsGoals,
         data: goal.toJson(),
       );
@@ -49,7 +48,7 @@ class GoalsService {
 
   Future<GoalsModel> updateGoal(final String goalId, final GoalsModel goal) async {
     try {
-      final response = await _apiClient.dio.put(
+      final response = await _apiClient.put<Map<String, dynamic>>(
         '${ApiEndpoints.savingsGoals}/$goalId',
         data: goal.toJson(),
       );
@@ -61,7 +60,7 @@ class GoalsService {
 
   Future<void> deleteGoal(final String goalId) async {
     try {
-      await _apiClient.dio.delete('${ApiEndpoints.savingsGoals}/$goalId');
+      await _apiClient.delete('${ApiEndpoints.savingsGoals}/$goalId');
     } catch (e) {
       rethrow;
     }
@@ -72,7 +71,7 @@ class GoalsService {
     final double amount,
   ) async {
     try {
-      final response = await _apiClient.dio.post(
+      final response = await _apiClient.post<Map<String, dynamic>>(
         '${ApiEndpoints.savingsGoals}/$goalId/progress',
         queryParameters: {'amount': amount},
       );
@@ -85,7 +84,7 @@ class GoalsService {
 
 final goalsListProvider = FutureProvider<List<GoalsModel>>((final ref) async {
   final service = ref.watch(goalsServiceProvider);
-  return service.listGoals(activeOnly: false);
+  return service.listGoals();
 });
 
 final goalsActiveListProvider = FutureProvider<List<GoalsModel>>((final ref) async {

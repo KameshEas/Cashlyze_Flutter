@@ -94,6 +94,7 @@ class ScanNotifier extends Notifier<ScanState> {
     try {
       final appDir = await getApplicationDocumentsDirectory();
       final receiptsDir = Directory('${appDir.path}/receipts');
+      // ignore: avoid_slow_async_io
       if (!await receiptsDir.exists()) {
         await receiptsDir.create(recursive: true);
       }

@@ -21,14 +21,14 @@ class BiometricLockNotifier extends AsyncNotifier<bool> {
     final supported = await BiometricService.isDeviceSupported();
     if (supported) {
       await prefs.setBool('biometric_lock_enabled', true);
-      state = AsyncValue.data(true);
+      state = const AsyncValue.data(true);
     }
   }
 
   Future<void> disable() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('biometric_lock_enabled', false);
-    state = AsyncValue.data(false);
+    state = const AsyncValue.data(false);
   }
 }
 

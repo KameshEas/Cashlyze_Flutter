@@ -13,7 +13,7 @@ class BiometricService {
 
   static Future<bool> isDeviceCapable() async {
     try {
-      return await _localAuth.deviceSupportsBiometrics;
+      return await _localAuth.canCheckBiometrics;
     } catch (_) {
       return false;
     }

@@ -72,7 +72,7 @@ class OfflineQueueService {
       [userId],
     );
 
-    return rows.map((final row) => _rowToTransaction(row)).toList();
+    return rows.map(_rowToTransaction).toList();
   }
 
   Future<List<QueuedTransaction>> getAllForUser(final String userId) async {
@@ -85,7 +85,7 @@ class OfflineQueueService {
       [userId],
     );
 
-    return rows.map((final row) => _rowToTransaction(row)).toList();
+    return rows.map(_rowToTransaction).toList();
   }
 
   Future<QueuedTransaction?> getTransaction(final String id) async {
@@ -159,7 +159,7 @@ class OfflineQueueService {
       categoryId: row['category_id'] as String?,
       categoryName: row['category_name'] as String?,
       notes: row['notes'] as String?,
-      tags: (row['tags'] as String?)?.split(','),
+      tags: (row['tags'] as String?)?.split(',').cast<String>(),
       accountId: row['account_id'] as String?,
       attachmentPath: row['attachment_path'] as String?,
       createdAt: DateTime.parse(row['created_at'] as String),

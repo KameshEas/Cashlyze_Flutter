@@ -24,7 +24,6 @@ class GoalListItem extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               GoalProgressRing(
                 progress: goal.progressPercent ?? goal.calculatedProgress,

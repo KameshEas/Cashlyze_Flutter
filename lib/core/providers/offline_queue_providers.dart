@@ -1,14 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqlite_async/sqlite_async.dart';
 
-import '../../core/services/offline_queue_service.dart';
-import '../../core/services/sync_service.dart';
 import '../../core/api/api_client.dart';
 import '../../core/models/queued_transaction.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/offline_queue_service.dart';
+import '../../core/services/sync_service.dart';
 
 final _databaseProvider = FutureProvider<SqliteDatabase>((final ref) async {
-  final db = SqliteDatabase(await SqliteDatabase.tempFromAsset(''));
+  final db = SqliteDatabase(path: 'cashlyze_offline.db');
   return db;
 });
 
@@ -21,8 +21,7 @@ final offlineQueueServiceProvider =
 });
 
 final syncServiceProvider = Provider<SyncService>((final ref) {
-  final apiClient = ref.watch(apiClientProvider);
-  // This will be set once the queue service is ready
+  // This will be initialized when needed in OfflineQueueNotifier
   throw Exception('Sync service not initialized');
 });
 
