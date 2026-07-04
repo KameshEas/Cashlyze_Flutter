@@ -5,7 +5,7 @@ stages:
   - deploy_production
 
 variables:
-  FLUTTER_VERSION: "3.35.7"
+  FLUTTER_VERSION: "stable"
   GRADLE_CACHE_PATH: "$CI_PROJECT_DIR/.gradle"
   FLUTTER_PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
   FLUTTER_BUILD_MODE: "release"
@@ -38,7 +38,7 @@ before_script:
 
 test_code_quality:
   stage: test
-  image: ghcr.io/cirruslabs/flutter:3.35.7
+  image: ghcr.io/cirruslabs/flutter:stable
   script:
     - echo "✓ Running Flutter analysis..."
     - flutter --version
@@ -51,7 +51,7 @@ test_code_quality:
 
 build_release_artifacts:
   stage: build
-  image: ghcr.io/cirruslabs/flutter:3.35.7
+  image: ghcr.io/cirruslabs/flutter:stable
   script:
     - |
       set -e
@@ -108,7 +108,7 @@ build_release_artifacts:
 
 build_release_shorebird:
   stage: build
-  image: ghcr.io/cirruslabs/flutter:3.35.7
+  image: ghcr.io/cirruslabs/flutter:stable
   only:
     - merge_requests
   script:
@@ -190,7 +190,7 @@ build_release_shorebird:
 
 deploy_firebase_distribution:
   stage: deploy_internal
-  image: ghcr.io/cirruslabs/flutter:3.35.7
+  image: ghcr.io/cirruslabs/flutter:stable
   dependencies:
     - build_release_artifacts
   only:
@@ -237,7 +237,7 @@ deploy_firebase_distribution:
 
 deploy_google_play_internal_testing:
   stage: deploy_internal
-  image: ghcr.io/cirruslabs/flutter:3.35.7
+  image: ghcr.io/cirruslabs/flutter:stable
   dependencies:
     - build_release_artifacts
   only:
@@ -301,7 +301,7 @@ deploy_google_play_internal_testing:
 
 deploy_google_play_production:
   stage: deploy_production
-  image: ghcr.io/cirruslabs/flutter:3.35.7
+  image: ghcr.io/cirruslabs/flutter:stable
   dependencies:
     - build_release_artifacts
   only:
