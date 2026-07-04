@@ -32,7 +32,7 @@ before_script:
 
 test_code_quality:
   stage: test
-  image: ghcr.io/cirruslabs/flutter:3.19.6
+  image: ghcr.io/cirruslabs/flutter:stable
   script:
     - echo "✓ Running Flutter analysis..."
     - flutter --version
@@ -45,7 +45,7 @@ test_code_quality:
 
 build_release_artifacts:
   stage: build
-  image: ghcr.io/cirruslabs/flutter:3.19.6
+  image: ghcr.io/cirruslabs/flutter:stable
   script:
     - |
       set -e
@@ -130,7 +130,7 @@ build_release_artifacts:
 
 deploy_firebase_distribution:
   stage: deploy_internal
-  image: ghcr.io/cirruslabs/flutter:3.19.6
+  image: ghcr.io/cirruslabs/flutter:stable
   dependencies:
     - build_release_artifacts
   only:
@@ -177,7 +177,7 @@ deploy_firebase_distribution:
 
 deploy_google_play_internal_testing:
   stage: deploy_internal
-  image: ghcr.io/cirruslabs/flutter:3.19.6
+  image: ghcr.io/cirruslabs/flutter:stable
   dependencies:
     - build_release_artifacts
   only:
@@ -241,7 +241,7 @@ deploy_google_play_internal_testing:
 
 deploy_google_play_production:
   stage: deploy_production
-  image: ghcr.io/cirruslabs/flutter:3.19.6
+  image: ghcr.io/cirruslabs/flutter:stable
   dependencies:
     - build_release_artifacts
   only:
