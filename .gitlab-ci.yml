@@ -172,15 +172,17 @@ build_release_shorebird:
   image: ghcr.io/cirruslabs/flutter:stable
   only:
     - merge_requests
+
   script:
     - |
       set -e
+
       echo "📦 Installing Shorebird CLI..."
       curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh | bash
       export PATH="$HOME/.shorebird/bin:$PATH"
       shorebird --version
 
-      echo "Setting up build environment..."
+      echo "📦 Fetching dependencies..."
       flutter pub get
 
       PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g')
@@ -188,64 +190,61 @@ build_release_shorebird:
       BUILD_NUMBER=${PKG_BUILD:-${CI_PIPELINE_ID}}
       BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
 
-      echo "📦 Building $BUILD_NAME+$BUILD_NUMBER (Shorebird OTA)"
+      echo "📦 Building Shorebird Release $BUILD_NAME+$BUILD_NUMBER"
 
-      # Verify shorebird.yaml exists
       if [ ! -f "shorebird.yaml" ]; then
-        echo "⚠️  shorebird.yaml not found. Run 'shorebird init' locally first."
-        echo "Skipping Shorebird build..."
-        exit 0
+        echo "❌ shorebird.yaml not found. Run 'shorebird init' locally."
+        exit 1
       fi
+
       echo "✓ shorebird.yaml found"
 
-      # Decode keystore
+      # Decode Android keystore
       mkdir -p android/app
       printf "%s" "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/cashlyze-release.jks
+
       export ANDROID_KEYSTORE_PATH="$(pwd)/android/app/cashlyze-release.jks"
       export ANDROID_KEY_ALIAS="${ANDROID_KEY_ALIAS:-cashlyze}"
       export ANDROID_KEY_PASSWORD="$ANDROID_KEYSTORE_PASSWORD"
 
       if [ ! -f "$ANDROID_KEYSTORE_PATH" ]; then
-        echo "❌ Keystore file not created. Check ANDROID_KEYSTORE_BASE64 variable."
+        echo "❌ Failed to create keystore."
         exit 1
       fi
-      echo "✓ Keystore decoded and ready"
+
+      echo "✓ Keystore ready"
 
       echo ""
-      echo "🔨 Building APK with Shorebird..."
-      shorebird release android \
-        --build-name=$BUILD_NAME \
-        --build-number=$BUILD_NUMBER \
-        --artifact=apk \
-        --no-confirm || echo "⚠️  APK build skipped"
+      echo "🐦 Building & Publishing Shorebird AAB..."
 
-      ls -lh build/app/outputs/apk/release/*.apk 2>/dev/null | tail -1 || echo "⚠️  APK may not be available"
-
-      echo ""
-      echo "🔨 Building App Bundle with Shorebird..."
       shorebird release android \
-        --build-name=$BUILD_NAME \
-        --build-number=$BUILD_NUMBER \
-        --artifact=appbundle \
+        --build-name="$BUILD_NAME" \
+        --build-number="$BUILD_NUMBER" \
+        --artifact=aab \
         --no-confirm
 
-      if ls -lh build/app/outputs/bundle/release/*.aab 2>/dev/null | tail -1; then
-        echo "✅ Shorebird build completed successfully!"
+      echo ""
+      echo "📦 Verifying AAB..."
+
+      if ls -lh build/app/outputs/bundle/release/*.aab; then
+        echo "✅ Shorebird AAB build completed successfully!"
       else
-        echo "❌ AAB build failed"
+        echo "❌ AAB not found."
         exit 1
       fi
+
   artifacts:
     name: "cashlyze-shorebird-${CI_COMMIT_SHORT_SHA}"
     paths:
-      - build/app/outputs/apk/release/*.apk
       - build/app/outputs/bundle/release/*.aab
     expire_in: 1 week
+
   retry:
     max: 2
     when:
       - runner_system_failure
       - stuck_or_timeout_failure
+
   allow_failure: true
 
 deploy_firebase_distribution:
