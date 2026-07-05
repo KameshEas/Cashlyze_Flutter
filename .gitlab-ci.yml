@@ -10,7 +10,6 @@ variables:
   FLUTTER_PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
   FLUTTER_BUILD_MODE: "release"
   ANDROID_KEYSTORE_PASSWORD: "$ANDROID_STORE_PASSWORD"
-  # Default to internal track unless overridden
   GOOGLE_PLAY_TRACK: "internal"
   GOOGLE_PLAY_RELEASE_STATUS: "draft"
 
@@ -44,135 +43,15 @@ test_code_quality:
   image: ghcr.io/cirruslabs/flutter:stable
   script:
     - echo "✓ Running Flutter analysis..."
-    - flutter --version
-    - flutter pub get
     - dart analyze
     - echo "✅ Code quality check passed"
   allow_failure: true
   except:
     - tags
 
-build_release_artifacts:
-  stage: build
-  image: ghcr.io/cirruslabs/flutter:stable
-
-  script:
-    - |
-      set -euo pipefail
-
-      echo "═══════════════════════════════════════"
-      echo "🚀 Cashlyze Release Build"
-      echo "═══════════════════════════════════════"
-
-      flutter --version
-      dart --version
-      java -version
-
-      echo ""
-      echo "🧹 Cleaning project..."
-      flutter clean
-
-      echo ""
-      echo "📦 Installing dependencies..."
-      flutter pub get
-
-      PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //; s/"//g')
-      BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
-      BUILD_NUMBER=$(echo "$PKG_VER" | cut -d+ -f2)
-
-      if [ -z "$BUILD_NUMBER" ]; then
-        BUILD_NUMBER=$CI_PIPELINE_IID
-      fi
-
-      echo ""
-      echo "📦 Version: ${BUILD_NAME}+${BUILD_NUMBER}"
-
-      ############################################
-      # Decode Android Keystore
-      ############################################
-
-      mkdir -p android/app
-
-      printf "%s" "$ANDROID_KEYSTORE_BASE64" \
-        | base64 --decode > android/app/cashlyze-release.jks
-      echo "Store password length: ${#ANDROID_KEYSTORE_PASSWORD}"
-      echo "Alias: $ANDROID_KEY_ALIAS"
-      export ANDROID_KEYSTORE_PATH="$(pwd)/android/app/cashlyze-release.jks"
-      export ANDROID_KEY_ALIAS="${ANDROID_KEY_ALIAS:-cashlyze}"
-      export ANDROID_KEY_PASSWORD="${ANDROID_KEY_PASSWORD:-$ANDROID_KEYSTORE_PASSWORD}"
-
-      if [ ! -f "$ANDROID_KEYSTORE_PATH" ]; then
-        echo "❌ Keystore not found."
-        exit 1
-      fi
-
-      echo ""
-      echo "🔐 Verifying keystore..."
-
-      ls -lh "$ANDROID_KEYSTORE_PATH"
-
-      keytool \
-        -list \
-        -v \
-        -storetype PKCS12 \
-        -keystore "$ANDROID_KEYSTORE_PATH" \
-        -storepass "$ANDROID_KEYSTORE_PASSWORD" \
-        -alias "$ANDROID_KEY_ALIAS"
-
-      echo "✅ Keystore verified."
-
-      ############################################
-      # Build APK
-      ############################################
-
-      echo ""
-      echo "📱 Building APK..."
-
-      flutter build apk \
-        --release \
-        --build-name="$BUILD_NAME" \
-        --build-number="$BUILD_NUMBER"
-
-      ls -lh build/app/outputs/flutter-apk/
-
-      ############################################
-      # Build App Bundle
-      ############################################
-
-      echo ""
-      echo "📦 Building App Bundle..."
-
-      flutter build appbundle \
-        --release \
-        --build-name="$BUILD_NAME" \
-        --build-number="$BUILD_NUMBER"
-
-      ls -lh build/app/outputs/bundle/release/
-
-      echo ""
-      echo "✅ Release build completed successfully."
-
-  artifacts:
-    name: "cashlyze-${CI_COMMIT_SHORT_SHA}"
-
-    paths:
-      - build/app/outputs/flutter-apk/*.apk
-      - build/app/outputs/bundle/release/*.aab
-
-    expire_in: 1 week
-
-  retry:
-    max: 2
-    when:
-      - runner_system_failure
-      - stuck_or_timeout_failure
-
 build_release_shorebird:
   stage: build
   image: ghcr.io/cirruslabs/flutter:stable
-  only:
-    - merge_requests
-
   script:
     - |
       set -e
@@ -183,7 +62,6 @@ build_release_shorebird:
       shorebird --version
 
       echo "📦 Fetching dependencies..."
-      flutter pub get
 
       PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g')
       PKG_BUILD=$(echo "$PKG_VER" | cut -d+ -f2)
@@ -233,10 +111,27 @@ build_release_shorebird:
         exit 1
       fi
 
+            shorebird release android \
+        --build-name="$BUILD_NAME" \
+        --build-number="$BUILD_NUMBER" \
+        --artifact=apk \
+        --no-confirm
+
+      echo ""
+      echo "📦 Verifying APK..."
+
+      if ls -lh build/app/outputs/bundle/release/*.apk; then
+        echo "✅ Shorebird APK build completed successfully!"
+      else
+        echo "❌ APK not found."
+        exit 1
+      fi
+
   artifacts:
     name: "cashlyze-shorebird-${CI_COMMIT_SHORT_SHA}"
     paths:
       - build/app/outputs/bundle/release/*.aab
+      - build/app/outputs/bundle/release/*.apk
     expire_in: 1 week
 
   retry:
@@ -247,15 +142,39 @@ build_release_shorebird:
 
   allow_failure: true
 
+build_patch_shorebird:
+  stage: build
+  image: ghcr.io/cirruslabs/flutter:stable
+  only:
+    - prod
+  script:
+    - |
+      set -e
+
+      echo "📦 Installing Shorebird..."
+      curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh | bash
+      export PATH="$HOME/.shorebird/bin:$PATH"
+
+      flutter pub get
+
+      PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g')
+
+      echo "🐦 Creating OTA Patch for $PKG_VER"
+
+      shorebird patch \
+        --platforms=android \
+        --release-version="$PKG_VER" \
+        --no-confirm
+
+      echo "✅ OTA Patch Published"
+
 deploy_firebase_distribution:
   stage: deploy_internal
   image: ghcr.io/cirruslabs/flutter:stable
   dependencies:
     - build_release_artifacts
   only:
-    - main
     - development
-    - tags
   script:
     - |
       set -e
@@ -300,9 +219,7 @@ deploy_google_play_internal_testing:
   dependencies:
     - build_release_artifacts
   only:
-    - main
     - development
-    - tags
   script:
     - |
       set -e
@@ -364,9 +281,7 @@ deploy_google_play_production:
   dependencies:
     - build_release_artifacts
   only:
-    - main
     - prod
-    - tags
   when: manual
   script:
     - |
