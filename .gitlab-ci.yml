@@ -201,7 +201,6 @@ build_release_shorebird:
       # Decode keystore
       mkdir -p android/app
       printf "%s" "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/cashlyze-release.jks
-      keytool -list -keystore android/app/cashlyze-release.jks -storepass "$ANDROID_KEYSTORE_PASSWORD" chmod 600 android/app/cashlyze-release.jks
       export ANDROID_KEYSTORE_PATH="$(pwd)/android/app/cashlyze-release.jks"
       export ANDROID_KEY_ALIAS="${ANDROID_KEY_ALIAS:-cashlyze}"
       export ANDROID_KEY_PASSWORD="$ANDROID_KEYSTORE_PASSWORD"
@@ -367,6 +366,7 @@ deploy_google_play_production:
     - build_release_artifacts
   only:
     - main
+    - prod
     - tags
   when: manual
   script:
