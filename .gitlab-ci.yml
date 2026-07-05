@@ -95,7 +95,8 @@ build_release_artifacts:
 
       printf "%s" "$ANDROID_KEYSTORE_BASE64" \
         | base64 --decode > android/app/cashlyze-release.jks
-
+      echo "Store password length: ${#ANDROID_KEYSTORE_PASSWORD}"
+      echo "Alias: $ANDROID_KEY_ALIAS"
       export ANDROID_KEYSTORE_PATH="$(pwd)/android/app/cashlyze-release.jks"
       export ANDROID_KEY_ALIAS="${ANDROID_KEY_ALIAS:-cashlyze}"
       export ANDROID_KEY_PASSWORD="${ANDROID_KEY_PASSWORD:-$ANDROID_KEYSTORE_PASSWORD}"
