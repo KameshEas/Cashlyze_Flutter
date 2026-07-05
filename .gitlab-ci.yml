@@ -55,54 +55,111 @@ test_code_quality:
 build_release_artifacts:
   stage: build
   image: ghcr.io/cirruslabs/flutter:stable
+
   script:
     - |
-      set -e
-      echo "Setting up build environment..."
+      set -euo pipefail
+
+      echo "═══════════════════════════════════════"
+      echo "🚀 Cashlyze Release Build"
+      echo "═══════════════════════════════════════"
+
+      flutter --version
+      dart --version
+      java -version
+
+      echo ""
+      echo "🧹 Cleaning project..."
+      flutter clean
+
+      echo ""
+      echo "📦 Installing dependencies..."
       flutter pub get
 
-      PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g')
-      PKG_BUILD=$(echo "$PKG_VER" | cut -d+ -f2)
-      BUILD_NUMBER=${PKG_BUILD:-${CI_PIPELINE_ID}}
+      PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //; s/"//g')
       BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
+      BUILD_NUMBER=$(echo "$PKG_VER" | cut -d+ -f2)
 
-      echo "📦 Building $BUILD_NAME+$BUILD_NUMBER (Flutter)"
+      if [ -z "$BUILD_NUMBER" ]; then
+        BUILD_NUMBER=$CI_PIPELINE_IID
+      fi
 
-      # Decode keystore
+      echo ""
+      echo "📦 Version: ${BUILD_NAME}+${BUILD_NUMBER}"
+
+      ############################################
+      # Decode Android Keystore
+      ############################################
+
       mkdir -p android/app
-      printf "%s" "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/cashlyze-release.jks
-      keytool -list -keystore android/app/cashlyze-release.jks -storepass "$ANDROID_KEYSTORE_PASSWORD" chmod 600 android/app/cashlyze-release.jks
+
+      printf "%s" "$ANDROID_KEYSTORE_BASE64" \
+        | base64 --decode > android/app/cashlyze-release.jks
+
       export ANDROID_KEYSTORE_PATH="$(pwd)/android/app/cashlyze-release.jks"
       export ANDROID_KEY_ALIAS="${ANDROID_KEY_ALIAS:-cashlyze}"
-      export ANDROID_KEY_PASSWORD="$ANDROID_KEYSTORE_PASSWORD"
+      export ANDROID_KEY_PASSWORD="${ANDROID_KEY_PASSWORD:-$ANDROID_KEYSTORE_PASSWORD}"
 
       if [ ! -f "$ANDROID_KEYSTORE_PATH" ]; then
-        echo "❌ Keystore file not created. Check ANDROID_KEYSTORE_BASE64 variable."
+        echo "❌ Keystore not found."
         exit 1
       fi
-      echo "✓ Keystore decoded and ready"
 
       echo ""
-      echo "🔨 Building APK..."
-      flutter build apk --release --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER || echo "⚠️  APK build skipped"
-      ls -lh build/app/outputs/apk/release/*.apk 2>/dev/null | tail -1 || echo "⚠️  APK may not be available"
+      echo "🔐 Verifying keystore..."
+
+      ls -lh "$ANDROID_KEYSTORE_PATH"
+
+      keytool \
+        -list \
+        -v \
+        -storetype PKCS12 \
+        -keystore "$ANDROID_KEYSTORE_PATH" \
+        -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+        -alias "$ANDROID_KEY_ALIAS"
+
+      echo "✅ Keystore verified."
+
+      ############################################
+      # Build APK
+      ############################################
 
       echo ""
-      echo "🔨 Building App Bundle..."
-      flutter build appbundle --release --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
+      echo "📱 Building APK..."
 
-      if ls -lh build/app/outputs/bundle/release/*.aab 2>/dev/null | tail -1; then
-        echo "✅ Build completed successfully!"
-      else
-        echo "❌ AAB build failed"
-        exit 1
-      fi
+      flutter build apk \
+        --release \
+        --build-name="$BUILD_NAME" \
+        --build-number="$BUILD_NUMBER"
+
+      ls -lh build/app/outputs/flutter-apk/
+
+      ############################################
+      # Build App Bundle
+      ############################################
+
+      echo ""
+      echo "📦 Building App Bundle..."
+
+      flutter build appbundle \
+        --release \
+        --build-name="$BUILD_NAME" \
+        --build-number="$BUILD_NUMBER"
+
+      ls -lh build/app/outputs/bundle/release/
+
+      echo ""
+      echo "✅ Release build completed successfully."
+
   artifacts:
     name: "cashlyze-${CI_COMMIT_SHORT_SHA}"
+
     paths:
-      - build/app/outputs/apk/release/*.apk
+      - build/app/outputs/flutter-apk/*.apk
       - build/app/outputs/bundle/release/*.aab
+
     expire_in: 1 week
+
   retry:
     max: 2
     when:
