@@ -52,32 +52,19 @@ test_code_quality:
 build_release_shorebird:
   stage: build
   image: ghcr.io/cirruslabs/flutter:stable
+
   script:
     - |
       set -e
-
       echo "📦 Installing Shorebird CLI..."
       curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh | bash
       export PATH="$HOME/.shorebird/bin:$PATH"
       shorebird --version
 
-      echo "📦 Fetching dependencies..."
-
-      PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g')
-      PKG_BUILD=$(echo "$PKG_VER" | cut -d+ -f2)
-      BUILD_NUMBER=${PKG_BUILD:-${CI_PIPELINE_ID}}
+      PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //; s/"//g')
       BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
+      BUILD_NUMBER=$(echo "$PKG_VER" | cut -d+ -f2)
 
-      echo "📦 Building Shorebird Release $BUILD_NAME+$BUILD_NUMBER"
-
-      if [ ! -f "shorebird.yaml" ]; then
-        echo "❌ shorebird.yaml not found. Run 'shorebird init' locally."
-        exit 1
-      fi
-
-      echo "✓ shorebird.yaml found"
-
-      # Decode Android keystore
       mkdir -p android/app
       printf "%s" "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/cashlyze-release.jks
 
@@ -85,31 +72,54 @@ build_release_shorebird:
       export ANDROID_KEY_ALIAS="${ANDROID_KEY_ALIAS:-cashlyze}"
       export ANDROID_KEY_PASSWORD="$ANDROID_KEYSTORE_PASSWORD"
 
-      if [ ! -f "$ANDROID_KEYSTORE_PATH" ]; then
-        echo "❌ Failed to create keystore."
-        exit 1
-      fi
-
-      echo "✓ Keystore ready"
-
-      echo ""
-      echo "🐦 Building & Publishing Shorebird AAB..."
+      echo "🐦 Building Shorebird AAB..."
 
       shorebird release android \
         --build-name="$BUILD_NAME" \
         --build-number="$BUILD_NUMBER" \
-        --artifact=aab \
         --no-confirm
 
       echo ""
       echo "📦 Verifying AAB..."
 
-      if ls -lh build/app/outputs/bundle/release/*.aab; then
-        echo "✅ Shorebird AAB build completed successfully!"
-      else
-        echo "❌ AAB not found."
-        exit 1
-      fi
+      ls -lh build/app/outputs/bundle/release/
+
+      test -f build/app/outputs/bundle/release/app-release.aab
+
+      echo "✅ Shorebird release completed."
+
+  artifacts:
+    name: "cashlyze-aab-${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - build/app/outputs/bundle/release/app-release.aab
+    expire_in: 1 week
+
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+
+build_firebase_apk:
+  stage: build
+  image: ghcr.io/cirruslabs/flutter:stable
+
+  script:
+    - |
+      set -e
+
+      PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //; s/"//g')
+      BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
+      BUILD_NUMBER=$(echo "$PKG_VER" | cut -d+ -f2)
+
+      mkdir -p android/app
+      printf "%s" "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/cashlyze-release.jks
+
+      export ANDROID_KEYSTORE_PATH="$(pwd)/android/app/cashlyze-release.jks"
+      export ANDROID_KEY_ALIAS="${ANDROID_KEY_ALIAS:-cashlyze}"
+      export ANDROID_KEY_PASSWORD="$ANDROID_KEYSTORE_PASSWORD"
+
+      echo "📱 Building Firebase APK..."
 
       flutter build apk \
         --release \
@@ -119,18 +129,16 @@ build_release_shorebird:
       echo ""
       echo "📦 Verifying APK..."
 
-      if ls -lh build/app/outputs/flutter-apk/*.apk; then
-        echo "✅ Shorebird APK build completed successfully!"
-      else
-        echo "❌ APK not found."
-        exit 1
-      fi
+      ls -lh build/app/outputs/flutter-apk/
+
+      test -f build/app/outputs/flutter-apk/app-release.apk
+
+      echo "✅ APK build completed."
 
   artifacts:
-    name: "cashlyze-shorebird-${CI_COMMIT_SHORT_SHA}"
+    name: "cashlyze-apk-${CI_COMMIT_SHORT_SHA}"
     paths:
-    - build/app/outputs/bundle/release/*.aab
-    - build/app/outputs/flutter-apk/*.apk
+      - build/app/outputs/flutter-apk/app-release.apk
     expire_in: 1 week
 
   retry:
@@ -138,8 +146,6 @@ build_release_shorebird:
     when:
       - runner_system_failure
       - stuck_or_timeout_failure
-
-  allow_failure: true
 
 build_patch_shorebird:
   stage: build
