@@ -111,11 +111,10 @@ build_release_shorebird:
         exit 1
       fi
 
-            shorebird release android \
+      flutter build apk \
+        --release \
         --build-name="$BUILD_NAME" \
-        --build-number="$BUILD_NUMBER" \
-        --artifact=apk \
-        --no-confirm
+        --build-number="$BUILD_NUMBER"
 
       echo ""
       echo "📦 Verifying APK..."
