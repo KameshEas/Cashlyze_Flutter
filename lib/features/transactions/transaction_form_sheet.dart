@@ -54,12 +54,13 @@ class TransactionFormSheet extends ConsumerStatefulWidget {
 class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   late final TextEditingController titleController;
   late final TextEditingController amountController;
+  late final TextEditingController tagsController;
   String type = 'Expense';
   String category = 'General';
   DateTime date = DateTime.now();
+  List<String> tags = [];
   bool repeatEnabled = false;
   String repeatFreq = 'Monthly';
-  
 
   @override
   void initState() {
@@ -70,6 +71,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
           ? ''
           : widget.initialAmount!.abs().toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), ''),
     );
+    tagsController = TextEditingController();
     if (widget.initialAmount != null && widget.initialAmount! >= 0) type = 'Income';
     if (widget.initialCategory != null) {
       // Normalize initial category: if an id was provided, map to display name.
@@ -102,6 +104,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   void dispose() {
     titleController.dispose();
     amountController.dispose();
+    tagsController.dispose();
     super.dispose();
   }
 
@@ -206,6 +209,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                         categoryId: transactionData['categoryId'] as String?,
                         categoryName: transactionData['categoryName'] as String?,
                         date: transactionData['date'] as DateTime,
+                        tags: (transactionData['tags'] as List<String>?)?.isNotEmpty ?? false ? transactionData['tags'] as List<String>? : null,
                       );
                     } catch (e) {
                       nav.pop(false);
@@ -330,6 +334,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                           'categoryId': localCategoryId,
                           'categoryName': localCategoryName,
                           'date': date,
+                          'tags': tags.isNotEmpty ? tags : null,
                         };
                         if (!context.mounted) return;
                         final res = await _openCreateBudgetForCategory(context, localCategoryName, transactionData);
@@ -343,7 +348,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     }
 
                     final ingest = ref.read(transactionIngestServiceProvider);
-                    await ingest.addManual(userId: user.uid, title: titleController.text, amount: amt, isIncome: isIncome, categoryId: localCategoryId, categoryName: localCategoryName, date: date);
+                    await ingest.addManual(userId: user.uid, title: titleController.text, amount: amt, isIncome: isIncome, categoryId: localCategoryId, categoryName: localCategoryName, date: date, tags: tags.isNotEmpty ? tags : null);
                     if (repeatEnabled) {
                       final freq = repeatFreq == 'Weekly' ? RecurringFrequency.weekly : RecurringFrequency.monthly;
                       await ref.read(recurringRepositoryProvider).createRule(userId: user.uid, title: titleController.text, amount: amt, isIncome: isIncome, categoryId: localCategoryId, startDate: date, frequency: freq);
@@ -373,6 +378,126 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                 }
               }, child: Text(t?.save ?? 'Save')),
             ]),
+            const SizedBox(height: 12),
+            Text('Tags', style: Theme.of(context).textTheme.labelMedium),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                ...tags.map((final tag) => InputChip(
+                  label: Text(tag),
+                  onDeleted: () => setState(() => tags.remove(tag)),
+                )),
+                ActionChip(
+                  label: const Text('Add Tag'),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (final ctx) => AlertDialog(
+                        title: Text(t?.titleLabel ?? 'Add Tag'),
+                        content: TextField(
+                          controller: tagsController,
+                          decoration: const InputDecoration(
+                            labelText: 'Tag name',
+                            filled: true,
+                          ),
+                          onSubmitted: (final value) {
+                            final trimmed = value.trim();
+                            if (trimmed.isNotEmpty && !tags.contains(trimmed)) {
+                              setState(() {
+                                tags.add(trimmed);
+                                tagsController.clear();
+                              });
+                            }
+                            Navigator.of(ctx).pop();
+                          },
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              final trimmed = tagsController.text.trim();
+                              if (trimmed.isNotEmpty && !tags.contains(trimmed)) {
+                                setState(() {
+                                  tags.add(trimmed);
+                                  tagsController.clear();
+                                });
+                              }
+                              Navigator.of(ctx).pop();
+                            },
+                            child: const Text('Add'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text('Tags', style: Theme.of(context).textTheme.labelMedium),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                ...tags.map((final tag) => InputChip(
+                  label: Text(tag),
+                  onDeleted: () => setState(() => tags.remove(tag)),
+                )),
+                ActionChip(
+                  label: const Text('Add Tag'),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (final ctx) => AlertDialog(
+                        title: Text(t?.titleLabel ?? 'Add Tag'),
+                        content: TextField(
+                          controller: tagsController,
+                          decoration: const InputDecoration(
+                            labelText: 'Tag name',
+                            filled: true,
+                          ),
+                          onSubmitted: (final value) {
+                            final trimmed = value.trim();
+                            if (trimmed.isNotEmpty && !tags.contains(trimmed)) {
+                              setState(() {
+                                tags.add(trimmed);
+                                tagsController.clear();
+                              });
+                            }
+                            Navigator.of(ctx).pop();
+                          },
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              final trimmed = tagsController.text.trim();
+                              if (trimmed.isNotEmpty && !tags.contains(trimmed)) {
+                                setState(() {
+                                  tags.add(trimmed);
+                                  tagsController.clear();
+                                });
+                              }
+                              Navigator.of(ctx).pop();
+                            },
+                            child: const Text('Add'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             CheckboxListTile(value: repeatEnabled, onChanged: (final v) => setState(() => repeatEnabled = v ?? false), title: Text(t?.repeatLabel ?? 'Repeat'), contentPadding: EdgeInsets.zero),
             if (repeatEnabled) const SizedBox(height: 8),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/ui/motion.dart';
+
 /// A single setting card with icon, title, description, optional status badge, and interactive element
 class SettingCard extends StatefulWidget {
 
@@ -36,8 +38,9 @@ class _SettingCardState extends State<SettingCard> {
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
+      child: PressableScale(
         onTap: widget.onTap,
+        pressedScale: widget.onTap != null ? 0.97 : 1.0,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(

@@ -2,13 +2,19 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart' show Share, XFile;
 
+import '../../core/models/category.dart';
 import '../../core/models/transaction.dart';
+import '../../core/providers/budget_analytics_providers.dart';
+import '../../core/providers/export_service_provider.dart';
 import '../../core/providers/insights_providers.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/transaction_providers.dart';
+import '../../core/repositories/category_repository.dart';
 import '../../core/ui/constants.dart';
 import '../../core/utils/format.dart';
+import '../../core/utils/repo_error_handler.dart';
 import '../../core/widgets/animated_progress_indicator.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/skeleton.dart';
@@ -30,13 +36,52 @@ class InsightsScreen extends ConsumerStatefulWidget {
 }
 
 class _InsightsScreenState extends ConsumerState<InsightsScreen> {
+  Future<void> _exportInsights(
+    final BuildContext context,
+    final WidgetRef ref,
+    final AsyncValue<Map<String, double>> categoryBreakdownAsync,
+    final Kpis kpis,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final currency = ref.read(currencyProvider);
+
+    try {
+      final breakdown = categoryBreakdownAsync.maybeWhen(
+        data: (final data) => data,
+        orElse: () => <String, double>{},
+      );
+
+      if (breakdown.isEmpty) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('No category data to export')),
+        );
+        return;
+      }
+
+      final exportService = ref.read(exportServiceProvider);
+      final file = await exportService.generateInsightsPDF(
+        breakdown,
+        kpis.income.toDouble(),
+        kpis.expense.toDouble(),
+        kpis.net.toDouble(),
+        currency,
+      );
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'Insights report',
+      );
+    } catch (e) {
+      showRepoErrorSnackBar(messenger, e);
+    }
+  }
 
   @override
   Widget build(final BuildContext context) {
     final txsAsync = ref.watch(recentTransactionsProvider);
     final kpis = ref.watch(kpisProvider);
     final monthly = ref.watch(monthlyTrendProvider);
-    
+    final categoryBreakdownAsync = ref.watch(serverCategoryBreakdownProvider);
+
     final topMerchants = ref.watch(topMerchantsProvider);
     final recurring = ref.watch(recurringPaymentsProvider);
     final anomalies = ref.watch(anomaliesProvider);
@@ -53,6 +98,12 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         actions: [
+          IconButton(
+            tooltip: 'Export insights',
+            icon: const Icon(Icons.download),
+            onPressed: () =>
+                _exportInsights(context, ref, categoryBreakdownAsync, kpis),
+          ),
           _TimeRangePicker(
             selected: selectedRange,
             onChanged: (final r) =>
@@ -107,7 +158,34 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
               _MonthlyTrendCard(monthly: monthly),
             const SizedBox(height: AppSpacing.sectionGap),
 
-            // Category breakdown removed per request.
+            // ── Category Breakdown ──────────────────────────────────────
+            const _SectionHeader(
+              title: 'Category Breakdown',
+              icon: Icons.pie_chart_rounded,
+            ),
+            const SizedBox(height: AppSpacing.s12),
+            categoryBreakdownAsync.when(
+              loading: () => const SkeletonChartBox(height: 240),
+              error: (final err, final stack) => const AppEmptyState(
+                title: 'Failed to load category data',
+                subtitle: 'Unable to fetch category breakdown from server',
+                icon: Icons.pie_chart_rounded,
+              ),
+              data: (final breakdown) {
+                if (breakdown.isEmpty) {
+                  return const AppEmptyState(
+                    title: 'No category data',
+                    subtitle: 'Add transactions to see category breakdown',
+                    icon: Icons.pie_chart_rounded,
+                  );
+                }
+                return _CategoryBreakdownCard(
+                  breakdown: breakdown,
+                  currency: currency,
+                );
+              },
+            ),
+            const SizedBox(height: AppSpacing.sectionGap),
 
             // ── Top Spends ──────────────────────────────────────────────
             const _SectionHeader(
@@ -706,7 +784,106 @@ class _MonthlyTrendCard extends StatelessWidget {
   }
 }
 
-// Category breakdown removed from Insights.
+// ════════════════════════════════════════════════════════════════════════════
+// Category breakdown pie chart
+// ════════════════════════════════════════════════════════════════════════════
+
+class _CategoryBreakdownCard extends ConsumerWidget {
+  const _CategoryBreakdownCard({
+    required this.breakdown,
+    required this.currency,
+  });
+
+  final Map<String, double> breakdown;
+  final String currency;
+
+  @override
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final theme = Theme.of(context);
+    final cats = ref.watch(userCategoriesProvider).maybeWhen(
+      data: (final d) => d,
+      orElse: () => const <CategoryModel>[],
+    );
+    final catById = <String, String>{};
+    for (final c in cats) {
+      catById[c.id] = c.name;
+    }
+
+    final sorted = breakdown.entries.toList()
+      ..sort((final a, final b) => b.value.compareTo(a.value));
+    final top = sorted.take(6).toList();
+    final total = sorted.fold<double>(0, (final sum, final e) => sum + e.value);
+
+    final sections = List.generate(top.length, (final i) {
+      final entry = top[i];
+      final color = _kPalette[i % _kPalette.length];
+      final value = entry.value;
+      final pct = total > 0 ? (value / total * 100) : 0.0;
+
+      return PieChartSectionData(
+        color: color,
+        value: value,
+        title: '${pct.toStringAsFixed(0)}%',
+        titleStyle: theme.textTheme.labelSmall?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
+      );
+    });
+
+    return _BaseCard(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s12,
+        AppSpacing.s16,
+        AppSpacing.s12,
+        AppSpacing.s8,
+      ),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 200,
+            child: PieChart(
+              PieChartData(sections: sections),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s16),
+          Wrap(
+            spacing: AppSpacing.s12,
+            runSpacing: AppSpacing.s8,
+            children: top.asMap().entries.map((final e) {
+              final idx = e.key;
+              final entry = e.value;
+              final color = _kPalette[idx % _kPalette.length];
+              final catName = catById[entry.key] ?? entry.key;
+              final pct = total > 0 ? (entry.value / total * 100) : 0.0;
+
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '$catName ${pct.toStringAsFixed(0)}%',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 // Top Spends with bar indicators

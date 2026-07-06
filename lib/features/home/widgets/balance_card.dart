@@ -19,17 +19,7 @@ class BalanceCard extends ConsumerWidget {
     final isPositive = balanceStatus.isPositive;
     final theme = Theme.of(context);
 
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.8, end: 1.0),
-      duration: const Duration(milliseconds: 800),
-      curve: Curves.elasticOut,
-      builder: (final context, final scale, final child) {
-        return Transform.scale(
-          scale: scale,
-          child: child,
-        );
-      },
-      child: Container(
+    return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
@@ -159,7 +149,6 @@ class BalanceCard extends ConsumerWidget {
             ),
           ],
         ),
-      ),
     );
   }
 

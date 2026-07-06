@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:path_provider/path_provider.dart';
 import 'package:riverpod/riverpod.dart';
 
 import '../models/scanned_bill.dart';
@@ -60,26 +63,47 @@ class ScanNotifier extends Notifier<ScanState> {
 
   Future<void> scanImage(final String imagePath) async {
     state = state.copyWith(isProcessing: true);
-    
+
     try {
       // Extract text from image
       final ocrText = await ocrService.extractTextFromImage(imagePath);
-      
+
       // Parse text into bill data
       final bill = parserService.parseBillText(ocrText);
-      
+
       // Categorize based on merchant
       final categorizedBill = categorizerService.categorize(bill);
-      
+
+      // Save image locally and get attachment path
+      final attachmentPath = await _saveReceiptImage(imagePath);
+      final billWithAttachment = categorizedBill.copyWith(attachmentPath: attachmentPath);
+
       state = state.copyWith(
         isProcessing: false,
-        result: categorizedBill,
+        result: billWithAttachment,
       );
     } catch (e) {
       state = state.copyWith(
         isProcessing: false,
         errorMessage: 'Failed to scan bill: $e',
       );
+    }
+  }
+
+  Future<String?> _saveReceiptImage(final String sourcePath) async {
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final receiptsDir = Directory('${appDir.path}/receipts');
+      // ignore: avoid_slow_async_io
+      if (!await receiptsDir.exists()) {
+        await receiptsDir.create(recursive: true);
+      }
+
+      final fileName = 'receipt_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final savedFile = await File(sourcePath).copy('${receiptsDir.path}/$fileName');
+      return savedFile.path;
+    } catch (e) {
+      return null;
     }
   }
 

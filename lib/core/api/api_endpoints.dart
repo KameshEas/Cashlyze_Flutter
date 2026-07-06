@@ -33,6 +33,9 @@ abstract final class ApiEndpoints {
   // ── Budgets ───────────────────────────────────────────────────────────────
   static const String budgets = '/budgets';
   static String budgetById(final String id) => '/budgets/$id';
+  static const String budgetsCategoryBreakdown = '/budgets/analytics/category-breakdown';
+  static const String budgetsUtilizationAll = '/budgets/utilization/all';
+  static const String budgetsAlertsCurrent = '/budgets/alerts/current';
 
   // ── EMI ───────────────────────────────────────────────────────────────────
   static const String emiPlans = '/emi-plans';
@@ -46,6 +49,15 @@ abstract final class ApiEndpoints {
   static String recurringRuleById(final String id) => '/recurring-rules/$id';
   static String recurringRuleTrigger(final String id) =>
       '/recurring-rules/$id/trigger';
+
+  // ── Savings Goals ─────────────────────────────────────────────────────────
+  static const String savingsGoals = '/savings-goals';
+  static String savingsGoalById(final String id) => '/savings-goals/$id';
+  static String savingsGoalProgress(final String id) =>
+      '/savings-goals/$id/progress';
+
+  // ── Search ────────────────────────────────────────────────────────────────
+  static const String search = '/search';
 
   // ── WebSocket ─────────────────────────────────────────────────────────────
   /// Returns the full WebSocket URL for a given user.

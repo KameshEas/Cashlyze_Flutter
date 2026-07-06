@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/category.dart';
 import '../../core/models/transaction.dart';
 import '../../core/repositories/category_repository.dart';
+import '../../core/ui/motion.dart';
 import '../../core/utils/format.dart';
 
 class TransactionListItem extends ConsumerWidget {
@@ -34,7 +35,7 @@ class TransactionListItem extends ConsumerWidget {
     final isIncome = tx.amount > 0;
     final accentColor = isIncome ? Colors.green : Colors.red;
     
-    return InkWell(
+    return PressableScale(
       onTap: selectionMode
           ? () => onSelectedChanged?.call(!selected)
           : onTap,
@@ -152,6 +153,21 @@ class TransactionListItem extends ConsumerWidget {
                       ),
                     ],
                   ),
+                  if (tx.tags != null && tx.tags!.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 2,
+                      children: tx.tags!.map((final tag) => Chip(
+                        label: Text(
+                          tag,
+                          style: theme.textTheme.labelSmall,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      )).toList(),
+                    ),
+                  ],
                 ],
               ),
             ),

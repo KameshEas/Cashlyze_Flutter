@@ -18,6 +18,7 @@ import '../../core/services/drive_backup_service.dart';
 import '../../features/auth/data/auth_remote_data_source.dart';
 import '../../l10n/app_localizations.dart';
 import '../../routes/app_router.dart';
+import 'biometric_lock_tile.dart';
 import 'widgets/enhanced_progress_dialog.dart';
 import 'widgets/extracted_dialogs.dart';
 
@@ -549,6 +550,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         const Divider(height: 1, indent: 52),
         _actionTile(
+          icon: Icons.savings_outlined,
+          title: 'Savings Goals',
+          subtitle: 'Track your savings targets',
+          onTap: () => GoRouter.of(context).go('/goals'),
+        ),
+        const Divider(height: 1, indent: 52),
+        _actionTile(
           icon: Icons.cloud_upload_outlined,
           title: t?.backupToDriveTitle ?? 'Backup to Drive',
           subtitle: t?.backupToDriveSubtitle ?? 'Upload JSON to Drive',
@@ -694,7 +702,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           },
         ),
         const Divider(height: 1, indent: 52),
-        
+
+        // Biometric Lock
+        const BiometricLockTile(),
+        const Divider(height: 1, indent: 52),
+
         // Delete Account (Danger Zone)
         _actionTile(
           icon: Icons.delete_forever,

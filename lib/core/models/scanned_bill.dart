@@ -8,6 +8,7 @@ class ScannedBill { // 0.0 - 1.0
     required this.items,
     required this.suggestedCategory,
     required this.categoryConfidence,
+    this.attachmentPath,
   });
   final String merchantName;
   final double amount;
@@ -16,6 +17,7 @@ class ScannedBill { // 0.0 - 1.0
   final List<BillItem> items;
   final String suggestedCategory;
   final double categoryConfidence;
+  final String? attachmentPath;
 
   // Copy with for easy modifications in UI
   ScannedBill copyWith({
@@ -26,6 +28,7 @@ class ScannedBill { // 0.0 - 1.0
     final List<BillItem>? items,
     final String? suggestedCategory,
     final double? categoryConfidence,
+    final String? attachmentPath,
   }) {
     return ScannedBill(
       merchantName: merchantName ?? this.merchantName,
@@ -35,6 +38,7 @@ class ScannedBill { // 0.0 - 1.0
       items: items ?? this.items,
       suggestedCategory: suggestedCategory ?? this.suggestedCategory,
       categoryConfidence: categoryConfidence ?? this.categoryConfidence,
+      attachmentPath: attachmentPath ?? this.attachmentPath,
     );
   }
 }

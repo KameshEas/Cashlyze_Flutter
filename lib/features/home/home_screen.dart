@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/models/transaction.dart';
 import '../../core/providers/insights_providers.dart';
@@ -7,6 +8,7 @@ import '../../core/providers/recurring_providers.dart';
 import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/providers/transaction_providers.dart';
 import '../../core/repositories/emi_repository.dart';
+import '../../core/ui/motion.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../l10n/app_localizations.dart';
@@ -33,6 +35,11 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(t?.dashboard ?? 'Dashboard'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search_outlined),
+            onPressed: () => GoRouter.of(context).go('/search'),
+            tooltip: 'Search',
+          ),
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
@@ -67,7 +74,7 @@ class HomeScreen extends ConsumerWidget {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
+          child: MotionStagger(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const BalanceCard(),
@@ -114,12 +121,15 @@ class HomeScreen extends ConsumerWidget {
   ) {
     final upcomingAsync = ref.watch(emiUpcomingProvider);
     final theme = Theme.of(context);
-    return upcomingAsync.when(
+    return MotionSwitcher(
+      child: upcomingAsync.when(
       loading: () => const SizedBox(
+        key: ValueKey('emi-loading'),
         height: 60,
         child: Center(child: CircularProgressIndicator()),
       ),
       error: (final e, final _) => Container(
+        key: const ValueKey('emi-error'),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.red.withValues(alpha: 0.08),
@@ -129,8 +139,9 @@ class HomeScreen extends ConsumerWidget {
         child: Text('EMI load error: $e'),
       ),
       data: (final items) {
-        if (items.isEmpty) return const SizedBox.shrink();
+        if (items.isEmpty) return const SizedBox.shrink(key: ValueKey('emi-empty'));
         return Column(
+          key: const ValueKey('emi-data'),
           children: items.take(3).map((final e) {
             final now = DateTime.now();
             final today = DateTime(now.year, now.month, now.day);
@@ -168,6 +179,7 @@ class HomeScreen extends ConsumerWidget {
           }).toList(),
         );
       },
+    ),
     );
   }
 
@@ -177,8 +189,10 @@ class HomeScreen extends ConsumerWidget {
     final String currency,
     final AsyncValue<List<TransactionModel>> txsAsync,
   ) {
-    return txsAsync.when(
+    return MotionSwitcher(
+      child: txsAsync.when(
       loading: () => const Column(
+        key: ValueKey('rt-loading'),
         children: [
           SkeletonListTile(),
           SizedBox(height: 12),
@@ -188,6 +202,7 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
       error: (final e, final _) => Container(
+        key: const ValueKey('rt-error'),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.red.withValues(alpha: 0.08),
@@ -218,6 +233,7 @@ class HomeScreen extends ConsumerWidget {
 
         if (monthItems.isEmpty) {
           return Center(
+            key: const ValueKey('rt-empty'),
             child: Column(
               children: [
                 Icon(
@@ -235,6 +251,7 @@ class HomeScreen extends ConsumerWidget {
           );
         }
         return Column(
+          key: const ValueKey('rt-data'),
           children: monthItems.take(2).map((final tx) {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -246,6 +263,7 @@ class HomeScreen extends ConsumerWidget {
           }).toList(),
         );
       },
+    ),
     );
   }
 
