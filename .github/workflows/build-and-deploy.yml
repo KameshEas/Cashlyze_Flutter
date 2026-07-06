@@ -86,16 +86,11 @@ jobs:
           curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh | bash
           echo "$HOME/.shorebird/bin" >> $GITHUB_PATH
 
-      - name: Login to Shorebird
-        env:
-          SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
-        run: |
-          shorebird login --token "$SHOREBIRD_TOKEN"
-
       - name: script
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
         run: |
           set -e
           shorebird --version
@@ -241,13 +236,9 @@ jobs:
           curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh | bash
           echo "$HOME/.shorebird/bin" >> $GITHUB_PATH
 
-      - name: Login to Shorebird
+      - name: script
         env:
           SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
-        run: |
-          shorebird login --token "$SHOREBIRD_TOKEN"
-
-      - name: script
         run: |
           set -e
 
