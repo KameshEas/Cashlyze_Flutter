@@ -257,7 +257,7 @@ jobs:
 
   deploy_firebase_distribution:
     name: deploy_firebase_distribution
-    needs: build_release_shorebird
+    needs: build_firebase_apk
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/cirruslabs/flutter:stable
@@ -281,8 +281,8 @@ jobs:
       - name: download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: "cashlyze-aab-${{ github.sha }}"
-          path: build/app/outputs/bundle/release/
+          name: "cashlyze-apk-${{ github.sha }}"
+          path: build/app/outputs/flutter-apk/
 
       - name: script
         env:
