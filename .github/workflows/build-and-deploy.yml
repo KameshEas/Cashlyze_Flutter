@@ -73,7 +73,7 @@ jobs:
           flutter pub get
 
       - name: cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             .pub-cache/
@@ -120,7 +120,7 @@ jobs:
           echo "✅ Shorebird release completed."
 
       - name: artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: "cashlyze-aab-${{ github.sha }}"
           path: build/app/outputs/bundle/release/app-release.aab
@@ -148,7 +148,7 @@ jobs:
           flutter pub get
 
       - name: cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             .pub-cache/
@@ -191,7 +191,7 @@ jobs:
           echo "✅ APK build completed."
 
       - name: artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: "cashlyze-apk-${{ github.sha }}"
           path: build/app/outputs/flutter-apk/app-release.apk
@@ -220,7 +220,7 @@ jobs:
           flutter pub get
 
       - name: cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             .pub-cache/
@@ -273,7 +273,7 @@ jobs:
           flutter pub get
 
       - name: download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: "cashlyze-aab-${{ github.sha }}"
           path: build/app/outputs/bundle/release/
@@ -339,7 +339,7 @@ jobs:
           flutter pub get
 
       - name: download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: "cashlyze-aab-${{ github.sha }}"
           path: build/app/outputs/bundle/release/
@@ -422,7 +422,7 @@ jobs:
           flutter pub get
 
       - name: download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: "cashlyze-aab-${{ github.sha }}"
           path: build/app/outputs/bundle/release/
