@@ -81,15 +81,23 @@ jobs:
             build/
           key: ${{ github.ref_name }}-${{ hashFiles('pubspec.lock') }}
 
+      - name: Install Shorebird
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh | bash
+          echo "$HOME/.shorebird/bin" >> $GITHUB_PATH
+
+      - name: Login to Shorebird
+        env:
+          SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
+        run: |
+          shorebird login --token "$SHOREBIRD_TOKEN"
+
       - name: script
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           set -e
-          echo "📦 Installing Shorebird CLI..."
-          curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh | bash
-          export PATH="$HOME/.shorebird/bin:$PATH"
           shorebird --version
 
           PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //; s/"//g')
@@ -228,13 +236,20 @@ jobs:
             build/
           key: ${{ github.ref_name }}-${{ hashFiles('pubspec.lock') }}
 
+      - name: Install Shorebird
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh | bash
+          echo "$HOME/.shorebird/bin" >> $GITHUB_PATH
+
+      - name: Login to Shorebird
+        env:
+          SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
+        run: |
+          shorebird login --token "$SHOREBIRD_TOKEN"
+
       - name: script
         run: |
           set -e
-
-          echo "📦 Installing Shorebird..."
-          curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh | bash
-          export PATH="$HOME/.shorebird/bin:$PATH"
 
           flutter pub get
 
