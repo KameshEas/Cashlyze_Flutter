@@ -6,6 +6,11 @@ on:
       - development
       - prod
       - main
+  pull_request:
+    branches:
+      - development
+      - prod
+      - main
 
 env:
   FLUTTER_VERSION: "stable"
@@ -197,7 +202,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/cirruslabs/flutter:stable
-    if: github.ref == 'refs/heads/prod'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/prod'
     steps:
       - uses: actions/checkout@v4
 
@@ -250,7 +255,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/cirruslabs/flutter:stable
-    if: github.ref == 'refs/heads/development'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/development'
     steps:
       - uses: actions/checkout@v4
 
@@ -316,7 +321,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/cirruslabs/flutter:stable
-    if: github.ref == 'refs/heads/development'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/development'
     steps:
       - uses: actions/checkout@v4
 
@@ -399,7 +404,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/cirruslabs/flutter:stable
-    if: github.ref == 'refs/heads/prod'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/prod'
     steps:
       - uses: actions/checkout@v4
 
