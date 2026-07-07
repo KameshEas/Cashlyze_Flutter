@@ -13,7 +13,7 @@ void main() {
 
       // Look for transactions navigation item
       final transactionsFinder = find.text('Transactions');
-      
+
       if (transactionsFinder.evaluate().isNotEmpty) {
         await tester.tap(transactionsFinder.first);
         await tester.pumpAndSettle();
@@ -21,6 +21,10 @@ void main() {
         // Should be on transactions screen
         expect(find.text('Transactions'), findsWidgets);
       }
+      // Regardless of whether the app reached an authenticated state, the
+      // flow above must not have crashed silently (widget-build errors are
+      // caught by the framework and only surface via takeException()).
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('add new transaction flow', (final WidgetTester tester) async {
@@ -38,11 +42,9 @@ void main() {
         if (fabFinder.evaluate().isNotEmpty) {
           await tester.tap(fabFinder.first);
           await tester.pumpAndSettle();
-
-          // Should show add transaction form
-          expect(find.byType(MaterialApp), findsOneWidget);
         }
       }
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('quick add transaction from home', (final WidgetTester tester) async {
@@ -55,11 +57,8 @@ void main() {
       if (transferFinder.evaluate().isNotEmpty) {
         await tester.tap(transferFinder.first);
         await tester.pumpAndSettle();
-
-        // Should show quick add dialog/bottom sheet
-        // The exact UI depends on your implementation
-        expect(find.byType(MaterialApp), findsOneWidget);
       }
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('view transaction details', (final WidgetTester tester) async {
@@ -77,11 +76,9 @@ void main() {
         if (listTileFinder.evaluate().isNotEmpty) {
           await tester.tap(listTileFinder.first);
           await tester.pumpAndSettle();
-
-          // Should show transaction details
-          expect(find.byType(MaterialApp), findsOneWidget);
         }
       }
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('filter transactions', (final WidgetTester tester) async {
@@ -99,11 +96,9 @@ void main() {
         if (filterFinder.evaluate().isNotEmpty) {
           await tester.tap(filterFinder.first);
           await tester.pumpAndSettle();
-
-          // Should show filter options
-          expect(find.byType(MaterialApp), findsOneWidget);
         }
       }
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('search transactions', (final WidgetTester tester) async {
@@ -130,8 +125,7 @@ void main() {
           }
         }
       }
-
-      expect(find.byType(MaterialApp), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
   });
 
@@ -156,12 +150,10 @@ void main() {
           if (saveFinder.evaluate().isNotEmpty) {
             await tester.tap(saveFinder.first);
             await tester.pumpAndSettle();
-
-            // Validation errors should appear
-            expect(find.byType(MaterialApp), findsOneWidget);
           }
         }
       }
+      expect(tester.takeException(), isNull);
     });
   });
 }

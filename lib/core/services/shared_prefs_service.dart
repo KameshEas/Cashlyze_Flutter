@@ -15,6 +15,7 @@ class SharedPrefsService {
   static const String _languageKey = 'app_language_code';
   static const String _analyticsConsentKey = 'analytics_consent_given';
   static const String _crashlyticsConsentKey = 'crashlytics_consent_given';
+  static const String _celebratedGoalsKey = 'celebrated_goal_ids';
   final SharedPreferences _prefs;
 
   bool get isOnboardingCompleted => _prefs.getBool(_onboardingKey) ?? false;
@@ -88,5 +89,16 @@ class SharedPrefsService {
   bool get crashlyticsConsentGiven => _prefs.getBool(_crashlyticsConsentKey) ?? false;
   Future<void> setCrashlyticsConsentGiven(final bool value) async {
     await _prefs.setBool(_crashlyticsConsentKey, value);
+  }
+
+  // Tracks which savings goals have already shown the completion celebration,
+  // so it only plays once per goal rather than on every screen revisit.
+  bool hasCelebratedGoal(final String goalId) =>
+      (_prefs.getStringList(_celebratedGoalsKey) ?? const []).contains(goalId);
+
+  Future<void> markGoalCelebrated(final String goalId) async {
+    final current = _prefs.getStringList(_celebratedGoalsKey) ?? const [];
+    if (current.contains(goalId)) return;
+    await _prefs.setStringList(_celebratedGoalsKey, [...current, goalId]);
   }
 }

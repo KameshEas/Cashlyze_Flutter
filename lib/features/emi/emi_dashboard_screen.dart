@@ -8,7 +8,9 @@ import '../../core/providers/onboarding_provider.dart';
 import '../../core/repositories/emi_repository.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/utils/format.dart';
+import '../../core/utils/repo_error_handler.dart';
 import '../../core/widgets/animated_progress_indicator.dart';
+import '../../core/widgets/dialogs.dart';
 import '../../core/widgets/skeleton.dart';
 import 'emi_form_screen.dart';
 
@@ -26,17 +28,17 @@ class EMIDashboardScreen extends ConsumerWidget {
           children: [
             const Text('EMI Tracker'),
             const SizedBox(height: 2),
-            Text(
-              'Track & manage your EMIs',
-              style: theme.textTheme.bodySmall,
-            ),
+            Text('Track & manage your EMIs', style: theme.textTheme.bodySmall),
           ],
         ),
         actions: [
           TextButton.icon(
             onPressed: () => GoRouter.of(context).go('/emi/new'),
             icon: const Icon(Icons.add, color: Colors.white),
-            label: const Text('Add Loan', style: TextStyle(color: Colors.white)),
+            label: const Text(
+              'Add Loan',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -47,37 +49,42 @@ class EMIDashboardScreen extends ConsumerWidget {
         },
         child: plansAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (final e, final _) => Center(child: Text('Failed to load: $e')),
-        data: (final plans) {
-          if (plans.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.payments_outlined, size: 72),
-                  const SizedBox(height: 8),
-                  Text('No EMIs yet. Add your first loan.', style: theme.textTheme.titleMedium),
+          error: (final e, final _) =>
+              Center(child: Text('Failed to load: $e')),
+          data: (final plans) {
+            if (plans.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.payments_outlined, size: 72),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No EMIs yet. Add your first loan.',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: () => GoRouter.of(context).go('/emi/new'),
+                      child: const Text('Add Loan'),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: plans.length,
+              separatorBuilder: (final _, final _) =>
                   const SizedBox(height: 12),
-                  FilledButton(
-                    onPressed: () => GoRouter.of(context).go('/emi/new'),
-                    child: const Text('Add Loan'),
-                  ),
-                ],
-              ),
+              itemBuilder: (final ctx, final i) {
+                final p = plans[i];
+                return _PlanCard(plan: p);
+              },
             );
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: plans.length,
-            separatorBuilder: (final _, final _) => const SizedBox(height: 12),
-            itemBuilder: (final ctx, final i) {
-              final p = plans[i];
-              return _PlanCard(plan: p);
-            },
-          );
-        },
-      ),
+          },
         ),
+      ),
     );
   }
 }
@@ -99,7 +106,11 @@ class _PlanCard extends ConsumerWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04)),
+          border: Border.all(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.04),
+          ),
         ),
         child: Text('Failed to load schedule: $e'),
       ),
@@ -108,7 +119,9 @@ class _PlanCard extends ConsumerWidget {
         final total = items.length;
         final progress = total == 0 ? 0.0 : paidCount / total;
         final pending = total - paidCount;
-        final remainingAmount = items.where((final x) => !x.paid).fold<double>(0, (final p, final e) => p + e.installment);
+        final remainingAmount = items
+            .where((final x) => !x.paid)
+            .fold<double>(0, (final p, final e) => p + e.installment);
 
         return Dismissible(
           key: ValueKey('emi_plan_${plan.id}'),
@@ -119,7 +132,13 @@ class _PlanCard extends ConsumerWidget {
               color: Colors.green.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Row(children: [Icon(Icons.check, color: Colors.green), SizedBox(width: 8), Text('Mark as paid')]),
+            child: const Row(
+              children: [
+                Icon(Icons.check, color: Colors.green),
+                SizedBox(width: 8),
+                Text('Mark as paid'),
+              ],
+            ),
           ),
           secondaryBackground: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -128,7 +147,14 @@ class _PlanCard extends ConsumerWidget {
               color: Colors.red.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Row(mainAxisAlignment: MainAxisAlignment.end, children: [Text('Delete'), SizedBox(width: 8), Icon(Icons.delete, color: Colors.red)]),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text('Delete'),
+                SizedBox(width: 8),
+                Icon(Icons.delete, color: Colors.red),
+              ],
+            ),
           ),
           confirmDismiss: (final dir) async {
             final messenger = ScaffoldMessenger.of(context);
@@ -138,49 +164,63 @@ class _PlanCard extends ConsumerWidget {
               // Mark next unpaid as paid
               final unpaid = items.where((final x) => !x.paid).toList();
               if (unpaid.isEmpty) {
-                messenger.showSnackBar(const SnackBar(content: Text('All EMIs already paid')));
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('All EMIs already paid')),
+                );
                 return false;
               }
               final next = unpaid.first;
               try {
                 await HapticFeedback.lightImpact();
-                await ref.read(emiRepositoryProvider).markPaid(user.uid, plan.id, next.id);
-                messenger.showSnackBar(const SnackBar(content: Text('Marked as paid')));
+                await ref
+                    .read(emiRepositoryProvider)
+                    .markPaid(user.uid, plan.id, next.id);
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Marked as paid')),
+                );
               } catch (e) {
-                messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                messenger.showSnackBar(
+                  SnackBar(content: Text(repoErrorMessage(e))),
+                );
               }
               return false;
             } else {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (final ctx) => AlertDialog(
-                  title: const Text('Delete EMI plan'),
-                  content: const Text('Delete this EMI plan and its schedule? This action cannot be undone.'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-                    TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Delete')),
-                  ],
-                ),
+              final confirm = await showConfirmDialog(
+                context,
+                title: 'Delete EMI plan',
+                content:
+                    'Delete this EMI plan and its schedule? This action cannot be undone.',
+                confirmLabel: 'Delete',
               );
               if (confirm != true) return false;
               try {
-                await ref.read(emiRepositoryProvider).deletePlan(user.uid, plan.id);
-                messenger.showSnackBar(const SnackBar(content: Text('EMI plan deleted')));
-                  // Delay invalidation to allow Dismissible animation to complete
-                  Future.delayed(const Duration(milliseconds: 300), () {
-                    try {
-                      ref.invalidate(userEMIPlansProvider);
-                    } catch (_) {}
-                  });
+                await ref
+                    .read(emiRepositoryProvider)
+                    .deletePlan(user.uid, plan.id);
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('EMI plan deleted')),
+                );
+                // Delay invalidation to allow Dismissible animation to complete
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  try {
+                    ref.invalidate(userEMIPlansProvider);
+                  } catch (_) {}
+                });
                 return true;
               } catch (e) {
-                messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                messenger.showSnackBar(
+                  SnackBar(content: Text(repoErrorMessage(e))),
+                );
                 return false;
               }
             }
           },
           child: InkWell(
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => EMIFormScreen(initialPlan: plan))),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => EMIFormScreen(initialPlan: plan),
+              ),
+            ),
             borderRadius: BorderRadius.circular(16),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
@@ -189,7 +229,11 @@ class _PlanCard extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04)),
+                border: Border.all(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.04),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,35 +263,47 @@ class _PlanCard extends ConsumerWidget {
                         children: [
                           Text(
                             '${formatAmount(remainingAmount, currency)} remaining',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
                           ),
                           PopupMenuButton<int>(
                             onSelected: (final v) async {
                               final messenger = ScaffoldMessenger.of(context);
                               if (v == 1) {
-                                await Navigator.of(context).push(MaterialPageRoute(builder: (_) => EMIFormScreen(initialPlan: plan)));
-                              } else if (v == 2) {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (final ctx) => AlertDialog(
-                                    title: const Text('Delete EMI plan'),
-                                    content: const Text('Delete this EMI plan and its schedule? This action cannot be undone.'),
-                                    actions: [
-                                      TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-                                      TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Delete')),
-                                    ],
+                                await Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        EMIFormScreen(initialPlan: plan),
                                   ),
+                                );
+                              } else if (v == 2) {
+                                final confirm = await showConfirmDialog(
+                                  context,
+                                  title: 'Delete EMI plan',
+                                  content:
+                                      'Delete this EMI plan and its schedule? This action cannot be undone.',
+                                  confirmLabel: 'Delete',
                                 );
                                 if (confirm != true) return;
                                 final user = ref.read(currentUserProvider);
                                 if (user == null) return;
                                 try {
-                                  await ref.read(emiRepositoryProvider).deletePlan(user.uid, plan.id);
-                                  messenger.showSnackBar(const SnackBar(content: Text('EMI plan deleted')));
-                                    // Invalidate provider to refresh the list
-                                    ref.invalidate(userEMIPlansProvider);
+                                  await ref
+                                      .read(emiRepositoryProvider)
+                                      .deletePlan(user.uid, plan.id);
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text('EMI plan deleted'),
+                                    ),
+                                  );
+                                  // Invalidate provider to refresh the list
+                                  ref.invalidate(userEMIPlansProvider);
                                 } catch (e) {
-                                  messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(repoErrorMessage(e)),
+                                    ),
+                                  );
                                 }
                               }
                             },
@@ -264,85 +320,129 @@ class _PlanCard extends ConsumerWidget {
                   // Progress
                   AnimatedProgressIndicator(
                     progress: progress.clamp(0.0, double.infinity),
-                    backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.06),
                   ),
                   const SizedBox(height: 8),
-                  Text('$paidCount of $total paid', style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    '$paidCount of $total paid',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                   const SizedBox(height: 12),
                   // Payment row (first unpaid installment)
                   if (items.where((final x) => !x.paid).isNotEmpty) ...[
                     const SizedBox(height: 4),
-                    Builder(builder: (final ctx) {
-                      final e = items.firstWhere((final x) => !x.paid);
-                      final now = DateTime.now();
-                      final dueDays = e.dueDate.difference(DateTime(now.year, now.month, now.day)).inDays;
-                      // due pill
-                      Color pillColor;
-                      String pillLabel;
-                      if (dueDays < 0) {
-                        pillColor = Colors.red;
-                        pillLabel = 'Overdue';
-                      } else if (dueDays == 0) {
-                        pillColor = Colors.orange;
-                        pillLabel = 'Due Today';
-                      } else if (dueDays == 1) {
-                        pillColor = Colors.orange;
-                        pillLabel = 'Due Tomorrow';
-                      } else {
-                        pillColor = Colors.green;
-                        pillLabel = 'Due in $dueDays days';
-                      }
-                      return Row(
-                        children: [
-                          Expanded(
-                            child: Row(
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      formatAmount(e.installment, currency),
-                                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: pillColor.withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(12),
+                    Builder(
+                      builder: (final ctx) {
+                        final e = items.firstWhere((final x) => !x.paid);
+                        final now = DateTime.now();
+                        final dueDays = e.dueDate
+                            .difference(DateTime(now.year, now.month, now.day))
+                            .inDays;
+                        // due pill
+                        Color pillColor;
+                        String pillLabel;
+                        if (dueDays < 0) {
+                          pillColor = Colors.red;
+                          pillLabel = 'Overdue';
+                        } else if (dueDays == 0) {
+                          pillColor = Colors.orange;
+                          pillLabel = 'Due Today';
+                        } else if (dueDays == 1) {
+                          pillColor = Colors.orange;
+                          pillLabel = 'Due Tomorrow';
+                        } else {
+                          pillColor = Colors.green;
+                          pillLabel = 'Due in $dueDays days';
+                        }
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        formatAmount(e.installment, currency),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleLarge
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                       ),
-                                      child: Text(
-                                        pillLabel,
-                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: pillColor),
+                                      const SizedBox(height: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: pillColor.withValues(
+                                            alpha: 0.12,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          pillLabel,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(color: pillColor),
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          FilledButton(
-                            onPressed: () async {
-                              final messenger = ScaffoldMessenger.of(context);
-                              final user = ref.read(currentUserProvider);
-                              if (user == null) return;
-                              await HapticFeedback.mediumImpact();
-                              try {
-                                await ref.read(emiRepositoryProvider).markPaid(user.uid, plan.id, e.id);
-                                messenger.showSnackBar(const SnackBar(content: Text('Marked as paid')));
-                              } catch (err) {
-                                messenger.showSnackBar(SnackBar(content: Text('Failed: $err')));
-                              }
-                            },
-                            style: FilledButton.styleFrom(elevation: 2, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14)),
-                            child: const Text('Mark Paid'),
-                          ),
-                        ],
-                      );
-                    }),
+                            FilledButton(
+                              onPressed: () async {
+                                final messenger = ScaffoldMessenger.of(context);
+                                final user = ref.read(currentUserProvider);
+                                if (user == null) return;
+                                await HapticFeedback.mediumImpact();
+                                try {
+                                  await ref
+                                      .read(emiRepositoryProvider)
+                                      .markPaid(user.uid, plan.id, e.id);
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Marked as paid'),
+                                    ),
+                                  );
+                                } catch (err) {
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(repoErrorMessage(err)),
+                                    ),
+                                  );
+                                }
+                              },
+                              style: FilledButton.styleFrom(
+                                elevation: 2,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 14,
+                                ),
+                              ),
+                              child: const Text('Mark Paid'),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                   ] else ...[
                     const SizedBox(height: 8),
-                    Text('No upcoming payments', style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      'No upcoming payments',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ],
                 ],
               ),

@@ -15,6 +15,8 @@ import '../../core/repositories/transaction_repository.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/drive_backup_service.dart';
+import '../../core/utils/repo_error_handler.dart';
+import '../../core/widgets/dialogs.dart';
 import '../../features/auth/data/auth_remote_data_source.dart';
 import '../../l10n/app_localizations.dart';
 import '../../routes/app_router.dart';
@@ -641,7 +643,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   const SnackBar(content: Text('Password updated')),
                 );
               } catch (e) {
-                messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                messenger.showSnackBar(SnackBar(content: Text(repoErrorMessage(e))));
               }
             }
           },
@@ -654,24 +656,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           title: 'Sign Out',
           subtitle: 'End your session',
           onTap: () async {
-            final confirm = await showDialog<bool>(
-              context: context,
-              builder: (final ctx) {
-                return AlertDialog(
-                  title: const Text('Sign Out'),
-                  content: const Text('Are you sure you want to sign out?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(false),
-                      child: const Text('Cancel'),
-                    ),
-                    FilledButton(
-                      onPressed: () => Navigator.of(ctx).pop(true),
-                      child: const Text('Sign Out'),
-                    ),
-                  ],
-                );
-              },
+            final confirm = await showConfirmDialog(
+              context,
+              title: 'Sign Out',
+              content: 'Are you sure you want to sign out?',
+              confirmLabel: 'Sign Out',
             );
             if (confirm == true) {
               // Clear cached repositories first so they don't hold user data.
@@ -737,7 +726,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 );
                 router.go('/login');
               } catch (e) {
-                messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                messenger.showSnackBar(SnackBar(content: Text(repoErrorMessage(e))));
               }
             }
           },
