@@ -96,16 +96,21 @@ class AuthRemoteDataSource {
     required final String email,
     required final String password,
   }) async {
-    final response = await _api.post<Map<String, dynamic>>(
-      ApiEndpoints.login,
-      queryParameters: {'email': email, 'password': password},
-    );
-    final tokens = AuthTokens.fromJson(
-      (response.data as Map).cast<String, dynamic>(),
-    );
-    await _persistTokens(tokens);
-    return tokens;
-  }
+  final response = await _api.post<Map<String, dynamic>>(
+    ApiEndpoints.login,
+    data: {
+      'email': email,
+      'password': password,
+    },
+  );
+
+  final tokens = AuthTokens.fromJson(
+    (response.data as Map).cast<String, dynamic>(),
+  );
+
+  await _persistTokens(tokens);
+  return tokens;
+}
 
   // ── Refresh ────────────────────────────────────────────────────────────────
 

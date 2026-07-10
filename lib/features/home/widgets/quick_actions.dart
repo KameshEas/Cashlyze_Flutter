@@ -129,21 +129,23 @@ class QuickActions extends ConsumerWidget {
         const _QuickAction(
           icon: Icons.camera_alt,
           label: 'Scan',
-          isScanAction: true,
+          route: '/scan',
           colorType: ActionColorType.scan,
         ),
       ];
 
+  // Paths that are bottom-nav tabs (StatefulShellBranch routes) must be
+  // reached via go() to switch tabs in place; everything else is a
+  // standalone screen that should be pushed so the back button returns here.
+  static const _kShellBranchPaths = {'/', '/transactions', '/budgets', '/insights', '/settings'};
+
   void _onActionTap(final BuildContext context, final _QuickAction action) {
-    if (action.route != null) {
-      GoRouter.of(context).go(action.route!);
-    } else if (action.isScanAction) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Scan feature coming soon'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+    final route = action.route;
+    if (route == null) return;
+    if (_kShellBranchPaths.contains(route)) {
+      GoRouter.of(context).go(route);
+    } else {
+      context.push(route);
     }
   }
 }
@@ -158,14 +160,12 @@ class _QuickAction {
     required this.label,
     this.type,
     this.route,
-    this.isScanAction = false,
     required this.colorType,
   });
   final IconData icon;
   final String label;
   final String? type;
   final String? route;
-  final bool isScanAction;
   final ActionColorType colorType;
 
   Color getColor(final ColorScheme scheme) {

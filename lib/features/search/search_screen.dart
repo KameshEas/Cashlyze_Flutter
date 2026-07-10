@@ -152,7 +152,7 @@ class _SearchBodyState extends ConsumerState<SearchBody> {
         break;
       case 'savings_goal':
         Navigator.pop(context);
-        GoRouter.of(context).go('/goals');
+        context.push('/goals');
         break;
     }
   }

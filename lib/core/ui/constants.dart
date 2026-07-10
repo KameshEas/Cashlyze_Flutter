@@ -98,6 +98,12 @@ abstract final class AppColors {
   static const Color error      = Color(0xFFEF4444);
   static const Color info       = Color(0xFF3B82F6);
 
+  // Extra chart-series accents — used when a chart needs more distinct
+  // categories than the semantic colors above provide (e.g. Insights'
+  // category-breakdown palette).
+  static const Color chartViolet = Color(0xFF8B5CF6);
+  static const Color chartPink   = Color(0xFFEC4899);
+
   // Neutral ramp (for dark-mode scaffold / surfaces)
   static const Color neutral950 = Color(0xFF0A0A0A);
   static const Color neutral900 = Color(0xFF171717);

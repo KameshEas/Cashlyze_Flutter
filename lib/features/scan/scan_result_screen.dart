@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/models/category.dart';
+import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/scan_providers.dart';
+import '../../core/repositories/category_repository.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/transaction_ingest_service.dart';
 import '../../core/ui/constants.dart';
+import '../../core/ui/motion.dart';
+import '../../core/utils/format.dart';
+import '../../core/utils/repo_error_handler.dart';
+import '../../core/widgets/category_picker_field.dart';
 
 class ScanResultScreen extends ConsumerStatefulWidget {
   const ScanResultScreen({super.key});
@@ -16,17 +24,18 @@ class ScanResultScreen extends ConsumerStatefulWidget {
 class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
   late TextEditingController merchantController;
   late TextEditingController amountController;
-  late TextEditingController categoryController;
+  late String category;
   DateTime? selectedDate;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
     final bill = ref.read(scanProvider).result;
-    
+
     merchantController = TextEditingController(text: bill?.merchantName ?? '');
     amountController = TextEditingController(text: bill?.amount.toStringAsFixed(2) ?? '');
-    categoryController = TextEditingController(text: bill?.suggestedCategory ?? '');
+    category = bill?.suggestedCategory ?? 'General';
     selectedDate = bill?.date;
   }
 
@@ -34,7 +43,6 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
   void dispose() {
     merchantController.dispose();
     amountController.dispose();
-    categoryController.dispose();
     super.dispose();
   }
 
@@ -50,18 +58,21 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
       );
     }
 
+    final currency = ref.watch(currencyProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Review Receipt'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: context.pop,
+          tooltip: 'Back',
+          onPressed: () => context.canPop() ? context.pop() : null,
         ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.s16),
-          child: Column(
+          child: MotionFadeIn(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Confidence indicator
@@ -128,18 +139,10 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
               const SizedBox(height: AppSpacing.s20),
 
               _buildSection('Category', [
-                TextField(
-                  controller: categoryController,
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    labelText: 'Suggested Category',
-                    filled: true,
-                    suffixIcon: const Icon(Icons.category_rounded),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                  ),
-                  onTap: _showCategoryPicker,
+                CategoryPickerField(
+                  value: category,
+                  onChanged: (final v) => setState(() => category = v),
+                  label: 'Category',
                 ),
               ]),
               const SizedBox(height: AppSpacing.s20),
@@ -203,7 +206,7 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
                               ),
                               if (item.price != null)
                                 Text(
-                                  '₹${item.price?.toStringAsFixed(2) ?? '0.00'}',
+                                  formatAmount(item.price!, currency),
                                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                                     color: Theme.of(context).colorScheme.primary,
                                   ),
@@ -221,8 +224,14 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: _confirmTransaction,
-                  child: const Text('Confirm & Add to Wallet'),
+                  onPressed: _isSubmitting ? null : _confirmTransaction,
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Confirm & Add to Wallet'),
                 ),
               ),
               const SizedBox(height: AppSpacing.s12),
@@ -237,7 +246,7 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
                 ),
               ),
             ],
-          ),
+          )),
         ),
       ),
     );
@@ -277,44 +286,48 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
     }
   }
 
-  void _showCategoryPicker() {
-    showDialog(
-      context: context,
-      builder: (final ctx) => AlertDialog(
-        title: const Text('Select Category'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              'Food',
-              'Transport',
-              'Entertainment',
-              'Health',
-              'Utilities',
-              'Shopping',
-              'Other',
-            ]
-                .map(
-                  (final cat) => ListTile(
-                    title: Text(cat),
-                    onTap: () {
-                      categoryController.text = cat;
-                      Navigator.pop(ctx);
-                    },
-                  ),
-                )
-                .toList(),
-          ),
-        ),
-      ),
+  /// Resolves the picked category display name to a stable category id,
+  /// creating a new category if the user picked a label that doesn't exist
+  /// yet — mirrors `transaction_form_sheet.dart`'s `_resolveCategoryId` so
+  /// scanned transactions land in the same real category system as manually
+  /// entered ones.
+  Future<String?> _resolveCategoryId({
+    required final String userId,
+    required final String? selectedCategory,
+  }) async {
+    if (selectedCategory == null || selectedCategory.trim().isEmpty) return null;
+    final raw = selectedCategory.trim();
+    if (raw.toLowerCase() == 'general') return null;
+
+    var categories = ref
+        .read(userCategoriesProvider)
+        .maybeWhen(data: (final d) => d, orElse: () => const <CategoryModel>[]);
+
+    if (categories.isEmpty) {
+      categories = await ref.read(categoryRepositoryProvider).getAllForUser(userId);
+    }
+
+    for (final c in categories) {
+      if (c.id == raw) return c.id;
+    }
+    for (final c in categories) {
+      if (c.name.toLowerCase() == raw.toLowerCase()) return c.id;
+    }
+
+    final created = await ref.read(categoryRepositoryProvider).create(
+      userId: userId,
+      name: raw,
     );
+    return created.id;
   }
 
   Future<void> _confirmTransaction() async {
+    if (_isSubmitting) return;
+    final messenger = ScaffoldMessenger.of(context);
     try {
       final amount = double.tryParse(amountController.text);
       if (amount == null || amount <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(content: Text('Please enter a valid amount')),
         );
         return;
@@ -322,11 +335,14 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
 
       final user = ref.read(currentUserProvider);
       if (user == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(content: Text('Not authenticated')),
         );
         return;
       }
+
+      setState(() => _isSubmitting = true);
+      final categoryId = await _resolveCategoryId(userId: user.uid, selectedCategory: category);
 
       // Create transaction with scanned data
       final ingestService = ref.read(transactionIngestServiceProvider);
@@ -335,7 +351,8 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
         title: merchantController.text.trim(),
         amount: amount,
         isIncome: false, // Receipts are typically expenses
-        categoryId: categoryController.text.trim(),
+        categoryId: categoryId,
+        categoryName: category,
         date: selectedDate ?? DateTime.now(),
         notes: 'Scanned receipt',
       );
@@ -343,26 +360,41 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
       if (mounted) {
         // Clear scan state
         ref.read(scanProvider.notifier).reset();
+        final successColor = Theme.of(context).colorScheme.primary;
+        await HapticFeedback.lightImpact();
 
-        // Show success and navigate back to transactions
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Transaction added successfully'),
-            backgroundColor: Colors.green,
+        messenger.showSnackBar(
+          SnackBar(
+            content: const Text('Transaction added successfully'),
+            backgroundColor: successColor,
           ),
         );
 
         // Navigate back to transactions
-        context.go('/transactions');
+        if (mounted) context.go('/transactions');
       }
-    } catch (e) {
+    } on BudgetMissingException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
+          content: Text('No budget found for "${e.categoryName}"'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          action: SnackBarAction(
+            label: 'Create Budget',
+            onPressed: () => GoRouter.of(context).go('/budgets'),
+          ),
         ),
       );
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(repoErrorMessage(e)),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 }

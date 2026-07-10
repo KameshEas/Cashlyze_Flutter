@@ -15,6 +15,7 @@ import '../../core/repositories/transaction_repository.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/drive_backup_service.dart';
+import '../../core/ui/constants.dart';
 import '../../core/utils/repo_error_handler.dart';
 import '../../core/widgets/dialogs.dart';
 import '../../features/auth/data/auth_remote_data_source.dart';
@@ -165,7 +166,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// Status badge widget for showing active/inactive states
   Widget _statusBadge(final bool isActive) {
     final theme = Theme.of(context);
-    final color = isActive ? Colors.green : Colors.grey;
+    final color = isActive ? AppColors.success : theme.colorScheme.onSurface.withValues(alpha: 0.5);
     final text = isActive ? 'Active' : 'Inactive';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -251,7 +252,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         const SnackBar(content: Text('Export copied to clipboard')),
       );
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      messenger.showSnackBar(SnackBar(content: Text(repoErrorMessage(e))));
     }
   }
 
@@ -265,7 +266,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final bool isDangerous = false,
   }) {
     final theme = Theme.of(context);
-    final iconColor = isDangerous ? Colors.red : (color ?? theme.colorScheme.primary);
+    final iconColor = isDangerous ? theme.colorScheme.error : (color ?? theme.colorScheme.primary);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -291,7 +292,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     title,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: isDangerous ? Colors.red : null,
+                      color: isDangerous ? theme.colorScheme.error : null,
                     ),
                   ),
                   if (subtitle != null) ...[
@@ -541,21 +542,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           icon: Icons.payments_outlined,
           title: t?.emiTrackerTitle ?? 'EMI Tracker',
           subtitle: 'Track installments',
-          onTap: () => GoRouter.of(context).go('/emi'),
+          onTap: () => context.push('/emi'),
         ),
         const Divider(height: 1, indent: 52),
         _actionTile(
           icon: Icons.add_card,
           title: t?.addEmiPlanTitle ?? 'Add EMI Plan',
           subtitle: t?.addEmiPlanSubtitle ?? 'Create plan',
-          onTap: () => GoRouter.of(context).go('/emi/new'),
+          onTap: () => context.push('/emi/new'),
         ),
         const Divider(height: 1, indent: 52),
         _actionTile(
           icon: Icons.savings_outlined,
           title: 'Savings Goals',
           subtitle: 'Track your savings targets',
-          onTap: () => GoRouter.of(context).go('/goals'),
+          onTap: () => context.push('/goals'),
         ),
         const Divider(height: 1, indent: 52),
         _actionTile(
@@ -570,6 +571,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           title: t?.restoreFromDriveTitle ?? 'Restore from Drive',
           subtitle: t?.restoreFromDriveSubtitle ?? 'Download & import JSON',
           onTap: () async => _restoreTransactionsFromDrive(context, ref),
+        ),
+        const Divider(height: 1, indent: 52),
+        _actionTile(
+          icon: Icons.delete_sweep_outlined,
+          title: 'Clear All Data',
+          subtitle: 'Erase transactions, budgets, categories & EMI plans',
+          isDangerous: true,
+          onTap: () async {
+            final confirm = await ClearDataDialog.show(
+              context,
+              onConfirm: (_) {},
+            );
+            if (confirm == true) {
+              final user = ref.read(currentUserProvider);
+              if (user == null) return;
+              final failures = await _clearAllUserData(ref, user.uid);
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(
+                    failures.isEmpty
+                        ? 'All data cleared'
+                        : 'Data cleared, but some items failed (${failures.join(', ')}). Try again if needed.',
+                  ),
+                ),
+              );
+            }
+          },
         ),
         const Divider(height: 1, indent: 52),
         // Connect Mock Bank removed from Settings.
@@ -601,51 +629,96 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           onTap: () async {
             final currentController = TextEditingController();
             final newController = TextEditingController();
-            final confirm = await showDialog<bool>(
+            var isSubmitting = false;
+            String? errorText;
+            await showDialog<void>(
               context: context,
-              builder: (final ctx) => AlertDialog(
-                title: const Text('Change Password'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: currentController,
-                      obscureText: true,
-                      decoration: const InputDecoration(labelText: 'Current password'),
+              builder: (final ctx) => StatefulBuilder(
+                builder: (final ctx, final setDialogState) {
+                  Future<void> submit() async {
+                    final current = currentController.text.trim();
+                    final next = newController.text.trim();
+                    if (current.isEmpty || next.isEmpty) {
+                      setDialogState(() => errorText = 'Enter both passwords');
+                      return;
+                    }
+                    if (next.length < 8 ||
+                        !next.contains(RegExp('[A-Z]')) ||
+                        !next.contains(RegExp('[a-z]')) ||
+                        !next.contains(RegExp('[0-9]'))) {
+                      setDialogState(
+                        () => errorText =
+                            'New password needs 8+ characters with upper, lower, and a digit',
+                      );
+                      return;
+                    }
+                    setDialogState(() {
+                      errorText = null;
+                      isSubmitting = true;
+                    });
+                    try {
+                      await ref.read(authRemoteDataSourceProvider).changePassword(
+                        currentPassword: current,
+                        newPassword: next,
+                      );
+                      if (!ctx.mounted) return;
+                      Navigator.of(ctx).pop();
+                      messenger.showSnackBar(
+                        const SnackBar(content: Text('Password updated')),
+                      );
+                    } catch (e) {
+                      setDialogState(() {
+                        isSubmitting = false;
+                        errorText = repoErrorMessage(e);
+                      });
+                    }
+                  }
+
+                  return AlertDialog(
+                    title: const Text('Change Password'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: currentController,
+                          obscureText: true,
+                          decoration: const InputDecoration(labelText: 'Current password'),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: newController,
+                          obscureText: true,
+                          decoration: const InputDecoration(labelText: 'New password'),
+                        ),
+                        if (errorText != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            errorText!,
+                            style: TextStyle(color: Theme.of(ctx).colorScheme.error, fontSize: 12),
+                          ),
+                        ],
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: newController,
-                      obscureText: true,
-                      decoration: const InputDecoration(labelText: 'New password'),
-                    ),
-                  ],
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(false),
-                    child: const Text('Cancel'),
-                  ),
-                  FilledButton(
-                    onPressed: () => Navigator.of(ctx).pop(true),
-                    child: const Text('Update'),
-                  ),
-                ],
+                    actions: [
+                      TextButton(
+                        onPressed: isSubmitting ? null : () => Navigator.of(ctx).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                      FilledButton(
+                        onPressed: isSubmitting ? null : submit,
+                        child: isSubmitting
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('Update'),
+                      ),
+                    ],
+                  );
+                },
               ),
             );
-            if (confirm == true) {
-              try {
-                await ref.read(authRemoteDataSourceProvider).changePassword(
-                  currentPassword: currentController.text.trim(),
-                  newPassword: newController.text.trim(),
-                );
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Password updated')),
-                );
-              } catch (e) {
-                messenger.showSnackBar(SnackBar(content: Text(repoErrorMessage(e))));
-              }
-            }
           },
         ),
         const Divider(height: 1, indent: 52),
@@ -679,7 +752,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               messenger.showSnackBar(
                 const SnackBar(
                   content: Text('Signed out successfully'),
-                  backgroundColor: Colors.green,
+                  backgroundColor: AppColors.success,
                 ),
               );
               try {
@@ -707,22 +780,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               context: context,
               builder: (final ctx) => DeleteAccountDialog(
                 userEmail: ref.read(currentUserProvider)?.email,
-                onExportPressed: () async {
-                  Navigator.pop(ctx);
-                  await _showExportDataDialog(context, ref);
-                },
+                onExportPressed: () => _showExportDataDialog(context, ref),
                 onConfirm: (_) {},
               ),
             );
             if (confirm == true) {
               try {
                 final user = ref.read(currentUserProvider);
+                List<String> failures = const [];
                 if (user != null) {
-                  await _clearAllUserData(ref, user.uid);
+                  failures = await _clearAllUserData(ref, user.uid);
                 }
                 await ref.read(authRemoteDataSourceProvider).deleteAccount();
                 messenger.showSnackBar(
-                  const SnackBar(content: Text('Account and all data deleted')),
+                  SnackBar(
+                    content: Text(
+                      failures.isEmpty
+                          ? 'Account and all data deleted'
+                          : 'Account deleted, but some data failed to clear (${failures.join(', ')}). Contact support if this persists.',
+                    ),
+                  ),
                 );
                 router.go('/login');
               } catch (e) {
@@ -872,7 +949,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         messenger.showSnackBar(
           const SnackBar(
             content: Text('Uploaded to Google Drive'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -882,7 +959,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           e.toString().contains('Google Sign-In failed')) {
         errorMsg = 'Google sign-in failed. Please sign in to continue.';
       } else {
-        errorMsg = 'Upload failed: $e';
+        errorMsg = repoErrorMessage(e);
       }
 
       progressController.add((
@@ -1010,7 +1087,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         messenger.showSnackBar(
           SnackBar(
             content: Text('Restored $count transactions from Drive'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -1020,7 +1097,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           e.toString().contains('Google Sign-In failed')) {
         errorMsg = 'Google sign-in failed. Please sign in to continue.';
       } else {
-        errorMsg = 'Restore failed: $e';
+        errorMsg = repoErrorMessage(e);
       }
 
       progressController.add((
@@ -1098,7 +1175,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
 
 
-  Future<void> _clearAllUserData(final WidgetRef ref, final String userId) async {
+  /// Clears all of the user's transactions/budgets/categories/EMI plans.
+  ///
+  /// Each category is attempted independently so one failure doesn't block
+  /// the rest. Returns the list of data categories that failed to clear
+  /// (empty if everything succeeded) so callers can give an honest outcome
+  /// message instead of an unconditional "success".
+  Future<List<String>> _clearAllUserData(final WidgetRef ref, final String userId) async {
+    final failures = <String>[];
+
     // Clear transactions
     try {
       final transactions = await ref
@@ -1110,7 +1195,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             .deleteForUser(userId, transaction.id);
       }
     } catch (e) {
-      // Continue with other data even if transactions fail
+      debugPrint('Failed to clear transactions: $e');
+      failures.add('transactions');
     }
 
     // Clear budgets
@@ -1123,7 +1209,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         await ref.read(budgetRepositoryProvider).delete(userId, budget.id);
       }
     } catch (e) {
-      // Continue with other data even if budgets fail
+      debugPrint('Failed to clear budgets: $e');
+      failures.add('budgets');
     }
 
     // Clear categories
@@ -1136,7 +1223,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         await ref.read(categoryRepositoryProvider).delete(userId, category.id);
       }
     } catch (e) {
-      // Continue with other data even if categories fail
+      debugPrint('Failed to clear categories: $e');
+      failures.add('categories');
     }
 
     // Clear EMI plans and payments
@@ -1148,7 +1236,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         await ref.read(emiRepositoryProvider).deletePlan(userId, plan.id);
       }
     } catch (e) {
-      // Continue even if EMI data fails
+      debugPrint('Failed to clear EMI plans: $e');
+      failures.add('EMI plans');
     }
+
+    return failures;
   }
 }

@@ -7,10 +7,12 @@ import '../../core/models/emi.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/repositories/emi_repository.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/ui/motion.dart';
 import '../../core/utils/format.dart';
 import '../../core/utils/repo_error_handler.dart';
 import '../../core/widgets/animated_progress_indicator.dart';
 import '../../core/widgets/dialogs.dart';
+import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/skeleton.dart';
 import 'emi_form_screen.dart';
 
@@ -33,7 +35,7 @@ class EMIDashboardScreen extends ConsumerWidget {
         ),
         actions: [
           TextButton.icon(
-            onPressed: () => GoRouter.of(context).go('/emi/new'),
+            onPressed: () => context.push('/emi/new'),
             icon: const Icon(Icons.add, color: Colors.white),
             label: const Text(
               'Add Loan',
@@ -48,27 +50,30 @@ class EMIDashboardScreen extends ConsumerWidget {
           await ref.read(userEMIPlansProvider.future);
         },
         child: plansAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (final e, final _) =>
-              Center(child: Text('Failed to load: $e')),
+          loading: () => ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: 4,
+            separatorBuilder: (final _, final _) => const SizedBox(height: 12),
+            itemBuilder: (final ctx, final i) => const SkeletonListTile(),
+          ),
+          error: (final e, final _) => Center(
+            child: AppEmptyState(
+              title: 'Failed to load EMI plans',
+              subtitle: repoErrorMessage(e),
+              icon: Icons.error_outline_rounded,
+              actionLabel: 'Retry',
+              onAction: () => ref.invalidate(userEMIPlansProvider),
+            ),
+          ),
           data: (final plans) {
             if (plans.isEmpty) {
               return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.payments_outlined, size: 72),
-                    const SizedBox(height: 8),
-                    Text(
-                      'No EMIs yet. Add your first loan.',
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: () => GoRouter.of(context).go('/emi/new'),
-                      child: const Text('Add Loan'),
-                    ),
-                  ],
+                child: AppEmptyState(
+                  title: 'No EMIs yet',
+                  subtitle: 'Add your first loan to start tracking payments.',
+                  icon: Icons.payments_outlined,
+                  actionLabel: 'Add Loan',
+                  onAction: () => context.push('/emi/new'),
                 ),
               );
             }
@@ -79,7 +84,10 @@ class EMIDashboardScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
               itemBuilder: (final ctx, final i) {
                 final p = plans[i];
-                return _PlanCard(plan: p);
+                return MotionFadeIn(
+                  delay: MotionStagger.delayFor(i),
+                  child: _PlanCard(plan: p),
+                );
               },
             );
           },
@@ -92,6 +100,35 @@ class EMIDashboardScreen extends ConsumerWidget {
 class _PlanCard extends ConsumerWidget {
   const _PlanCard({required this.plan});
   final EMIPlan plan;
+
+  /// Confirms and deletes this plan, showing a clean error message on
+  /// failure. Returns whether the delete succeeded. Shared by both the
+  /// swipe-to-delete and popup-menu delete paths below.
+  Future<bool> _confirmAndDeletePlan(
+    final BuildContext context,
+    final WidgetRef ref,
+    final ScaffoldMessengerState messenger,
+    final String userId,
+  ) async {
+    final confirm = await showConfirmDialog(
+      context,
+      title: 'Delete EMI plan',
+      content:
+          'Delete this EMI plan and its schedule? This action cannot be undone.',
+      confirmLabel: 'Delete',
+    );
+    if (confirm != true) return false;
+    try {
+      await ref.read(emiRepositoryProvider).deletePlan(userId, plan.id);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('EMI plan deleted')),
+      );
+      return true;
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(repoErrorMessage(e))));
+      return false;
+    }
+  }
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
@@ -112,7 +149,7 @@ class _PlanCard extends ConsumerWidget {
             ).colorScheme.onSurface.withValues(alpha: 0.04),
           ),
         ),
-        child: Text('Failed to load schedule: $e'),
+        child: Text(repoErrorMessage(e)),
       ),
       data: (final items) {
         final paidCount = items.where((final e) => e.paid).length;
@@ -185,34 +222,16 @@ class _PlanCard extends ConsumerWidget {
               }
               return false;
             } else {
-              final confirm = await showConfirmDialog(
-                context,
-                title: 'Delete EMI plan',
-                content:
-                    'Delete this EMI plan and its schedule? This action cannot be undone.',
-                confirmLabel: 'Delete',
-              );
-              if (confirm != true) return false;
-              try {
-                await ref
-                    .read(emiRepositoryProvider)
-                    .deletePlan(user.uid, plan.id);
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('EMI plan deleted')),
-                );
+              final deleted = await _confirmAndDeletePlan(context, ref, messenger, user.uid);
+              if (deleted) {
                 // Delay invalidation to allow Dismissible animation to complete
                 Future.delayed(const Duration(milliseconds: 300), () {
                   try {
                     ref.invalidate(userEMIPlansProvider);
                   } catch (_) {}
                 });
-                return true;
-              } catch (e) {
-                messenger.showSnackBar(
-                  SnackBar(content: Text(repoErrorMessage(e))),
-                );
-                return false;
               }
+              return deleted;
             }
           },
           child: InkWell(
@@ -267,6 +286,7 @@ class _PlanCard extends ConsumerWidget {
                                 ?.copyWith(fontWeight: FontWeight.w700),
                           ),
                           PopupMenuButton<int>(
+                            tooltip: 'More options',
                             onSelected: (final v) async {
                               final messenger = ScaffoldMessenger.of(context);
                               if (v == 1) {
@@ -277,33 +297,16 @@ class _PlanCard extends ConsumerWidget {
                                   ),
                                 );
                               } else if (v == 2) {
-                                final confirm = await showConfirmDialog(
-                                  context,
-                                  title: 'Delete EMI plan',
-                                  content:
-                                      'Delete this EMI plan and its schedule? This action cannot be undone.',
-                                  confirmLabel: 'Delete',
-                                );
-                                if (confirm != true) return;
                                 final user = ref.read(currentUserProvider);
                                 if (user == null) return;
-                                try {
-                                  await ref
-                                      .read(emiRepositoryProvider)
-                                      .deletePlan(user.uid, plan.id);
-                                  messenger.showSnackBar(
-                                    const SnackBar(
-                                      content: Text('EMI plan deleted'),
-                                    ),
-                                  );
-                                  // Invalidate provider to refresh the list
+                                final deleted = await _confirmAndDeletePlan(
+                                  context,
+                                  ref,
+                                  messenger,
+                                  user.uid,
+                                );
+                                if (deleted) {
                                   ref.invalidate(userEMIPlansProvider);
-                                } catch (e) {
-                                  messenger.showSnackBar(
-                                    SnackBar(
-                                      content: Text(repoErrorMessage(e)),
-                                    ),
-                                  );
                                 }
                               }
                             },

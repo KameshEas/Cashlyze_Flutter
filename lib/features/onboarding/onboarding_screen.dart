@@ -6,6 +6,7 @@ import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/ui/constants.dart';
+import '../../core/ui/motion.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -231,7 +232,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             children: List.generate(
               _pages.length,
               (final int index) => AnimatedContainer(
-                duration: MediaQuery.of(context).disableAnimations
+                duration: reduceMotionOf(context)
                     ? Duration.zero
                     : const Duration(milliseconds: 300),
                 margin: const EdgeInsets.only(right: AppSpacing.s8),
@@ -252,7 +253,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           FilledButton(
             onPressed: () async {
               if (_currentPage < _pages.length - 1) {
-                if (MediaQuery.of(context).disableAnimations) {
+                if (reduceMotionOf(context)) {
                   _pageController.jumpToPage(_currentPage + 1);
                 } else {
                   await _pageController.nextPage(

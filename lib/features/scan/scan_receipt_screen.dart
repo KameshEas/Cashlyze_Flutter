@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/providers/scan_providers.dart';
 import '../../core/ui/constants.dart';
+import '../../core/ui/motion.dart';
 
 class ScanReceiptScreen extends ConsumerStatefulWidget {
   const ScanReceiptScreen({super.key});
@@ -25,14 +26,15 @@ class _ScanReceiptScreenState extends ConsumerState<ScanReceiptScreen> {
         title: const Text('Scan Receipt'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: context.pop,
+          tooltip: 'Back',
+          onPressed: () => context.canPop() ? context.pop() : null,
         ),
       ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.s24),
-            child: Column(
+            child: MotionFadeIn(child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Large camera icon
@@ -124,7 +126,7 @@ class _ScanReceiptScreenState extends ConsumerState<ScanReceiptScreen> {
                   ),
                 ),
               ],
-            ),
+            )),
           ),
         ),
       ),
@@ -190,7 +192,7 @@ class _ScanReceiptScreenState extends ConsumerState<ScanReceiptScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(scanState.errorMessage!),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       } else if (scanState.result != null) {
