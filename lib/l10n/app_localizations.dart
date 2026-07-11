@@ -394,6 +394,12 @@ abstract class AppLocalizations {
   /// **'Name cannot be empty'**
   String get nameEmptyError;
 
+  /// No description provided for @nameDuplicateError.
+  ///
+  /// In en, this message translates to:
+  /// **'A category with this name already exists'**
+  String get nameDuplicateError;
+
   /// No description provided for @saved.
   ///
   /// In en, this message translates to:

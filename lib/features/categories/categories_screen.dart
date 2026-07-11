@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/models/category.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/ui/motion.dart';
@@ -144,9 +145,23 @@ class CategoriesScreen extends ConsumerWidget {
       initial: initialName ?? '',
     );
     if (name == null) return;
-    if (name.trim().isEmpty) {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
       messenger.showSnackBar(
         SnackBar(content: Text(l10n?.nameEmptyError ?? 'Name cannot be empty')),
+      );
+      return;
+    }
+    final existing = ref.read(userCategoriesProvider).maybeWhen(
+          data: (final list) => list,
+          orElse: () => const <CategoryModel>[],
+        );
+    final isDuplicate = existing.any(
+      (final c) => c.id != categoryId && c.name.toLowerCase() == trimmedName.toLowerCase(),
+    );
+    if (isDuplicate) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n?.nameDuplicateError ?? 'A category with this name already exists')),
       );
       return;
     }
