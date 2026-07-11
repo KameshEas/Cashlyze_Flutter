@@ -92,8 +92,13 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
         run: |
-          set -e
+          set -euo pipefail
           shorebird --version
+
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "❌ ANDROID_KEYSTORE_BASE64 secret not set."
+            exit 1
+          fi
 
           PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //; s/"//g')
           BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
@@ -164,7 +169,12 @@ jobs:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
-          set -e
+          set -euo pipefail
+
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "❌ ANDROID_KEYSTORE_BASE64 secret not set."
+            exit 1
+          fi
 
           PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //; s/"//g')
           BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
@@ -240,7 +250,7 @@ jobs:
         env:
           SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
         run: |
-          set -e
+          set -euo pipefail
 
           flutter pub get
 
@@ -284,15 +294,20 @@ jobs:
           name: "cashlyze-apk-${{ github.sha }}"
           path: build/app/outputs/flutter-apk/
 
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
       - name: script
         env:
           FIREBASE_ANDROID_APP_ID: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
           FIREBASE_DISTRIBUTION_GROUPS: ${{ secrets.FIREBASE_DISTRIBUTION_GROUPS }}
         run: |
-          set -e
+          set -euo pipefail
           echo "📦 Installing Firebase CLI..."
-          npm install -g firebase-tools >/dev/null 2>&1
+          npm install -g firebase-tools
 
           APK_PATH=$(find build/app/outputs/flutter-apk -name "*.apk" -type f | head -1)
 
@@ -313,12 +328,16 @@ jobs:
             exit 0
           fi
 
-          firebase appdistribution:distribute "$APK_PATH" \
+          DISTRIBUTE_ARGS=(appdistribution:distribute "$APK_PATH" \
             --app "$FIREBASE_ANDROID_APP_ID" \
-            --groups "$FIREBASE_DISTRIBUTION_GROUPS" \
             --release-notes "$RELEASE_NOTES" \
-            --token "$FIREBASE_TOKEN"
+            --token "$FIREBASE_TOKEN")
 
+          if [ -n "$FIREBASE_DISTRIBUTION_GROUPS" ]; then
+            DISTRIBUTE_ARGS+=(--groups "$FIREBASE_DISTRIBUTION_GROUPS")
+          fi
+
+          firebase "${DISTRIBUTE_ARGS[@]}"
           echo "✅ Firebase deployment complete"
 
   deploy_google_play_internal_testing:
@@ -355,7 +374,7 @@ jobs:
           GCLOUD_SERVICE_ACCOUNT_CREDENTIALS: ${{ secrets.GCLOUD_SERVICE_ACCOUNT_CREDENTIALS }}
           PACKAGE_NAME: ${{ secrets.PACKAGE_NAME }}
         run: |
-          set -e
+          set -euo pipefail
           echo "📦 Installing Fastlane..."
           apt-get update -qq && apt-get install -y -qq ruby-dev
           gem install fastlane -NV 2>&1 | tail -2
@@ -374,12 +393,12 @@ jobs:
 
           # Verify credentials
           if [ -z "$GCLOUD_SERVICE_ACCOUNT_CREDENTIALS" ]; then
-            echo "❌ GCLOUD_SERVICE_ACCOUNT_CREDENTIALS not set. Add it to GitLab CI variables."
+            echo "❌ GCLOUD_SERVICE_ACCOUNT_CREDENTIALS not set. Add it to the GitHub Actions repository secrets."
             exit 1
           fi
 
           if [ -z "$PACKAGE_NAME" ]; then
-            echo "❌ PACKAGE_NAME not set. Add it to GitLab CI variables."
+            echo "❌ PACKAGE_NAME not set. Add it to the GitHub Actions repository secrets."
             exit 1
           fi
 
@@ -438,7 +457,7 @@ jobs:
           GCLOUD_SERVICE_ACCOUNT_CREDENTIALS: ${{ secrets.GCLOUD_SERVICE_ACCOUNT_CREDENTIALS }}
           PACKAGE_NAME: ${{ secrets.PACKAGE_NAME }}
         run: |
-          set -e
+          set -euo pipefail
           echo "📦 Installing Fastlane..."
           apt-get update -qq && apt-get install -y -qq ruby-dev
           gem install fastlane -NV 2>&1 | tail -2
