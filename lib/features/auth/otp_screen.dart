@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/api/api_exception.dart';
 import '../../core/providers/otp_pending_provider.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/utils/repo_error_handler.dart';
 import 'data/auth_remote_data_source.dart';
 import 'data/otp_remote_data_source.dart';
 
@@ -104,7 +105,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to send OTP: $e'),
+            content: Text(repoErrorMessage(e)),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -117,7 +118,13 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   Future<void> _verifyOtp() async {
     final entered = _otpController.text.trim();
     final email = _userEmail;
-    if (entered.isEmpty || email.isEmpty) return;
+    if (email.isEmpty) return;
+    if (entered.length != 6 || !RegExp(r'^\d{6}$').hasMatch(entered)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter all 6 digits of the code')),
+      );
+      return;
+    }
     setState(() => _verifying = true);
     try {
       final result = await ref
@@ -166,7 +173,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(repoErrorMessage(e)),
             backgroundColor: Colors.redAccent,
           ),
         );

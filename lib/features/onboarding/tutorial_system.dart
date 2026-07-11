@@ -8,7 +8,8 @@ enum TutorialEvent {
   transactionEntry('transaction_entry', 'Transaction Entry'),
   categorySelection('category_selection', 'Category Selection'),
   emiTracking('emi_tracking', 'EMI Tracking'),
-  settingsAccess('settings_access', 'App Settings');
+  settingsAccess('settings_access', 'App Settings'),
+  quickMenu('quick_menu', 'Quick Menu');
 
   const TutorialEvent(this.id, this.title);
 

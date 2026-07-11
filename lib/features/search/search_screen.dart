@@ -4,6 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/models/search_result.dart';
 import '../../core/providers/search_providers.dart';
+import '../../core/ui/motion.dart';
+import '../../core/utils/repo_error_handler.dart';
+import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/skeleton.dart';
 
 class SearchScreen extends ConsumerWidget {
   const SearchScreen({super.key});
@@ -80,47 +84,19 @@ class _SearchBodyState extends ConsumerState<SearchBody> {
           child: searchResultsAsync.when(
             data: (final results) {
               if (_searchController.text.trim().isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.search_outlined,
-                        size: 64,
-                        color: Colors.grey.shade300,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Start typing to search',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
+                return const Center(
+                  child: AppEmptyState(
+                    title: 'Start typing to search',
+                    icon: Icons.search_outlined,
                   ),
                 );
               }
 
               if (results.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.search_off_outlined,
-                        size: 64,
-                        color: Colors.grey.shade300,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No results found',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
+                return const Center(
+                  child: AppEmptyState(
+                    title: 'No results found',
+                    icon: Icons.search_off_outlined,
                   ),
                 );
               }
@@ -130,25 +106,29 @@ class _SearchBodyState extends ConsumerState<SearchBody> {
                 itemCount: results.length,
                 itemBuilder: (final context, final index) {
                   final result = results[index];
-                  return SearchResultTile(
-                    result: result,
-                    onTap: () => _handleResultTap(context, result),
+                  return MotionFadeIn(
+                    delay: MotionStagger.delayFor(index),
+                    child: SearchResultTile(
+                      result: result,
+                      onTap: () => _handleResultTap(context, result),
+                    ),
                   );
                 },
               );
             },
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              itemBuilder: (final context, final i) => const SkeletonListTile(),
+              separatorBuilder: (final context, final i) => const SizedBox(height: 8),
+              itemCount: 6,
+            ),
             error: (final err, final stack) => Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Error: $err'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => ref.invalidate(searchResultsProvider),
-                    child: const Text('Retry'),
-                  ),
-                ],
+              child: AppEmptyState(
+                title: 'Failed to search',
+                subtitle: repoErrorMessage(err),
+                icon: Icons.error_outline_rounded,
+                actionLabel: 'Retry',
+                onAction: () => ref.invalidate(searchResultsProvider),
               ),
             ),
           ),
@@ -172,7 +152,7 @@ class _SearchBodyState extends ConsumerState<SearchBody> {
         break;
       case 'savings_goal':
         Navigator.pop(context);
-        GoRouter.of(context).go('/goals');
+        context.push('/goals');
         break;
     }
   }

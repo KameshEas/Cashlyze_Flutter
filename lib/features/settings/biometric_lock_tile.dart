@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers/biometric_lock_providers.dart';
@@ -42,7 +43,9 @@ class BiometricLockTile extends ConsumerWidget {
                           .read(biometricLockProvider.notifier)
                           .enable();
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        final messenger = ScaffoldMessenger.of(context);
+                        await HapticFeedback.lightImpact();
+                        messenger.showSnackBar(
                           const SnackBar(
                             content: Text(
                               'Biometric lock enabled',
@@ -56,7 +59,9 @@ class BiometricLockTile extends ConsumerWidget {
                         .read(biometricLockProvider.notifier)
                         .disable();
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      final messenger = ScaffoldMessenger.of(context);
+                      await HapticFeedback.lightImpact();
+                      messenger.showSnackBar(
                         const SnackBar(
                           content: Text(
                             'Biometric lock disabled',

@@ -7,6 +7,7 @@ import '../models/scanned_bill.dart';
 import '../services/bill_ocr_service.dart';
 import '../services/bill_parser_service.dart';
 import '../services/merchant_categorizer_service.dart';
+import '../utils/repo_error_handler.dart';
 
 // OCR Service
 final billOCRServiceProvider = Provider<BillOCRService>((final ref) {
@@ -39,10 +40,11 @@ class ScanState {
     final bool? isProcessing,
     final String? errorMessage,
     final ScannedBill? result,
+    final bool clearError = false,
   }) {
     return ScanState(
       isProcessing: isProcessing ?? this.isProcessing,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       result: result ?? this.result,
     );
   }
@@ -62,7 +64,7 @@ class ScanNotifier extends Notifier<ScanState> {
   }
 
   Future<void> scanImage(final String imagePath) async {
-    state = state.copyWith(isProcessing: true);
+    state = state.copyWith(isProcessing: true, clearError: true);
 
     try {
       // Extract text from image
@@ -81,11 +83,12 @@ class ScanNotifier extends Notifier<ScanState> {
       state = state.copyWith(
         isProcessing: false,
         result: billWithAttachment,
+        clearError: true,
       );
     } catch (e) {
       state = state.copyWith(
         isProcessing: false,
-        errorMessage: 'Failed to scan bill: $e',
+        errorMessage: repoErrorMessage(e),
       );
     }
   }

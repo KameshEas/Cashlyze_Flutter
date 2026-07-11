@@ -24,8 +24,8 @@ const List<Color> _kPalette = [
   AppColors.teal500,
   AppColors.info,
   AppColors.warning,
-  Color(0xFF8B5CF6),
-  Color(0xFFEC4899),
+  AppColors.chartViolet,
+  AppColors.chartPink,
 ];
 
 class InsightsScreen extends ConsumerStatefulWidget {
@@ -66,10 +66,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
         kpis.net.toDouble(),
         currency,
       );
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: 'Insights report',
-      );
+      await Share.shareXFiles([XFile(file.path)], text: 'Insights report');
     } catch (e) {
       showRepoErrorSnackBar(messenger, e);
     }
@@ -112,128 +109,154 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
           const SizedBox(width: AppSpacing.s16),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.pagePadding,
-          0,
-          AppSpacing.pagePadding,
-          AppSpacing.pagePadding,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Net balance hero ───────────────────────────────────────────
-            _NetHeroCard(kpis: kpis, currency: currency, isLoading: isLoading),
-            const SizedBox(height: AppSpacing.s12),
-
-            // ── 4-metric strip ─────────────────────────────────────────────
-            _MetricStrip(kpis: kpis, currency: currency, isLoading: isLoading),
-            const SizedBox(height: AppSpacing.sectionGap),
-
-            // ── Forecast card ──────────────────────────────────────────────
-            if (!isLoading && forecast != null) ...[
-              _ForecastCard(
-                forecast: forecast,
-                monthly: monthly,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(recentTransactionsProvider);
+          await ref.read(recentTransactionsProvider.future);
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.pagePadding,
+            0,
+            AppSpacing.pagePadding,
+            AppSpacing.pagePadding,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (txsAsync.hasError) ...[
+                const SizedBox(height: AppSpacing.s12),
+                AppEmptyState(
+                  title: 'Failed to load your latest transactions',
+                  subtitle: repoErrorMessage(txsAsync.error ?? 'Unknown error'),
+                  icon: Icons.error_outline_rounded,
+                  actionLabel: 'Retry',
+                  onAction: () => ref.invalidate(recentTransactionsProvider),
+                ),
+                const SizedBox(height: AppSpacing.sectionGap),
+              ],
+              // ── Net balance hero ───────────────────────────────────────────
+              _NetHeroCard(
+                kpis: kpis,
                 currency: currency,
-              ),
-              const SizedBox(height: AppSpacing.sectionGap),
-            ],
-
-            // ── Monthly trend ──────────────────────────────────────────────
-            const _SectionHeader(
-              title: 'Monthly Trend',
-              icon: Icons.show_chart_rounded,
-            ),
-            const SizedBox(height: AppSpacing.s12),
-            if (isLoading)
-              const SkeletonChartBox(height: 200)
-            else if (monthly.isEmpty)
-              const AppEmptyState(
-                title: 'No trend data',
-                subtitle: 'Add transactions to see your monthly trend',
-                icon: Icons.show_chart_rounded,
-              )
-            else
-              _MonthlyTrendCard(monthly: monthly),
-            const SizedBox(height: AppSpacing.sectionGap),
-
-            // ── Category Breakdown ──────────────────────────────────────
-            const _SectionHeader(
-              title: 'Category Breakdown',
-              icon: Icons.pie_chart_rounded,
-            ),
-            const SizedBox(height: AppSpacing.s12),
-            categoryBreakdownAsync.when(
-              loading: () => const SkeletonChartBox(height: 240),
-              error: (final err, final stack) => const AppEmptyState(
-                title: 'Failed to load category data',
-                subtitle: 'Unable to fetch category breakdown from server',
-                icon: Icons.pie_chart_rounded,
-              ),
-              data: (final breakdown) {
-                if (breakdown.isEmpty) {
-                  return const AppEmptyState(
-                    title: 'No category data',
-                    subtitle: 'Add transactions to see category breakdown',
-                    icon: Icons.pie_chart_rounded,
-                  );
-                }
-                return _CategoryBreakdownCard(
-                  breakdown: breakdown,
-                  currency: currency,
-                );
-              },
-            ),
-            const SizedBox(height: AppSpacing.sectionGap),
-
-            // ── Top Spends ──────────────────────────────────────────────
-            const _SectionHeader(
-              title: 'Top Spends',
-              icon: Icons.storefront_rounded,
-            ),
-            const SizedBox(height: AppSpacing.s12),
-            if (isLoading)
-              const SkeletonChartBox(height: 180)
-            else if (topMerchants.isEmpty)
-              const AppEmptyState(
-                title: 'No merchant data',
-                subtitle: 'No merchant data for this period',
-                icon: Icons.storefront_rounded,
-              )
-            else
-              _MerchantsCard(merchants: topMerchants, currency: currency),
-            const SizedBox(height: AppSpacing.sectionGap),
-
-            // ── Recurring payments ─────────────────────────────────────────
-            const _SectionHeader(
-              title: 'Recurring Payments',
-              icon: Icons.repeat_rounded,
-            ),
-            const SizedBox(height: AppSpacing.s12),
-            if (isLoading)
-              const SkeletonChartBox(height: 140)
-            else if (recurring.isEmpty)
-              const AppEmptyState(
-                title: 'No recurring payments',
-                subtitle: 'No recurring payments detected yet',
-                icon: Icons.repeat_rounded,
-              )
-            else
-              _RecurringCard(recurring: recurring, currency: currency),
-            const SizedBox(height: AppSpacing.sectionGap),
-
-            // ── Unusual activity ───────────────────────────────────────────
-            if (!isLoading && anomalies.isNotEmpty) ...[
-              const _SectionHeader(
-                title: 'Unusual Activity',
-                icon: Icons.warning_amber_rounded,
+                isLoading: isLoading,
               ),
               const SizedBox(height: AppSpacing.s12),
-              _AnomalyCard(anomalies: anomalies, currency: currency),
+
+              // ── 4-metric strip ─────────────────────────────────────────────
+              _MetricStrip(
+                kpis: kpis,
+                currency: currency,
+                isLoading: isLoading,
+              ),
               const SizedBox(height: AppSpacing.sectionGap),
+
+              // ── Forecast card ──────────────────────────────────────────────
+              if (!isLoading && forecast != null) ...[
+                _ForecastCard(
+                  forecast: forecast,
+                  monthly: monthly,
+                  currency: currency,
+                ),
+                const SizedBox(height: AppSpacing.sectionGap),
+              ],
+
+              // ── Monthly trend ──────────────────────────────────────────────
+              const _SectionHeader(
+                title: 'Monthly Trend',
+                icon: Icons.show_chart_rounded,
+              ),
+              const SizedBox(height: AppSpacing.s12),
+              if (isLoading)
+                const SkeletonChartBox(height: 200)
+              else if (monthly.isEmpty)
+                const AppEmptyState(
+                  title: 'No trend data',
+                  subtitle: 'Add transactions to see your monthly trend',
+                  icon: Icons.show_chart_rounded,
+                )
+              else
+                _MonthlyTrendCard(monthly: monthly),
+              const SizedBox(height: AppSpacing.sectionGap),
+
+              // ── Category Breakdown ──────────────────────────────────────
+              const _SectionHeader(
+                title: 'Category Breakdown',
+                icon: Icons.pie_chart_rounded,
+              ),
+              const SizedBox(height: AppSpacing.s12),
+              categoryBreakdownAsync.when(
+                loading: () => const SkeletonChartBox(height: 240),
+                error: (final err, final stack) => const AppEmptyState(
+                  title: 'Failed to load category data',
+                  subtitle: 'Unable to fetch category breakdown from server',
+                  icon: Icons.pie_chart_rounded,
+                ),
+                data: (final breakdown) {
+                  if (breakdown.isEmpty) {
+                    return const AppEmptyState(
+                      title: 'No category data',
+                      subtitle: 'Add transactions to see category breakdown',
+                      icon: Icons.pie_chart_rounded,
+                    );
+                  }
+                  return _CategoryBreakdownCard(
+                    breakdown: breakdown,
+                    currency: currency,
+                  );
+                },
+              ),
+              const SizedBox(height: AppSpacing.sectionGap),
+
+              // ── Top Spends ──────────────────────────────────────────────
+              const _SectionHeader(
+                title: 'Top Spends',
+                icon: Icons.storefront_rounded,
+              ),
+              const SizedBox(height: AppSpacing.s12),
+              if (isLoading)
+                const SkeletonChartBox(height: 180)
+              else if (topMerchants.isEmpty)
+                const AppEmptyState(
+                  title: 'No merchant data',
+                  subtitle: 'No merchant data for this period',
+                  icon: Icons.storefront_rounded,
+                )
+              else
+                _MerchantsCard(merchants: topMerchants, currency: currency),
+              const SizedBox(height: AppSpacing.sectionGap),
+
+              // ── Recurring payments ─────────────────────────────────────────
+              const _SectionHeader(
+                title: 'Recurring Payments',
+                icon: Icons.repeat_rounded,
+              ),
+              const SizedBox(height: AppSpacing.s12),
+              if (isLoading)
+                const SkeletonChartBox(height: 140)
+              else if (recurring.isEmpty)
+                const AppEmptyState(
+                  title: 'No recurring payments',
+                  subtitle: 'No recurring payments detected yet',
+                  icon: Icons.repeat_rounded,
+                )
+              else
+                _RecurringCard(recurring: recurring, currency: currency),
+              const SizedBox(height: AppSpacing.sectionGap),
+
+              // ── Unusual activity ───────────────────────────────────────────
+              if (!isLoading && anomalies.isNotEmpty) ...[
+                const _SectionHeader(
+                  title: 'Unusual Activity',
+                  icon: Icons.warning_amber_rounded,
+                ),
+                const SizedBox(height: AppSpacing.s12),
+                _AnomalyCard(anomalies: anomalies, currency: currency),
+                const SizedBox(height: AppSpacing.sectionGap),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -326,8 +349,9 @@ class _TimeRangePicker extends StatelessWidget {
               duration: const Duration(milliseconds: 180),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color:
-                    isSelected ? theme.colorScheme.primary : Colors.transparent,
+                color: isSelected
+                    ? theme.colorScheme.primary
+                    : Colors.transparent,
                 borderRadius: AppRadius.fullAll,
               ),
               child: Text(
@@ -336,13 +360,12 @@ class _TimeRangePicker extends StatelessWidget {
                   color: isSelected
                       ? Colors.white
                       : theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  fontWeight:
-                      isSelected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),
             ),
           );
-          }).toList(),
+        }).toList(),
       ),
     );
   }
@@ -487,9 +510,7 @@ class _MetricStrip extends StatelessWidget {
             icon: Icons.savings_outlined,
             color: AppColors.info,
             label: 'Savings',
-            value: isLoading
-                ? null
-                : '${savingsPct.toStringAsFixed(1)}%',
+            value: isLoading ? null : '${savingsPct.toStringAsFixed(1)}%',
           ),
         ),
         const SizedBox(width: AppSpacing.s8),
@@ -508,7 +529,8 @@ class _MetricStrip extends StatelessWidget {
   }
 }
 
-class _MetricTile extends StatelessWidget { // null = loading
+class _MetricTile extends StatelessWidget {
+  // null = loading
   const _MetricTile({
     required this.icon,
     required this.color,
@@ -668,6 +690,18 @@ class _MonthlyTrendCard extends StatelessWidget {
   const _MonthlyTrendCard({required this.monthly});
   final List<double> monthly;
 
+  String get _trendSummary {
+    if (monthly.length < 2) return 'Monthly spending trend chart';
+    final first = monthly.first;
+    final last = monthly.last;
+    final direction = last > first
+        ? 'increasing'
+        : last < first
+        ? 'decreasing'
+        : 'flat';
+    return 'Monthly spending trend chart, $direction over the last ${monthly.length} months';
+  }
+
   @override
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
@@ -679,104 +713,105 @@ class _MonthlyTrendCard extends StatelessWidget {
         AppSpacing.s12,
         AppSpacing.s8,
       ),
-      child: SizedBox(
-        height: 200,
-        child: LineChart(
-          LineChartData(
-            gridData: FlGridData(
-              drawVerticalLine: false,
-              getDrawingHorizontalLine: (_) => FlLine(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-                strokeWidth: 1,
-              ),
-            ),
-            titlesData: FlTitlesData(
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  reservedSize: 26,
-                  interval: 1,
-                  getTitlesWidget: (final value, final _) {
-                    final idx = value.toInt();
-                    if (idx < 0 || idx >= monthly.length) {
-                      return const SizedBox.shrink();
-                    }
-                    final now = DateTime.now();
-                    final offset = monthly.length - 1 - idx;
-                    final m = DateTime(now.year, now.month - offset);
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text(
-                        DateFormat('MMM').format(m),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.5,
+      child: Semantics(
+        label: _trendSummary,
+        child: SizedBox(
+          height: 200,
+          child: ExcludeSemantics(
+            child: LineChart(
+              LineChartData(
+                gridData: FlGridData(
+                  drawVerticalLine: false,
+                  getDrawingHorizontalLine: (_) => FlLine(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+                    strokeWidth: 1,
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 26,
+                      interval: 1,
+                      getTitlesWidget: (final value, final _) {
+                        final idx = value.toInt();
+                        if (idx < 0 || idx >= monthly.length) {
+                          return const SizedBox.shrink();
+                        }
+                        final now = DateTime.now();
+                        final offset = monthly.length - 1 - idx;
+                        final m = DateTime(now.year, now.month - offset);
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            DateFormat('MMM').format(m),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.5,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    );
-                  },
+                        );
+                      },
+                    ),
+                  ),
+                  leftTitles: const AxisTitles(),
+                  rightTitles: const AxisTitles(),
+                  topTitles: const AxisTitles(),
                 ),
-              ),
-              leftTitles: const AxisTitles(
-                
-              ),
-              rightTitles: const AxisTitles(
-                
-              ),
-              topTitles: const AxisTitles(
-                
-              ),
-            ),
-            borderData: FlBorderData(show: false),
-            lineTouchData: LineTouchData(
-              touchTooltipData: LineTouchTooltipData(
-                fitInsideHorizontally: true,
-                fitInsideVertically: true,
-                getTooltipItems: (final spots) => spots
-                    .map(
-                      (final s) => LineTooltipItem(
-                        s.y.toStringAsFixed(0),
-                        const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-            lineBarsData: [
-              LineChartBarData(
-                spots: List.generate(
-                  monthly.length,
-                  (final i) => FlSpot(i.toDouble(), monthly[i]),
+                borderData: FlBorderData(show: false),
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    fitInsideHorizontally: true,
+                    fitInsideVertically: true,
+                    getTooltipItems: (final spots) => spots
+                        .map(
+                          (final s) => LineTooltipItem(
+                            s.y.toStringAsFixed(0),
+                            const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
                 ),
-                isCurved: true,
-                barWidth: 2.5,
-                color: color,
-                dotData: FlDotData(
-                  getDotPainter: (final spot, final _, final bar, final i) => FlDotCirclePainter(
-                    radius: 3.5,
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: List.generate(
+                      monthly.length,
+                      (final i) => FlSpot(i.toDouble(), monthly[i]),
+                    ),
+                    isCurved: true,
+                    barWidth: 2.5,
                     color: color,
-                    strokeWidth: 2,
-                    strokeColor: Colors.white,
+                    dotData: FlDotData(
+                      getDotPainter:
+                          (final spot, final _, final bar, final i) =>
+                              FlDotCirclePainter(
+                                radius: 3.5,
+                                color: color,
+                                strokeWidth: 2,
+                                strokeColor: Colors.white,
+                              ),
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          color.withValues(alpha: 0.20),
+                          color.withValues(alpha: 0.0),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-                belowBarData: BarAreaData(
-                  show: true,
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      color.withValues(alpha: 0.20),
-                      color.withValues(alpha: 0.0),
-                    ],
-                  ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -800,10 +835,9 @@ class _CategoryBreakdownCard extends ConsumerWidget {
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
     final theme = Theme.of(context);
-    final cats = ref.watch(userCategoriesProvider).maybeWhen(
-      data: (final d) => d,
-      orElse: () => const <CategoryModel>[],
-    );
+    final cats = ref
+        .watch(userCategoriesProvider)
+        .maybeWhen(data: (final d) => d, orElse: () => const <CategoryModel>[]);
     final catById = <String, String>{};
     for (final c in cats) {
       catById[c.id] = c.name;
@@ -840,10 +874,15 @@ class _CategoryBreakdownCard extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          SizedBox(
-            height: 200,
-            child: PieChart(
-              PieChartData(sections: sections),
+          Semantics(
+            label: top.isEmpty
+                ? 'Category breakdown chart'
+                : 'Category breakdown chart. Top category: ${catById[top.first.key] ?? top.first.key}, ${(total > 0 ? top.first.value / total * 100 : 0).toStringAsFixed(0)}%',
+            child: SizedBox(
+              height: 200,
+              child: ExcludeSemantics(
+                child: PieChart(PieChartData(sections: sections)),
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.s16),
@@ -925,9 +964,7 @@ class _MerchantsCard extends StatelessWidget {
                         borderRadius: AppRadius.smAll,
                       ),
                       child: Text(
-                        m.name.isNotEmpty
-                            ? m.name[0].toUpperCase()
-                            : '?',
+                        m.name.isNotEmpty ? m.name[0].toUpperCase() : '?',
                         style: TextStyle(
                           color: color,
                           fontWeight: FontWeight.w700,
@@ -1000,10 +1037,10 @@ class _RecurringCard extends StatelessWidget {
           final label = days <= 10
               ? 'Weekly'
               : days <= 18
-                  ? 'Bi-weekly'
-                  : days <= 35
-                      ? 'Monthly'
-                      : '${days}d cycle';
+              ? 'Bi-weekly'
+              : days <= 35
+              ? 'Monthly'
+              : '${days}d cycle';
 
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
@@ -1099,9 +1136,7 @@ class _AnomalyCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.warning.withValues(alpha: 0.05),
         borderRadius: AppRadius.lgAll,
-        border: Border.all(
-          color: AppColors.warning.withValues(alpha: 0.25),
-        ),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.25)),
       ),
       child: Column(
         children: [

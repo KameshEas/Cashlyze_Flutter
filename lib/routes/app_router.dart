@@ -18,10 +18,13 @@ import '../features/home/home_screen.dart';
 import '../features/insights/insights_screen.dart';
 import '../features/onboarding/help_center_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
+import '../features/scan/scan_receipt_screen.dart';
+import '../features/scan/scan_result_screen.dart';
 import '../features/search/search_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/splash/splash_screen.dart';
 import '../features/transactions/transactions_screen.dart';
+import 'widgets/app_shell_scaffold.dart';
 
 // Root navigator key for accessing Navigator context from anywhere
 final rootNavigatorKeyProvider = Provider<GlobalKey<NavigatorState>>((final ref) {
@@ -65,46 +68,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       ),
       StatefulShellRoute.indexedStack(
         builder: (final context, final state, final navigationShell) {
-          return Scaffold(
-            body: navigationShell,
-            bottomNavigationBar: NavigationBar(
-              selectedIndex: navigationShell.currentIndex,
-              onDestinationSelected: (final index) {
-                if (index == 4) {
-                  navigationShell.goBranch(index, initialLocation: true);
-                } else {
-                  navigationShell.goBranch(index);
-                }
-              },
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home),
-                  label: 'Home',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.receipt_long_outlined),
-                  selectedIcon: Icon(Icons.receipt_long),
-                  label: 'Transactions',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.account_balance_wallet_outlined),
-                  selectedIcon: Icon(Icons.account_balance_wallet),
-                  label: 'Budgets',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.insights_outlined),
-                  selectedIcon: Icon(Icons.insights),
-                  label: 'Insights',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.settings_outlined),
-                  selectedIcon: Icon(Icons.settings),
-                  label: 'Settings',
-                ),
-              ],
-            ),
-          );
+          return AppShellScaffold(navigationShell: navigationShell);
         },
         branches: [
           StatefulShellBranch(
@@ -180,42 +144,6 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
                 pageBuilder: (final context, final state) => CustomTransitionPage(
                   key: state.pageKey,
                   child: const SettingsScreen(),
-                  transitionsBuilder: AppMotion.fadeThrough,
-                  transitionDuration: MediaQuery.of(context).disableAnimations
-                      ? Duration.zero
-                      : kRouteFadeDuration,
-                ),
-              ),
-              GoRoute(
-                path: '/emi',
-                name: 'emi_dashboard',
-                pageBuilder: (final context, final state) => CustomTransitionPage(
-                  key: state.pageKey,
-                  child: const EMIDashboardScreen(),
-                  transitionsBuilder: AppMotion.fadeThrough,
-                  transitionDuration: MediaQuery.of(context).disableAnimations
-                      ? Duration.zero
-                      : kRouteFadeDuration,
-                ),
-              ),
-              GoRoute(
-                path: '/emi/new',
-                name: 'emi_new',
-                pageBuilder: (final context, final state) => CustomTransitionPage(
-                  key: state.pageKey,
-                  child: const EMIFormScreen(),
-                  transitionsBuilder: AppMotion.fadeThrough,
-                  transitionDuration: MediaQuery.of(context).disableAnimations
-                      ? Duration.zero
-                      : kRouteFadeDuration,
-                ),
-              ),
-              GoRoute(
-                path: '/goals',
-                name: 'goals',
-                pageBuilder: (final context, final state) => CustomTransitionPage(
-                  key: state.pageKey,
-                  child: const GoalsScreen(),
                   transitionsBuilder: AppMotion.fadeThrough,
                   transitionDuration: MediaQuery.of(context).disableAnimations
                       ? Duration.zero
@@ -328,7 +256,61 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
               : kRouteFadeDuration,
         ),
       ),
-
+      GoRoute(
+        path: '/emi',
+        name: 'emi_dashboard',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          child: const EMIDashboardScreen(),
+          transitionsBuilder: AppMotion.fadeThrough,
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
+        ),
+      ),
+      GoRoute(
+        path: '/emi/new',
+        name: 'emi_new',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          child: const EMIFormScreen(),
+          transitionsBuilder: AppMotion.fadeThrough,
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
+        ),
+      ),
+      GoRoute(
+        path: '/goals',
+        name: 'goals',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          child: const GoalsScreen(),
+          transitionsBuilder: AppMotion.fadeThrough,
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
+        ),
+      ),
+      GoRoute(
+        path: '/scan',
+        name: 'scan',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          child: const ScanReceiptScreen(),
+          transitionsBuilder: AppMotion.fadeThrough,
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
+        ),
+      ),
+      GoRoute(
+        path: '/scan/result',
+        name: 'scan_result',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          child: const ScanResultScreen(),
+          transitionsBuilder: AppMotion.fadeThrough,
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
+        ),
+      ),
     ],
     redirect: (final context, final state) {
       final isOnboarding = state.matchedLocation == '/onboarding';

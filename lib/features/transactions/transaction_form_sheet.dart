@@ -13,6 +13,7 @@ import '../../core/repositories/recurring_repository.dart';
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/transaction_ingest_service.dart';
+import '../../core/ui/motion.dart';
 import '../../core/utils/format.dart';
 import '../../core/utils/repo_error_handler.dart';
 import '../../core/utils/validation.dart';
@@ -29,6 +30,7 @@ class TransactionFormSheet extends ConsumerStatefulWidget {
     this.initialAmount,
     this.initialCategory,
     this.initialDate,
+    this.initialType,
   })  : mode = TransactionFormMode.create,
         id = null;
 
@@ -39,13 +41,15 @@ class TransactionFormSheet extends ConsumerStatefulWidget {
     this.initialAmount,
     this.initialCategory,
     this.initialDate,
-  })  : mode = TransactionFormMode.edit;
+  })  : mode = TransactionFormMode.edit,
+        initialType = null;
   final TransactionFormMode mode;
   final String? id;
   final String? initialTitle;
   final double? initialAmount; // absolute value
   final String? initialCategory;
   final DateTime? initialDate;
+  final String? initialType;
 
   @override
   ConsumerState<TransactionFormSheet> createState() => _TransactionFormSheetState();
@@ -61,6 +65,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   List<String> tags = [];
   bool repeatEnabled = false;
   String repeatFreq = 'Monthly';
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -72,6 +77,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
           : widget.initialAmount!.abs().toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), ''),
     );
     tagsController = TextEditingController();
+    if (widget.initialType != null) type = widget.initialType!;
     if (widget.initialAmount != null && widget.initialAmount! >= 0) type = 'Income';
     if (widget.initialCategory != null) {
       // Normalize initial category: if an id was provided, map to display name.
@@ -254,7 +260,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-        child: Column(
+        child: MotionFadeIn(child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(width: 48, height: 4, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2))),
@@ -295,7 +301,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                 if (picked != null) setState(() => date = picked);
               }, child: Text('${t?.dateLabel ?? 'Date:'} ${formatDate(date.toLocal(), ref.watch(sharedPrefsServiceProvider).dateFormat)}'))),
               const SizedBox(width: 12),
-              FilledButton(onPressed: () async {
+              FilledButton(onPressed: _isSubmitting ? null : () async {
                 final messenger = ScaffoldMessenger.of(context);
                 final nav = Navigator.of(context);
                 if (!validateTitle(titleController.text.trim())) {
@@ -313,6 +319,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                 final amt = double.tryParse(amountController.text) ?? 0;
                 final isIncome = type == 'Income';
                 final localCategoryName = category; // always keep display label (e.g., 'General')
+                setState(() => _isSubmitting = true);
                 try {
                   final user = ref.read(currentUserProvider);
                   if (user == null) return;
@@ -375,69 +382,17 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   if (!mounted) return;
                   debugPrint('Transaction save failed: $e');
                   showRepoErrorSnackBar(messenger, e);
+                } finally {
+                  if (mounted) setState(() => _isSubmitting = false);
                 }
-              }, child: Text(t?.save ?? 'Save')),
+              }, child: _isSubmitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(t?.save ?? 'Save')),
             ]),
-            const SizedBox(height: 12),
-            Text('Tags', style: Theme.of(context).textTheme.labelMedium),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                ...tags.map((final tag) => InputChip(
-                  label: Text(tag),
-                  onDeleted: () => setState(() => tags.remove(tag)),
-                )),
-                ActionChip(
-                  label: const Text('Add Tag'),
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (final ctx) => AlertDialog(
-                        title: Text(t?.titleLabel ?? 'Add Tag'),
-                        content: TextField(
-                          controller: tagsController,
-                          decoration: const InputDecoration(
-                            labelText: 'Tag name',
-                            filled: true,
-                          ),
-                          onSubmitted: (final value) {
-                            final trimmed = value.trim();
-                            if (trimmed.isNotEmpty && !tags.contains(trimmed)) {
-                              setState(() {
-                                tags.add(trimmed);
-                                tagsController.clear();
-                              });
-                            }
-                            Navigator.of(ctx).pop();
-                          },
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(ctx).pop(),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              final trimmed = tagsController.text.trim();
-                              if (trimmed.isNotEmpty && !tags.contains(trimmed)) {
-                                setState(() {
-                                  tags.add(trimmed);
-                                  tagsController.clear();
-                                });
-                              }
-                              Navigator.of(ctx).pop();
-                            },
-                            child: const Text('Add'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
             const SizedBox(height: 12),
             Text('Tags', style: Theme.of(context).textTheme.labelMedium),
             const SizedBox(height: 8),
@@ -512,7 +467,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                 decoration: InputDecoration(labelText: t?.frequencyLabel ?? 'Frequency', filled: true),
               ),
           ],
-        ),
+        )),
       ),
     );
   }

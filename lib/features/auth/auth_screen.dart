@@ -24,6 +24,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _nameController = TextEditingController();
   final _mobileController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _mobileFocusNode = FocusNode();
+  final _emailFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
   bool _isLogin = true;
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -39,6 +42,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     _nameController.dispose();
     _mobileController.dispose();
     _passwordController.dispose();
+    _mobileFocusNode.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
     super.dispose();
   }
 
@@ -384,6 +390,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                       if (!_isLogin) ...[
                                         TextFormField(
                                           controller: _nameController,
+                                          textInputAction: TextInputAction.next,
+                                          onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(_mobileFocusNode),
                                           decoration: InputDecoration(
                                             labelText: 'Name',
                                             prefixIcon: const Icon(Icons.person_outline),
@@ -404,7 +412,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                         const SizedBox(height: 12),
                                         TextFormField(
                                           controller: _mobileController,
+                                          focusNode: _mobileFocusNode,
                                           keyboardType: TextInputType.phone,
+                                          textInputAction: TextInputAction.next,
+                                          onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(_emailFocusNode),
                                           decoration: InputDecoration(
                                             labelText: 'Mobile',
                                             prefixIcon: const Icon(Icons.phone_outlined),
@@ -431,7 +442,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                       // Email Field
                                       TextFormField(
                                         controller: _emailController,
+                                        focusNode: _emailFocusNode,
                                         keyboardType: TextInputType.emailAddress,
+                                        textInputAction: TextInputAction.next,
+                                        onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(_passwordFocusNode),
                                         decoration: InputDecoration(
                                           labelText: 'Email',
                                           prefixIcon: const Icon(Icons.email_outlined),
@@ -455,7 +469,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                       // Password Field
                                       TextFormField(
                                         controller: _passwordController,
+                                        focusNode: _passwordFocusNode,
                                         obscureText: _obscurePassword,
+                                        textInputAction: TextInputAction.done,
+                                        onFieldSubmitted: (_) => _submit(),
                                         decoration: InputDecoration(
                                           labelText: 'Password',
                                           prefixIcon: const Icon(Icons.lock_outline),
@@ -549,29 +566,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                               ),
                                       ),
                                       const SizedBox(height: 12),
-
-                                      // Forgot Password (only for Sign In)
-                                      if (_isLogin)
-                                        TextButton(
-                                          onPressed: () async {
-                                            final messenger = ScaffoldMessenger.of(context);
-                                            if (_emailController.text.trim().isEmpty) {
-                                              messenger.showSnackBar(
-                                                const SnackBar(
-                                                  content: Text('Please enter your email first'),
-                                                ),
-                                              );
-                                              return;
-                                            }
-
-                                            messenger.showSnackBar(
-                                              const SnackBar(
-                                                content: Text('Password reset is not available yet. Please contact support.'),
-                                              ),
-                                            );
-                                          },
-                                          child: const Text('Forgot Password?'),
-                                        ),
+                                      // Forgot Password intentionally omitted: there is no
+                                      // self-service reset flow or support channel wired up
+                                      // yet, so showing the affordance would be a dead end.
                                     ],
                                   ),
                                 ),

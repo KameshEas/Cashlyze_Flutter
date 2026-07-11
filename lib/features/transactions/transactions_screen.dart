@@ -113,7 +113,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 IconButton(
                   tooltip: 'Global search',
                   icon: const Icon(Icons.search),
-                  onPressed: () => GoRouter.of(context).go('/search'),
+                  onPressed: () => context.push('/search'),
                 ),
                 IconButton(
                   tooltip: 'Export',
