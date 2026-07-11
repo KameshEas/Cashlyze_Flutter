@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/ui/motion.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../transactions/transaction_form_sheet.dart';
 
 /// Row of quick action buttons with enhanced styling and animations.
 /// Includes: Expense, Top-up, Add EMI, Add Budget, Scan, and more.
@@ -141,11 +142,37 @@ class QuickActions extends ConsumerWidget {
 
   void _onActionTap(final BuildContext context, final _QuickAction action) {
     final route = action.route;
-    if (route == null) return;
-    if (_kShellBranchPaths.contains(route)) {
-      GoRouter.of(context).go(route);
-    } else {
-      context.push(route);
+    if (route != null) {
+      if (_kShellBranchPaths.contains(route)) {
+        GoRouter.of(context).go(route);
+      } else {
+        context.push(route);
+      }
+      return;
+    }
+    final type = action.type;
+    if (type != null) {
+      _openTransactionForm(context, type);
+    }
+  }
+
+  Future<void> _openTransactionForm(final BuildContext context, final String type) async {
+    final theme = Theme.of(context);
+    final t = AppLocalizations.of(context);
+    final result = await showModalBottomSheet<bool?>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: theme.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (final ctx) => TransactionFormSheet.create(initialType: type),
+    );
+    if (result == true && context.mounted) {
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.clearSnackBars();
+      messenger.showSnackBar(SnackBar(content: Text(t?.transactionSaved ?? 'Transaction saved')));
     }
   }
 }

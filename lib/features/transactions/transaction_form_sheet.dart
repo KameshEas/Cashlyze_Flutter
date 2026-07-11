@@ -30,6 +30,7 @@ class TransactionFormSheet extends ConsumerStatefulWidget {
     this.initialAmount,
     this.initialCategory,
     this.initialDate,
+    this.initialType,
   })  : mode = TransactionFormMode.create,
         id = null;
 
@@ -40,13 +41,15 @@ class TransactionFormSheet extends ConsumerStatefulWidget {
     this.initialAmount,
     this.initialCategory,
     this.initialDate,
-  })  : mode = TransactionFormMode.edit;
+  })  : mode = TransactionFormMode.edit,
+        initialType = null;
   final TransactionFormMode mode;
   final String? id;
   final String? initialTitle;
   final double? initialAmount; // absolute value
   final String? initialCategory;
   final DateTime? initialDate;
+  final String? initialType;
 
   @override
   ConsumerState<TransactionFormSheet> createState() => _TransactionFormSheetState();
@@ -74,6 +77,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
           : widget.initialAmount!.abs().toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), ''),
     );
     tagsController = TextEditingController();
+    if (widget.initialType != null) type = widget.initialType!;
     if (widget.initialAmount != null && widget.initialAmount! >= 0) type = 'Income';
     if (widget.initialCategory != null) {
       // Normalize initial category: if an id was provided, map to display name.
