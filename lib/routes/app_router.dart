@@ -6,6 +6,7 @@ import '../core/providers/onboarding_provider.dart';
 import '../core/providers/otp_pending_provider.dart';
 import '../core/services/auth_service.dart';
 import '../core/ui/motion.dart';
+import '../features/ai_assistant/ai_assistant_screen.dart';
 import '../features/auth/auth_screen.dart';
 import '../features/auth/loader_screen.dart';
 import '../features/auth/otp_screen.dart';
@@ -305,6 +306,17 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'scan_result',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const ScanResultScreen(),
+          transitionsBuilder: AppMotion.fadeThrough,
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
+        ),
+      ),
+      GoRoute(
+        path: '/ai-assistant',
+        name: 'ai_assistant',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          child: const AiAssistantScreen(),
           transitionsBuilder: AppMotion.fadeThrough,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero

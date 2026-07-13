@@ -533,6 +533,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ],
     );
+    final aiAssistantSection = sectionCard(
+      Icons.auto_awesome_outlined,
+      'AI Assistant',
+      [
+        _actionTile(
+          icon: Icons.chat_bubble_outline,
+          title: 'Ask Cashlyze AI',
+          subtitle: 'Ask about spending, budgets, and shared expenses',
+          onTap: () => context.push('/ai-assistant'),
+        ),
+      ],
+      description: 'Chat with an assistant that can see your finances',
+    );
     final dataSection = sectionCard(
       Icons.cloud_outlined,
       t?.dataPrivacyTitle ?? 'Data & Privacy',
@@ -830,6 +843,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         children: [
                           preferences,
                           const SizedBox(height: 20),
+                          aiAssistantSection,
+                          const SizedBox(height: 20),
                           dataSection,
                         ],
                       ),
@@ -855,6 +870,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 preferences,
+                const SizedBox(height: 20),
+                aiAssistantSection,
                 const SizedBox(height: 20),
                 dataSection,
                 const SizedBox(height: 20),
