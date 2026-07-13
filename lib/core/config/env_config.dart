@@ -5,7 +5,7 @@
 abstract final class EnvConfig {
   /// Set to `true` only during local backend development.
   /// Must be `false` for production / CI / release builds.
-  static const bool useLocalhostForTesting = false;
+  static const bool useLocalhostForTesting = true;
 
   static const String _productionBaseUrl =
       'https://api.aspired2d.cloud/api/v1/cashlyze';

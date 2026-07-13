@@ -16,6 +16,7 @@ class SharedPrefsService {
   static const String _analyticsConsentKey = 'analytics_consent_given';
   static const String _crashlyticsConsentKey = 'crashlytics_consent_given';
   static const String _celebratedGoalsKey = 'celebrated_goal_ids';
+  static const String _dismissedAnnouncementKey = 'dismissed_announcement_hash';
   final SharedPreferences _prefs;
 
   bool get isOnboardingCompleted => _prefs.getBool(_onboardingKey) ?? false;
@@ -100,5 +101,13 @@ class SharedPrefsService {
     final current = _prefs.getStringList(_celebratedGoalsKey) ?? const [];
     if (current.contains(goalId)) return;
     await _prefs.setStringList(_celebratedGoalsKey, [...current, goalId]);
+  }
+
+  // Tracks the hash of the last announcement banner message the user
+  // dismissed, so it stays dismissed until the admin changes the message.
+  String? get dismissedAnnouncementHash => _prefs.getString(_dismissedAnnouncementKey);
+
+  Future<void> setDismissedAnnouncementHash(final String hash) async {
+    await _prefs.setString(_dismissedAnnouncementKey, hash);
   }
 }
