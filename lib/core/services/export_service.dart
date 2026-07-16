@@ -12,12 +12,13 @@ import '../utils/format.dart';
 class ExportService {
   Future<String> generateTransactionsCSV(
     final List<TransactionModel> transactions,
-    final String currency,
-  ) async {
+    final String currency, {
+    final String dateFormatPattern = 'yyyy-MM-dd',
+  }) async {
     final csvData = <List<String>>[
       ['Date', 'Title', 'Category', 'Amount', 'Type', 'Tags'],
       ...transactions.map((final t) => [
-        DateFormat('yyyy-MM-dd').format(t.date),
+        formatDate(t.date, dateFormatPattern),
         t.title,
         t.categoryName ?? 'General',
         t.amount.toString(),
@@ -31,9 +32,14 @@ class ExportService {
 
   Future<File> saveTransactionsCSV(
     final List<TransactionModel> transactions,
-    final String currency,
-  ) async {
-    final csv = await generateTransactionsCSV(transactions, currency);
+    final String currency, {
+    final String dateFormatPattern = 'yyyy-MM-dd',
+  }) async {
+    final csv = await generateTransactionsCSV(
+      transactions,
+      currency,
+      dateFormatPattern: dateFormatPattern,
+    );
     final dir = await getApplicationDocumentsDirectory();
     final fileName =
         'transactions_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.csv';

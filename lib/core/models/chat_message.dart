@@ -5,7 +5,7 @@
 /// happens entirely server-side in a single request, so the client never
 /// sees tool_use/tool_result blocks, only the final text per turn.
 class ChatMessage {
-  const ChatMessage({required this.role, required this.content});
+  const ChatMessage({required this.role, required this.content, this.isError = false});
 
   factory ChatMessage.user(final String content) =>
       ChatMessage(role: 'user', content: content);
@@ -13,8 +13,15 @@ class ChatMessage {
   factory ChatMessage.assistant(final String content) =>
       ChatMessage(role: 'assistant', content: content);
 
+  /// A locally-generated error notice shown in the conversation. Marked
+  /// [isError] so it renders distinctly and is excluded when replaying
+  /// history back to the backend (it was never actually said by the model).
+  factory ChatMessage.error(final String content) =>
+      ChatMessage(role: 'assistant', content: content, isError: true);
+
   final String role; // 'user' or 'assistant'
   final String content;
+  final bool isError;
 
   bool get isUser => role == 'user';
 

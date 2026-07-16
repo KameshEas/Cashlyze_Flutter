@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/goals_model.dart';
+import '../../core/providers/onboarding_provider.dart';
 import '../../core/ui/constants.dart';
 import '../../core/ui/motion.dart';
+import '../../core/utils/format.dart';
 import 'goal_progress_ring.dart';
 
-class GoalListItem extends StatelessWidget {
+class GoalListItem extends ConsumerWidget {
   const GoalListItem({
     required this.goal,
     required this.onTap,
@@ -18,7 +21,8 @@ class GoalListItem extends StatelessWidget {
   final VoidCallback onDelete;
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final currency = ref.watch(currencyProvider);
     final theme = Theme.of(context);
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -83,7 +87,7 @@ class GoalListItem extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  '\$${goal.currentAmount.toStringAsFixed(2)} / \$${goal.targetAmount.toStringAsFixed(2)}',
+                                  '${formatAmount(goal.currentAmount, currency)} / ${formatAmount(goal.targetAmount, currency)}',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     fontWeight: FontWeight.w500,
                                   ),

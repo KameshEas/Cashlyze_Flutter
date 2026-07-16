@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/auth_user.dart';
 import '../repositories/budget_repository.dart';
 import '../repositories/category_repository.dart';
+import '../repositories/emi_repository.dart';
 import '../repositories/transaction_repository.dart';
 import '../services/auth_service.dart';
 import '../services/ws_service.dart';
@@ -133,6 +134,18 @@ final wsListenerProvider = Provider<void>((final ref) {
             budgetRepo.applyRemoteBudgetEvent(next.userId, t, payload);
           } catch (e) {
             debugPrint('[wsListenerProvider] budget event failed: $e');
+          }
+          return;
+        }
+
+        // EMI plans: no local cache to update directly - just refetch.
+        if (t == WsEventType.emiPlanCreated ||
+            t == WsEventType.emiPlanUpdated ||
+            t == WsEventType.emiPlanDeleted) {
+          try {
+            ref.invalidate(userEMIPlansProvider);
+          } catch (e) {
+            debugPrint('[wsListenerProvider] invalidate EMI plans failed: $e');
           }
           return;
         }

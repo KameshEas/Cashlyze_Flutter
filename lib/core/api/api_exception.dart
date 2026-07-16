@@ -49,8 +49,8 @@ final class ConflictException extends ApiException {
 final class ServerException extends ApiException {
   const ServerException([super.message = 'Server error']);
 
-  factory ServerException.withStatus(final int statusCode) =>
-      ServerException('Server error ($statusCode)');
+  factory ServerException.withStatus(final int statusCode, [final String? detail]) =>
+      ServerException(detail ?? 'Server error ($statusCode)');
 }
 
 // ── Network / transport errors ────────────────────────────────────────────────

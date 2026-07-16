@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/goals_model.dart';
 import '../../core/providers/goals_providers.dart';
+import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/shared_prefs_provider.dart';
+import '../../core/utils/format.dart';
 import '../../core/utils/repo_error_handler.dart';
 import 'widgets/goal_completion_celebration.dart';
 
@@ -192,6 +194,7 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
   @override
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
+    final currency = ref.watch(currencyProvider);
     return SingleChildScrollView(
       child: Container(
         padding: EdgeInsets.only(
@@ -263,7 +266,7 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      prefix: const Text('\$ '),
+                      prefix: Text('${currencySymbol(currency)} '),
                     ),
                     keyboardType: TextInputType.number,
                   ),
@@ -277,7 +280,7 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      prefix: const Text('\$ '),
+                      prefix: Text('${currencySymbol(currency)} '),
                     ),
                     keyboardType: TextInputType.number,
                   ),
