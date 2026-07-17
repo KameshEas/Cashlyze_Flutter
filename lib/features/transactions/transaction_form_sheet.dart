@@ -138,11 +138,16 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     }
 
     // If the user picked a label that is not yet in categories, create it so
-    // transaction payloads can always send a stable category_id.
+    // transaction payloads can always send a stable category_id. Invalidate
+    // the cache immediately rather than relying solely on the websocket
+    // broadcast - if the socket is down/reconnecting, a stale cache would
+    // otherwise cause every subsequent submission of the same new category
+    // name to create yet another duplicate.
     final created = await ref.read(categoryRepositoryProvider).create(
       userId: userId,
       name: raw,
     );
+    ref.invalidate(userCategoriesProvider);
     return created.id;
   }
 

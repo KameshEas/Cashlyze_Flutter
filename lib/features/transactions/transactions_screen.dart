@@ -600,8 +600,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
     try {
       final exportService = ref.read(exportServiceProvider);
-      final file =
-          await exportService.saveTransactionsCSV(allFiltered, currency);
+      final datePattern = ref.read(sharedPrefsServiceProvider).dateFormat;
+      final file = await exportService.saveTransactionsCSV(
+        allFiltered,
+        currency,
+        dateFormatPattern: datePattern,
+      );
       await Share.shareXFiles(
         [XFile(file.path)],
         text: 'Transactions export',

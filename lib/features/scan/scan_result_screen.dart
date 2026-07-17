@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/models/category.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/scan_providers.dart';
+import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/transaction_ingest_service.dart';
@@ -130,6 +131,7 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
                   decoration: InputDecoration(
                     labelText: 'Total Amount',
                     filled: true,
+                    prefixText: '${currencySymbol(currency)} ',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
@@ -165,7 +167,9 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          selectedDate?.toString().split(' ')[0] ?? 'Select date',
+                          selectedDate == null
+                              ? 'Select date'
+                              : formatDate(selectedDate!, ref.watch(sharedPrefsServiceProvider).dateFormat),
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                         const Icon(Icons.calendar_today_rounded, size: 20),
@@ -314,10 +318,15 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
       if (c.name.toLowerCase() == raw.toLowerCase()) return c.id;
     }
 
+    // Invalidate immediately rather than relying solely on the websocket
+    // broadcast - if the socket is down/reconnecting, a stale cache would
+    // otherwise cause every subsequent scan confirmed under the same new
+    // category name to create yet another duplicate.
     final created = await ref.read(categoryRepositoryProvider).create(
       userId: userId,
       name: raw,
     );
+    ref.invalidate(userCategoriesProvider);
     return created.id;
   }
 

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/providers/onboarding_provider.dart';
 import '../../core/ui/motion.dart';
+import '../../core/utils/format.dart';
 
-class GoalProgressRing extends StatelessWidget {
+class GoalProgressRing extends ConsumerWidget {
   const GoalProgressRing({
     required this.progress,
     required this.currentAmount,
@@ -19,8 +22,9 @@ class GoalProgressRing extends StatelessWidget {
   final Color color;
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     final theme = Theme.of(context);
+    final currency = ref.watch(currencyProvider);
     final progressValue = (progress / 100).clamp(0.0, 1.0);
     final reduce = reduceMotionOf(context);
     final trackColor = theme.colorScheme.onSurface.withValues(alpha: 0.12);
@@ -59,7 +63,7 @@ class GoalProgressRing extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${currentAmount.toStringAsFixed(0)} / ${targetAmount.toStringAsFixed(0)}',
+                  '${formatAmount(currentAmount, currency)} / ${formatAmount(targetAmount, currency)}',
                   style: TextStyle(
                     fontSize: size * 0.12,
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.6),

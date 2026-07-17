@@ -10,6 +10,7 @@ import '../../core/providers/budget_analytics_providers.dart';
 import '../../core/providers/export_service_provider.dart';
 import '../../core/providers/insights_providers.dart';
 import '../../core/providers/onboarding_provider.dart';
+import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/providers/transaction_providers.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/ui/constants.dart';
@@ -1122,14 +1123,15 @@ class _RecurringCard extends StatelessWidget {
 // Unusual activity
 // ════════════════════════════════════════════════════════════════════════════
 
-class _AnomalyCard extends StatelessWidget {
+class _AnomalyCard extends ConsumerWidget {
   const _AnomalyCard({required this.anomalies, required this.currency});
   final List<TransactionModel> anomalies;
   final String currency;
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     final theme = Theme.of(context);
+    final datePattern = ref.watch(sharedPrefsServiceProvider).dateFormat;
     final show = anomalies.take(3).toList();
 
     return Container(
@@ -1187,7 +1189,7 @@ class _AnomalyCard extends StatelessWidget {
                 ),
               ),
               subtitle: Text(
-                DateFormat('dd MMM yyyy').format(t.date),
+                formatDate(t.date, datePattern),
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 ),

@@ -17,8 +17,10 @@ import 'core/providers/realtime_provider.dart';
 import 'core/providers/shared_prefs_provider.dart';
 import 'core/services/local_notification_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/announcement_banner.dart';
 import 'core/widgets/offline_sync_listener.dart';
 import 'features/force_update/widgets/force_update_dialog.dart';
+import 'features/maintenance/widgets/maintenance_screen.dart';
 import 'firebase_options.dart';
 import 'l10n/app_localizations.dart';
 import 'routes/app_router.dart';
@@ -218,11 +220,72 @@ class App extends ConsumerWidget {
       supportedLocales: AppLocalizations.supportedLocales,
       debugShowCheckedModeBanner: false,
       builder: (final context, final child) {
-        return OfflineSyncListener(
-          child: _ForceUpdateMonitor(child: child!),
+        return _MaintenanceGate(
+          child: OfflineSyncListener(
+            child: AnnouncementBanner(
+              child: _ForceUpdateMonitor(child: child!),
+            ),
+          ),
         );
       },
     );
+  }
+}
+
+/// Widget that checks maintenance-mode status on launch and, if active,
+/// replaces the entire routed app content with a blocking notice — takes
+/// priority over force-update/announcement since the app is unusable either
+/// way while under maintenance.
+class _MaintenanceGate extends ConsumerStatefulWidget {
+  const _MaintenanceGate({required this.child});
+  final Widget child;
+
+  @override
+  ConsumerState<_MaintenanceGate> createState() => _MaintenanceGateState();
+}
+
+class _MaintenanceGateState extends ConsumerState<_MaintenanceGate> {
+  bool _checkInitiated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_checkInitiated) {
+        _checkInitiated = true;
+        _recheckAll();
+      }
+    });
+  }
+
+  // Re-checks maintenance mode and the announcement banner together, since
+  // both come from the same config fetch and "Try Again" on the maintenance
+  // screen should refresh the whole picture, not just whether it can dismiss
+  // itself — otherwise an announcement that only became active while the app
+  // was blocked by maintenance would never get picked up.
+  void _recheckAll() {
+    ref.read(maintenanceStateProvider.notifier).check();
+    ref.read(announcementStateProvider.notifier).check();
+  }
+
+  @override
+  Widget build(final BuildContext context) {
+    final maintenance = ref.watch(maintenanceStateProvider);
+
+    if (maintenance.isActive) {
+      final message = maintenance.message;
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        home: MaintenanceScreen(
+          message: message,
+          onRetry: _recheckAll,
+        ),
+      );
+    }
+
+    return widget.child;
   }
 }
 

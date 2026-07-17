@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -170,19 +171,9 @@ class AuthService {
     try {
       final parts = jwt.split('.');
       if (parts.length != 3) return null;
-      // Base64url decode the payload section.
-      var payload = parts[1];
-      // Pad to a multiple of 4.
-      payload += '=' * ((4 - payload.length % 4) % 4);
-      final decoded = String.fromCharCodes(
-        Uri.decodeComponent(
-          payload
-              .replaceAll('-', '%2B')
-              .replaceAll('_', '%2F'),
-        ).codeUnits,
-      );
-      final sub = RegExp(r'"sub"\s*:\s*"([^"]+)"').firstMatch(decoded)?.group(1);
-      return sub;
+      final decoded = utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
+      final payload = jsonDecode(decoded) as Map<String, dynamic>;
+      return payload['sub'] as String?;
     } catch (_) {
       return null;
     }

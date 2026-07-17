@@ -5,15 +5,15 @@
 abstract final class EnvConfig {
   /// Set to `true` only during local backend development.
   /// Must be `false` for production / CI / release builds.
-  static const bool useLocalhostForTesting = false;
+  static const bool useLocalhostForTesting = true;
 
   static const String _productionBaseUrl =
       'https://api.aspired2d.cloud/api/v1/cashlyze';
 
   /// Change to your local address as needed (e.g. `http://10.0.2.2:8000`
-  /// for the Android emulator).
+  /// for the Android emulator, or your machine's LAN IP for a physical device).
   static const String _localhostBaseUrl =
-      'http://localhost:8000/api/v1/cashlyze';
+      'http://192.168.0.6:8000/api/v1/cashlyze';
 
   /// The resolved base URL used by [ApiClient].
   static String get baseUrl =>
