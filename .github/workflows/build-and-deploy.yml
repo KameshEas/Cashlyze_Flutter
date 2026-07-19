@@ -5,12 +5,14 @@ on:
     branches:
       - development
       - prod
-      - main
   pull_request:
     branches:
       - development
       - prod
-      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   FLUTTER_VERSION: "stable"
@@ -18,10 +20,36 @@ env:
   FLUTTER_PUB_CACHE: "${{ github.workspace }}/.pub-cache"
   FLUTTER_BUILD_MODE: "release"
   ANDROID_KEYSTORE_PASSWORD: "${{ secrets.ANDROID_STORE_PASSWORD }}"
-  GOOGLE_PLAY_TRACK: "internal"
-  GOOGLE_PLAY_RELEASE_STATUS: "draft"
 
 jobs:
+  detect_version_change:
+    name: detect_version_change
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    outputs:
+      version_changed: ${{ steps.check.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - id: check
+        shell: bash
+        run: |
+          set -e
+          CURRENT=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //; s/"//g')
+          if git rev-parse HEAD^ >/dev/null 2>&1; then
+            PREVIOUS=$(git show HEAD^:pubspec.yaml | grep '^version:' | head -n1 | sed 's/version: //; s/"//g')
+          else
+            PREVIOUS=""
+          fi
+          echo "Current version: $CURRENT / Previous version: $PREVIOUS"
+          if [ "$CURRENT" != "$PREVIOUS" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
   test_code_quality:
     name: test_code_quality
     runs-on: ubuntu-latest
@@ -55,9 +83,14 @@ jobs:
 
   build_release_shorebird:
     name: build_release_shorebird
+    needs: detect_version_change
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/cirruslabs/flutter:stable
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/development' ||
+       (github.ref == 'refs/heads/prod' && needs.detect_version_change.outputs.version_changed == 'true'))
     steps:
       - uses: actions/checkout@v4
 
@@ -136,9 +169,14 @@ jobs:
 
   build_firebase_apk:
     name: build_firebase_apk
+    needs: detect_version_change
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/cirruslabs/flutter:stable
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/development' ||
+       (github.ref == 'refs/heads/prod' && needs.detect_version_change.outputs.version_changed == 'true'))
     steps:
       - uses: actions/checkout@v4
 
@@ -209,10 +247,13 @@ jobs:
 
   build_patch_shorebird:
     name: build_patch_shorebird
+    needs: detect_version_change
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/cirruslabs/flutter:stable
-    if: github.event_name == 'push' && github.ref == 'refs/heads/prod'
+    if: |
+      github.event_name == 'push' && github.ref == 'refs/heads/prod' &&
+      needs.detect_version_change.outputs.version_changed == 'false'
     steps:
       - uses: actions/checkout@v4
 
@@ -424,7 +465,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/cirruslabs/flutter:stable
-    if: github.event_name == 'push' && github.ref == 'refs/heads/prod'
+    if: |
+      github.event_name == 'push' && github.ref == 'refs/heads/prod' &&
+      needs.build_release_shorebird.result == 'success'
     steps:
       - uses: actions/checkout@v4
 
