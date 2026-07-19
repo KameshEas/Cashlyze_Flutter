@@ -1,0 +1,25 @@
+name: Decode Android keystore
+description: Decodes the base64 Android release keystore and exports signing env vars
+
+inputs:
+  keystore-base64:
+    required: true
+  key-alias:
+    required: true
+  key-password:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Decode keystore
+      shell: bash
+      run: |
+        mkdir -p android/app
+        printf "%s" "${{ inputs.keystore-base64 }}" | base64 --decode > android/app/cashlyze-release.jks
+
+        {
+          echo "ANDROID_KEYSTORE_PATH=$(pwd)/android/app/cashlyze-release.jks"
+          echo "ANDROID_KEY_ALIAS=${{ inputs.key-alias }}"
+          echo "ANDROID_KEY_PASSWORD=${{ inputs.key-password }}"
+        } >> "$GITHUB_ENV"

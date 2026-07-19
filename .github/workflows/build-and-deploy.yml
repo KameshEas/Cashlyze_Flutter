@@ -14,12 +14,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 env:
   FLUTTER_VERSION: "stable"
-  GRADLE_CACHE_PATH: "${{ github.workspace }}/.gradle"
-  FLUTTER_PUB_CACHE: "${{ github.workspace }}/.pub-cache"
   FLUTTER_BUILD_MODE: "release"
-  ANDROID_KEYSTORE_PASSWORD: "${{ secrets.ANDROID_STORE_PASSWORD }}"
+  PUB_CACHE: "${{ github.workspace }}/.pub-cache"
+  GRADLE_USER_HOME: "${{ github.workspace }}/.gradle"
 
 jobs:
   detect_version_change:
@@ -59,27 +61,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: before_script
-        shell: bash
-        run: |
-          apt-get update -qq
-          apt-get install -y -qq openjdk-17-jdk-headless curl git unzip ruby-dev npm
-          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-          export PATH="$JAVA_HOME/bin:$PATH"
-          java -version
-          echo "✓ Build environment ready"
-          flutter --version
-          dart --version
-          flutter clean
-          flutter pub get
+      - uses: ./.github/actions/setup-flutter
 
-      - name: script
+      - name: Analyze
         continue-on-error: true
         shell: bash
         run: |
           echo "✓ Running Flutter analysis..."
           dart analyze
           echo "✅ Code quality check passed"
+
+      - name: Test
+        shell: bash
+        run: |
+          echo "✓ Running Flutter test suite..."
+          flutter test
+          echo "✅ Tests passed"
 
   build_release_shorebird:
     name: build_release_shorebird
@@ -94,28 +91,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: before_script
-        shell: bash
-        run: |
-          apt-get update -qq
-          apt-get install -y -qq openjdk-17-jdk-headless curl git unzip ruby-dev npm
-          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-          export PATH="$JAVA_HOME/bin:$PATH"
-          java -version
-          echo "✓ Build environment ready"
-          flutter --version
-          dart --version
-          flutter clean
-          flutter pub get
-
-      - name: cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            .pub-cache/
-            .gradle/
-            build/
-          key: ${{ github.ref_name }}-${{ hashFiles('pubspec.lock') }}
+      - uses: ./.github/actions/setup-flutter
 
       - name: Install Shorebird
         shell: bash
@@ -123,10 +99,14 @@ jobs:
           curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh | bash
           echo "$HOME/.shorebird/bin" >> $GITHUB_PATH
 
+      - uses: ./.github/actions/decode-keystore
+        with:
+          keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          key-alias: ${{ secrets.ANDROID_KEY_ALIAS }}
+          key-password: ${{ secrets.ANDROID_STORE_PASSWORD }}
+
       - name: script
         env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
         shell: bash
         run: |
@@ -136,13 +116,6 @@ jobs:
           PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //; s/"//g')
           BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
           BUILD_NUMBER=$(echo "$PKG_VER" | cut -d+ -f2)
-
-          mkdir -p android/app
-          printf "%s" "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/cashlyze-release.jks
-
-          export ANDROID_KEYSTORE_PATH="$(pwd)/android/app/cashlyze-release.jks"
-          export ANDROID_KEY_ALIAS="${ANDROID_KEY_ALIAS:-cashlyze}"
-          export ANDROID_KEY_PASSWORD="$ANDROID_KEYSTORE_PASSWORD"
 
           echo "🐦 Building Shorebird AAB..."
 
@@ -165,7 +138,7 @@ jobs:
         with:
           name: "cashlyze-aab-${{ github.sha }}"
           path: build/app/outputs/bundle/release/app-release.aab
-          retention-days: 7
+          retention-days: 3
 
   build_firebase_apk:
     name: build_firebase_apk
@@ -180,33 +153,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: before_script
-        shell: bash
-        run: |
-          apt-get update -qq
-          apt-get install -y -qq openjdk-17-jdk-headless curl git unzip ruby-dev npm
-          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-          export PATH="$JAVA_HOME/bin:$PATH"
-          java -version
-          echo "✓ Build environment ready"
-          flutter --version
-          dart --version
-          flutter clean
-          flutter pub get
+      - uses: ./.github/actions/setup-flutter
 
-      - name: cache
-        uses: actions/cache@v4
+      - uses: ./.github/actions/decode-keystore
         with:
-          path: |
-            .pub-cache/
-            .gradle/
-            build/
-          key: ${{ github.ref_name }}-${{ hashFiles('pubspec.lock') }}
+          keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          key-alias: ${{ secrets.ANDROID_KEY_ALIAS }}
+          key-password: ${{ secrets.ANDROID_STORE_PASSWORD }}
 
       - name: script
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         shell: bash
         run: |
           set -e
@@ -214,13 +169,6 @@ jobs:
           PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //; s/"//g')
           BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
           BUILD_NUMBER=$(echo "$PKG_VER" | cut -d+ -f2)
-
-          mkdir -p android/app
-          printf "%s" "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/cashlyze-release.jks
-
-          export ANDROID_KEYSTORE_PATH="$(pwd)/android/app/cashlyze-release.jks"
-          export ANDROID_KEY_ALIAS="${ANDROID_KEY_ALIAS:-cashlyze}"
-          export ANDROID_KEY_PASSWORD="$ANDROID_KEYSTORE_PASSWORD"
 
           echo "📱 Building Firebase APK..."
 
@@ -243,7 +191,7 @@ jobs:
         with:
           name: "cashlyze-apk-${{ github.sha }}"
           path: build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 7
+          retention-days: 3
 
   build_patch_shorebird:
     name: build_patch_shorebird
@@ -257,28 +205,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: before_script
-        shell: bash
-        run: |
-          apt-get update -qq
-          apt-get install -y -qq openjdk-17-jdk-headless curl git unzip ruby-dev npm
-          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-          export PATH="$JAVA_HOME/bin:$PATH"
-          java -version
-          echo "✓ Build environment ready"
-          flutter --version
-          dart --version
-          flutter clean
-          flutter pub get
-
-      - name: cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            .pub-cache/
-            .gradle/
-            build/
-          key: ${{ github.ref_name }}-${{ hashFiles('pubspec.lock') }}
+      - uses: ./.github/actions/setup-flutter
 
       - name: Install Shorebird
         shell: bash
@@ -292,8 +219,6 @@ jobs:
         shell: bash
         run: |
           set -e
-
-          flutter pub get
 
           PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g')
 
@@ -313,22 +238,13 @@ jobs:
     container:
       image: ghcr.io/cirruslabs/flutter:stable
     if: github.event_name == 'push' && github.ref == 'refs/heads/development'
+    environment: development
     steps:
       - uses: actions/checkout@v4
 
-      - name: before_script
-        shell: bash
-        run: |
-          apt-get update -qq
-          apt-get install -y -qq openjdk-17-jdk-headless curl git unzip ruby-dev npm
-          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-          export PATH="$JAVA_HOME/bin:$PATH"
-          java -version
-          echo "✓ Build environment ready"
-          flutter --version
-          dart --version
-          flutter clean
-          flutter pub get
+      - uses: ./.github/actions/setup-flutter
+        with:
+          restore-cache: "false"
 
       - name: download artifacts
         uses: actions/download-artifact@v4
@@ -339,7 +255,7 @@ jobs:
       - name: script
         env:
           FIREBASE_ANDROID_APP_ID: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          FIREBASE_SERVICE_ACCOUNT_CREDENTIALS: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CREDENTIALS }}
           FIREBASE_DISTRIBUTION_GROUPS: ${{ secrets.FIREBASE_DISTRIBUTION_GROUPS }}
         shell: bash
         run: |
@@ -357,20 +273,24 @@ jobs:
             exit 0
           fi
 
-          PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g')
-          RELEASE_NOTES="Build ${PKG_VER} - $(date '+%Y-%m-%d %H:%M:%S')"
-
-          echo "🔥 Deploying to Firebase..."
-          if [ -z "$FIREBASE_ANDROID_APP_ID" ] || [ -z "$FIREBASE_TOKEN" ]; then
+          if [ -z "$FIREBASE_ANDROID_APP_ID" ] || [ -z "$FIREBASE_SERVICE_ACCOUNT_CREDENTIALS" ]; then
             echo "⚠️  Firebase variables not set, skipping Firebase distribution"
             exit 0
           fi
 
+          mkdir -p "$HOME/.firebase"
+          echo "$FIREBASE_SERVICE_ACCOUNT_CREDENTIALS" > "$HOME/.firebase/service-account.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.firebase/service-account.json"
+
+          PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g')
+          RELEASE_NOTES="Build ${PKG_VER} - $(date '+%Y-%m-%d %H:%M:%S')"
+
+          echo "🔥 Deploying to Firebase..."
+
           firebase appdistribution:distribute "$APK_PATH" \
             --app "$FIREBASE_ANDROID_APP_ID" \
             --groups "$FIREBASE_DISTRIBUTION_GROUPS" \
-            --release-notes "$RELEASE_NOTES" \
-            --token "$FIREBASE_TOKEN"
+            --release-notes "$RELEASE_NOTES"
 
           echo "✅ Firebase deployment complete"
 
@@ -381,22 +301,13 @@ jobs:
     container:
       image: ghcr.io/cirruslabs/flutter:stable
     if: github.event_name == 'push' && github.ref == 'refs/heads/development'
+    environment: development
     steps:
       - uses: actions/checkout@v4
 
-      - name: before_script
-        shell: bash
-        run: |
-          apt-get update -qq
-          apt-get install -y -qq openjdk-17-jdk-headless curl git unzip ruby-dev npm
-          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-          export PATH="$JAVA_HOME/bin:$PATH"
-          java -version
-          echo "✓ Build environment ready"
-          flutter --version
-          dart --version
-          flutter clean
-          flutter pub get
+      - uses: ./.github/actions/setup-flutter
+        with:
+          restore-cache: "false"
 
       - name: download artifacts
         uses: actions/download-artifact@v4
@@ -412,7 +323,6 @@ jobs:
         run: |
           set -e
           echo "📦 Installing Fastlane..."
-          apt-get update -qq && apt-get install -y -qq ruby-dev
           gem install fastlane -NV 2>&1 | tail -2
 
           # Verify AAB exists
@@ -429,12 +339,12 @@ jobs:
 
           # Verify credentials
           if [ -z "$GCLOUD_SERVICE_ACCOUNT_CREDENTIALS" ]; then
-            echo "❌ GCLOUD_SERVICE_ACCOUNT_CREDENTIALS not set. Add it to GitLab CI variables."
+            echo "❌ GCLOUD_SERVICE_ACCOUNT_CREDENTIALS not set. Add it to GitHub Actions secrets."
             exit 1
           fi
 
           if [ -z "$PACKAGE_NAME" ]; then
-            echo "❌ PACKAGE_NAME not set. Add it to GitLab CI variables."
+            echo "❌ PACKAGE_NAME not set. Add it to GitHub Actions secrets."
             exit 1
           fi
 
@@ -468,22 +378,13 @@ jobs:
     if: |
       github.event_name == 'push' && github.ref == 'refs/heads/prod' &&
       needs.build_release_shorebird.result == 'success'
+    environment: production
     steps:
       - uses: actions/checkout@v4
 
-      - name: before_script
-        shell: bash
-        run: |
-          apt-get update -qq
-          apt-get install -y -qq openjdk-17-jdk-headless curl git unzip ruby-dev npm
-          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-          export PATH="$JAVA_HOME/bin:$PATH"
-          java -version
-          echo "✓ Build environment ready"
-          flutter --version
-          dart --version
-          flutter clean
-          flutter pub get
+      - uses: ./.github/actions/setup-flutter
+        with:
+          restore-cache: "false"
 
       - name: download artifacts
         uses: actions/download-artifact@v4
@@ -499,7 +400,6 @@ jobs:
         run: |
           set -e
           echo "📦 Installing Fastlane..."
-          apt-get update -qq && apt-get install -y -qq ruby-dev
           gem install fastlane -NV 2>&1 | tail -2
 
           AAB_PATH=$(find build/app/outputs/bundle/release -name "*.aab" -type f | head -1)
@@ -527,17 +427,14 @@ jobs:
 
           echo ""
           echo "╔════════════════════════════════════════════════════════════╗"
-          echo "║ ⚠️  WARNING: DEPLOYING TO GOOGLE PLAY PRODUCTION           ║"
-          echo "║ Version: ${PKG_VER}                                       "
+          echo "║ 🚀 DEPLOYING TO GOOGLE PLAY PRODUCTION                      ║"
+          echo "║ Version: ${PKG_VER}"
           echo "║ This will make the build immediately available to all users ║"
           echo "╚════════════════════════════════════════════════════════════╝"
           echo ""
-          echo "Waiting 10 seconds (press Ctrl+C to cancel)..."
-          sleep 10
 
           cd android
 
-          echo "🚀 Uploading to production track..."
           fastlane run supply \
             aab:"$AAB_PATH" \
             track:"release" \
