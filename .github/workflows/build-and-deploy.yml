@@ -103,7 +103,8 @@ jobs:
         with:
           keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           key-alias: ${{ secrets.ANDROID_KEY_ALIAS }}
-          key-password: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          store-password: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          key-password: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: script
         env:
@@ -164,7 +165,8 @@ jobs:
         with:
           keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           key-alias: ${{ secrets.ANDROID_KEY_ALIAS }}
-          key-password: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          store-password: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          key-password: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: script
         shell: bash
