@@ -3,8 +3,10 @@ import 'package:flutter_gemma/flutter_gemma.dart';
 import '../mcp/mcp_exception.dart';
 
 /// Thin adapter around the `flutter_gemma` plugin (verified against the
-/// resolved version in pubspec.lock - `flutter_gemma-0.16.5` - by reading
-/// its source directly under the pub cache, not assumed from memory).
+/// resolved version in pubspec.lock - `flutter_gemma-0.12.6`, the latest
+/// version compatible with this project's Dart 3.10.1 SDK floor (0.12.7+
+/// pulls in a transitive dep requiring Dart >=3.10.7) - by reading its
+/// source directly under the pub cache, not assumed from memory).
 ///
 /// Isolated in its own file: nothing outside this class should import
 /// `package:flutter_gemma` directly, so a future plugin version bump only
