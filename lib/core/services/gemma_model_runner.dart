@@ -1,10 +1,9 @@
-import 'package:flutter_gemma/core/model.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 
 import '../mcp/mcp_exception.dart';
 
 /// Thin adapter around the `flutter_gemma` plugin (verified against the
-/// resolved version in pubspec.lock - `flutter_gemma-0.10.6` - by reading
+/// resolved version in pubspec.lock - `flutter_gemma-0.16.5` - by reading
 /// its source directly under the pub cache, not assumed from memory).
 ///
 /// Isolated in its own file: nothing outside this class should import
@@ -17,28 +16,38 @@ class GemmaModelRunner {
   static const _modelUrl =
       'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/Gemma3-1B-IT_multi-prefill-seq_q8_ekv2048.task';
 
-  /// Rough size of the quantized .task file, used only to turn the plugin's
-  /// raw byte-count progress stream into an approximate 0.0-1.0 fraction for
-  /// the download UI - not exact, HuggingFace doesn't expose a stable
-  /// content-length the plugin surfaces here.
-  static const _approxModelBytes = 620 * 1024 * 1024;
-
   InferenceModel? _model;
   InferenceChat? _chat;
 
-  Future<bool> isDownloaded() => FlutterGemmaPlugin.instance.modelManager.isModelInstalled;
+  // `FlutterGemma.initialize()` must run exactly once before any other call
+  // - `ServiceRegistry.initialize()` unconditionally rebuilds the registry on
+  // every call, it isn't safe to call per-download/per-chat like the rest of
+  // this class's methods are. Memoized here instead of in `main.dart` so this
+  // remains the only file that knows about `package:flutter_gemma`.
+  static Future<void>? _initialization;
 
-  /// Downloads the model to app storage, reporting an approximate 0.0-1.0
-  /// progress. No-op if already downloaded.
+  Future<void> _ensureInitialized() {
+    return _initialization ??= FlutterGemma.initialize();
+  }
+
+  Future<bool> isDownloaded() async {
+    await _ensureInitialized();
+    return FlutterGemma.hasActiveModel();
+  }
+
+  /// Downloads the model to app storage, reporting a 0.0-1.0 progress
+  /// fraction (the plugin now reports a real 0-100 percentage itself, no
+  /// more approximating from a guessed file size). No-op if already
+  /// downloaded.
   Future<void> download({
     required final void Function(double progress) onProgress,
   }) async {
     if (await isDownloaded()) return;
     try {
-      final modelManager = FlutterGemmaPlugin.instance.modelManager;
-      await for (final bytesDownloaded in modelManager.downloadModelFromNetworkWithProgress(_modelUrl)) {
-        onProgress((bytesDownloaded / _approxModelBytes).clamp(0.0, 1.0));
-      }
+      await FlutterGemma.installModel(modelType: ModelType.gemmaIt)
+          .fromNetwork(_modelUrl)
+          .withProgress((final progress) => onProgress(progress / 100))
+          .install();
     } catch (e) {
       throw ModelDownloadException('Model download failed: $e');
     }
@@ -58,10 +67,7 @@ class GemmaModelRunner {
     }
 
     try {
-      _model ??= await FlutterGemmaPlugin.instance.createModel(
-        modelType: ModelType.gemmaIt,
-        maxTokens: 2048,
-      );
+      _model ??= await FlutterGemma.getActiveModel(maxTokens: 2048);
 
       await _chat?.stopGeneration();
       _chat = await _model!.createChat(

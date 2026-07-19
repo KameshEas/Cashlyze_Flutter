@@ -82,7 +82,7 @@ dependencies:
   firebase_core: any
 
   # On-device AI (Gemma via MediaPipe/LiteRT) + MCP client
-  flutter_gemma: ^0.10.0
+  flutter_gemma: ^0.12.6
 dev_dependencies:
   sentry_dart_plugin: ^3.2.1
   flutter_test:
