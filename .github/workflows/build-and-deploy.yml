@@ -113,8 +113,8 @@ jobs:
           set -euo pipefail
           shorebird --version
 
-          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
-            echo "❌ ANDROID_KEYSTORE_BASE64 secret not set."
+          if [ -z "${ANDROID_KEYSTORE_PATH:-}" ] || [ ! -f "$ANDROID_KEYSTORE_PATH" ]; then
+            echo "❌ Keystore was not decoded (ANDROID_KEYSTORE_BASE64 secret missing or invalid)."
             exit 1
           fi
 
@@ -171,8 +171,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
-            echo "❌ ANDROID_KEYSTORE_BASE64 secret not set."
+          if [ -z "${ANDROID_KEYSTORE_PATH:-}" ] || [ ! -f "$ANDROID_KEYSTORE_PATH" ]; then
+            echo "❌ Keystore was not decoded (ANDROID_KEYSTORE_BASE64 secret missing or invalid)."
             exit 1
           fi
 
