@@ -308,14 +308,13 @@ jobs:
 
           DISTRIBUTE_ARGS=(appdistribution:distribute "$APK_PATH" \
             --app "$FIREBASE_ANDROID_APP_ID" \
-            --release-notes "$RELEASE_NOTES" \
-            --token "$FIREBASE_TOKEN")
+            --release-notes "$RELEASE_NOTES")
 
           if [ -n "$FIREBASE_DISTRIBUTION_GROUPS" ]; then
             DISTRIBUTE_ARGS+=(--groups "$FIREBASE_DISTRIBUTION_GROUPS")
           fi
 
-          firebase "${DISTRIBUTE_ARGS[@]}"
+          env -u SHELLOPTS firebase "${DISTRIBUTE_ARGS[@]}"
           echo "✅ Firebase deployment complete"
 
   deploy_google_play_internal_testing:
@@ -350,7 +349,7 @@ jobs:
           gem install fastlane -NV 2>&1 | tail -2
 
           # Verify AAB exists
-          AAB_PATH=$(find build/app/outputs/bundle/release -name "*.aab" -type f | head -1)
+          AAB_PATH=$(find "$(pwd)/build/app/outputs/bundle/release" -name "*.aab" -type f | head -1)
 
           if [ -z "$AAB_PATH" ]; then
             echo "❌ AAB not found in build/app/outputs/bundle/release/"
@@ -426,7 +425,7 @@ jobs:
           echo "📦 Installing Fastlane..."
           gem install fastlane -NV 2>&1 | tail -2
 
-          AAB_PATH=$(find build/app/outputs/bundle/release -name "*.aab" -type f | head -1)
+          AAB_PATH=$(find "$(pwd)/build/app/outputs/bundle/release" -name "*.aab" -type f | head -1)
 
           if [ -z "$AAB_PATH" ]; then
             echo "❌ AAB not found in build/app/outputs/bundle/release/"
