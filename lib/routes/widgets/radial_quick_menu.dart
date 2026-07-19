@@ -1,26 +1,65 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/constants/feature_flags.dart';
+import '../../core/providers/app_version_providers.dart';
 import '../../core/ui/constants.dart';
 import '../../core/ui/motion.dart';
 
 class _QuickMenuItem {
-  const _QuickMenuItem({required this.icon, required this.label, required this.route});
+  const _QuickMenuItem({
+    required this.icon,
+    required this.label,
+    required this.route,
+    required this.flag,
+  });
 
   final IconData icon;
   final String label;
   final String route;
+  final String flag;
 }
 
 const _kQuickMenuItems = [
-  _QuickMenuItem(icon: Icons.savings_outlined, label: 'Goals', route: '/goals'),
-  _QuickMenuItem(icon: Icons.category_outlined, label: 'Categories', route: '/categories'),
-  _QuickMenuItem(icon: Icons.payments_outlined, label: 'EMI', route: '/emi'),
-  _QuickMenuItem(icon: Icons.search_rounded, label: 'Search', route: '/search'),
-  _QuickMenuItem(icon: Icons.camera_alt_outlined, label: 'Scan', route: '/scan'),
-  _QuickMenuItem(icon: Icons.help_outline_rounded, label: 'Help', route: '/help_center'),
+  _QuickMenuItem(
+    icon: Icons.savings_outlined,
+    label: 'Goals',
+    route: '/goals',
+    flag: FeatureFlags.goals,
+  ),
+  _QuickMenuItem(
+    icon: Icons.category_outlined,
+    label: 'Categories',
+    route: '/categories',
+    flag: FeatureFlags.categories,
+  ),
+  _QuickMenuItem(
+    icon: Icons.payments_outlined,
+    label: 'EMI',
+    route: '/emi',
+    flag: FeatureFlags.emi,
+  ),
+  _QuickMenuItem(
+    icon: Icons.search_rounded,
+    label: 'Search',
+    route: '/search',
+    flag: FeatureFlags.search,
+  ),
+  _QuickMenuItem(
+    icon: Icons.camera_alt_outlined,
+    label: 'Scan',
+    route: '/scan',
+    flag: FeatureFlags.scan,
+  ),
+  _QuickMenuItem(
+    icon: Icons.help_outline_rounded,
+    label: 'Help',
+    route: '/help_center',
+    flag: FeatureFlags.helpCenter,
+  ),
 ];
 
 /// Material 3's default [NavigationBar] height.
@@ -72,12 +111,19 @@ Future<void> showRadialQuickMenu(final BuildContext context) {
   );
 }
 
-class _QuickMenuOverlay extends StatelessWidget {
+class _QuickMenuOverlay extends ConsumerWidget {
   const _QuickMenuOverlay();
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
     final theme = Theme.of(context);
+    final items = _kQuickMenuItems
+        .where(
+          (final item) => ref.watch(
+            featureEnabledProvider((flag: item.flag, defaultValue: true)),
+          ),
+        )
+        .toList(growable: false);
 
     return Material(
       type: MaterialType.transparency,
@@ -143,11 +189,11 @@ class _QuickMenuOverlay extends StatelessWidget {
                         crossAxisSpacing: AppSpacing.s8,
                         mainAxisExtent: 88,
                       ),
-                      itemCount: _kQuickMenuItems.length,
+                      itemCount: items.length,
                       itemBuilder: (final gridContext, final i) => MotionFadeIn(
                         delay: MotionStagger.delayFor(i),
                         beginScale: 0.85,
-                        child: _QuickMenuButton(item: _kQuickMenuItems[i]),
+                        child: _QuickMenuButton(item: items[i]),
                       ),
                     ),
                   ],

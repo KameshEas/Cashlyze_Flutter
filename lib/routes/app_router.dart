@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/constants/feature_flags.dart';
+import '../core/providers/app_version_providers.dart';
 import '../core/providers/onboarding_provider.dart';
 import '../core/providers/otp_pending_provider.dart';
 import '../core/services/auth_service.dart';
@@ -32,12 +34,34 @@ final rootNavigatorKeyProvider = Provider<GlobalKey<NavigatorState>>((final ref)
   return GlobalKey<NavigatorState>();
 });
 
+/// Maps flaggable route paths to the feature flag that must be enabled to
+/// reach them — defense-in-depth against direct deep links bypassing a
+/// hidden nav/quick-menu entry (see AppBottomNavBar, RadialQuickMenu).
+const _kRouteFeatureFlags = {
+  '/transactions': FeatureFlags.transactions,
+  '/budgets': FeatureFlags.budgets,
+  '/insights': FeatureFlags.insights,
+  '/goals': FeatureFlags.goals,
+  '/categories': FeatureFlags.categories,
+  '/emi': FeatureFlags.emi,
+  '/emi/new': FeatureFlags.emi,
+  '/search': FeatureFlags.search,
+  '/scan': FeatureFlags.scan,
+  '/scan/result': FeatureFlags.scan,
+  '/help_center': FeatureFlags.helpCenter,
+  '/ai-assistant': FeatureFlags.aiAssistant,
+};
+
 final appRouterProvider = Provider<GoRouter>((final ref) {
   final rootKey = ref.watch(rootNavigatorKeyProvider);
   final onboardingCompleted = ref.watch(onboardingCompletedProvider);
   final authState = ref.watch(authStateChangesProvider);
   final currentUser = ref.watch(currentUserProvider);
   final otpPending = ref.watch(otpPendingProvider);
+  final featureFlags = ref.watch(featureFlagsProvider).maybeWhen(
+    data: (final flags) => flags,
+    orElse: () => const <String, bool>{},
+  );
   const kRouteFadeDuration = AppMotion.pageDuration;
   final shellKey = GlobalKey<NavigatorState>();
 
@@ -364,6 +388,10 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
 
       if (user != null) {
         if (isAuthRoute || isOnboarding || isWalkthrough) {
+          return '/';
+        }
+        final requiredFlag = _kRouteFeatureFlags[state.matchedLocation];
+        if (requiredFlag != null && featureFlags[requiredFlag] == false) {
           return '/';
         }
         return null;

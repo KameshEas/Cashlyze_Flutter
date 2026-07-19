@@ -45,6 +45,11 @@ final class ConflictException extends ApiException {
   const ConflictException([super.message = 'Conflict']);
 }
 
+/// 429 – Client has been rate-limited (e.g. too many login attempts).
+final class TooManyRequestsException extends ApiException {
+  const TooManyRequestsException([super.message = 'Too many requests. Please try again later.']);
+}
+
 /// 5xx – Backend returned a server error.
 final class ServerException extends ApiException {
   const ServerException([super.message = 'Server error']);

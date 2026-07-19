@@ -87,11 +87,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
         Future.microtask(() async {
           var cats = ref.read(userCategoriesProvider).maybeWhen(data: (final d) => d, orElse: () => const <CategoryModel>[]);
           if (cats.isEmpty) {
+            // Wait on the already-active categories stream instead of firing
+            // a separate one-off repository call on every form open.
             try {
-              final user = ref.read(currentUserProvider);
-              if (user != null) {
-                cats = await ref.read(categoryRepositoryProvider).getAllForUser(user.uid);
-              }
+              cats = await ref.read(userCategoriesProvider.future);
             } catch (_) {}
           }
           final byId = cats.where((final c) => c.id == raw).toList();

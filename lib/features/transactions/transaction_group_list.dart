@@ -83,6 +83,7 @@ class TransactionGroupList extends StatelessWidget {
       if (txIndex >= 0 && txIndex < transactions.length) {
         final tx = transactions[txIndex];
         return TransactionListItem(
+          key: ValueKey(tx.id),
           tx: tx,
           currency: currency,
           datePattern: datePattern,

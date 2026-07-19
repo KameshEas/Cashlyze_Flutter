@@ -27,6 +27,26 @@ abstract final class EnvConfig {
   static String get baseUrl =>
       useLocalhostForTesting ? _localhostBaseUrl : _productionBaseUrl;
 
+  /// The gateway's own root (no `/api/v1/cashlyze` suffix) - OAuth discovery
+  /// (`/.well-known/...`) and the `/oauth/*` endpoints live here, not under
+  /// the cashlyze REST prefix. Derived from [baseUrl] so local/prod stay in
+  /// sync automatically.
+  static String get gatewayBaseUrl =>
+      baseUrl.substring(0, baseUrl.length - '/api/v1/cashlyze'.length);
+
+  /// The Cashlyze MCP server's Streamable HTTP endpoint.
+  static String get mcpServerUrl => '$gatewayBaseUrl/mcp/cashlyze/';
+
+  /// This app's registered OAuth client_id for the on-device AI / MCP flow.
+  /// Set after running services/auth/scripts/seed_oauth_client.py once
+  /// against production and pasting the printed client_id here.
+  static const String mcpOAuthClientId = 'mcp-client-e07f41e473f9e246';
+
+  /// Custom URI scheme redirect used to complete the PKCE authorize step.
+  /// Must exactly match a `redirect_uris` entry on the registered OAuth
+  /// client (see seed_oauth_client.py usage above).
+  static const String mcpOAuthRedirectUri = 'cashlyze://oauth/callback';
+
   // ── Timeouts ──────────────────────────────────────────────────────────────
 
   static const Duration connectTimeout = Duration(seconds: 10);

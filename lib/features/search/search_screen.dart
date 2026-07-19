@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -33,6 +35,7 @@ class SearchBody extends ConsumerStatefulWidget {
 
 class _SearchBodyState extends ConsumerState<SearchBody> {
   late final TextEditingController _searchController;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -43,13 +46,18 @@ class _SearchBodyState extends ConsumerState<SearchBody> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
 
   void _onSearchChanged() {
-    ref.read(searchQueryProvider.notifier).setQuery(_searchController.text);
+    setState(() {}); // keep suffix icon / empty-state text in sync immediately
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      ref.read(searchQueryProvider.notifier).setQuery(_searchController.text);
+    });
   }
 
   @override
