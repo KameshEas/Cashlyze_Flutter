@@ -509,10 +509,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   initialValue: dateFormat,
+                  isExpanded: true,
                   items: const [
-                    DropdownMenuItem(value: 'yyyy-MM-dd', child: Text('yyyy-MM-dd')),
-                    DropdownMenuItem(value: 'dd/MM/yyyy', child: Text('dd/MM/yyyy')),
-                    DropdownMenuItem(value: 'MM/dd/yyyy', child: Text('MM/dd/yyyy')),
+                    DropdownMenuItem(
+                      value: 'yyyy-MM-dd',
+                      child: Text('yyyy-MM-dd', overflow: TextOverflow.ellipsis),
+                    ),
+                    DropdownMenuItem(
+                      value: 'dd/MM/yyyy',
+                      child: Text('dd/MM/yyyy', overflow: TextOverflow.ellipsis),
+                    ),
+                    DropdownMenuItem(
+                      value: 'MM/dd/yyyy',
+                      child: Text('MM/dd/yyyy', overflow: TextOverflow.ellipsis),
+                    ),
                   ],
                   onChanged: (final v) async {
                     if (v == null) return;

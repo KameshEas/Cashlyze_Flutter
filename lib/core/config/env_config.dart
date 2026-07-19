@@ -1,11 +1,19 @@
+import 'package:flutter/foundation.dart' show kReleaseMode;
+
 /// Environment configuration for the Cashlyze API.
 ///
-/// Toggle [useLocalhostForTesting] to point the app at a local backend
-/// during development. The flag should always be `false` in production builds.
+/// Toggle [_useLocalhostDuringDev] to point the app at a local backend
+/// during development. Release builds always force production, so
+/// forgetting to flip this back before shipping is no longer possible.
 abstract final class EnvConfig {
   /// Set to `true` only during local backend development.
-  /// Must be `false` for production / CI / release builds.
-  static const bool useLocalhostForTesting = true;
+  /// Ignored (forced `false`) in release builds — see [useLocalhostForTesting].
+  static const bool _useLocalhostDuringDev = false;
+
+  /// Resolved localhost flag: forced `false` outside of debug/profile builds,
+  /// regardless of [_useLocalhostDuringDev].
+  static const bool useLocalhostForTesting =
+      !kReleaseMode && _useLocalhostDuringDev;
 
   static const String _productionBaseUrl =
       'https://api.aspired2d.cloud/api/v1/cashlyze';
