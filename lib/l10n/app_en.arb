@@ -48,6 +48,7 @@
   "editCategoryTitle": "Edit Category",
   "nameLabel": "Name",
   "nameEmptyError": "Name cannot be empty",
+  "nameDuplicateError": "A category with this name already exists",
   "saved": "Saved",
   "quickTransfer": "Transfer",
   "quickTopUp": "Top-up",

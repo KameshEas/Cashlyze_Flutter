@@ -110,8 +110,13 @@ jobs:
           SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
           shorebird --version
+
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "❌ ANDROID_KEYSTORE_BASE64 secret not set."
+            exit 1
+          fi
 
           PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //; s/"//g')
           BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
@@ -164,7 +169,12 @@ jobs:
       - name: script
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
+
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "❌ ANDROID_KEYSTORE_BASE64 secret not set."
+            exit 1
+          fi
 
           PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //; s/"//g')
           BUILD_NAME=$(echo "$PKG_VER" | cut -d+ -f1)
@@ -218,7 +228,9 @@ jobs:
           SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
+
+          flutter pub get
 
           PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g')
 
@@ -252,6 +264,11 @@ jobs:
           name: "cashlyze-apk-${{ github.sha }}"
           path: build/app/outputs/flutter-apk/
 
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
       - name: script
         env:
           FIREBASE_ANDROID_APP_ID: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
@@ -259,9 +276,9 @@ jobs:
           FIREBASE_DISTRIBUTION_GROUPS: ${{ secrets.FIREBASE_DISTRIBUTION_GROUPS }}
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
           echo "📦 Installing Firebase CLI..."
-          npm install -g firebase-tools >/dev/null 2>&1
+          npm install -g firebase-tools
 
           APK_PATH=$(find build/app/outputs/flutter-apk -name "*.apk" -type f | head -1)
 
@@ -287,11 +304,16 @@ jobs:
 
           echo "🔥 Deploying to Firebase..."
 
-          firebase appdistribution:distribute "$APK_PATH" \
+          DISTRIBUTE_ARGS=(appdistribution:distribute "$APK_PATH" \
             --app "$FIREBASE_ANDROID_APP_ID" \
-            --groups "$FIREBASE_DISTRIBUTION_GROUPS" \
-            --release-notes "$RELEASE_NOTES"
+            --release-notes "$RELEASE_NOTES" \
+            --token "$FIREBASE_TOKEN")
 
+          if [ -n "$FIREBASE_DISTRIBUTION_GROUPS" ]; then
+            DISTRIBUTE_ARGS+=(--groups "$FIREBASE_DISTRIBUTION_GROUPS")
+          fi
+
+          firebase "${DISTRIBUTE_ARGS[@]}"
           echo "✅ Firebase deployment complete"
 
   deploy_google_play_internal_testing:
@@ -321,7 +343,7 @@ jobs:
           PACKAGE_NAME: ${{ secrets.PACKAGE_NAME }}
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
           echo "📦 Installing Fastlane..."
           gem install fastlane -NV 2>&1 | tail -2
 
@@ -339,12 +361,12 @@ jobs:
 
           # Verify credentials
           if [ -z "$GCLOUD_SERVICE_ACCOUNT_CREDENTIALS" ]; then
-            echo "❌ GCLOUD_SERVICE_ACCOUNT_CREDENTIALS not set. Add it to GitHub Actions secrets."
+            echo "❌ GCLOUD_SERVICE_ACCOUNT_CREDENTIALS not set. Add it to the GitHub Actions repository secrets."
             exit 1
           fi
 
           if [ -z "$PACKAGE_NAME" ]; then
-            echo "❌ PACKAGE_NAME not set. Add it to GitHub Actions secrets."
+            echo "❌ PACKAGE_NAME not set. Add it to the GitHub Actions repository secrets."
             exit 1
           fi
 
@@ -398,7 +420,7 @@ jobs:
           PACKAGE_NAME: ${{ secrets.PACKAGE_NAME }}
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
           echo "📦 Installing Fastlane..."
           gem install fastlane -NV 2>&1 | tail -2
 

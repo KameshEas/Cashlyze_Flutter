@@ -156,6 +156,9 @@ class AppLocalizationsTa extends AppLocalizations {
   String get nameEmptyError => 'பெயர் காலியாக இருக்க முடியாது';
 
   @override
+  String get nameDuplicateError => 'A category with this name already exists';
+
+  @override
   String get saved => 'சேமிக்கப்பட்டது';
 
   @override

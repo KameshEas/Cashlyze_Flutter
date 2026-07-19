@@ -157,6 +157,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nameEmptyError => 'Name cannot be empty';
 
   @override
+  String get nameDuplicateError => 'A category with this name already exists';
+
+  @override
   String get saved => 'Saved';
 
   @override
