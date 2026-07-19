@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:cashlyze/core/models/goals_model.dart';
 import 'package:cashlyze/core/providers/goals_providers.dart';
+import 'package:cashlyze/core/providers/shared_prefs_provider.dart';
 import 'package:cashlyze/core/widgets/skeleton.dart';
 import 'package:cashlyze/features/goals/goals_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 GoalsModel _fixtureGoal({
   final String id = 'g1',
@@ -31,9 +33,12 @@ Future<void> _pumpGoalsScreen(
   final WidgetTester tester, {
   required final AsyncValue<List<GoalsModel>> Function() build,
 }) async {
+  SharedPreferences.setMockInitialValues({});
+  final prefs = await SharedPreferences.getInstance();
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        sharedPrefsProvider.overrideWithValue(prefs),
         goalsListProvider.overrideWith((final ref) {
           final value = build();
           return value.when(

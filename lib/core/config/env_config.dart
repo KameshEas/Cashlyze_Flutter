@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart' show kReleaseMode;
 abstract final class EnvConfig {
   /// Set to `true` only during local backend development.
   /// Ignored (forced `false`) in release builds — see [useLocalhostForTesting].
-  static const bool _useLocalhostDuringDev = true;
+  static const bool _useLocalhostDuringDev = false;
 
   /// Resolved localhost flag: forced `false` outside of debug/profile builds,
   /// regardless of [_useLocalhostDuringDev].
