@@ -232,6 +232,16 @@ jobs:
         run: |
           set -euo pipefail
 
+          if [ ! -f .env ]; then
+            if [ -f .env.example ]; then
+              cp .env.example .env
+              echo "✓ Created .env from .env.example"
+            else
+              touch .env
+              echo "✓ Created empty .env"
+            fi
+          fi
+
           flutter pub get
 
           PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g')
