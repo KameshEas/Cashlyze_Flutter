@@ -31,15 +31,6 @@ class SecureStorageService {
   static const String _keyUserId = 'user_id';
   static const String _keyPinCode = 'pin_code';
 
-  // On-device AI / MCP OAuth keys - separate token pair from the main
-  // Cashlyze session, scoped to `app: "mcp_cashlyze"` (see auth service's
-  // OAuth flow). mcpClientId is the OAuth client_id registered once via
-  // services/auth/scripts/seed_oauth_client.py, not a secret, but kept
-  // alongside the tokens for convenience.
-  static const String _keyMcpClientId = 'mcp_client_id';
-  static const String _keyMcpAccessToken = 'mcp_access_token';
-  static const String _keyMcpRefreshToken = 'mcp_refresh_token';
-
   /// Saves the authentication token securely.
   ///
   /// This token is used for API authentication and should be stored securely.
@@ -113,47 +104,6 @@ class SecureStorageService {
   /// Deletes the PIN code.
   Future<void> deletePinCode() async {
     await _storage.delete(key: _keyPinCode);
-  }
-
-  /// Saves the registered MCP OAuth client_id (not a secret, but kept here
-  /// alongside the tokens it's used with).
-  Future<void> saveMcpClientId(final String clientId) async {
-    await _storage.write(key: _keyMcpClientId, value: clientId);
-  }
-
-  /// Retrieves the registered MCP OAuth client_id.
-  Future<String?> getMcpClientId() async {
-    return await _storage.read(key: _keyMcpClientId);
-  }
-
-  /// Saves the MCP-scoped OAuth access token (`app: "mcp_cashlyze"`).
-  ///
-  /// This is intentionally a separate token from [saveAuthToken] - it is
-  /// only valid against the MCP server, not the regular Cashlyze REST API.
-  Future<void> saveMcpAccessToken(final String token) async {
-    await _storage.write(key: _keyMcpAccessToken, value: token);
-  }
-
-  /// Retrieves the MCP-scoped OAuth access token.
-  Future<String?> getMcpAccessToken() async {
-    return await _storage.read(key: _keyMcpAccessToken);
-  }
-
-  /// Saves the MCP-scoped OAuth refresh token.
-  Future<void> saveMcpRefreshToken(final String token) async {
-    await _storage.write(key: _keyMcpRefreshToken, value: token);
-  }
-
-  /// Retrieves the MCP-scoped OAuth refresh token.
-  Future<String?> getMcpRefreshToken() async {
-    return await _storage.read(key: _keyMcpRefreshToken);
-  }
-
-  /// Clears the MCP OAuth token pair (not the client_id - that stays
-  /// registered and reusable across a disconnect/reconnect).
-  Future<void> clearMcpTokens() async {
-    await _storage.delete(key: _keyMcpAccessToken);
-    await _storage.delete(key: _keyMcpRefreshToken);
   }
 
   /// Clears all stored data.

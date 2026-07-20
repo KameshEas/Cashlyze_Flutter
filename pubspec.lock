@@ -73,14 +73,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.13.0"
-  background_downloader:
-    dependency: transitive
-    description:
-      name: background_downloader
-      sha256: d27fcaf94f738032f1e6db098230799bf31ae7bf184f173fc9a752fcdae75c0e
-      url: "https://pub.dev"
-    source: hosted
-    version: "9.5.6"
   barcode:
     dependency: transitive
     description:
@@ -459,14 +451,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  flutter_gemma:
-    dependency: "direct main"
-    description:
-      name: flutter_gemma
-      sha256: "75885d49ef1683c1d7a10621e08dcf76bee268b0ce88e5e7ad2325e98a012167"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.12.6"
   flutter_launcher_icons:
     dependency: "direct dev"
     description:
@@ -639,14 +623,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "17.0.0"
-  google_cloud:
-    dependency: transitive
-    description:
-      name: google_cloud
-      sha256: b385e20726ef5315d302c5933bfb728103116c5be2d3d17094b01a82da538c1f
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.5.0"
   google_fonts:
     dependency: "direct dev"
     description:
@@ -727,14 +703,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "13.2.0"
-  googleapis_auth:
-    dependency: transitive
-    description:
-      name: googleapis_auth
-      sha256: ea53b290aaf1fdff615c8d79091b02c9150ff81c48f7f3b7460598c444f3c50a
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.3.3"
   graphs:
     dependency: transitive
     description:
@@ -743,14 +711,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.2"
-  grpc:
-    dependency: transitive
-    description:
-      name: grpc
-      sha256: "86be3a7d39ad865b214a7370021ac80e68939238b507730de6d97fc662cb2723"
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.1.0"
   html:
     dependency: transitive
     description:
@@ -767,14 +727,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.6.0"
-  http2:
-    dependency: transitive
-    description:
-      name: http2
-      sha256: "382d3aefc5bd6dc68c6b892d7664f29b5beb3251611ae946a98d35158a82bbfa"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.3.1"
   http_multi_server:
     dependency: transitive
     description:
@@ -916,14 +868,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.9.0"
-  large_file_handler:
-    dependency: transitive
-    description:
-      name: large_file_handler
-      sha256: c2ecaf552e8039119bbe3a094d15aecbafe833899f30b2dcfbb513eddf76b36f
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.1"
   leak_tracker:
     dependency: transitive
     description:
@@ -996,14 +940,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.11"
-  local_hnsw:
-    dependency: transitive
-    description:
-      name: local_hnsw
-      sha256: "7fb0988e3f850121774d9dfe94068f843d87908d6b1e9ed5039710d8d9ae3f7a"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.0"
   logging:
     dependency: transitive
     description:
@@ -1252,14 +1188,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.1"
-  protobuf:
-    dependency: transitive
-    description:
-      name: protobuf
-      sha256: "75ec242d22e950bdcc79ee38dd520ce4ee0bc491d7fadc4ea47694604d22bf06"
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.0.0"
   pub_semver:
     dependency: transitive
     description:

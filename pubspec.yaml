@@ -80,9 +80,6 @@ dependencies:
   http: any
   crypto: any
   firebase_core: any
-
-  # On-device AI (Gemma via MediaPipe/LiteRT) + MCP client
-  flutter_gemma: ^0.12.6
 dev_dependencies:
   sentry_dart_plugin: ^3.2.1
   flutter_test:
@@ -135,6 +132,7 @@ flutter:
     - assets/logo_icon.png
     - assets/animations/goal_complete.json
     - shorebird.yaml
+    - .env
 
   # To add assets to your application, add an assets section, like this:
   # assets:
