@@ -1,33 +1,36 @@
 import 'package:cashlyze/routes/widgets/radial_quick_menu.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 Widget _buildApp(final List<String> navigatedTo) {
-  return MaterialApp.router(
-    routerConfig: GoRouter(
-      initialLocation: '/',
-      routes: [
-        GoRoute(
-          path: '/',
-          builder: (final context, final state) => Scaffold(
-            body: Center(
-              child: ElevatedButton(
-                onPressed: () => showRadialQuickMenu(context),
-                child: const Text('Open menu'),
+  return ProviderScope(
+    child: MaterialApp.router(
+      routerConfig: GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (final context, final state) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => showRadialQuickMenu(context),
+                  child: const Text('Open menu'),
+                ),
               ),
             ),
           ),
-        ),
-        for (final path in ['/goals', '/categories', '/emi', '/search', '/scan', '/help_center'])
-          GoRoute(
-            path: path,
-            builder: (final context, final state) {
-              navigatedTo.add(path);
-              return Scaffold(body: Text('Screen for $path'));
-            },
-          ),
-      ],
+          for (final path in ['/goals', '/categories', '/emi', '/search', '/scan', '/help_center'])
+            GoRoute(
+              path: path,
+              builder: (final context, final state) {
+                navigatedTo.add(path);
+                return Scaffold(body: Text('Screen for $path'));
+              },
+            ),
+        ],
+      ),
     ),
   );
 }
