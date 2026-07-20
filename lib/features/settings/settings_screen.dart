@@ -834,7 +834,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ],
     );
 
-    // Developer tools removed from Settings UI.
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: LayoutBuilder(
@@ -864,8 +863,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       child: Column(
                         children: [
                           accountSection,
-                          const SizedBox(height: 20),
-                          // Developer tools removed.
                         ],
                       ),
                     ),
@@ -886,8 +883,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 dataSection,
                 const SizedBox(height: 20),
                 accountSection,
-                const SizedBox(height: 20),
-                // Developer tools removed.
               ],
             ),
           );

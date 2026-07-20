@@ -169,6 +169,7 @@ class ApiClient {
       403 => ForbiddenException(message ?? 'Forbidden'),
       404 => NotFoundException(message ?? 'Not found'),
       409 => ConflictException(message ?? 'Conflict'),
+      429 => TooManyRequestsException(message ?? 'Too many requests. Please try again later.'),
       _ when statusCode >= 500 => ServerException.withStatus(statusCode, message),
       _ => UnknownApiException('HTTP $statusCode: ${message ?? 'Unknown'}'),
     };

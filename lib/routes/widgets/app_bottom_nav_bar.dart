@@ -3,11 +3,23 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/constants/feature_flags.dart';
+import '../../core/providers/app_version_providers.dart';
 import '../../core/providers/first_time_feature_provider.dart';
 import '../../core/ui/constants.dart';
 import '../../core/ui/motion.dart';
 import '../../features/onboarding/quick_menu_tutorial_overlay.dart';
 import 'radial_quick_menu.dart';
+
+class _NavEntry {
+  const _NavEntry({required this.branchIndex, required this.destination});
+
+  /// Index into the router's [StatefulShellRoute] branches — fixed, must
+  /// NOT be confused with this entry's position in the (possibly filtered)
+  /// visible destinations list.
+  final int branchIndex;
+  final NavigationDestination destination;
+}
 
 /// The app's bottom navigation bar: the stock 5-destination [NavigationBar]
 /// with an elevated center button overlaid on top that expands into a
@@ -54,40 +66,76 @@ class _AppBottomNavBarState extends ConsumerState<AppBottomNavBar> {
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
 
+    final showTransactions = ref.watch(
+      featureEnabledProvider((flag: FeatureFlags.transactions, defaultValue: true)),
+    );
+    final showBudgets = ref.watch(
+      featureEnabledProvider((flag: FeatureFlags.budgets, defaultValue: true)),
+    );
+    final showInsights = ref.watch(
+      featureEnabledProvider((flag: FeatureFlags.insights, defaultValue: true)),
+    );
+
+    // Home and Settings are always shown — see FeatureFlags doc comment.
+    final entries = <_NavEntry>[
+      const _NavEntry(
+        branchIndex: 0,
+        destination: NavigationDestination(
+          icon: Icon(Icons.home_outlined),
+          selectedIcon: Icon(Icons.home),
+          label: 'Home',
+        ),
+      ),
+      if (showTransactions)
+        const _NavEntry(
+          branchIndex: 1,
+          destination: NavigationDestination(
+            icon: Icon(Icons.receipt_long_outlined),
+            selectedIcon: Icon(Icons.receipt_long),
+            label: 'Transactions',
+          ),
+        ),
+      if (showBudgets)
+        const _NavEntry(
+          branchIndex: 2,
+          destination: NavigationDestination(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            selectedIcon: Icon(Icons.account_balance_wallet),
+            label: 'Budgets',
+          ),
+        ),
+      if (showInsights)
+        const _NavEntry(
+          branchIndex: 3,
+          destination: NavigationDestination(
+            icon: Icon(Icons.insights_outlined),
+            selectedIcon: Icon(Icons.insights),
+            label: 'Insights',
+          ),
+        ),
+      const _NavEntry(
+        branchIndex: 4,
+        destination: NavigationDestination(
+          icon: Icon(Icons.settings_outlined),
+          selectedIcon: Icon(Icons.settings),
+          label: 'Settings',
+        ),
+      ),
+    ];
+
+    final selectedPosition = entries.indexWhere(
+      (final e) => e.branchIndex == widget.navigationShell.currentIndex,
+    );
+
     return Stack(
       clipBehavior: Clip.none,
       alignment: Alignment.topCenter,
       children: [
         NavigationBar(
-          selectedIndex: widget.navigationShell.currentIndex,
-          onDestinationSelected: widget.navigationShell.goBranch,
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.receipt_long_outlined),
-              selectedIcon: Icon(Icons.receipt_long),
-              label: 'Transactions',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.account_balance_wallet_outlined),
-              selectedIcon: Icon(Icons.account_balance_wallet),
-              label: 'Budgets',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.insights_outlined),
-              selectedIcon: Icon(Icons.insights),
-              label: 'Insights',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.settings_outlined),
-              selectedIcon: Icon(Icons.settings),
-              label: 'Settings',
-            ),
-          ],
+          selectedIndex: selectedPosition == -1 ? 0 : selectedPosition,
+          onDestinationSelected: (final position) =>
+              widget.navigationShell.goBranch(entries[position].branchIndex),
+          destinations: [for (final e in entries) e.destination],
         ),
         Transform.translate(
           offset: const Offset(0, -20),

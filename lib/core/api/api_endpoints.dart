@@ -59,9 +59,6 @@ abstract final class ApiEndpoints {
   // ── Search ────────────────────────────────────────────────────────────────
   static const String search = '/search';
 
-  // ── AI Assistant ──────────────────────────────────────────────────────────
-  static const String aiChat = '/ai/chat';
-
   // ── WebSocket ─────────────────────────────────────────────────────────────
   /// Returns the full WebSocket URL for a given user.
   ///

@@ -22,6 +22,19 @@ runs:
         echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> "$GITHUB_ENV"
         echo "/usr/lib/jvm/java-17-openjdk-amd64/bin" >> "$GITHUB_PATH"
 
+    - name: Ensure .env asset exists
+      shell: bash
+      run: |
+        if [ ! -f .env ]; then
+          if [ -f .env.example ]; then
+            cp .env.example .env
+            echo "✓ Created .env from .env.example"
+          else
+            touch .env
+            echo "✓ Created empty .env"
+          fi
+        fi
+
     - name: Restore caches
       if: inputs.restore-cache == 'true'
       uses: actions/cache@v4

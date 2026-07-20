@@ -1,33 +1,20 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api/api_exception.dart';
+import '../../core/api/api_client.dart';
 import '../../core/models/chat_message.dart';
-import '../../core/services/ai_chat_service.dart';
 import '../../core/ui/constants.dart';
-
-/// Maps a chat-send failure to plain, non-technical copy for the chat
-/// bubble. Server-side detail (e.g. "GROQ_API_KEY unset") is developer
-/// diagnostic text, not something to show a user - it's logged instead
-/// (see [_send]) so it's still visible while debugging.
-String _friendlyChatError(final Object e) {
-  return switch (e) {
-    NetworkException() => "You're offline. Check your connection and try again.",
-    TimeoutException() => 'That took too long. Please try again.',
-    UnauthorizedException() || TokenRefreshException() =>
-      'Your session expired. Please log in again.',
-    _ => "The AI assistant isn't available right now. Please try again later.",
-  };
-}
+import '../../core/utils/repo_error_handler.dart';
 
 /// Embedded AI assistant chat panel.
 ///
-/// Calls the backend's POST /api/v1/cashlyze/ai/chat endpoint (see
-/// [AiChatService]) - the app never talks to Anthropic or MCP directly. The
-/// server runs the tool-calling loop against the user's own data and
-/// returns only the final reply, so this screen only ever deals in plain
-/// user/assistant text turns.
+/// Sends each message to the backend (`POST /n8n-chat/{chatId}`), which
+/// mints a short-lived, user-scoped MCP token and hands the whole
+/// tool-calling loop to an n8n workflow (AI Agent + MCP Client Tool) running
+/// against `cashlyze-mcp-server` on the user's behalf - see
+/// `services/cashlyze/app/services/n8n_chat_service.py`. The app itself only
+/// ever makes one authenticated REST call per turn; no model or MCP client
+/// runs on-device.
 class AiAssistantScreen extends ConsumerStatefulWidget {
   const AiAssistantScreen({super.key});
 
@@ -36,6 +23,9 @@ class AiAssistantScreen extends ConsumerStatefulWidget {
 }
 
 class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
+  // One id per screen-open - only used as the backend/n8n conversation-memory
+  // key, not an auth boundary, so a timestamp is unique enough.
+  final String _chatId = DateTime.now().millisecondsSinceEpoch.toString();
   final List<ChatMessage> _messages = [];
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -71,20 +61,16 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
     _scrollToBottom();
 
     try {
-      // Error bubbles are local-only notices, never real model turns - drop
-      // them before replaying history back to the backend.
-      final history = _messages.where((final m) => !m.isError).toList();
-      final reply = await ref.read(aiChatServiceProvider).sendMessage(history);
+      final response = await ref.read(apiClientProvider).post<Map<String, dynamic>>(
+            '/n8n-chat/$_chatId',
+            data: {'message': text},
+          );
+      final reply = response.data?['reply'] as String? ?? "The assistant didn't return a reply.";
       if (!mounted) return;
-      setState(() {
-        _messages.add(ChatMessage.assistant(reply));
-      });
+      setState(() => _messages.add(ChatMessage.assistant(reply)));
     } catch (e) {
-      if (kDebugMode) debugPrint('[AiAssistant] send failed: $e');
       if (!mounted) return;
-      setState(() {
-        _messages.add(ChatMessage.error(_friendlyChatError(e)));
-      });
+      setState(() => _messages.add(ChatMessage.error(repoErrorMessage(e))));
     } finally {
       if (mounted) setState(() => _isSending = false);
       _scrollToBottom();
@@ -96,9 +82,7 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('AI Assistant'),
-      ),
+      appBar: AppBar(title: const Text('AI Assistant')),
       body: Column(
         children: [
           Expanded(
@@ -119,12 +103,7 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
           SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.s12,
-                AppSpacing.s8,
-                AppSpacing.s12,
-                AppSpacing.s12,
-              ),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.s12, AppSpacing.s8, AppSpacing.s12, AppSpacing.s12),
               child: Row(
                 children: [
                   Expanded(

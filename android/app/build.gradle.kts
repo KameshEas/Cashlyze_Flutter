@@ -47,7 +47,10 @@ android {
         applicationId = (project.findProperty("APP_ID") as String?) ?: "com.aspiredesignovation.cashlyze"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // flutter_gemma (on-device Gemma inference) requires a 64-bit-capable
+        // API level; Flutter's own default is already >= this, pinned
+        // explicitly so it doesn't silently drift below it.
+        minSdk = maxOf(flutter.minSdkVersion, 26)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
