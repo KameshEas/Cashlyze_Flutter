@@ -95,13 +95,17 @@ class _AppBottomNavBarState extends ConsumerState<AppBottomNavBar> {
             label: 'Transactions',
           ),
         ),
+      // Labeled "More" rather than "Budgets" - the floating quick-menu button
+      // (below) sits directly on top of this destination's icon, so its own
+      // real label would be misleading (tapping the visible button opens the
+      // quick menu, not the Budgets screen).
       if (showBudgets)
         const _NavEntry(
           branchIndex: 2,
           destination: NavigationDestination(
             icon: Icon(Icons.account_balance_wallet_outlined),
             selectedIcon: Icon(Icons.account_balance_wallet),
-            label: 'Budgets',
+            label: 'More',
           ),
         ),
       if (showInsights)

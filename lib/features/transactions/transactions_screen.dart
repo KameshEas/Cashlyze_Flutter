@@ -9,6 +9,7 @@ import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/ui/constants.dart';
 import '../../core/ui/motion.dart';
 import '../../core/utils/repo_error_handler.dart';
 import '../../core/widgets/dialogs.dart';
@@ -195,7 +196,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               Icons.tune,
                               size: 20,
                               color: activeCount > 0
-                                  ? Colors.white
+                                  ? theme.colorScheme.onPrimary
                                   : theme.colorScheme.onSurface,
                             ),
                           ),
@@ -239,7 +240,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline, color: Colors.red),
+                        Icon(Icons.error_outline, color: theme.colorScheme.error),
                         const SizedBox(width: 8),
                         Expanded(child: Text('Failed to load: $e')),
                         TextButton(
@@ -317,19 +318,19 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                           alignment: Alignment.centerLeft,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.15),
+                            color: AppColors.success.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Row(children: [const Icon(Icons.edit, color: Colors.green), const SizedBox(width: 8), Text(t?.edit ?? 'Edit')]),
+                          child: Row(children: [const Icon(Icons.edit, color: AppColors.success), const SizedBox(width: 8), Text(t?.edit ?? 'Edit')]),
                         ),
                         secondaryBackground: Container(
                           alignment: Alignment.centerRight,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
-                            color: Colors.red.withValues(alpha: 0.15),
+                            color: theme.colorScheme.error.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [Text(t?.delete ?? 'Delete'), const SizedBox(width: 8), const Icon(Icons.delete, color: Colors.red)]),
+                          child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [Text(t?.delete ?? 'Delete'), const SizedBox(width: 8), Icon(Icons.delete, color: theme.colorScheme.error)]),
                         ),
                         confirmDismiss: (final dir) async {
                           if (dir == DismissDirection.startToEnd) {

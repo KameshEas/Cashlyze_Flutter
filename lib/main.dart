@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart'
     show kReleaseMode;
 import 'package:flutter/material.dart';
+import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -59,6 +60,9 @@ Future<void> _appRunner() async {
   // `runApp` execute in the same zone (prevents zone mismatch assertions).
   unawaited(runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+    // Fire-and-forget: some devices/emulators throw when querying supported
+    // display modes, and this should never block app startup either way.
+    unawaited(FlutterDisplayMode.setHighRefreshRate().catchError((final _) {}));
     await _runAppWithPrefs();
   }, (final error, final stack) async {
     // Forward to Sentry only after initialization completed.

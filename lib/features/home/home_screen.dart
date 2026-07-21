@@ -8,8 +8,11 @@ import '../../core/providers/recurring_providers.dart';
 import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/providers/transaction_providers.dart';
 import '../../core/repositories/emi_repository.dart';
+import '../../core/services/auth_service.dart';
+import '../../core/ui/constants.dart';
 import '../../core/ui/motion.dart';
 import '../../core/utils/format.dart';
+import '../../core/widgets/app_list_tile.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../l10n/app_localizations.dart';
 import 'widgets/balance_card.dart';
@@ -32,82 +35,62 @@ class HomeScreen extends ConsumerWidget {
     );
     final t = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(t?.dashboard ?? 'Dashboard'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search_outlined),
-            onPressed: () => context.push('/search'),
-            tooltip: 'Search',
-          ),
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Notifications coming soon'),
-                duration: Duration(seconds: 2),
-              ),
-            ),
-            tooltip: 'Notifications',
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              try {
-                ref.invalidate(userEMIPlansProvider);
-                ref.invalidate(emiUpcomingProvider);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Refreshing EMI data')),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Refresh failed: $e')),
-                );
-              }
-            },
-            tooltip: 'Refresh',
-          ),
-        ],
-      ),
       body: RefreshIndicator(
         onRefresh: () => _performRefresh(context, ref),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.pagePadding,
+            AppSpacing.s8,
+            AppSpacing.pagePadding,
+            AppSpacing.pagePadding,
+          ),
           physics: const AlwaysScrollableScrollPhysics(),
-          child: MotionStagger(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const BalanceCard(),
-              const SizedBox(height: 40),
-              Text(
-                t?.quickActions ?? 'Quick Actions',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const QuickActions(),
-              if (hasEmis) ...[
-                const SizedBox(height: 24),
-                Text(
-                  t?.emiTracker ?? 'EMI Tracker',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+          child: SafeArea(
+            bottom: false,
+            child: MotionStagger(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _HomeHeader(
+                  greeting: t?.dashboard ?? 'Dashboard',
+                  onSearch: () => context.push('/search'),
+                  onNotifications: () => ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Notifications coming soon'),
+                      duration: Duration(seconds: 2),
+                    ),
                   ),
+                  onRefresh: () {
+                    try {
+                      ref.invalidate(userEMIPlansProvider);
+                      ref.invalidate(emiUpcomingProvider);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Refreshing EMI data')),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Refresh failed: $e')),
+                      );
+                    }
+                  },
                 ),
-                const SizedBox(height: 12),
-                _buildUpcomingEmi(context, ref, currency),
+                const SizedBox(height: AppSpacing.s24),
+                const BalanceCard(),
+                const SizedBox(height: AppSpacing.s40),
+                _SectionHeader(title: t?.quickActions ?? 'Quick Actions'),
+                const SizedBox(height: AppSpacing.s16),
+                const QuickActions(),
+                if (hasEmis) ...[
+                  const SizedBox(height: AppSpacing.s24),
+                  _SectionHeader(title: t?.emiTracker ?? 'EMI Tracker'),
+                  const SizedBox(height: AppSpacing.s12),
+                  _buildUpcomingEmi(context, ref, currency),
+                ],
+                const SizedBox(height: AppSpacing.s24),
+                _SectionHeader(title: t?.recentTransactions ?? 'Recent Transactions'),
+                const SizedBox(height: AppSpacing.s16),
+                _buildRecentTransactions(context, ref, currency, txsAsync),
               ],
-              const SizedBox(height: 24),
-              Text(
-                t?.recentTransactions ?? 'Recent Transactions',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _buildRecentTransactions(context, ref, currency, txsAsync),
-            ],
+            ),
           ),
         ),
       ),
@@ -130,11 +113,11 @@ class HomeScreen extends ConsumerWidget {
       ),
       error: (final e, final _) => Container(
         key: const ValueKey('emi-error'),
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppSpacing.s12),
         decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+          color: theme.colorScheme.error.withValues(alpha: 0.08),
+          borderRadius: AppRadius.lgAll,
+          border: Border.all(color: theme.colorScheme.error.withValues(alpha: 0.3)),
         ),
         child: Text('EMI load error: $e'),
       ),
@@ -168,7 +151,7 @@ class HomeScreen extends ConsumerWidget {
                                 ? 'Due Today'
                                 : 'Due in $dueDays days',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: dueDays < 0 ? Colors.red : Colors.green,
+                          color: dueDays < 0 ? theme.colorScheme.error : AppColors.success,
                         ),
                       ),
                     ],
@@ -201,21 +184,26 @@ class HomeScreen extends ConsumerWidget {
           SkeletonListTile(),
         ],
       ),
-      error: (final e, final _) => Container(
-        key: const ValueKey('rt-error'),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.red),
-            const SizedBox(width: 8),
-            Expanded(child: Text('Failed to load: $e')),
-          ],
-        ),
+      error: (final e, final _) => Builder(
+        builder: (final ctx) {
+          final errColor = Theme.of(ctx).colorScheme.error;
+          return Container(
+            key: const ValueKey('rt-error'),
+            padding: const EdgeInsets.all(AppSpacing.s12),
+            decoration: BoxDecoration(
+              color: errColor.withValues(alpha: 0.08),
+              borderRadius: AppRadius.mdAll,
+              border: Border.all(color: errColor.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline, color: errColor),
+                const SizedBox(width: AppSpacing.s8),
+                Expanded(child: Text('Failed to load: $e')),
+              ],
+            ),
+          );
+        },
       ),
       data: (final items) {
         final now = DateTime.now();
@@ -313,69 +301,104 @@ class RecentTransactionItem extends StatelessWidget {
     final displayCategory = tx.categoryName ?? tx.categoryId ?? 'General';
     final isIncome = tx.amount >= 0;
 
+    return AppListTile(
+      title: tx.title,
+      subtitle: displayCategory,
+      leadingIcon: Icons.shopping_bag_outlined,
+      trailing: formatAmount(tx.amount, currency),
+      trailingColor: isIncome ? AppColors.success : theme.colorScheme.error,
+    );
+  }
+}
+
+/// Personalized greeting + date, and the search/notifications/refresh
+/// actions - replaces a bare default `AppBar` with a treatment matching the
+/// display typography used elsewhere on this screen.
+class _HomeHeader extends ConsumerWidget {
+  const _HomeHeader({
+    required this.greeting,
+    required this.onSearch,
+    required this.onNotifications,
+    required this.onRefresh,
+  });
+
+  final String greeting;
+  final VoidCallback onSearch;
+  final VoidCallback onNotifications;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final theme = Theme.of(context);
+    final user = ref.watch(currentUserProvider);
+    final name = user?.email.split('@').first;
+    final today = formatDate(DateTime.now(), 'EEEE, MMM d');
+
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name == null || name.isEmpty ? greeting : 'Hi, $name 👋',
+                style: theme.textTheme.headlineMedium,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: AppSpacing.s4),
+              Text(
+                today,
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        _HeaderIconButton(icon: Icons.search_outlined, tooltip: 'Search', onPressed: onSearch),
+        const SizedBox(width: AppSpacing.s8),
+        _HeaderIconButton(icon: Icons.notifications_outlined, tooltip: 'Notifications', onPressed: onNotifications),
+        const SizedBox(width: AppSpacing.s8),
+        _HeaderIconButton(icon: Icons.refresh_rounded, tooltip: 'Refresh', onPressed: onRefresh),
+      ],
+    );
+  }
+}
+
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({required this.icon, required this.tooltip, required this.onPressed});
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(final BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+        shape: BoxShape.circle,
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.shopping_bag_outlined,
-              color: theme.colorScheme.primary,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tx.title,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    displayCategory,
-                    style: theme.textTheme.bodySmall,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            formatAmount(tx.amount, currency),
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: isIncome
-                  ? theme.colorScheme.secondary
-                  : theme.colorScheme.error,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
+      child: IconButton(
+        icon: Icon(icon, size: 20),
+        tooltip: tooltip,
+        onPressed: onPressed,
       ),
+    );
+  }
+}
+
+/// Section heading used between the home screen's stacked content blocks
+/// (Quick Actions / EMI Tracker / Recent Transactions).
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(final BuildContext context) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleLarge,
     );
   }
 }

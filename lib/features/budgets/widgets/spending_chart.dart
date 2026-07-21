@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../core/ui/constants.dart';
 import '../../../core/utils/format.dart';
 
 /// Spending trend visualization for budget analysis
@@ -70,14 +72,14 @@ class SpendingTrendChart extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: isOverBudget
-                      ? Colors.red.withValues(alpha: 0.1)
-                      : Colors.green.withValues(alpha: 0.1),
+                      ? AppColors.error.withValues(alpha: 0.1)
+                      : AppColors.success.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   isOverBudget ? 'Over Budget' : 'On Track',
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: isOverBudget ? Colors.red : Colors.green,
+                    color: isOverBudget ? AppColors.error : AppColors.success,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -98,7 +100,7 @@ class SpendingTrendChart extends StatelessWidget {
                   backgroundColor:
                       theme.colorScheme.outline.withValues(alpha: 0.12),
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    isOverBudget ? Colors.red : theme.colorScheme.primary,
+                    isOverBudget ? AppColors.error : theme.colorScheme.primary,
                   ),
                 ),
               ),
@@ -146,7 +148,7 @@ class SpendingTrendChart extends StatelessWidget {
                   context,
                   'Remaining',
                   formatAmount(remaining.clamp(0.0, allocated), currency),
-                  isOverBudget ? Colors.red : Colors.green,
+                  isOverBudget ? AppColors.error : AppColors.success,
                 ),
               ),
               const SizedBox(width: 12),

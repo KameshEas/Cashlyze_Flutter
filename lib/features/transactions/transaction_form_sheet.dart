@@ -13,11 +13,13 @@ import '../../core/repositories/recurring_repository.dart';
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/transaction_ingest_service.dart';
+import '../../core/ui/constants.dart';
 import '../../core/ui/motion.dart';
 import '../../core/utils/format.dart';
 import '../../core/utils/repo_error_handler.dart';
 import '../../core/utils/validation.dart';
 import '../../core/widgets/category_picker_field.dart';
+import '../../core/widgets/segmented_income_expense_toggle.dart';
 import '../../l10n/app_localizations.dart';
 
 enum TransactionFormMode { create, edit }
@@ -160,8 +162,9 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: theme.colorScheme.surface,
+      showDragHandle: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
       ),
       builder: (final ctx) {
         final nav = Navigator.of(ctx);
@@ -172,11 +175,12 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(width: 48, height: 4, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2))),
-                const SizedBox(height: 12),
                 Text('Create Budget for "$categoryName"', style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
-                Text('Set a monthly budget amount for this category', style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                Text(
+                  'Set a monthly budget amount for this category',
+                  style: Theme.of(ctx).textTheme.bodySmall,
+                ),
                 const SizedBox(height: 12),
                 TextFormField(controller: allocatedController, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'Monthly Budget Amount', filled: true, prefixText: '${ref.read(currencyProvider)} ')),
                 const SizedBox(height: 12),
@@ -267,19 +271,34 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
         child: MotionFadeIn(child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 48, height: 4, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 12),
+            SegmentedIncomeExpenseToggle(
+              isIncome: type == 'Income',
+              onChanged: (final isIncome) => setState(() => type = isIncome ? 'Income' : 'Expense'),
+              incomeLabel: t?.income ?? 'Income',
+              expenseLabel: t?.expense ?? 'Expense',
+            ),
+            const SizedBox(height: AppSpacing.s16),
+            // Large-digit amount display - the primary field on this form,
+            // given visual weight matching the hero balance elsewhere in the
+            // app instead of a plain same-size-as-everything-else TextField.
+            TextFormField(
+              controller: amountController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.displayMedium,
+              decoration: InputDecoration(
+                hintText: '0.00',
+                helperText: t?.amountHelperEg ?? 'e.g., 123.45',
+                helperStyle: Theme.of(context).textTheme.bodySmall,
+                filled: false,
+                border: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                enabledBorder: InputBorder.none,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s12),
             Row(children: [
-              Expanded(child: DropdownButtonFormField<String>(
-                initialValue: type,
-                items: [
-                  DropdownMenuItem(value: 'Expense', child: Text(t?.expense ?? 'Expense')),
-                  DropdownMenuItem(value: 'Income', child: Text(t?.income ?? 'Income')),
-                ],
-                onChanged: (final v) => setState(() => type = v ?? 'Expense'),
-                decoration: InputDecoration(labelText: t?.typeLabel ?? 'Type', filled: true),
-              )),
-              const SizedBox(width: 12),
               Expanded(
                 child: CategoryPickerField(
                   value: category,
@@ -291,13 +310,6 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
             ]),
             const SizedBox(height: 12),
             TextFormField(controller: titleController, decoration: InputDecoration(labelText: t?.titleLabel ?? 'Title', filled: true)),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-              decoration: InputDecoration(labelText: t?.amountLabel ?? 'Amount', helperText: t?.amountHelperEg ?? 'e.g., 123.45', filled: true),
-            ),
             const SizedBox(height: 12),
             Row(children: [
               Expanded(child: OutlinedButton(onPressed: () async {

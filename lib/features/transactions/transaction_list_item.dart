@@ -4,8 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/category.dart';
 import '../../core/models/transaction.dart';
 import '../../core/repositories/category_repository.dart';
-import '../../core/ui/motion.dart';
+import '../../core/ui/constants.dart';
 import '../../core/utils/format.dart';
+import '../../core/widgets/app_card.dart';
 
 class TransactionListItem extends ConsumerWidget {
 
@@ -33,33 +34,16 @@ class TransactionListItem extends ConsumerWidget {
   Widget build(final BuildContext context, final WidgetRef ref) {
     final theme = Theme.of(context);
     final isIncome = tx.amount > 0;
-    final accentColor = isIncome ? Colors.green : Colors.red;
-    
-    return PressableScale(
+    final accentColor = isIncome ? AppColors.success : theme.colorScheme.error;
+
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      accentColor: accentColor,
       onTap: selectionMode
           ? () => onSelectedChanged?.call(!selected)
           : onTap,
       onLongPress: onLongPress,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.14),
-          ),
-        ),
-        // Left accent bar for income/expense distinction
-        foregroundDecoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border(
-            left: BorderSide(
-              color: accentColor,
-              width: 4,
-            ),
-          ),
-        ),
-        child: Row(
+      child: Row(
           children: [
             if (selectionMode) ...[
               Checkbox(value: selected, onChanged: (final v) => onSelectedChanged?.call(v ?? false)),
@@ -73,7 +57,7 @@ class TransactionListItem extends ConsumerWidget {
                 ),
                 child: Icon(
                   isIncome ? Icons.arrow_downward : Icons.arrow_upward,
-                  color: isIncome ? Colors.green : Colors.red,
+                  color: accentColor,
                   size: 20,
                 ),
               ),
@@ -174,13 +158,12 @@ class TransactionListItem extends ConsumerWidget {
             Text(
               formatAmount(tx.amount, currency),
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: isIncome ? Colors.green : Colors.red,
+                color: accentColor,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ],
         ),
-      ),
     );
   }
 }
