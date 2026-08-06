@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/auth/data/auth_remote_data_source.dart';
 import '../api/api_client.dart';
 import '../models/auth_user.dart';
+import 'auth_session_events.dart';
 import 'secure_storage_service.dart';
 
 // ── SharedPreferences keys ────────────────────────────────────────────────────
@@ -59,6 +60,7 @@ class AuthService {
   final SecureStorageService _storage;
 
   final _controller = StreamController<AuthUser?>.broadcast();
+  StreamSubscription<void>? _forcedLogoutSub;
 
   /// Public broadcast stream of auth state changes.
   Stream<AuthUser?> get authStateChanges => _controller.stream;
@@ -69,6 +71,7 @@ class AuthService {
   /// so `authStateChangesProvider` has a value before any UI is shown.
   void _init() {
     _emitCurrentUser();
+    _forcedLogoutSub = forcedLogoutEvents.stream.listen((final _) => forceSignOutLocally());
   }
 
   Future<void> _emitCurrentUser() async {
@@ -128,6 +131,21 @@ class AuthService {
     _controller.add(null);
   }
 
+  /// Emits `null` without any network call or re-clearing tokens (the caller
+  /// - [ApiClient]'s `onForceLogout` - has already deleted them itself).
+  ///
+  /// Used when a background token refresh fails: clearing secure-storage
+  /// tokens alone does not make the router redirect, since route guards
+  /// read `authStateChangesProvider`/`currentUserProvider`, which are fed by
+  /// this controller, not by a direct storage read. Without this, a user
+  /// whose session died in the background would keep seeing a "logged in"
+  /// UI (with every subsequent action silently failing) until the app is
+  /// restarted or something else happens to re-check auth state.
+  void forceSignOutLocally() {
+    _cachedUser = null;
+    _controller.add(null);
+  }
+
   // ── Current user ────────────────────────────────────────────────────────
 
   AuthUser? _cachedUser;
@@ -180,6 +198,7 @@ class AuthService {
   }
 
   void dispose() {
+    _forcedLogoutSub?.cancel();
     _controller.close();
   }
 }

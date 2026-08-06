@@ -130,7 +130,16 @@ void main() async {
       : const String.fromEnvironment('SENTRY_DSN');
 
   if (sentryDsn.isEmpty) {
-    if (!kReleaseMode) debugPrint('SENTRY_DSN not set — Sentry disabled.');
+    // Unconditional (not gated behind kReleaseMode) so this is visible via
+    // `adb logcat` even against a release build during manual QA, not just
+    // in a `flutter run --debug` session.
+    debugPrint('SENTRY_DSN not set - Sentry disabled for this build.');
+    // Loud failure for debug/profile/CI testing (a misconfigured pipeline
+    // should be caught before a release ships with no crash reporting at
+    // all) - but `assert` is compiled out of `--release` builds entirely,
+    // so this can never crash a real user's already-running app over a
+    // build-config gap the way a plain `throw` here would.
+    assert(false, 'SENTRY_DSN must be set - crash reporting would otherwise ship disabled.');
     return;
   }
 

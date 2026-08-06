@@ -45,3 +45,15 @@
     <init>(...);
     <fields>;
 }
+
+# OneSignal SDK - referenced reflectively by the Android runtime; without
+# this, R8 can rename/strip classes it needs, breaking push notifications
+# only in release builds (never reproduces in debug).
+-keep class com.onesignal.** { *; }
+-dontwarn com.onesignal.**
+
+# flutter_local_notifications - its scheduled-notification/boot receivers
+# and notification action classes are invoked by name by the OS, same risk
+# as above.
+-keep class com.dexterous.flutterlocalnotifications.** { *; }
+-keep class com.dexterous.flutterlocalnotifications.models.** { *; }

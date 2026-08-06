@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -156,17 +157,40 @@ class _ScanReceiptScreenState extends ConsumerState<ScanReceiptScreen> {
   }
 
   Future<void> _pickFromCamera() async {
-    final file = await _imagePicker.pickImage(source: ImageSource.camera);
-    if (file != null) {
-      await _processImage(file.path);
+    try {
+      final file = await _imagePicker.pickImage(source: ImageSource.camera);
+      if (file != null) {
+        await _processImage(file.path);
+      }
+    } on PlatformException catch (e) {
+      _showPickerError(e, deniedMessage: 'Camera access is denied. Enable it in Settings to scan receipts.');
     }
   }
 
   Future<void> _pickFromGallery() async {
-    final file = await _imagePicker.pickImage(source: ImageSource.gallery);
-    if (file != null) {
-      await _processImage(file.path);
+    try {
+      final file = await _imagePicker.pickImage(source: ImageSource.gallery);
+      if (file != null) {
+        await _processImage(file.path);
+      }
+    } on PlatformException catch (e) {
+      _showPickerError(e, deniedMessage: 'Photo access is denied. Enable it in Settings to pick a receipt.');
     }
+  }
+
+  /// Surfaces an `image_picker` permission-denial (or other platform)
+  /// failure as a snackbar - previously these calls had no error handling
+  /// at all, so a denied camera/gallery permission failed completely
+  /// silently with no feedback, indistinguishable from a frozen screen.
+  void _showPickerError(final PlatformException e, {required final String deniedMessage}) {
+    if (!mounted) return;
+    final isDenied = e.code == 'camera_access_denied' || e.code == 'photo_access_denied';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(isDenied ? deniedMessage : 'Could not open the camera/gallery. Please try again.'),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
   }
 
   Future<void> _processImage(final String imagePath) async {

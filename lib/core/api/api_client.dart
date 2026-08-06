@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/env_config.dart';
+import '../services/auth_session_events.dart';
 import '../services/secure_storage_service.dart';
 import 'api_exception.dart';
 import 'auth_interceptor.dart';
@@ -203,11 +204,12 @@ final apiClientProvider = Provider<ApiClient>((final ref) {
   return ApiClient.create(
     secureStorage: storage,
     onForceLogout: () async {
-      // Clear tokens — enough to force the router guard to redirect to login.
-      // We intentionally do NOT call authServiceProvider here to avoid a
-      // circular dependency (authServiceProvider → apiClientProvider → here).
       await storage.deleteAuthToken();
       await storage.deleteRefreshToken();
+      // Notify AuthService via the dependency-free event bus (see
+      // auth_session_events.dart) rather than depending on authServiceProvider
+      // directly, which would create a provider cycle.
+      forcedLogoutEvents.add(null);
     },
   );
 });

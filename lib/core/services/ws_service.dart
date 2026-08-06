@@ -155,8 +155,8 @@ class WsService {
     try {
       final json = jsonDecode(raw) as Map<String, dynamic>;
       final type = json['type'] as String? ?? 'unknown';
-      final payload =
-          (json['payload'] ?? json['data'] ?? const {}) as Map<String, dynamic>;
+      final payload = (json['payload'] ?? json['data'] ?? const <String, dynamic>{})
+          as Map<String, dynamic>;
       _eventController.add(WsEvent(type: type, payload: payload));
     } catch (e) {
       _debugLog('WebSocket parse error: $e');

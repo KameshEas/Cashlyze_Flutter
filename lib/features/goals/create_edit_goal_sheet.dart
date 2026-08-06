@@ -38,18 +38,19 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
   @override
   void initState() {
     super.initState();
-    if (widget.goal != null) {
-      _nameController = TextEditingController(text: widget.goal!.name);
+    final goal = widget.goal;
+    if (goal != null) {
+      _nameController = TextEditingController(text: goal.name);
       _descriptionController =
-          TextEditingController(text: widget.goal!.description ?? '');
+          TextEditingController(text: goal.description ?? '');
       _targetAmountController =
-          TextEditingController(text: widget.goal!.targetAmount.toString());
+          TextEditingController(text: goal.targetAmount.toString());
       _currentAmountController =
-          TextEditingController(text: widget.goal!.currentAmount.toString());
-      _selectedTargetDate = widget.goal!.targetDate;
-      _selectedIcon = widget.goal!.icon ?? '🎯';
-      _selectedColor = widget.goal!.color ?? '#2196F3';
-      _isActive = widget.goal!.isActive;
+          TextEditingController(text: goal.currentAmount.toString());
+      _selectedTargetDate = goal.targetDate;
+      _selectedIcon = goal.icon ?? '🎯';
+      _selectedColor = goal.color ?? '#2196F3';
+      _isActive = goal.isActive;
     } else {
       _nameController = TextEditingController();
       _descriptionController = TextEditingController();

@@ -225,8 +225,8 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
                   final raw = catIds.first.trim();
                   if (raw.isEmpty) {
                     key = b.name.trim();
-                  } else if (idToName.containsKey(raw)) {
-                    key = idToName[raw]!.trim();
+                  } else if (idToName[raw] case final name?) {
+                    key = name.trim();
                   } else {
                     key = b.name.trim();
                   }
@@ -347,9 +347,7 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
     txsAsync.maybeWhen(
       data: (final items) {
         for (final tx in items) {
-          if (tx.tags != null) {
-            tags.addAll(tx.tags!);
-          }
+          tags.addAll(tx.tags ?? const []);
         }
       },
       orElse: () {},
