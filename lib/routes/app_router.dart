@@ -355,7 +355,6 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/signup';
       final isSplash = state.matchedLocation == '/splash';
-      final isWalkthrough = state.matchedLocation == '/walkthrough';
 
       final isOtp = state.matchedLocation.startsWith('/otp');
 
@@ -387,7 +386,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       }
 
       if (user != null) {
-        if (isAuthRoute || isOnboarding || isWalkthrough) {
+        if (isAuthRoute || isOnboarding) {
           return '/';
         }
         final requiredFlag = _kRouteFeatureFlags[state.matchedLocation];

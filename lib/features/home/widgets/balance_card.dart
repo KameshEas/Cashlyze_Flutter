@@ -105,7 +105,7 @@ class BalanceCard extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 16),
                       _buildStatusIndicator(isPositive),
                     ],
                   ),

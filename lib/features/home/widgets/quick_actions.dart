@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/ui/constants.dart';
 import '../../../core/ui/motion.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../transactions/transaction_form_sheet.dart';
@@ -18,7 +19,11 @@ class QuickActions extends ConsumerWidget {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      // Horizontal padding must be >= the action card's own shadow blur
+      // (see _buildActionButton) or the first/last card's shadow gets
+      // clipped by the viewport edge - matches home_screen.dart's own page
+      // padding so the row's cards line up with the rest of the page.
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
       child: Row(
         children: List.generate(actions.length, (final index) {
           final action = actions[index];

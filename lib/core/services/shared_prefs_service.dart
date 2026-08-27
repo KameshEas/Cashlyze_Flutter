@@ -14,7 +14,9 @@ class SharedPrefsService {
   static const String _showDevKey = 'show_development_section';
   static const String _languageKey = 'app_language_code';
   static const String _analyticsConsentKey = 'analytics_consent_given';
-  static const String _crashlyticsConsentKey = 'crashlytics_consent_given';
+  // Named for crash *reporting* (Sentry), not Firebase Crashlytics - this
+  // app doesn't use Crashlytics at all.
+  static const String _crashReportingConsentKey = 'crash_reporting_consent_given';
   static const String _celebratedGoalsKey = 'celebrated_goal_ids';
   static const String _dismissedAnnouncementKey = 'dismissed_announcement_hash';
   final SharedPreferences _prefs;
@@ -87,9 +89,9 @@ class SharedPrefsService {
     await _prefs.setBool(_analyticsConsentKey, value);
   }
 
-  bool get crashlyticsConsentGiven => _prefs.getBool(_crashlyticsConsentKey) ?? false;
-  Future<void> setCrashlyticsConsentGiven(final bool value) async {
-    await _prefs.setBool(_crashlyticsConsentKey, value);
+  bool get crashReportingConsentGiven => _prefs.getBool(_crashReportingConsentKey) ?? false;
+  Future<void> setCrashReportingConsentGiven(final bool value) async {
+    await _prefs.setBool(_crashReportingConsentKey, value);
   }
 
   // Tracks which savings goals have already shown the completion celebration,

@@ -20,6 +20,25 @@ class LocalNotificationService {
           if (kDebugMode) debugPrint('Local notification tapped: ${response.payload}');
         },
       );
+
+      // Request POST_NOTIFICATIONS (Android 13+) and create the channel
+      // independently of OneSignal's own init - previously this service
+      // relied entirely on OneSignal having already requested the runtime
+      // permission, so if OneSignal's init was skipped (e.g. missing
+      // ONESIGNAL_APP_ID), budget-alert notifications would silently never
+      // have permission and every show() call would no-op forever.
+      final androidImpl = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      await androidImpl?.requestNotificationsPermission();
+      await androidImpl?.createNotificationChannel(
+        const AndroidNotificationChannel(
+          'budget_alerts_channel',
+          'Budget Alerts',
+          description: 'Notifications when budgets cross thresholds',
+          importance: Importance.high,
+        ),
+      );
+
       _initialized = true;
       if (kDebugMode) debugPrint('LocalNotificationService initialized');
     } catch (e) {

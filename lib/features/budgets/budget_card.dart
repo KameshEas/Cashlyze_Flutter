@@ -10,6 +10,7 @@ import '../../core/ui/motion.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/animated_progress_indicator.dart';
 import '../../core/widgets/animated_progress_text.dart';
+import '../../core/widgets/app_card.dart';
 
 class BudgetCard extends ConsumerStatefulWidget {
 
@@ -51,11 +52,11 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
   Color _getPeriodColor(final ThemeData theme, final BudgetPeriod period) {
     switch (period) {
       case BudgetPeriod.daily:
-        return Colors.green;
+        return AppColors.success;
       case BudgetPeriod.weekly:
-        return Colors.orange;
+        return AppColors.warning;
       case BudgetPeriod.monthly:
-        return Colors.blue;
+        return AppColors.info;
     }
   }
 
@@ -105,16 +106,8 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
   Widget _buildFront(final ThemeData theme, final String allocatedLabel, final double spent, final double progress) {
     final periodLabel = _getPeriodLabel(widget.budget.period);
     final periodColor = _getPeriodColor(theme, widget.budget.period);
-    
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.14),
-        ),
-      ),
+
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -175,15 +168,7 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
   Widget _buildBack(final ThemeData theme, final double remaining) {
     final remLabel = remaining.isFinite ? formatAmount(remaining, widget.currency) : '∞';
     final over = remaining.isFinite ? remaining < 0 : false;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.14),
-        ),
-      ),
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

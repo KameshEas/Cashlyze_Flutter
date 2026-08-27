@@ -51,7 +51,6 @@ dependencies:
   googleapis: ^13.2.0
   path_provider: ^2.1.4
   share_plus: ^10.1.0
-  file_picker: ^8.0.0
   image_picker: ^1.1.2
   google_mlkit_text_recognition: ^0.14.0
   
@@ -74,12 +73,16 @@ dependencies:
 
   # Offline queue & sync
   sqlite_async: ^0.11.0
-  workmanager: ^0.7.0
 
   riverpod: any
   http: any
   crypto: any
   firebase_core: any
+  google_fonts: any
+
+  # Requests the device's max refresh rate on Android (90/120Hz) instead of
+  # defaulting to 60Hz - see main.dart's `_appRunner`.
+  flutter_displaymode: ^0.6.0
 dev_dependencies:
   sentry_dart_plugin: ^3.2.1
   flutter_test:
@@ -97,8 +100,6 @@ dev_dependencies:
   flutter_launcher_icons: ^0.13.1
   mockito: ^5.4.4
   build_runner: ^2.4.9
-
-  google_fonts: any
 flutter_launcher_icons:
   android: true
   ios: true

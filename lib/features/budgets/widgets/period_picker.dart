@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/ui/constants.dart';
+
 /// Calendar-based period picker for budget filtering
 class PeriodPicker extends StatefulWidget {
 
@@ -61,7 +63,7 @@ class _PeriodPickerState extends State<PeriodPicker> {
                   'Day-by-day budgets',
                   'Daily',
                   Icons.today,
-                  Colors.green,
+                  AppColors.success,
                 ),
                 const SizedBox(height: 12),
                 _buildPeriodOption(
@@ -69,7 +71,7 @@ class _PeriodPickerState extends State<PeriodPicker> {
                   'Week-by-week budgets',
                   'Weekly',
                   Icons.date_range,
-                  Colors.orange,
+                  AppColors.warning,
                 ),
                 const SizedBox(height: 12),
                 _buildPeriodOption(
@@ -77,7 +79,7 @@ class _PeriodPickerState extends State<PeriodPicker> {
                   'Month-by-month budgets',
                   'Monthly',
                   Icons.calendar_today,
-                  Colors.blue,
+                  AppColors.info,
                 ),
                 const SizedBox(height: 20),
               ],
@@ -238,9 +240,9 @@ class _PeriodPickerState extends State<PeriodPicker> {
   Color _getPeriodColor(final String period) {
     return switch (period) {
       'All' => Theme.of(context).colorScheme.primary,
-      'Daily' => Colors.green,
-      'Weekly' => Colors.orange,
-      'Monthly' => Colors.blue,
+      'Daily' => AppColors.success,
+      'Weekly' => AppColors.warning,
+      'Monthly' => AppColors.info,
       _ => Theme.of(context).colorScheme.primary,
     };
   }

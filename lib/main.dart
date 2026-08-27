@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart'
     show kReleaseMode;
 import 'package:flutter/material.dart';
+import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -59,6 +60,9 @@ Future<void> _appRunner() async {
   // `runApp` execute in the same zone (prevents zone mismatch assertions).
   unawaited(runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+    // Fire-and-forget: some devices/emulators throw when querying supported
+    // display modes, and this should never block app startup either way.
+    unawaited(FlutterDisplayMode.setHighRefreshRate().catchError((final _) {}));
     await _runAppWithPrefs();
   }, (final error, final stack) async {
     // Forward to Sentry only after initialization completed.
@@ -126,7 +130,16 @@ void main() async {
       : const String.fromEnvironment('SENTRY_DSN');
 
   if (sentryDsn.isEmpty) {
-    if (!kReleaseMode) debugPrint('SENTRY_DSN not set — Sentry disabled.');
+    // Unconditional (not gated behind kReleaseMode) so this is visible via
+    // `adb logcat` even against a release build during manual QA, not just
+    // in a `flutter run --debug` session.
+    debugPrint('SENTRY_DSN not set - Sentry disabled for this build.');
+    // Loud failure for debug/profile/CI testing (a misconfigured pipeline
+    // should be caught before a release ships with no crash reporting at
+    // all) - but `assert` is compiled out of `--release` builds entirely,
+    // so this can never crash a real user's already-running app over a
+    // build-config gap the way a plain `throw` here would.
+    assert(false, 'SENTRY_DSN must be set - crash reporting would otherwise ship disabled.');
     return;
   }
 

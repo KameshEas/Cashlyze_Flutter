@@ -85,17 +85,17 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.1),
+                  color: AppColors.warning.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Colors.orange.withValues(alpha: 0.3),
+                    color: AppColors.warning.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
                   children: [
                     const Icon(
                       Icons.warning_amber_outlined,
-                      color: Colors.orange,
+                      color: AppColors.warning,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -261,12 +261,12 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: Colors.green.withValues(alpha: 0.15),
+          color: AppColors.success.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(16),
         ),
         child: const Row(
           children: [
-            Icon(Icons.edit, color: Colors.green),
+            Icon(Icons.edit, color: AppColors.success),
             SizedBox(width: 8),
             Text('Adjust'),
           ],
@@ -276,7 +276,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.15),
+          color: AppColors.error.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(16),
         ),
         child: const Row(
@@ -284,7 +284,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           children: [
             Text('Delete'),
             SizedBox(width: 8),
-            Icon(Icons.delete, color: Colors.red),
+            Icon(Icons.delete, color: AppColors.error),
           ],
         ),
       ),
@@ -307,7 +307,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                child: const Text('Delete', style: TextStyle(color: AppColors.error)),
               ),
             ],
           ),
@@ -673,7 +673,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                     width: 48,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -894,7 +894,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                   width: 48,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),

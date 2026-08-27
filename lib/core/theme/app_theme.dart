@@ -1,21 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../ui/constants.dart';
 
-/// The text style to use when Google Fonts network fetch is disabled.
-/// Falls back to the default system font (Roboto on Android/iOS).
-TextStyle _fallbackTextStyle({
+/// Central place the app's two typefaces are chosen, so a future change is
+/// one edit instead of a grep-and-replace:
+/// - Display/headings/balances (AppType.d1/d2/h1/h2/h3): geometric,
+///   distinctive - carries the brand and gives large currency numbers real
+///   presence, instead of falling back to stock Roboto.
+/// - Body/UI/buttons (AppType.b1/b2/b3): a proven dense-UI workhorse, tuned
+///   for lists/forms/labels where legibility at small sizes matters more
+///   than character.
+TextStyle _display({
   required final double fontSize,
   required final FontWeight fontWeight,
   required final Color color,
   final double? height,
-}) {
-  return TextStyle(
-    fontSize: fontSize,
-    fontWeight: fontWeight,
-    color: color,
-    height: height,
-  );
-}
+}) =>
+    GoogleFonts.plusJakartaSans(fontSize: fontSize, fontWeight: fontWeight, color: color, height: height);
+
+TextStyle _body({
+  required final double fontSize,
+  required final FontWeight fontWeight,
+  required final Color color,
+  final double? height,
+}) =>
+    GoogleFonts.inter(fontSize: fontSize, fontWeight: fontWeight, color: color, height: height);
 
 class AppTheme {
   // ── Brand ───────────────────────────────────────────────────────────
@@ -32,7 +41,33 @@ class AppTheme {
   // #EF4444 on #0A0A0A = 5.2:1 (WCAG AA ✓) — replaces #CF6679 (3.6:1 ✗)
   static const Color errorColor     = AppColors.error;
 
+  /// Full Material 3 [TextTheme] built from [AppType]'s size scale, so
+  /// screens can use `theme.textTheme.*` directly instead of reading
+  /// `AppType.*` sizes ad hoc. `displayLarge`/`headlineLarge` map to the
+  /// hero balance/display sizes (d1/d2); the rest follow the M3 naming
+  /// ladder down to `labelSmall` (b3/captions).
+  static TextTheme _textTheme(final Color color) {
+    final onSurfaceMuted = color.withValues(alpha: 0.7);
+    return TextTheme(
+      displayLarge: _display(fontSize: AppType.d1, fontWeight: FontWeight.w700, color: color, height: AppType.lhTight),
+      displayMedium: _display(fontSize: AppType.d2, fontWeight: FontWeight.w700, color: color, height: AppType.lhTight),
+      headlineLarge: _display(fontSize: AppType.h1, fontWeight: FontWeight.w700, color: color, height: AppType.lhTight),
+      headlineMedium: _display(fontSize: AppType.h2, fontWeight: FontWeight.w700, color: color, height: AppType.lhTight),
+      headlineSmall: _display(fontSize: AppType.h3, fontWeight: FontWeight.w600, color: color, height: AppType.lhTight),
+      titleLarge: _display(fontSize: AppType.h3, fontWeight: FontWeight.w600, color: color, height: AppType.lhTight),
+      titleMedium: _body(fontSize: AppType.b1, fontWeight: FontWeight.w600, color: color, height: AppType.lhNormal),
+      titleSmall: _body(fontSize: AppType.b2, fontWeight: FontWeight.w600, color: color, height: AppType.lhNormal),
+      bodyLarge: _body(fontSize: AppType.b1, fontWeight: FontWeight.w400, color: color, height: AppType.lhNormal),
+      bodyMedium: _body(fontSize: AppType.b2, fontWeight: FontWeight.w400, color: color, height: AppType.lhNormal),
+      bodySmall: _body(fontSize: AppType.b3, fontWeight: FontWeight.w400, color: onSurfaceMuted, height: AppType.lhNormal),
+      labelLarge: _body(fontSize: AppType.b2, fontWeight: FontWeight.w600, color: color, height: AppType.lhNormal),
+      labelMedium: _body(fontSize: AppType.b3, fontWeight: FontWeight.w600, color: color, height: AppType.lhNormal),
+      labelSmall: _body(fontSize: AppType.b3, fontWeight: FontWeight.w500, color: onSurfaceMuted, height: AppType.lhNormal),
+    );
+  }
+
   static ThemeData get darkTheme {
+    const onSurface = Colors.white;
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
@@ -47,18 +82,15 @@ class AppTheme {
         onError: Colors.white,
       ),
       scaffoldBackgroundColor: darkBackground,
-      textTheme: ThemeData.dark().textTheme.apply(
-        bodyColor: Colors.white,
-        displayColor: Colors.white,
-      ),
+      textTheme: _textTheme(onSurface),
       appBarTheme: AppBarTheme(
         backgroundColor: darkBackground,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: _fallbackTextStyle(
+        titleTextStyle: _display(
           fontSize: AppType.h3,
           fontWeight: FontWeight.w700,
-          color: Colors.white,
+          color: onSurface,
           height: AppType.lhTight,
         ),
       ),
@@ -74,7 +106,7 @@ class AppTheme {
           shape: const RoundedRectangleBorder(
             borderRadius: AppRadius.mdAll,
           ),
-          textStyle: _fallbackTextStyle(
+          textStyle: _body(
             fontSize: AppType.b1,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -91,7 +123,7 @@ class AppTheme {
           shape: const RoundedRectangleBorder(
             borderRadius: AppRadius.mdAll,
           ),
-          textStyle: _fallbackTextStyle(
+          textStyle: _body(
             fontSize: AppType.b1,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -108,7 +140,7 @@ class AppTheme {
           shape: const RoundedRectangleBorder(
             borderRadius: AppRadius.mdAll,
           ),
-          textStyle: _fallbackTextStyle(
+          textStyle: _body(
             fontSize: AppType.b1,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -126,11 +158,41 @@ class AppTheme {
           ),
         ),
       ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: surfaceColor,
+        elevation: 0,
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.xlAll),
+        titleTextStyle: _display(fontSize: AppType.h3, fontWeight: FontWeight.w700, color: onSurface),
+        contentTextStyle: _body(fontSize: AppType.b1, fontWeight: FontWeight.w400, color: onSurface.withValues(alpha: 0.85)),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: surfaceColor,
+        elevation: 0,
+        showDragHandle: true,
+        dragHandleColor: onSurface.withValues(alpha: 0.24),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: onSurface.withValues(alpha: 0.08),
+        selectedColor: primaryColor.withValues(alpha: 0.22),
+        labelStyle: _body(fontSize: AppType.b3, fontWeight: FontWeight.w600, color: onSurface),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s12, vertical: AppSpacing.s4),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.fullAll),
+        side: BorderSide.none,
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: AppColors.neutral700,
+        contentTextStyle: _body(fontSize: AppType.b2, fontWeight: FontWeight.w500, color: Colors.white),
+        behavior: SnackBarBehavior.floating,
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
+      ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surfaceColor,
         indicatorColor: primaryColor.withValues(alpha: 0.18),
         labelTextStyle: WidgetStateProperty.all(
-          _fallbackTextStyle(
+          _body(
             fontSize: AppType.b3,
             fontWeight: FontWeight.w500,
             color: Colors.white,
@@ -149,6 +211,7 @@ class AppTheme {
   }
 
   static ThemeData get lightTheme {
+    const onSurface = Colors.black;
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
@@ -160,18 +223,15 @@ class AppTheme {
         onSecondary: Colors.white, // white on teal500 = readable
       ),
       scaffoldBackgroundColor: AppColors.neutral100,
-      textTheme: ThemeData.light().textTheme.apply(
-        bodyColor: Colors.black,
-        displayColor: Colors.black,
-      ),
+      textTheme: _textTheme(onSurface),
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.neutral100,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: _fallbackTextStyle(
+        titleTextStyle: _display(
           fontSize: AppType.h3,
           fontWeight: FontWeight.w700,
-          color: Colors.black,
+          color: onSurface,
           height: AppType.lhTight,
         ),
       ),
@@ -187,7 +247,7 @@ class AppTheme {
           shape: const RoundedRectangleBorder(
             borderRadius: AppRadius.mdAll,
           ),
-          textStyle: _fallbackTextStyle(
+          textStyle: _body(
             fontSize: AppType.b1,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -204,7 +264,7 @@ class AppTheme {
           shape: const RoundedRectangleBorder(
             borderRadius: AppRadius.mdAll,
           ),
-          textStyle: _fallbackTextStyle(
+          textStyle: _body(
             fontSize: AppType.b1,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -221,7 +281,7 @@ class AppTheme {
           shape: const RoundedRectangleBorder(
             borderRadius: AppRadius.mdAll,
           ),
-          textStyle: _fallbackTextStyle(
+          textStyle: _body(
             fontSize: AppType.b1,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -237,11 +297,41 @@ class AppTheme {
           side: BorderSide(color: AppColors.neutral200),
         ),
       ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.xlAll),
+        titleTextStyle: _display(fontSize: AppType.h3, fontWeight: FontWeight.w700, color: onSurface),
+        contentTextStyle: _body(fontSize: AppType.b1, fontWeight: FontWeight.w400, color: onSurface.withValues(alpha: 0.75)),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        showDragHandle: true,
+        dragHandleColor: onSurface.withValues(alpha: 0.16),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.neutral100,
+        selectedColor: primaryColor.withValues(alpha: 0.14),
+        labelStyle: _body(fontSize: AppType.b3, fontWeight: FontWeight.w600, color: onSurface),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s12, vertical: AppSpacing.s4),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.fullAll),
+        side: const BorderSide(color: AppColors.neutral200),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: AppColors.neutral900,
+        contentTextStyle: _body(fontSize: AppType.b2, fontWeight: FontWeight.w500, color: Colors.white),
+        behavior: SnackBarBehavior.floating,
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
+      ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.white,
         indicatorColor: const Color(0x1A059669), // emerald600 / 10 %
         labelTextStyle: WidgetStateProperty.all(
-          _fallbackTextStyle(
+          _body(
             fontSize: AppType.b3,
             fontWeight: FontWeight.w500,
             color: Colors.black,
@@ -264,14 +354,14 @@ class AppTheme {
     return InputDecorationTheme(
       filled: true,
       fillColor: fill,
-      labelStyle: _fallbackTextStyle(
+      labelStyle: _body(
         fontWeight: FontWeight.w500,
         fontSize: AppType.b2,
         color: onSurface.withValues(alpha: 0.7),
       ),
-      hintStyle: TextStyle(fontSize: AppType.b2, color: onSurface.withValues(alpha: 0.4)),
-      helperStyle: TextStyle(fontSize: AppType.b3, color: onSurface.withValues(alpha: 0.6)),
-      errorStyle: const TextStyle(fontSize: AppType.b3, color: errorColor),
+      hintStyle: _body(fontSize: AppType.b2, fontWeight: FontWeight.w400, color: onSurface.withValues(alpha: 0.4)),
+      helperStyle: _body(fontSize: AppType.b3, fontWeight: FontWeight.w400, color: onSurface.withValues(alpha: 0.6)),
+      errorStyle: _body(fontSize: AppType.b3, fontWeight: FontWeight.w400, color: errorColor),
       border: OutlineInputBorder(
         borderRadius: AppRadius.mdAll,
         borderSide: BorderSide(color: onSurface.withValues(alpha: 0.14)),
