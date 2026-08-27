@@ -33,7 +33,7 @@ android {
     // to build the release, so an outdated local/CI Flutter install would
     // silently ship a build below Google Play's current minimum target API
     // requirement (a common, confusing-looking cause of Play rejections).
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = "28.2.13676358"
 
     compileOptions {
@@ -56,7 +56,7 @@ android {
         // API level; Flutter's own default is already >= this, pinned
         // explicitly so it doesn't silently drift below it.
         minSdk = maxOf(flutter.minSdkVersion, 26)
-        targetSdk = 35
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         
