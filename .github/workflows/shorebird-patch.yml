@@ -1,0 +1,23 @@
+name: Shorebird Patch
+
+# Manual, deliberate action -- ship a Dart-only OTA fix to an already-released
+# version without a new Play Store submission. Only use this when you're sure
+# the change touches Dart code alone (no native code, no new plugins with
+# native bindings, no asset changes) -- those need a normal merge instead.
+on:
+  workflow_dispatch:
+    inputs:
+      release-version:
+        description: 'Exact release to patch, e.g. 1.0.6+18. Leave empty to patch the current live version.'
+        required: false
+        type: string
+
+jobs:
+  patch:
+    uses: KameshEas/gha-templates/.github/workflows/flutter-shorebird-patch.yml@v1
+    with:
+      release-version: ${{ inputs.release-version }}
+      ensure-env-file: true
+      enable-sops-secrets: true
+      sops-secrets-file: cashlyze.env
+    secrets: inherit
