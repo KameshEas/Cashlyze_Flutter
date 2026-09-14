@@ -104,6 +104,11 @@
 -keep class io.sentry.** { *; }
 -dontwarn io.sentry.**
 
+# ── OpenTelemetry (transitive dep pulled in by Sentry) — compile-time-only
+#    annotations (AutoValue) that aren't present at runtime; safe to ignore. ──
+-dontwarn io.opentelemetry.**
+-dontwarn com.google.auto.value.**
+
 # ── Shorebird (if used) ───────────────────────────────────────────────────────
 -keep class dev.shorebird.** { *; }
 -dontwarn dev.shorebird.**
