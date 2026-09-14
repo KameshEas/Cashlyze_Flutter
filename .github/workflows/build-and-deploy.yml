@@ -20,4 +20,5 @@ jobs:
       enable-firebase-distribution: true
       enable-play-store: true
       enable-auto-versioning: true
+      ensure-env-file: true
     secrets: inherit
