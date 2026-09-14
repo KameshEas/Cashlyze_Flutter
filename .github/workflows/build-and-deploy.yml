@@ -21,4 +21,6 @@ jobs:
       enable-play-store: true
       enable-auto-versioning: true
       ensure-env-file: true
+      enable-sops-secrets: true
+      sops-secrets-file: cashlyze.env
     secrets: inherit
