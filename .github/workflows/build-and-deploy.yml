@@ -1,5 +1,8 @@
 name: Build and Deploy
 
+# pull_request -> Firebase App Distribution testing build (any version).
+# push (PR merged) -> version increments once, then Play Store deploy.
+# Shorebird OTA patches are a separate manual action: see shorebird-patch.yml.
 on:
   push:
     branches:
