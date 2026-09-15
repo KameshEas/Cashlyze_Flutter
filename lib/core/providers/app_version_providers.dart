@@ -169,6 +169,7 @@ class _MaintenanceInitial extends MaintenanceState {
 
 class _MaintenanceActive extends MaintenanceState {
   const _MaintenanceActive(this.message);
+  @override
   final String? message;
 }
 
