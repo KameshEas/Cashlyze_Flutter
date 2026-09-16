@@ -32,6 +32,15 @@ bool _sentryReady = false;
 Future<void> _runAppWithPrefs() async {
   final prefs = await SharedPreferences.getInstance();
 
+  // Initialize LocalNotificationService before starting the app
+  // so it's ready when budgetAlertsHandlerProvider needs it.
+  try {
+    final notificationService = LocalNotificationService();
+    await notificationService.init();
+  } catch (e) {
+    if (!kReleaseMode) debugPrint('LocalNotificationService init failed: $e');
+  }
+
   runApp(
     ProviderScope(
       overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
@@ -208,16 +217,7 @@ class App extends ConsumerWidget {
     ref.watch(budgetAlertsHandlerProvider);
     // Ensure websocket listener (realtime updates) is initialized
     ref.watch(wsListenerProvider);
-    
-    // Initialize local notifications (idempotent).
-    Future.microtask(() async {
-      try {
-        await ref.read(localNotificationServiceProvider).init();
-      } catch (e) {
-        if (!kReleaseMode) debugPrint('LocalNotification init failed: $e');
-      }
-    });
-    
+
     final locale = ref.watch(localeProvider);
     return MaterialApp.router(
       title: AppLocalizations.of(context)?.appTitle ?? 'Cashlyze',
