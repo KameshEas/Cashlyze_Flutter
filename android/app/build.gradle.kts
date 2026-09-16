@@ -82,16 +82,18 @@ android {
         release {
             // Use custom keystore for production release builds
             signingConfig = signingConfigs.getByName("release")
-            
-            // Enable R8/ProGuard minification and obfuscation for release
-            isMinifyEnabled = true
-            isShrinkResources = true
-            
-            // Configure R8/ProGuard rules
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+
+            // Disable minification temporarily due to plugin registration issues
+            // with dev dependencies being included in the release build.
+            // Will re-enable after resolving GeneratedPluginRegistrant configuration.
+            isMinifyEnabled = false
+            isShrinkResources = false
+
+            // Configure R8/ProGuard rules (disabled for now)
+            // proguardFiles(
+            //     getDefaultProguardFile("proguard-android-optimize.txt"),
+            //     "proguard-rules.pro"
+            // )
         }
     }
     
