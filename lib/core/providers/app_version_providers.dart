@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/app_version.dart';
 import '../repositories/app_version_repository.dart';
 import '../services/analytics_service.dart';
+import '../services/announcement_rules.dart';
 import '../services/app_version_service.dart';
 import 'read_only_mode_provider.dart';
 import 'shared_prefs_provider.dart';
@@ -221,48 +222,58 @@ final maintenanceStateProvider =
 // ── Announcement banner ─────────────────────────────────────────────────────
 
 class AnnouncementState {
-  const AnnouncementState({this.message, this.visible = false});
-  final String? message;
-  final bool visible;
+  const AnnouncementState({this.banner, this.dialog});
+
+  /// The highest-priority banner the user hasn't hidden.
+  final AnnouncementInfo? banner;
+
+  /// The highest-priority dialog the user hasn't seen yet.
+  final AnnouncementInfo? dialog;
 }
 
 class AnnouncementStateNotifier extends Notifier<AnnouncementState> {
+  // Announcements dismissed since the app launched, for `every_launch`.
+  final Set<String> _seenThisSession = {};
+  List<AnnouncementInfo> _live = const [];
+
   @override
   AnnouncementState build() => const AnnouncementState();
 
   Future<void> check() async {
     try {
       final versionConfig = await ref.read(currentPlatformVersionProvider.future);
-      final message = versionConfig?.announcementMessage;
-
-      if (versionConfig == null ||
-          !versionConfig.announcementActive ||
-          message == null ||
-          message.isEmpty) {
-        state = const AnnouncementState();
-        return;
-      }
-
-      final dismissedHash =
-          ref.read(sharedPrefsServiceProvider).dismissedAnnouncementHash;
-      if (dismissedHash == message.hashCode.toString()) {
-        state = const AnnouncementState();
-        return;
-      }
-
-      state = AnnouncementState(message: message, visible: true);
+      _live = versionConfig?.announcements ?? const [];
     } catch (_) {
-      state = const AnnouncementState();
+      _live = const [];
     }
+    _publish();
   }
 
-  Future<void> dismiss() async {
-    final message = state.message;
-    if (message == null) return;
-    await ref
-        .read(sharedPrefsServiceProvider)
-        .setDismissedAnnouncementHash(message.hashCode.toString());
-    state = const AnnouncementState();
+  Future<void> dismiss(final AnnouncementInfo announcement) async {
+    _seenThisSession.add(announcement.id);
+    await ref.read(sharedPrefsServiceProvider).markAnnouncementSeen(
+          announcement.id,
+          DateTime.now().millisecondsSinceEpoch,
+        );
+    _publish();
+  }
+
+  void _publish() {
+    final seenAt = ref.read(sharedPrefsServiceProvider).announcementSeenAt;
+    final now = DateTime.now();
+    final visible = _live.where(
+      (final a) => !isAnnouncementSuppressed(
+        a,
+        lastSeenMillis: seenAt[a.id],
+        seenThisSession: _seenThisSession.contains(a.id),
+        now: now,
+      ),
+    );
+    // The backend already sorted by priority, so the first of each kind wins.
+    state = AnnouncementState(
+      banner: visible.where((final a) => a.isBanner).firstOrNull,
+      dialog: visible.where((final a) => a.isDialog).firstOrNull,
+    );
   }
 }
 

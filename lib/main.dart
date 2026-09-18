@@ -20,6 +20,7 @@ import 'core/providers/shared_prefs_provider.dart';
 import 'core/services/local_notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/announcement_banner.dart';
+import 'core/widgets/announcement_dialog_host.dart';
 import 'core/widgets/offline_sync_listener.dart';
 import 'core/widgets/read_only_maintenance_banner.dart';
 import 'features/force_update/widgets/force_update_dialog.dart';
@@ -239,9 +240,11 @@ class App extends ConsumerWidget {
       builder: (final context, final child) {
         return _MaintenanceGate(
           child: OfflineSyncListener(
-            child: ReadOnlyMaintenanceBanner(
-              child: AnnouncementBanner(
-                child: _ForceUpdateMonitor(child: child!),
+            child: AnnouncementDialogHost(
+              child: ReadOnlyMaintenanceBanner(
+                child: AnnouncementBanner(
+                  child: _ForceUpdateMonitor(child: child!),
+                ),
               ),
             ),
           ),
