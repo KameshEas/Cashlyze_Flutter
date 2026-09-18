@@ -65,6 +65,7 @@ class AuthRemoteDataSource {
       data: {
         'email': email,
         'password': password,
+        'app_id': 'cashlyze',
         if (otpToken != null && otpToken.isNotEmpty) 'otp_token': otpToken,
         if (name != null) 'name': name,
         if (mobile != null && mobile.isNotEmpty) 'mobile': mobile,
@@ -101,6 +102,7 @@ class AuthRemoteDataSource {
     data: {
       'email': email,
       'password': password,
+      'app_id': 'cashlyze',
     },
   );
 

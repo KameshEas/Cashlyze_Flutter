@@ -33,6 +33,10 @@ class ApiClient {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          // Required by the backend's multi-tenant middleware on every
+          // protected endpoint (auth/login, /auth/register and /auth/refresh
+          // are exempted server-side, so sending it there too is harmless).
+          'X-App-ID': 'cashlyze',
         },
       ),
     );
