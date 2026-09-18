@@ -12,6 +12,7 @@ import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'core/config/aspire_services_config.dart';
 import 'core/providers/app_version_providers.dart';
 import 'core/providers/budget_alerts_handler.dart';
 import 'core/providers/realtime_provider.dart';
@@ -69,6 +70,8 @@ Future<void> _appRunner() async {
   // `runApp` execute in the same zone (prevents zone mismatch assertions).
   unawaited(runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+    // Must complete before anything reads EnvConfig.baseUrl.
+    await AspireServicesConfig.load();
     // Fire-and-forget: some devices/emulators throw when querying supported
     // display modes, and this should never block app startup either way.
     unawaited(FlutterDisplayMode.setHighRefreshRate().catchError((final _) {}));

@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart' show kReleaseMode;
 
+import 'aspire_services_config.dart';
+
 /// Environment configuration for the Cashlyze API.
 ///
 /// Toggle [_useLocalhostDuringDev] to point the app at a local backend
@@ -24,8 +26,16 @@ abstract final class EnvConfig {
       'http://192.168.0.6:8000/api/v1/cashlyze';
 
   /// The resolved base URL used by [ApiClient].
-  static String get baseUrl =>
-      useLocalhostForTesting ? _localhostBaseUrl : _productionBaseUrl;
+  ///
+  /// Order: local-dev override, then `assets/aspire-services.json` (from
+  /// Aspire Helm), then the built-in production URL.
+  static String get baseUrl {
+    if (useLocalhostForTesting) return _localhostBaseUrl;
+    final gateway = AspireServicesConfig.apiBaseUrl;
+    final app = AspireServicesConfig.appName;
+    if (gateway != null && app != null) return '$gateway/api/v1/$app';
+    return _productionBaseUrl;
+  }
 
   // ── Timeouts ──────────────────────────────────────────────────────────────
 
