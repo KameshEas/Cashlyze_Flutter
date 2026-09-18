@@ -4,6 +4,7 @@ import '../models/app_version.dart';
 import '../repositories/app_version_repository.dart';
 import '../services/analytics_service.dart';
 import '../services/app_version_service.dart';
+import 'read_only_mode_provider.dart';
 import 'shared_prefs_provider.dart';
 
 /// Provider for AppVersionService
@@ -19,7 +20,11 @@ final currentPlatformVersionProvider =
   final service = ref.watch(appVersionServiceProvider);
 
   final platform = service.getPlatformName();
-  final versionConfig = await repository.getVersionByPlatform(platform);
+  final installedVersion = await service.getCurrentAppVersion();
+  final versionConfig = await repository.getVersionByPlatform(
+    platform,
+    version: installedVersion,
+  );
   return versionConfig;
 });
 
@@ -152,15 +157,21 @@ sealed class MaintenanceState {
   const MaintenanceState();
 
   const factory MaintenanceState.initial() = _MaintenanceInitial;
-  const factory MaintenanceState.active(final String? message) = _MaintenanceActive;
+  const factory MaintenanceState.active(final MaintenanceInfo info) = _MaintenanceActive;
   const factory MaintenanceState.inactive() = _MaintenanceInactive;
 
-  bool get isActive => this is _MaintenanceActive;
-
-  String? get message => switch (this) {
-        _MaintenanceActive(:final message) => message,
+  MaintenanceInfo? get info => switch (this) {
+        _MaintenanceActive(:final info) => info,
         _ => null,
       };
+
+  /// Full-screen block: maintenance is on and the app can't be used.
+  bool get isBlocking => info != null && !info!.isReadOnly;
+
+  /// Maintenance is on but the app stays usable; writes are rejected.
+  bool get isReadOnly => info != null && info!.isReadOnly;
+
+  String? get message => info?.message;
 }
 
 class _MaintenanceInitial extends MaintenanceState {
@@ -168,9 +179,9 @@ class _MaintenanceInitial extends MaintenanceState {
 }
 
 class _MaintenanceActive extends MaintenanceState {
-  const _MaintenanceActive(this.message);
+  const _MaintenanceActive(this.info);
   @override
-  final String? message;
+  final MaintenanceInfo info;
 }
 
 class _MaintenanceInactive extends MaintenanceState {
@@ -188,8 +199,8 @@ class MaintenanceStateNotifier extends Notifier<MaintenanceState> {
       ref.invalidate(currentPlatformVersionProvider);
       final versionConfig = await ref.read(currentPlatformVersionProvider.future);
 
-      if (versionConfig != null && versionConfig.maintenanceMode) {
-        state = MaintenanceState.active(versionConfig.maintenanceMessage);
+      if (versionConfig != null && versionConfig.maintenance.active) {
+        state = MaintenanceState.active(versionConfig.maintenance);
       } else {
         state = const MaintenanceState.inactive();
       }
@@ -198,6 +209,8 @@ class MaintenanceStateNotifier extends Notifier<MaintenanceState> {
       // failed (e.g. no network).
       state = const MaintenanceState.inactive();
     }
+    // Lets the API client reject writes during read-only maintenance.
+    ref.read(readOnlyModeProvider.notifier).update(state.isReadOnly);
   }
 }
 

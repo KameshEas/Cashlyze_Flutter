@@ -21,6 +21,7 @@ import 'core/services/local_notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/announcement_banner.dart';
 import 'core/widgets/offline_sync_listener.dart';
+import 'core/widgets/read_only_maintenance_banner.dart';
 import 'features/force_update/widgets/force_update_dialog.dart';
 import 'features/maintenance/widgets/maintenance_screen.dart';
 import 'firebase_options.dart';
@@ -238,8 +239,10 @@ class App extends ConsumerWidget {
       builder: (final context, final child) {
         return _MaintenanceGate(
           child: OfflineSyncListener(
-            child: AnnouncementBanner(
-              child: _ForceUpdateMonitor(child: child!),
+            child: ReadOnlyMaintenanceBanner(
+              child: AnnouncementBanner(
+                child: _ForceUpdateMonitor(child: child!),
+              ),
             ),
           ),
         );
@@ -260,18 +263,33 @@ class _MaintenanceGate extends ConsumerStatefulWidget {
   ConsumerState<_MaintenanceGate> createState() => _MaintenanceGateState();
 }
 
-class _MaintenanceGateState extends ConsumerState<_MaintenanceGate> {
+class _MaintenanceGateState extends ConsumerState<_MaintenanceGate>
+    with WidgetsBindingObserver {
   bool _checkInitiated = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_checkInitiated) {
         _checkInitiated = true;
         _recheckAll();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // Maintenance can start or end while the app sits in the background, so
+  // re-check whenever the user comes back to it.
+  @override
+  void didChangeAppLifecycleState(final AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _recheckAll();
   }
 
   // Re-checks maintenance mode and the announcement banner together, since
@@ -288,14 +306,13 @@ class _MaintenanceGateState extends ConsumerState<_MaintenanceGate> {
   Widget build(final BuildContext context) {
     final maintenance = ref.watch(maintenanceStateProvider);
 
-    if (maintenance.isActive) {
-      final message = maintenance.message;
+    if (maintenance.isBlocking) {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         home: MaintenanceScreen(
-          message: message,
+          info: maintenance.info!,
           onRetry: _recheckAll,
         ),
       );

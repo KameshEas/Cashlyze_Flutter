@@ -7,8 +7,11 @@ class AppVersionRepository {
   const AppVersionRepository(this._dataSource);
   final AppVersionRemoteDataSource _dataSource;
 
-  Future<AppVersionModel?> getVersionByPlatform(final String platform) =>
-      _dataSource.getVersionByPlatform(platform);
+  Future<AppVersionModel?> getVersionByPlatform(
+    final String platform, {
+    final String? version,
+  }) =>
+      _dataSource.getVersionByPlatform(platform, version: version);
 }
 
 final appVersionRepositoryProvider = Provider<AppVersionRepository>((final ref) {

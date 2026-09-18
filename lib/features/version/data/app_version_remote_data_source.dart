@@ -8,11 +8,19 @@ class AppVersionRemoteDataSource {
   const AppVersionRemoteDataSource(this._client);
   final ApiClient _client;
 
-  Future<AppVersionModel?> getVersionByPlatform(final String platform) async {
+  /// [version] is the installed app version; the backend uses it to let
+  /// allow-listed (e.g. QA) builds through maintenance.
+  Future<AppVersionModel?> getVersionByPlatform(
+    final String platform, {
+    final String? version,
+  }) async {
     try {
       final response = await _client.get<Map<String, dynamic>>(
         ApiEndpoints.appVersion,
-        queryParameters: {'platform': platform},
+        queryParameters: {
+          'platform': platform,
+          if (version != null && version.isNotEmpty) 'version': version,
+        },
       );
       final data = response.data;
       if (data == null) return null;
