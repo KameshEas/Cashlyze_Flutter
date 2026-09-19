@@ -5,10 +5,12 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/env_config.dart';
+import '../providers/read_only_mode_provider.dart';
 import '../services/auth_session_events.dart';
 import '../services/secure_storage_service.dart';
 import 'api_exception.dart';
 import 'auth_interceptor.dart';
+import 'read_only_interceptor.dart';
 import 'retry_interceptor.dart';
 
 /// Central HTTP client for the Cashlyze backend API.
@@ -23,6 +25,7 @@ class ApiClient {
   factory ApiClient.create({
     required final SecureStorageService secureStorage,
     required final void Function() onForceLogout,
+    final bool Function()? isReadOnly,
   }) {
     final dio = Dio(
       BaseOptions(
@@ -50,6 +53,12 @@ class ApiClient {
         },
       ),
     );
+
+    // Refuse writes during read-only maintenance before anything else runs
+    // (no token attachment or refresh for a request that won't be sent).
+    if (isReadOnly != null) {
+      dio.interceptors.add(ReadOnlyInterceptor(isReadOnly));
+    }
 
     // Token attachment + silent refresh.
     dio.interceptors.add(
@@ -153,6 +162,7 @@ class ApiClient {
       case DioExceptionType.badResponse:
         return _mapHttpStatus(e.response);
       case DioExceptionType.cancel:
+        if (e.error is ApiException) return e.error! as ApiException;
         return const UnknownApiException('Request cancelled');
       default:
         if (e.error is SocketException) return const NetworkException();
@@ -207,6 +217,7 @@ final apiClientProvider = Provider<ApiClient>((final ref) {
   final storage = ref.watch(secureStorageServiceProvider);
   return ApiClient.create(
     secureStorage: storage,
+    isReadOnly: () => ref.read(readOnlyModeProvider),
     onForceLogout: () async {
       await storage.deleteAuthToken();
       await storage.deleteRefreshToken();

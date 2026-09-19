@@ -132,6 +132,7 @@ flutter:
   assets:
     - assets/logo_icon.png
     - assets/animations/goal_complete.json
+    - assets/aspire-services.json
     - shorebird.yaml
     - .env
 

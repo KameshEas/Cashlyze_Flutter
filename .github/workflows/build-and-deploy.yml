@@ -24,6 +24,8 @@ jobs:
       enable-play-store: true
       enable-auto-versioning: true
       ensure-env-file: true
+      # Written from the decrypted secrets file into .env (the app reads them from there).
+      env-file-keys: ONESIGNAL_APP_ID,SENTRY_DSN
       enable-sops-secrets: true
       sops-secrets-file: cashlyze.env
     secrets: inherit
