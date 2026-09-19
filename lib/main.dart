@@ -18,10 +18,12 @@ import 'core/providers/budget_alerts_handler.dart';
 import 'core/providers/realtime_provider.dart';
 import 'core/providers/shared_prefs_provider.dart';
 import 'core/services/local_notification_service.dart';
+import 'core/services/push_actions.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/announcement_banner.dart';
 import 'core/widgets/announcement_dialog_host.dart';
 import 'core/widgets/offline_sync_listener.dart';
+import 'core/widgets/push_action_listener.dart';
 import 'core/widgets/read_only_maintenance_banner.dart';
 import 'features/force_update/widgets/force_update_dialog.dart';
 import 'features/maintenance/widgets/maintenance_screen.dart';
@@ -113,6 +115,11 @@ void main() async {
       }
       await OneSignal.initialize(oneSignalAppId);
       if (!kReleaseMode) debugPrint('OneSignal initialized');
+      // A tapped announcement push carries the announcement's button action.
+      OneSignal.Notifications.addClickListener((final event) {
+        final action = parsePushAction(event.notification.additionalData);
+        if (action != null) pushActionEvents.add(action);
+      });
       try {
         final canRequest = await OneSignal.Notifications.canRequest();
         if (canRequest) {
@@ -240,10 +247,12 @@ class App extends ConsumerWidget {
       builder: (final context, final child) {
         return _MaintenanceGate(
           child: OfflineSyncListener(
-            child: AnnouncementDialogHost(
-              child: ReadOnlyMaintenanceBanner(
-                child: AnnouncementBanner(
-                  child: _ForceUpdateMonitor(child: child!),
+            child: PushActionListener(
+              child: AnnouncementDialogHost(
+                child: ReadOnlyMaintenanceBanner(
+                  child: AnnouncementBanner(
+                    child: _ForceUpdateMonitor(child: child!),
+                  ),
                 ),
               ),
             ),

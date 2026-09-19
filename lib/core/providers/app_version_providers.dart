@@ -22,9 +22,12 @@ final currentPlatformVersionProvider =
 
   final platform = service.getPlatformName();
   final installedVersion = await service.getCurrentAppVersion();
+  // Watched, so changing the app language refetches (translated announcements).
+  final languageCode = ref.watch(localeProvider)?.languageCode;
   final versionConfig = await repository.getVersionByPlatform(
     platform,
     version: installedVersion,
+    locale: languageCode,
   );
   return versionConfig;
 });
@@ -237,7 +240,15 @@ class AnnouncementStateNotifier extends Notifier<AnnouncementState> {
   List<AnnouncementInfo> _live = const [];
 
   @override
-  AnnouncementState build() => const AnnouncementState();
+  AnnouncementState build() {
+    // A new language means new text: fetch again. Invalidate explicitly, since
+    // this listener can run before the cached fetch notices the language change.
+    ref.listen(localeProvider, (_, _) {
+      ref.invalidate(currentPlatformVersionProvider);
+      check();
+    });
+    return const AnnouncementState();
+  }
 
   Future<void> check() async {
     try {

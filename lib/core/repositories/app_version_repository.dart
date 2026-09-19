@@ -10,8 +10,9 @@ class AppVersionRepository {
   Future<AppVersionModel?> getVersionByPlatform(
     final String platform, {
     final String? version,
+    final String? locale,
   }) =>
-      _dataSource.getVersionByPlatform(platform, version: version);
+      _dataSource.getVersionByPlatform(platform, version: version, locale: locale);
 }
 
 final appVersionRepositoryProvider = Provider<AppVersionRepository>((final ref) {

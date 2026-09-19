@@ -21,17 +21,20 @@ import '../services/store_redirect_service.dart';
   };
 }
 
-/// Runs an announcement's button: open a link, go to an in-app screen, or
-/// open the store update page.
-Future<void> runAnnouncementCta(final WidgetRef ref, final AnnouncementInfo announcement) async {
-  switch (announcement.ctaType) {
+/// Runs an announcement's button.
+Future<void> runAnnouncementCta(final WidgetRef ref, final AnnouncementInfo announcement) =>
+    runCta(ref, announcement.ctaType, announcement.ctaValue);
+
+/// Opens a link, goes to an in-app screen, or opens the store update page.
+/// Shared by an announcement's button and a tapped push notification.
+Future<void> runCta(final WidgetRef ref, final String? ctaType, final String? ctaValue) async {
+  switch (ctaType) {
     case 'url':
-      final uri = Uri.tryParse(announcement.ctaValue ?? '');
+      final uri = Uri.tryParse(ctaValue ?? '');
       if (uri != null) await launchUrl(uri, mode: LaunchMode.externalApplication);
     case 'route':
-      final route = announcement.ctaValue;
-      if (route != null && route.startsWith('/')) {
-        ref.read(appRouterProvider).go(route);
+      if (ctaValue != null && ctaValue.startsWith('/')) {
+        ref.read(appRouterProvider).go(ctaValue);
       }
     case 'store':
       final config = await ref.read(currentPlatformVersionProvider.future);

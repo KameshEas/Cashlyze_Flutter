@@ -9,10 +9,13 @@ class AppVersionRemoteDataSource {
   final ApiClient _client;
 
   /// [version] is the installed app version; the backend uses it to let
-  /// allow-listed (e.g. QA) builds through maintenance.
+  /// allow-listed (e.g. QA) builds through maintenance and to target
+  /// announcements. [locale] is the app language (e.g. `hi`) for translated
+  /// announcements.
   Future<AppVersionModel?> getVersionByPlatform(
     final String platform, {
     final String? version,
+    final String? locale,
   }) async {
     try {
       final response = await _client.get<Map<String, dynamic>>(
@@ -20,6 +23,7 @@ class AppVersionRemoteDataSource {
         queryParameters: {
           'platform': platform,
           if (version != null && version.isNotEmpty) 'version': version,
+          if (locale != null && locale.isNotEmpty) 'locale': locale,
         },
       );
       final data = response.data;
