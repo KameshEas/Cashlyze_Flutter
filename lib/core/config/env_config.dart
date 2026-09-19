@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show kReleaseMode;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'aspire_services_config.dart';
 
@@ -35,6 +36,27 @@ abstract final class EnvConfig {
     final app = AspireServicesConfig.appName;
     if (gateway != null && app != null) return '$gateway/api/v1/$app';
     return _productionBaseUrl;
+  }
+
+  // ── OneSignal ─────────────────────────────────────────────────────────────
+
+  /// The same key given at build time: `flutter build --dart-define=ONESIGNAL_APP_ID=...`.
+  static const String _oneSignalAppIdDefine = String.fromEnvironment('ONESIGNAL_APP_ID');
+
+  /// The OneSignal App ID, or `null` if the build has none. There is deliberately
+  /// no default: the ID is kept out of the source, so a build made without it
+  /// can't use push.
+  ///
+  /// Order: `ONESIGNAL_APP_ID` in `.env` (which the pipeline writes from its
+  /// secrets), then `--dart-define=ONESIGNAL_APP_ID`, like `SENTRY_DSN`.
+  ///
+  /// Safe to call even if `.env` failed to load (reading `dotenv.env` would
+  /// throw), so a missing file gives `null` rather than an error nobody sees.
+  static String? get oneSignalAppId {
+    final fromEnv = dotenv.isInitialized ? dotenv.env['ONESIGNAL_APP_ID']?.trim() : null;
+    if (fromEnv != null && fromEnv.isNotEmpty) return fromEnv;
+    final fromDefine = _oneSignalAppIdDefine.trim();
+    return fromDefine.isEmpty ? null : fromDefine;
   }
 
   // ── Timeouts ──────────────────────────────────────────────────────────────

@@ -13,6 +13,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/config/aspire_services_config.dart';
+import 'core/config/env_config.dart';
 import 'core/providers/app_version_providers.dart';
 import 'core/providers/budget_alerts_handler.dart';
 import 'core/providers/realtime_provider.dart';
@@ -105,12 +106,16 @@ void main() async {
   // sure binding initialization and `runApp` happen in the same zone.
   await _appRunner();
 
-  // Initialize OneSignal (fire-and-forget). App ID from .env.
+  // Initialize OneSignal (fire-and-forget). The App ID comes from `.env`, which
+  // the pipeline writes from its secrets; there is no default in the source.
   unawaited(() async {
     try {
-      final oneSignalAppId = dotenv.env['ONESIGNAL_APP_ID'];
-      if (oneSignalAppId == null || oneSignalAppId.isEmpty) {
-        if (!kReleaseMode) debugPrint('ONESIGNAL_APP_ID not set — OneSignal disabled.');
+      final oneSignalAppId = EnvConfig.oneSignalAppId;
+      if (oneSignalAppId == null) {
+        // Unconditional (not gated behind kReleaseMode), like the SENTRY_DSN check
+        // below, so a build without the key is visible via `adb logcat` instead of
+        // its devices silently never registering for push.
+        debugPrint('ONESIGNAL_APP_ID not set - push notifications disabled for this build.');
         return;
       }
       await OneSignal.initialize(oneSignalAppId);
