@@ -22,5 +22,19 @@ void main() {
       expect(appVersionQuery('android').containsKey('test'), isFalse);
       expect(appVersionQuery('android', includeTest: true)['test'], 'true');
     });
+
+    test('sends the OneSignal id so a chosen test device sees test announcements', () {
+      expect(appVersionQuery('android', deviceId: 'abc-123')['device'], 'abc-123');
+    });
+
+    test('leaves out the device id until the phone has one', () {
+      expect(appVersionQuery('android').containsKey('device'), isFalse);
+      expect(appVersionQuery('android', deviceId: '').containsKey('device'), isFalse);
+    });
+
+    test('pushSubscriptionId is null (not a crash) when OneSignal is not set up', () {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      expect(pushSubscriptionId(), isNull);
+    });
   });
 }
