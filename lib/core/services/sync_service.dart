@@ -1,5 +1,6 @@
 import '../api/api_client.dart';
 import '../api/api_endpoints.dart';
+import '../api/api_exception.dart';
 import '../models/queued_transaction.dart';
 import 'offline_queue_service.dart';
 
@@ -71,6 +72,9 @@ class SyncService {
       } else {
         throw Exception('Sync failed with status ${response.statusCode}');
       }
+    } on ReadOnlyModeException {
+      // Maintenance, not a bad transaction: leave it queued for the next sync.
+      await queueService.updateStatus(transaction.id, 'pending');
     } catch (e) {
       // Mark as failed
       await queueService.updateStatus(

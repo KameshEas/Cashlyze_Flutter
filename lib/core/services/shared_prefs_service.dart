@@ -18,7 +18,7 @@ class SharedPrefsService {
   // app doesn't use Crashlytics at all.
   static const String _crashReportingConsentKey = 'crash_reporting_consent_given';
   static const String _celebratedGoalsKey = 'celebrated_goal_ids';
-  static const String _dismissedAnnouncementKey = 'dismissed_announcement_hash';
+  static const String _announcementSeenKey = 'announcement_seen_at';
   final SharedPreferences _prefs;
 
   bool get isOnboardingCompleted => _prefs.getBool(_onboardingKey) ?? false;
@@ -105,11 +105,29 @@ class SharedPrefsService {
     await _prefs.setStringList(_celebratedGoalsKey, [...current, goalId]);
   }
 
-  // Tracks the hash of the last announcement banner message the user
-  // dismissed, so it stays dismissed until the admin changes the message.
-  String? get dismissedAnnouncementHash => _prefs.getString(_dismissedAnnouncementKey);
+  // When the user last saw/dismissed each announcement (id -> epoch millis),
+  // so `once` and `daily` announcements don't keep coming back.
+  Map<String, int> get announcementSeenAt {
+    final raw = _prefs.getString(_announcementSeenKey);
+    if (raw == null) return const {};
+    try {
+      return (jsonDecode(raw) as Map<String, dynamic>)
+          .map((final id, final at) => MapEntry(id, (at as num).toInt()));
+    } catch (_) {
+      return const {};
+    }
+  }
 
-  Future<void> setDismissedAnnouncementHash(final String hash) async {
-    await _prefs.setString(_dismissedAnnouncementKey, hash);
+  Future<void> markAnnouncementSeen(final String id, final int epochMillis) async {
+    final seen = {...announcementSeenAt, id: epochMillis};
+    // Keep the newest entries so ids of long-gone announcements don't pile up.
+    if (seen.length > 100) {
+      final newest = seen.entries.toList()
+        ..sort((final a, final b) => b.value.compareTo(a.value));
+      seen
+        ..clear()
+        ..addEntries(newest.take(100));
+    }
+    await _prefs.setString(_announcementSeenKey, jsonEncode(seen));
   }
 }

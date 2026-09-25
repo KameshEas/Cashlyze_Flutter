@@ -83,17 +83,14 @@ android {
             // Use custom keystore for production release builds
             signingConfig = signingConfigs.getByName("release")
 
-            // Disable minification temporarily due to plugin registration issues
-            // with dev dependencies being included in the release build.
-            // Will re-enable after resolving GeneratedPluginRegistrant configuration.
-            isMinifyEnabled = false
-            isShrinkResources = false
-
-            // Configure R8/ProGuard rules (disabled for now)
-            // proguardFiles(
-            //     getDefaultProguardFile("proguard-android-optimize.txt"),
-            //     "proguard-rules.pro"
-            // )
+            // R8 shrinking/obfuscation. AGP bundles the resulting mapping file
+            // into the .aab, which is what Play Console uses to deobfuscate.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
     

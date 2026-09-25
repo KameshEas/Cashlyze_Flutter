@@ -15,6 +15,8 @@ String apiErrorMessage(final ApiException e) {
       'You don\'t have permission to perform this action.',
     NotFoundException() => 'The requested item could not be found.',
     ConflictException() => e.message,
+    TooManyRequestsException() => e.message,
+    ReadOnlyModeException() => e.message,
     ServerException() =>
       'Something went wrong on our end. Please try again later.',
     TimeoutException() =>
