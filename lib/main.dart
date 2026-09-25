@@ -17,6 +17,7 @@ import 'core/config/env_config.dart';
 import 'core/providers/app_version_providers.dart';
 import 'core/providers/budget_alerts_handler.dart';
 import 'core/providers/realtime_provider.dart';
+import 'core/providers/sentry_user_sync_provider.dart';
 import 'core/providers/shared_prefs_provider.dart';
 import 'core/services/local_notification_service.dart';
 import 'core/services/push_actions.dart';
@@ -181,27 +182,41 @@ void main() async {
             defaultValue: kReleaseMode ? 'production' : 'development',
           );
 
-          // Use dynamic assignment to avoid signature mismatches across
-          // different Sentry package versions.
+          // Maximize diagnostic detail per event (none of this costs extra
+          // quota - it's richer data on the same error events):
+          // - device/app/OS context is attached by default; these add to it.
+          options.attachStacktrace = true;
+          // Thread/process state at the moment of the crash.
+          options.attachThreads = true;
+          // Breadcrumbs (nav, HTTP, taps, logs) leading up to the error.
+          options.maxBreadcrumbs = 150;
+          // Never a screenshot or on-screen widget tree - this app shows
+          // balances/transactions, and neither is worth the privacy tradeoff.
+          options.attachScreenshot = false;
+          options.attachViewHierarchy = false;
+          // Never IP/email/device-name; Sentry only gets the internal user id
+          // set explicitly via `sentryUserSyncProvider`, not full PII.
+          options.sendDefaultPii = false;
+          // Session data (for crash-free-rate / release health), not gated
+          // behind kReleaseMode below - safe to send from every build.
+          options.enableAutoSessionTracking = true;
+
+          // Only scrub obvious secrets from breadcrumb data, then only send
+          // events at all from release builds (debug/profile noise from local
+          // dev isn't useful and would burn the free-tier quota).
           (options as dynamic).beforeSend = (final event, {final hint}) {
             if (!kReleaseMode) return null;
-
-            // event is intentionally dynamic to stay compatible across
-            // Sentry package versions; see the cast above.
-            // ignore: avoid_dynamic_calls
-            final ex = event.exceptions?.first;
-            // ignore: avoid_dynamic_calls
-            final exType = (ex?.type ?? '').toString();
-            const skipTypes = [
-              'FormatException',
-              'AssertionError',
-              'RangeError',
-              'StateError'
-            ];
-            for (final skip in skipTypes) {
-              if (exType.contains(skip)) return null;
-            }
             return event;
+          };
+          (options as dynamic).beforeBreadcrumb = (final breadcrumb, {final hint}) {
+            // ignore: avoid_dynamic_calls
+            final data = breadcrumb?.data;
+            if (data is Map) {
+              for (final key in ['authorization', 'token', 'password', 'pin', 'otp']) {
+                if (data.containsKey(key)) data[key] = '[redacted]';
+              }
+            }
+            return breadcrumb;
           };
         },
       );
@@ -234,6 +249,8 @@ class App extends ConsumerWidget {
     ref.watch(budgetAlertsHandlerProvider);
     // Ensure websocket listener (realtime updates) is initialized
     ref.watch(wsListenerProvider);
+    // Keep Sentry's user scope (anonymous id only) in sync with sign-in state
+    ref.watch(sentryUserSyncProvider);
 
     final locale = ref.watch(localeProvider);
     return MaterialApp.router(

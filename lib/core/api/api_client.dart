@@ -12,6 +12,7 @@ import 'api_exception.dart';
 import 'auth_interceptor.dart';
 import 'read_only_interceptor.dart';
 import 'retry_interceptor.dart';
+import 'sentry_breadcrumb_interceptor.dart';
 
 /// Central HTTP client for the Cashlyze backend API.
 ///
@@ -59,6 +60,10 @@ class ApiClient {
     if (isReadOnly != null) {
       dio.interceptors.add(ReadOnlyInterceptor(isReadOnly));
     }
+
+    // HTTP breadcrumbs for Sentry (method/path/status/duration only, never
+    // headers or bodies - see SentryBreadcrumbInterceptor for why).
+    dio.interceptors.add(SentryBreadcrumbInterceptor());
 
     // Token attachment + silent refresh.
     dio.interceptors.add(

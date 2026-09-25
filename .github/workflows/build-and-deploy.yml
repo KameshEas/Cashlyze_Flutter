@@ -28,4 +28,7 @@ jobs:
       env-file-keys: ONESIGNAL_APP_ID,SENTRY_DSN
       enable-sops-secrets: true
       sops-secrets-file: cashlyze.env
+      # Uploads debug symbols to Sentry after the release AAB build, so crash
+      # reports are readable. Needs SENTRY_AUTH_TOKEN in cashlyze.env (ci-secrets).
+      enable-sentry-upload: true
     secrets: inherit

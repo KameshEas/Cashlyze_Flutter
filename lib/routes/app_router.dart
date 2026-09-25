@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 import '../core/constants/feature_flags.dart';
 import '../core/providers/app_version_providers.dart';
@@ -68,6 +69,9 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
   return GoRouter(
     navigatorKey: rootKey,
     initialLocation: '/splash',
+    // Leaves a breadcrumb trail of route names for every crash report - route
+    // names only (e.g. "transactions"), never the data shown on the screen.
+    observers: [SentryNavigatorObserver()],
     routes: [
       GoRoute(
         path: '/loading',
