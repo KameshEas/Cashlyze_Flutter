@@ -353,6 +353,18 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       ),
     ],
     redirect: (final context, final state) {
+      // Android hands a deep link's full URL (https://<domain>/l/{code}) to
+      // Flutter as the platform's initial route, and GoRouter tries to match
+      // it as one of its own paths before DeepLinkListener ever sees it -
+      // none of our routes start with a scheme, so this always fails with
+      // "no routes for location". Bounce it to splash instead: the app still
+      // starts normally, and DeepLinkListener (via app_links, a separate,
+      // slightly later path) resolves the same URL and navigates for real
+      // once it knows where "https://.../l/{code}" actually leads.
+      if (state.uri.hasScheme) {
+        return '/splash';
+      }
+
       final isOnboarding = state.matchedLocation == '/onboarding';
       final isAuthRoute =
           state.matchedLocation == '/auth' ||
