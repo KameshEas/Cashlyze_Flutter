@@ -19,7 +19,17 @@ class SharedPrefsService {
   static const String _crashReportingConsentKey = 'crash_reporting_consent_given';
   static const String _celebratedGoalsKey = 'celebrated_goal_ids';
   static const String _announcementSeenKey = 'announcement_seen_at';
+  static const String _installReferrerCheckedKey = 'deeplink_install_referrer_checked';
   final SharedPreferences _prefs;
+
+  // The Play Install Referrer is only meaningful once, right after a fresh
+  // install - checking it again on every launch would be pointless (Play
+  // keeps returning the same original-install value forever) and each check
+  // is a real service call, so this gates it to exactly one attempt ever.
+  bool get installReferrerChecked => _prefs.getBool(_installReferrerCheckedKey) ?? false;
+  Future<void> markInstallReferrerChecked() async {
+    await _prefs.setBool(_installReferrerCheckedKey, true);
+  }
 
   bool get isOnboardingCompleted => _prefs.getBool(_onboardingKey) ?? false;
 

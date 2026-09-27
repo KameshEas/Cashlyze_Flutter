@@ -24,6 +24,7 @@ import 'core/services/push_actions.dart';
 import 'core/theme/app_theme.dart';
 import 'core/widgets/announcement_banner.dart';
 import 'core/widgets/announcement_dialog_host.dart';
+import 'core/widgets/deep_link_listener.dart';
 import 'core/widgets/offline_sync_listener.dart';
 import 'core/widgets/push_action_listener.dart';
 import 'core/widgets/read_only_maintenance_banner.dart';
@@ -269,11 +270,13 @@ class App extends ConsumerWidget {
       builder: (final context, final child) {
         return _MaintenanceGate(
           child: OfflineSyncListener(
-            child: PushActionListener(
-              child: AnnouncementDialogHost(
-                child: ReadOnlyMaintenanceBanner(
-                  child: AnnouncementBanner(
-                    child: _ForceUpdateMonitor(child: child!),
+            child: DeepLinkListener(
+              child: PushActionListener(
+                child: AnnouncementDialogHost(
+                  child: ReadOnlyMaintenanceBanner(
+                    child: AnnouncementBanner(
+                      child: _ForceUpdateMonitor(child: child!),
+                    ),
                   ),
                 ),
               ),

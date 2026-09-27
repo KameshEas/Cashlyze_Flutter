@@ -4,9 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/widgets/brand_logo.dart';
+import '../../core/widgets/brand_watermark.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
-
   const SplashScreen({
     super.key,
     this.duration = const Duration(milliseconds: 600),
@@ -84,10 +85,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   Widget build(final BuildContext context) {
     ref.listen(authStateChangesProvider, (final previous, final next) {
-      WidgetsBinding.instance.addPostFrameCallback((final _) => _maybeNavigate());
+      WidgetsBinding.instance.addPostFrameCallback(
+        (final _) => _maybeNavigate(),
+      );
     });
     ref.listen(onboardingCompletedProvider, (final previous, final next) {
-      WidgetsBinding.instance.addPostFrameCallback((final _) => _maybeNavigate());
+      WidgetsBinding.instance.addPostFrameCallback(
+        (final _) => _maybeNavigate(),
+      );
     });
     final theme = Theme.of(context);
     return Scaffold(
@@ -104,35 +109,31 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               ],
             ),
           ),
-          child: Center(
+          child: Stack(
+            children: [
+              const BrandWatermark(offset: Offset(90, -110)),
+              const BrandWatermark(
+                alignment: Alignment.bottomLeft,
+                offset: Offset(-110, 90),
+                opacity: 0.12,
+                scale: 0.85,
+              ),
+              Center(
                 child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Use the branded logo asset so it is visible on all themes.
-                SizedBox(
-                  width: 88,
-                  height: 88,
-                  child: Image.asset(
-                    'assets/logo_icon.png',
-                    fit: BoxFit.contain,
-                  ),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Theme-aware wordmark: teal on light, white on dark.
+                    const SizedBox(width: 220, height: 88, child: BrandLogo()),
+                    const SizedBox(height: 32),
+                    const SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'Cashlyze',
-                  style: theme.textTheme.headlineLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                const SizedBox(
-                  height: 24,
-                  width: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
