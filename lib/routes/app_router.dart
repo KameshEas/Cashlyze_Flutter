@@ -53,16 +53,30 @@ const _kRouteFeatureFlags = {
   '/ai-assistant': FeatureFlags.aiAssistant,
 };
 
+/// Tells GoRouter to re-run its `redirect` callback on the *current* route,
+/// without rebuilding the router itself - unlike `ref.watch` inside
+/// [appRouterProvider], which would reconstruct a brand-new [GoRouter] (and
+/// silently discard whatever it just navigated to) every time auth state,
+/// onboarding, feature flags, or OTP-pending changes. That reset is exactly
+/// what broke deep links resolving after login: the resolved destination was
+/// reached, then wiped out moments later when feature flags finished loading
+/// and rebuilt the whole provider.
+class _RouterRefreshNotifier extends ChangeNotifier {
+  _RouterRefreshNotifier(this._ref) {
+    _ref.listen(onboardingCompletedProvider, (final _, final _) => notifyListeners());
+    _ref.listen(authStateChangesProvider, (final _, final _) => notifyListeners());
+    _ref.listen(currentUserProvider, (final _, final _) => notifyListeners());
+    _ref.listen(otpPendingProvider, (final _, final _) => notifyListeners());
+    _ref.listen(featureFlagsProvider, (final _, final _) => notifyListeners());
+  }
+
+  final Ref _ref;
+}
+
 final appRouterProvider = Provider<GoRouter>((final ref) {
   final rootKey = ref.watch(rootNavigatorKeyProvider);
-  final onboardingCompleted = ref.watch(onboardingCompletedProvider);
-  final authState = ref.watch(authStateChangesProvider);
-  final currentUser = ref.watch(currentUserProvider);
-  final otpPending = ref.watch(otpPendingProvider);
-  final featureFlags = ref.watch(featureFlagsProvider).maybeWhen(
-    data: (final flags) => flags,
-    orElse: () => const <String, bool>{},
-  );
+  final refreshNotifier = _RouterRefreshNotifier(ref);
+  ref.onDispose(refreshNotifier.dispose);
   const kRouteFadeDuration = AppMotion.pageDuration;
   final shellKey = GlobalKey<NavigatorState>();
 
@@ -72,6 +86,10 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
     // Leaves a breadcrumb trail of route names for every crash report - route
     // names only (e.g. "transactions"), never the data shown on the screen.
     observers: [SentryNavigatorObserver()],
+    // Re-evaluates `redirect` on the current location when auth/onboarding/
+    // feature-flag/OTP state changes, instead of GoRouter itself being
+    // recreated (see _RouterRefreshNotifier).
+    refreshListenable: refreshNotifier,
     routes: [
       GoRoute(
         path: '/loading',
@@ -364,6 +382,20 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       if (state.uri.hasScheme) {
         return '/splash';
       }
+
+      // Read fresh on every redirect evaluation (not captured once at router
+      // construction) - refreshListenable is what triggers this callback to
+      // re-run when any of these change; ref.read here gets this run's
+      // current value rather than whatever was true when the GoRouter was
+      // first built.
+      final onboardingCompleted = ref.read(onboardingCompletedProvider);
+      final authState = ref.read(authStateChangesProvider);
+      final currentUser = ref.read(currentUserProvider);
+      final otpPending = ref.read(otpPendingProvider);
+      final featureFlags = ref.read(featureFlagsProvider).maybeWhen(
+        data: (final flags) => flags,
+        orElse: () => const <String, bool>{},
+      );
 
       final isOnboarding = state.matchedLocation == '/onboarding';
       final isAuthRoute =

@@ -92,8 +92,14 @@ android {
                 "proguard-rules.pro"
             )
         }
+        // TEMPORARY: release-signed so a profile build (debugPrint still
+        // works, unlike release) doesn't force-uninstall the release build
+        // and lose its logged-in session. Revert after this diagnostic pass.
+        getByName("profile") {
+            signingConfig = signingConfigs.getByName("release")
+        }
     }
-    
+
     // R8 configuration for code shrinking and obfuscation
     packaging {
         jniLibs {

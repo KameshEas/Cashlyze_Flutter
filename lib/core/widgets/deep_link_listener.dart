@@ -9,10 +9,11 @@ import '../../routes/app_router.dart';
 import '../providers/shared_prefs_provider.dart';
 import '../services/deep_link_service.dart';
 
-/// Routes an Android deep link (`https://<domain>/l/{code}`) to its in-app
+/// Routes a Helm deep link (`https://<domain>/l/{code}`) to its in-app
 /// destination - both a live click while the app is already running or
-/// cold-starting, and (once, per install) a destination recovered from the
-/// Play Store install referrer after installing from a link.
+/// cold-starting (Android App Links / iOS Universal Links), and (once per
+/// install, Android only) a destination recovered from the Play Store
+/// install referrer after installing from a link.
 class DeepLinkListener extends ConsumerStatefulWidget {
   const DeepLinkListener({required this.child, super.key});
 
