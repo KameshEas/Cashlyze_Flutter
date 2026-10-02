@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../core/ui/constants.dart';
 import '../../../core/utils/format.dart';
 
 /// Widget for displaying undo/redo notifications for budget changes
@@ -93,7 +95,7 @@ class _UndoNotificationState extends State<UndoNotification>
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: AppRadius.lgAll,
             border: Border.all(
               color: theme.colorScheme.outline.withValues(alpha: 0.2),
             ),
@@ -170,7 +172,7 @@ class _UndoNotificationState extends State<UndoNotification>
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: _handleUndo,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.smAll,
                   child: Padding(
                     padding: const EdgeInsets.all(8),
                     child: Text(

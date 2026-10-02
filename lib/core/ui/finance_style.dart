@@ -59,10 +59,12 @@ class AmountText extends StatelessWidget {
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final isIncome = amount > 0;
-    final isExpense = amount < 0;
+    // Unsigned figures (averages, forecasts, totals) are plain numbers: no
+    // income tint and no "Income"/"Expense" announcement.
+    final isIncome = showSign && amount > 0;
+    final isExpense = showSign && amount < 0;
     final formatted = formatAmount(amount.abs(), currency);
-    final sign = !showSign ? '' : (isIncome ? '+' : (isExpense ? kMinus : ''));
+    final sign = isIncome ? '+' : (isExpense ? kMinus : '');
     final kind = isIncome
         ? (l10n?.filterIncome ?? 'Income')
         : (isExpense ? (l10n?.filterExpense ?? 'Expense') : '');

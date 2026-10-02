@@ -33,12 +33,12 @@ class TransactionRow extends StatelessWidget {
     final style = categoryStyleFor(category, isIncome: tx.amount > 0);
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.66);
 
-    return Row(
+    return LayoutBuilder(
+      builder: (final context, final box) => Row(
       children: [
         leading ?? CategoryGlyph(style: style),
         const SizedBox(width: AppSpacing.s12),
         Expanded(
-          flex: 3,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -59,11 +59,13 @@ class TransactionRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: AppSpacing.s12),
-        Flexible(
-          flex: 2,
+        // Natural width, capped at 42% of the row, so the caption keeps the rest.
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: box.maxWidth * 0.42),
           child: AmountText(amount: tx.amount, currency: currency),
         ),
       ],
+      ),
     );
   }
 }

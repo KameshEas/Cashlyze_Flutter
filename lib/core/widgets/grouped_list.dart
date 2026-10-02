@@ -27,9 +27,10 @@ class GroupedRow extends StatelessWidget {
     this.onTap,
     this.onLongPress,
     this.selected = false,
+    this.highlight = 0,
     this.dividerIndent = 68,
-    this.minHeight = 56,
-    this.padding = const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s12),
+    this.minHeight = 60,
+    this.padding = const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: 14),
   });
 
   final GroupPosition position;
@@ -37,6 +38,10 @@ class GroupedRow extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final bool selected;
+
+  /// 0..1 "just saved" tint that fades out (see TransactionListItem). Draws
+  /// over the row fill, so rounding and dividers are untouched.
+  final double highlight;
 
   /// Left inset of the divider (icon width + gap) so it aligns with the text.
   final double dividerIndent;
@@ -53,7 +58,8 @@ class GroupedRow extends StatelessWidget {
       bottom: (position == GroupPosition.last || position == GroupPosition.only) ? const Radius.circular(r) : Radius.zero,
     );
     final showDivider = position == GroupPosition.first || position == GroupPosition.middle;
-    final fill = selected ? Color.alphaBlend(scheme.primary.withValues(alpha: 0.10), scheme.surface) : scheme.surface;
+    final base = selected ? Color.alphaBlend(scheme.primary.withValues(alpha: 0.10), scheme.surface) : scheme.surface;
+    final fill = highlight > 0 ? Color.alphaBlend(scheme.primary.withValues(alpha: 0.16 * highlight), base) : base;
 
     return Semantics(
       selected: selected,
@@ -107,6 +113,7 @@ class GroupedSection extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: AppRadius.lgAll,
         border: Border.all(color: theme.colorScheme.outline.withValues(alpha: isDark ? 1 : 0.8)),
+        boxShadow: isDark ? null : AppShadow.soft,
       ),
       child: ClipRRect(
         borderRadius: AppRadius.lgAll,

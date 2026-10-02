@@ -99,3 +99,45 @@ class _FlowPainter extends CustomPainter {
   @override
   bool shouldRepaint(final _FlowPainter old) => old.ocean != ocean;
 }
+
+/// Just the brand arcs (no background fill), for layering over a gradient
+/// card such as Home's balance card.
+class FlowArcs extends StatelessWidget {
+  const FlowArcs({super.key});
+
+  @override
+  Widget build(final BuildContext context) => const ExcludeSemantics(
+        child: IgnorePointer(child: CustomPaint(painter: _ArcsPainter())),
+      );
+}
+
+class _ArcsPainter extends CustomPainter {
+  const _ArcsPainter();
+
+  @override
+  void paint(final Canvas canvas, final Size size) {
+    final w = size.width;
+    final h = size.height;
+    final ring = Paint()
+      ..style = PaintingStyle.stroke
+      ..color = Colors.white.withValues(alpha: 0.07)
+      ..strokeWidth = h * 0.34;
+    canvas.drawCircle(Offset(w * 1.02, h * 0.1), h * 0.95, ring);
+    ring
+      ..strokeWidth = h * 0.16
+      ..color = Colors.white.withValues(alpha: 0.05);
+    canvas.drawCircle(Offset(w * 0.9, h * 1.15), h * 0.9, ring);
+    final glowCenter = Offset(w * 0.08, h * 0.02);
+    canvas.drawCircle(
+      glowCenter,
+      h * 0.9,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [Colors.white.withValues(alpha: 0.14), Colors.white.withValues(alpha: 0)],
+        ).createShader(Rect.fromCircle(center: glowCenter, radius: h * 0.9)),
+    );
+  }
+
+  @override
+  bool shouldRepaint(final _ArcsPainter old) => false;
+}

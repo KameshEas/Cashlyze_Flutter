@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../ui/constants.dart';
 
 /// Enhanced category picker modal with search and favorites
 class EnhancedCategoryPicker extends StatefulWidget {
@@ -71,7 +72,7 @@ class _EnhancedCategoryPickerState extends State<EnhancedCategoryPicker> {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -116,8 +117,8 @@ class _EnhancedCategoryPickerState extends State<EnhancedCategoryPicker> {
                         },
                       )
                     : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                border: const OutlineInputBorder(
+                  borderRadius: AppRadius.lgAll,
                 ),
               ),
             ),
@@ -255,7 +256,7 @@ class _EnhancedCategoryPickerState extends State<EnhancedCategoryPicker> {
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: () => _toggleFavorite(category),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: AppRadius.xlAll,
                   child: Padding(
                     padding: const EdgeInsets.all(8),
                     child: Icon(

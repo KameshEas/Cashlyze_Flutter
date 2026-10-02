@@ -1239,6 +1239,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This only takes a moment.'**
   String get scanReadingBody;
+
+  /// No description provided for @transactionsEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your first transaction to start tracking where your money goes.'**
+  String get transactionsEmptyHint;
 }
 
 class _AppLocalizationsDelegate

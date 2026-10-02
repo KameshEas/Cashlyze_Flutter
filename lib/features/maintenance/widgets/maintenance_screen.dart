@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/models/app_version.dart';
+import '../../../core/ui/constants.dart';
 
 /// Full-screen, non-navigable notice shown when the backend has flagged the
 /// app as under maintenance (see [MaintenanceInfo]). Replaces the entire
@@ -136,8 +137,8 @@ class _MaintenanceScreenState extends State<MaintenanceScreen> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: colorScheme.onSurface,
                       side: BorderSide(color: colorScheme.primary.withValues(alpha: 0.4)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: AppRadius.lgAll,
                       ),
                     ),
                     child: const Text('Try Again'),

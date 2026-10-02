@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +10,7 @@ import '../../core/models/transaction.dart';
 import '../../core/providers/export_service_provider.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/shared_prefs_provider.dart';
+import '../../core/providers/transaction_providers.dart' show transactionsCacheProvider;
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/ui/constants.dart';
@@ -36,6 +39,31 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   final Set<String> _selectedIds = {};
   bool _selectionMode = false;
 
+  /// Row to flash after a save (see TransactionListItem.highlight).
+  String? _highlightId;
+
+  /// Ids present before a create, so the new row can be found by diff (the
+  /// create flow doesn't return the new id).
+  Set<String>? _createSnapshot;
+  Timer? _createSnapshotTimer;
+  Timer? _highlightTimer;
+
+  void _flash(final String id) {
+    _highlightTimer?.cancel();
+    setState(() => _highlightId = id);
+    // Clear after the animation so a recycled lazy row doesn't replay it.
+    _highlightTimer = Timer(kSavedHighlightDuration + const Duration(milliseconds: 300), () {
+      if (mounted) setState(() => _highlightId = null);
+    });
+  }
+
+  /// Within a few seconds of a create, the first id not in the snapshot is it.
+  void _watchForNewRow(final Set<String> before) {
+    _createSnapshot = before;
+    _createSnapshotTimer?.cancel();
+    _createSnapshotTimer = Timer(const Duration(seconds: 4), () => _createSnapshot = null);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -51,6 +79,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
   @override
   void dispose() {
+    _createSnapshotTimer?.cancel();
+    _highlightTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -64,7 +94,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       isScrollControlled: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
       ),
       builder: (final sheetCtx) => const TransactionFilterSheet(),
     );
@@ -126,7 +156,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 ),
               ],
             ),
-      floatingActionButton: Tooltip(
+      floatingActionButton: (allFiltered.isEmpty && !txsAsync.isLoading)
+          ? null
+          : Tooltip(
         message: t?.addTransaction ?? 'Add transaction',
         child: FloatingActionButton.extended(
           onPressed: () => _openAddForm(context),
@@ -153,8 +185,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         prefixIcon: const Icon(Icons.search),
                         hintText: t?.search ?? 'Search',
                         filled: true,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                        border: const OutlineInputBorder(
+                          borderRadius: AppRadius.lgAll,
                         ),
                         // Inline clear button
                         suffixIcon: filterState.query.isNotEmpty
@@ -179,19 +211,21 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   message: 'Filter & sort',
                   child: InkWell(
                     onTap: () => _openFilterSheet(context),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.lgAll,
                     child: Consumer(
                       builder: (final ctx, final consumerRef, final _) {
                         final activeCount = consumerRef.watch(
                           activeFilterCountProvider,
                         );
                         return Container(
-                          padding: const EdgeInsets.all(12),
+                          width: 56,
+                          height: 56,
+                          alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: activeCount > 0
                                 ? theme.colorScheme.primary
                                 : theme.colorScheme.surface,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: AppRadius.lgAll,
                             border: Border.all(
                               color: theme.colorScheme.onSurface.withValues(
                                 alpha: 0.1,
@@ -250,7 +284,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.error.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: AppRadius.lgAll,
                         border: Border.all(
                           color: theme.colorScheme.error.withValues(alpha: 0.3),
                         ),
@@ -277,6 +311,20 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 }
 
                 final allFiltered = ref.watch(filteredTransactionsProvider);
+              final snapshot = _createSnapshot;
+              if (snapshot != null) {
+                for (final t in allFiltered) {
+                  if (!snapshot.contains(t.id)) {
+                    _createSnapshot = null;
+                    _createSnapshotTimer?.cancel();
+                    final newId = t.id;
+                    WidgetsBinding.instance.addPostFrameCallback((final _) {
+                      if (mounted) _flash(newId);
+                    });
+                    break;
+                  }
+                }
+              }
                 final paged = ref.watch(paginatedTransactionsProvider);
                 final hasMore = ref.watch(transactionsHasMoreProvider);
 
@@ -286,10 +334,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     key: const ValueKey('tx_empty'),
                     child: AppEmptyState(
                       title: t?.noTransactions ?? 'No transactions',
-                      subtitle: t?.noTransactions == null
-                          ? 'You have no transactions yet. Tap Add to create one.'
-                          : '${t?.noTransactions}',
-                      icon: Icons.receipt_long,
+                      subtitle: t?.transactionsEmptyHint ??
+                        'Add your first transaction to start tracking where your money goes.',
+                    icon: Icons.receipt_long,
                       illustration: AppIllustrationKind.ledger,
                       actionLabel: t?.addTransaction ?? 'Add transaction',
                       onAction: () => _openAddForm(context),
@@ -513,6 +560,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             },
                             child: TransactionListItem(
                               position: position,
+                              highlight: tx.id == _highlightId,
                               tx: tx,
                               currency: currency,
                               datePattern: datePattern,
@@ -614,18 +662,20 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
   Future<void> _openAddForm(final BuildContext context) async {
     final theme = Theme.of(context);
+    final before = ref.read(transactionsCacheProvider).map((final t) => t.id).toSet();
     final result = await showModalBottomSheet<bool?>(
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
       ),
       builder: (final ctx) => const TransactionFormSheet.create(),
     );
     // If the sheet indicated a successful save, refresh and show feedback.
     if (result == true) {
+      _watchForNewRow(before);
       ref.read(transactionFilterProvider.notifier).resetFilters();
       if (!context.mounted) return;
       final messenger = ScaffoldMessenger.of(context);
@@ -658,7 +708,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       isDismissible: false,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
       ),
       builder: (final ctx) => TransactionFormSheet.edit(
         id: id,
@@ -669,6 +719,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       ),
     );
     if (result == true) {
+      _flash(id);
       ref.read(transactionFilterProvider.notifier).resetFilters();
       if (!context.mounted) return;
       final messenger = ScaffoldMessenger.of(context);

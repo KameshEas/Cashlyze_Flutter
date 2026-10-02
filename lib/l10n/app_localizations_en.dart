@@ -614,4 +614,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scanReadingBody => 'This only takes a moment.';
+
+  @override
+  String get transactionsEmptyHint =>
+      'Add your first transaction to start tracking where your money goes.';
 }

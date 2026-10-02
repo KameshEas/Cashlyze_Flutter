@@ -31,7 +31,7 @@ class SpendingTrendChart extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.lgAll,
         border: Border.all(
           color: theme.colorScheme.outline.withValues(alpha: 0.12),
         ),
@@ -74,7 +74,7 @@ class SpendingTrendChart extends StatelessWidget {
                   color: isOverBudget
                       ? AppColors.error.withValues(alpha: 0.1)
                       : AppColors.success.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.smAll,
                 ),
                 child: Text(
                   isOverBudget ? 'Over Budget' : 'On Track',
@@ -93,7 +93,7 @@ class SpendingTrendChart extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppRadius.smAll,
                 child: LinearProgressIndicator(
                   value: progress.clamp(0.0, 1.0),
                   minHeight: 8,
@@ -231,7 +231,7 @@ class SpendingTrendChart extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: accentColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: AppRadius.mdAll,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

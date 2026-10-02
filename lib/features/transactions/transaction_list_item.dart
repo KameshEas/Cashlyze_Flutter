@@ -7,8 +7,12 @@ import '../../core/repositories/category_repository.dart';
 import '../../core/ui/category_style.dart';
 import '../../core/ui/constants.dart';
 import '../../core/ui/finance_style.dart';
+import '../../core/ui/motion.dart';
 import '../../core/utils/format.dart';
 import '../../core/widgets/grouped_list.dart';
+
+/// How long the saved-row tint takes to fade.
+const Duration kSavedHighlightDuration = Duration(milliseconds: 900);
 
 /// One transaction line in the (grouped) Transactions list.
 ///
@@ -26,6 +30,7 @@ class TransactionListItem extends ConsumerWidget {
     this.onSelectedChanged,
     this.onLongPress,
     this.onTap,
+    this.highlight = false,
     this.position = GroupPosition.only,
   });
 
@@ -37,6 +42,10 @@ class TransactionListItem extends ConsumerWidget {
   final ValueChanged<bool>? onSelectedChanged;
   final VoidCallback? onLongPress;
   final VoidCallback? onTap;
+
+  /// Plays a one-shot "just saved" tint that fades out. Reduced motion skips it
+  /// (the save snackbar still confirms).
+  final bool highlight;
 
   /// Position within the day group (decides rounding + divider).
   final GroupPosition position;
@@ -83,12 +92,16 @@ class TransactionListItem extends ConsumerWidget {
     final style = categoryStyleFor(category, isIncome: tx.amount > 0);
     final caption = '$category · ${formatDate(tx.date, datePattern)}';
 
-    return GroupedRow(
+    return _SavedFlash(
+      active: highlight,
+      builder: (final context, final t) => GroupedRow(
       position: position,
       selected: selected,
+      highlight: t,
       onTap: selectionMode ? () => onSelectedChanged?.call(!selected) : onTap,
       onLongPress: onLongPress,
-      child: Row(
+      child: LayoutBuilder(
+        builder: (final context, final box) => Row(
         children: [
           if (selectionMode)
             SizedBox(
@@ -103,7 +116,6 @@ class TransactionListItem extends ConsumerWidget {
             CategoryGlyph(style: style),
           const SizedBox(width: AppSpacing.s12),
           Expanded(
-            flex: 3,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -117,7 +129,7 @@ class TransactionListItem extends ConsumerWidget {
                 Text(
                   caption,
                   style: theme.textTheme.bodySmall?.copyWith(color: muted),
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (tx.tags != null && tx.tags!.isNotEmpty) ...[
@@ -140,12 +152,66 @@ class TransactionListItem extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.s12),
-          Flexible(
-            flex: 2,
+          // Natural width, capped at 42% of the row, so the caption keeps the rest.
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: box.maxWidth * 0.42),
             child: AmountText(amount: tx.amount, currency: currency),
           ),
         ],
+        ),
+      ),
       ),
     );
   }
+}
+
+/// Plays a one-shot 1 -> 0 fade each time [active] turns on, including on a
+/// row that is already mounted (an edited row), which a TweenAnimationBuilder
+/// would not restart. Under reduced motion it never animates.
+class _SavedFlash extends StatefulWidget {
+  const _SavedFlash({required this.active, required this.builder});
+
+  final bool active;
+  final Widget Function(BuildContext context, double t) builder;
+
+  @override
+  State<_SavedFlash> createState() => _SavedFlashState();
+}
+
+class _SavedFlashState extends State<_SavedFlash> with SingleTickerProviderStateMixin {
+  // value 1 = idle (no tint); forward(from: 0) plays the fade.
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: kSavedHighlightDuration,
+    value: 1,
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (widget.active && _c.value == 1 && !_c.isAnimating) _play();
+  }
+
+  @override
+  void didUpdateWidget(final _SavedFlash old) {
+    super.didUpdateWidget(old);
+    if (widget.active && !old.active) _play();
+  }
+
+  void _play() {
+    if (reduceMotionOf(context)) return;
+    _c.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(final BuildContext context) => AnimatedBuilder(
+        animation: _c,
+        builder: (final context, final _) => widget.builder(context, 1 - Curves.easeOut.transform(_c.value)),
+      );
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/ui/constants.dart';
 
 /// A group of related SettingCards with a section header and optional description
 class SettingCardGroup extends StatelessWidget {
@@ -24,7 +25,7 @@ class SettingCardGroup extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: AppRadius.xlAll,
         border: Border.all(color: theme.colorScheme.outline),
         boxShadow: theme.brightness == Brightness.dark
             ? null

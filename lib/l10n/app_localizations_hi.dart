@@ -613,4 +613,8 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get scanReadingBody => 'बस एक पल लगेगा।';
+
+  @override
+  String get transactionsEmptyHint =>
+      'अपना पहला लेन-देन जोड़ें और देखें कि आपका पैसा कहाँ जाता है।';
 }

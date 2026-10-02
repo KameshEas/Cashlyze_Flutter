@@ -56,7 +56,9 @@ class AppCard extends StatelessWidget {
         borderRadius: radius,
         border: Border.all(color: resolvedBorder),
         // Flat by default: hairline border, no resting shadow.
-        boxShadow: elevated ? AppShadow.elevated : null,
+        boxShadow: elevated
+            ? AppShadow.elevated
+            : (theme.brightness == Brightness.light ? AppShadow.soft : null),
       ),
       foregroundDecoration: accentColor == null
           ? null

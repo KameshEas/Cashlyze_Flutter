@@ -19,6 +19,7 @@ import '../../core/ui/constants.dart';
 import '../../core/ui/finance_style.dart';
 import '../../core/utils/repo_error_handler.dart';
 import '../../core/widgets/dialogs.dart';
+import '../../core/widgets/inline_field_error.dart';
 import '../../features/auth/data/auth_remote_data_source.dart';
 import '../../l10n/app_localizations.dart';
 import '../../routes/app_router.dart';
@@ -67,6 +68,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             color: theme.colorScheme.surface,
             borderRadius: AppRadius.lgAll,
             border: Border.all(color: theme.colorScheme.outline),
+            boxShadow: theme.brightness == Brightness.light ? AppShadow.soft : null,
           ),
           child: Column(children: children),
         ),
@@ -150,25 +152,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   /// Status badge widget for showing active/inactive states
-  Widget _statusBadge(final bool isActive) {
-    final theme = Theme.of(context);
-    final color = isActive ? AppColors.success : theme.colorScheme.onSurface.withValues(alpha: 0.5);
-    final text = isActive ? 'Active' : 'Inactive';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        text,
-        style: theme.textTheme.bodySmall?.copyWith(
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    );
-  }
 
   Future<void> _showExportDataDialog(
     final BuildContext context,
@@ -247,7 +230,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     required final IconData icon,
     required final String title,
     final String? subtitle,
-    final Color? color,
+    required final VoidCallback onTap,
     final bool isDangerous = false,
   }) {
     final theme = Theme.of(context);
@@ -319,8 +302,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _statusBadge(alertsEnabled),
-              const SizedBox(width: 8),
               Switch.adaptive(
                 value: alertsEnabled,
                 onChanged: (final v) async {
@@ -336,7 +317,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         // Alert threshold slider (shown when enabled)
         if (prefs.alertsEnabled) ...[
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.only(top: 12, bottom: 4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -352,20 +333,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(6),
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        borderRadius: AppRadius.smAll,
                       ),
                       child: Text(
                         '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.primary,
-                        ),
+                        style: tabular(theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        )),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 0),
                 Semantics(
                   label: 'Budget alert threshold',
                   value: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
@@ -406,7 +386,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 height: 36,
                 decoration: BoxDecoration(
                   color: theme.colorScheme.secondary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.smAll,
                 ),
                 child: Icon(Icons.currency_exchange, size: 18, color: theme.colorScheme.secondary),
               ),
@@ -437,10 +417,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     if (v == null) return;
                     await ref.read(currencyProvider.notifier).set(v);
                   },
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadius.smAll,
                     ),
                     filled: true,
                   ),
@@ -465,7 +446,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 height: 36,
                 decoration: BoxDecoration(
                   color: theme.colorScheme.secondary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.smAll,
                 ),
                 child: Icon(Icons.calendar_today, size: 18, color: theme.colorScheme.secondary),
               ),
@@ -505,10 +486,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     await prefs.setDateFormat(v);
                     setState(() {});
                   },
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadius.smAll,
                     ),
                     filled: true,
                   ),
@@ -689,13 +671,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           obscureText: true,
                           decoration: const InputDecoration(labelText: 'New password'),
                         ),
-                        if (errorText != null) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            errorText!,
-                            style: TextStyle(color: Theme.of(ctx).colorScheme.error, fontSize: 12),
-                          ),
-                        ],
+                        InlineFieldError(message: errorText),
                       ],
                     ),
                     actions: [

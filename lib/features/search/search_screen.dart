@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/illustrations/app_illustration.dart';
 import '../../core/models/search_result.dart';
 import '../../core/providers/search_providers.dart';
+import '../../core/ui/constants.dart';
 import '../../core/ui/motion.dart';
 import '../../core/utils/repo_error_handler.dart';
 import '../../core/widgets/empty_state.dart';
@@ -83,8 +84,8 @@ class _SearchBodyState extends ConsumerState<SearchBody> {
                       },
                     )
                   : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+              border: const OutlineInputBorder(
+                borderRadius: AppRadius.lgAll,
               ),
             ),
             autofocus: true,
@@ -197,7 +198,7 @@ class SearchResultTile extends StatelessWidget {
                 height: 48,
                 decoration: BoxDecoration(
                   color: Colors.blue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.smAll,
                 ),
                 child: Center(
                   child: Text(

@@ -31,10 +31,10 @@ abstract final class AppSpacing {
 abstract final class AppRadius {
   static const double none = 0;
   static const double sm   = 8;   // chips, badges, small tags
-  static const double md   = 12;  // buttons, standard inputs
-  static const double lg   = 16;  // cards, list tiles, sheets
-  static const double xl   = 24;  // hero cards, modals
-  static const double sheet = 24; // bottom sheets / modals (kept large on purpose)
+  static const double md   = 12;  // icon tiles, small controls
+  static const double lg   = 16;  // cards, buttons, inputs, list groups
+  static const double xl   = 24;  // hero surfaces, dialogs
+  static const double sheet = 28; // bottom sheets / modals (kept large on purpose)
   static const double full = 999; // pills, avatars, dots
 
   static const BorderRadius smAll   = BorderRadius.all(Radius.circular(sm));
@@ -69,9 +69,9 @@ abstract final class AppShadow {
   /// Soft, wide, low-opacity lift for paper cards (light mode only).
   static const List<BoxShadow> soft = [
     BoxShadow(
-      color: Color(0x0F16201B),
-      blurRadius: 18,
-      offset: Offset(0, 6),
+      color: Color(0x1416201B),
+      blurRadius: 22,
+      offset: Offset(0, 8),
     ),
   ];
 
@@ -132,17 +132,17 @@ abstract final class AppColors {
   static const Color brandTealOnDark = Color(0xFF5CC4CE);
 
   // Cool "paper" surfaces for light mode.
-  static const Color paper        = Color(0xFFF2F7F8); // scaffold
-  static const Color paperSurface = Color(0xFFFCFEFE); // cards
-  static const Color paperBorder  = Color(0xFFDAE5E8);
+  static const Color paper        = Color(0xFFF1F6F6); // scaffold
+  static const Color paperSurface = Color(0xFFFFFFFF); // cards
+  static const Color paperBorder  = Color(0xFFE0E9EB);
   static const Color inkPrimary   = Color(0xFF0F1E22); // text on paper
   static const Color inkMuted     = Color(0xFF54666B);
 
   // Deep blue-teal surfaces for dark mode.
-  static const Color darkBg          = Color(0xFF09131A);
-  static const Color darkSurface     = Color(0xFF111D24);
-  static const Color darkSurfaceHigh = Color(0xFF192830);
-  static const Color darkBorder      = Color(0xFF24363F);
+  static const Color darkBg          = Color(0xFF0F2027);
+  static const Color darkSurface     = Color(0xFF18303A);
+  static const Color darkSurfaceHigh = Color(0xFF223D49);
+  static const Color darkBorder      = Color(0xFF2F4B57);
 
   // Neutral ramp (for dark-mode scaffold / surfaces)
   static const Color neutral950 = Color(0xFF0A0A0A);

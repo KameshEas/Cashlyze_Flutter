@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/ui/constants.dart';
 import '../../../core/ui/motion.dart';
 
 /// A single setting card with icon, title, description, optional status badge, and interactive element
@@ -48,7 +49,7 @@ class _SettingCardState extends State<SettingCard> {
             color: _isHovered
                 ? theme.colorScheme.surfaceContainerHighest
                 : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: AppRadius.lgAll,
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
@@ -60,7 +61,7 @@ class _SettingCardState extends State<SettingCard> {
                   height: 40,
                   decoration: BoxDecoration(
                     color: iconColor.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.lgAll,
                   ),
                   child: Icon(widget.icon, color: iconColor, size: 20),
                 ),

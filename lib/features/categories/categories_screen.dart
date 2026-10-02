@@ -5,6 +5,7 @@ import '../../core/illustrations/app_illustration.dart';
 import '../../core/models/category.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/ui/constants.dart';
 import '../../core/ui/motion.dart';
 import '../../core/utils/repo_error_handler.dart';
 import '../../core/widgets/dialogs.dart';
@@ -67,7 +68,7 @@ class CategoriesScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Theme.of(ctx).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: AppRadius.lgAll,
                   border: Border.all(
                     color: Colors.white.withValues(alpha: 0.05),
                   ),

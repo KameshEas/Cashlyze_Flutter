@@ -165,7 +165,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 ? 'Signed in successfully!'
                 : 'Account created successfully!',
           ),
-          backgroundColor: AppColors.success,
         ),
       );
       _navigatedAway = true;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../illustrations/app_illustration.dart';
+import '../ui/constants.dart';
 
 /// Empty / failed / no-results state.
 ///
@@ -51,7 +52,7 @@ class AppEmptyState extends StatelessWidget {
                   height: 86,
                   decoration: BoxDecoration(
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.04),
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: AppRadius.xlAll,
                   ),
                   alignment: Alignment.center,
                   child: Icon(icon, size: 44, color: theme.colorScheme.primary),

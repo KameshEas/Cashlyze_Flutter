@@ -41,10 +41,10 @@ class HomeScreen extends ConsumerWidget {
         onRefresh: () => _performRefresh(context, ref),
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(
-            AppSpacing.pagePadding,
+            AppSpacing.s20,
             AppSpacing.s8,
-            AppSpacing.pagePadding,
-            AppSpacing.pagePadding,
+            AppSpacing.s20,
+            AppSpacing.s24,
           ),
           physics: const AlwaysScrollableScrollPhysics(),
           child: SafeArea(
@@ -56,29 +56,17 @@ class HomeScreen extends ConsumerWidget {
                   greeting: t?.dashboard ?? 'Dashboard',
                   l10n: t,
                   onSearch: () => context.push('/search'),
-                  onNotifications: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Notifications coming soon'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  ),
-                  onRefresh: () {
-                    try {
-                      ref.invalidate(userEMIPlansProvider);
-                      ref.invalidate(emiUpcomingProvider);
+                  onNotifications: () =>
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Refreshing EMI data')),
-                      );
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Refresh failed: $e')),
-                      );
-                    }
-                  },
+                        const SnackBar(
+                          content: Text('Notifications coming soon'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      ),
                 ),
                 const SizedBox(height: AppSpacing.s24),
                 const BalanceCard(),
-                const SizedBox(height: AppSpacing.s16),
+                const SizedBox(height: AppSpacing.s20),
                 const QuickActions(),
                 if (hasEmis) ...[
                   const SizedBox(height: AppSpacing.s24),
@@ -108,84 +96,101 @@ class HomeScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     return MotionSwitcher(
       child: upcomingAsync.when(
-      loading: () => const SkeletonListTile(key: ValueKey('emi-loading')),
-      error: (final e, final _) => Container(
-        key: const ValueKey('emi-error'),
-        padding: const EdgeInsets.all(AppSpacing.s12),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.error.withValues(alpha: 0.08),
-          borderRadius: AppRadius.lgAll,
-          border: Border.all(color: theme.colorScheme.error.withValues(alpha: 0.3)),
+        loading: () => const SkeletonListTile(key: ValueKey('emi-loading')),
+        error: (final e, final _) => Container(
+          key: const ValueKey('emi-error'),
+          padding: const EdgeInsets.all(AppSpacing.s12),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.error.withValues(alpha: 0.08),
+            borderRadius: AppRadius.lgAll,
+            border: Border.all(
+              color: theme.colorScheme.error.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Text('EMI load error: $e'),
         ),
-        child: Text('EMI load error: $e'),
-      ),
-      data: (final items) {
-        if (items.isEmpty) return const SizedBox.shrink(key: ValueKey('emi-empty'));
-        final now = DateTime.now();
-        final today = DateTime(now.year, now.month, now.day);
-        return GroupedSection(
-          key: const ValueKey('emi-data'),
-          children: [
-            for (final e in items.take(3))
-              Builder(builder: (final ctx) {
-                final dueDays = e.dueDate.difference(today).inDays;
-                final overdue = dueDays < 0;
-                return Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: theme.brightness == Brightness.dark
-                            ? AppColors.darkSurfaceHigh
-                            : AppColors.tint050,
-                        borderRadius: AppRadius.mdAll,
-                      ),
-                      child: Icon(
-                        Icons.credit_card_outlined,
-                        size: 20,
-                        color: theme.brightness == Brightness.dark ? AppColors.ocean400 : AppColors.ocean700,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.s12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            dueDays < 0
-                                ? 'Overdue'
-                                : dueDays == 0
+        data: (final items) {
+          if (items.isEmpty) {
+            return const SizedBox.shrink(key: ValueKey('emi-empty'));
+          }
+          final now = DateTime.now();
+          final today = DateTime(now.year, now.month, now.day);
+          return GroupedSection(
+            key: const ValueKey('emi-data'),
+            children: [
+              for (final e in items.take(3))
+                Builder(
+                  builder: (final ctx) {
+                    final dueDays = e.dueDate.difference(today).inDays;
+                    final overdue = dueDays < 0;
+                    return Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: theme.brightness == Brightness.dark
+                                ? AppColors.darkSurfaceHigh
+                                : AppColors.tint050,
+                            borderRadius: AppRadius.mdAll,
+                          ),
+                          child: Icon(
+                            Icons.credit_card_outlined,
+                            size: 20,
+                            color: theme.brightness == Brightness.dark
+                                ? AppColors.ocean400
+                                : AppColors.ocean700,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.s12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                dueDays < 0
+                                    ? 'Overdue'
+                                    : dueDays == 0
                                     ? 'Due today'
                                     : 'Due in $dueDays days',
-                            style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              if (overdue)
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.error_outline_rounded,
+                                      size: 14,
+                                      color: theme.colorScheme.error,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Past due date',
+                                      style: theme.textTheme.bodySmall,
+                                    ),
+                                  ],
+                                ),
+                            ],
                           ),
-                          if (overdue)
-                            Row(
-                              children: [
-                                Icon(Icons.error_outline_rounded, size: 14, color: theme.colorScheme.error),
-                                const SizedBox(width: 4),
-                                Text('Past due date', style: theme.textTheme.bodySmall),
-                              ],
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.s12),
-                    Flexible(
-                      child: AmountText(
-                        amount: -e.installment,
-                        currency: currency,
-                        color: overdue ? theme.colorScheme.error : null,
-                      ),
-                    ),
-                  ],
-                );
-              }),
-          ],
-        );
-      },
-    ),
+                        ),
+                        const SizedBox(width: AppSpacing.s12),
+                        Flexible(
+                          child: AmountText(
+                            amount: -e.installment,
+                            currency: currency,
+                            color: overdue ? theme.colorScheme.error : null,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -197,89 +202,101 @@ class HomeScreen extends ConsumerWidget {
   ) {
     return MotionSwitcher(
       child: txsAsync.when(
-      loading: () => const Column(
-        key: ValueKey('rt-loading'),
-        children: [
-          SkeletonListTile(),
-          SizedBox(height: 12),
-          SkeletonListTile(),
-          SizedBox(height: 12),
-          SkeletonListTile(),
-        ],
-      ),
-      error: (final e, final _) => Builder(
-        builder: (final ctx) {
-          final errColor = Theme.of(ctx).colorScheme.error;
-          return Container(
-            key: const ValueKey('rt-error'),
-            padding: const EdgeInsets.all(AppSpacing.s12),
-            decoration: BoxDecoration(
-              color: errColor.withValues(alpha: 0.08),
-              borderRadius: AppRadius.mdAll,
-              border: Border.all(color: errColor.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.error_outline, color: errColor),
-                const SizedBox(width: AppSpacing.s8),
-                Expanded(child: Text('Failed to load: $e')),
-              ],
-            ),
+        loading: () => const Column(
+          key: ValueKey('rt-loading'),
+          children: [
+            SkeletonListTile(),
+            SizedBox(height: 12),
+            SkeletonListTile(),
+            SizedBox(height: 12),
+            SkeletonListTile(),
+          ],
+        ),
+        error: (final e, final _) => Builder(
+          builder: (final ctx) {
+            final errColor = Theme.of(ctx).colorScheme.error;
+            return Container(
+              key: const ValueKey('rt-error'),
+              padding: const EdgeInsets.all(AppSpacing.s12),
+              decoration: BoxDecoration(
+                color: errColor.withValues(alpha: 0.08),
+                borderRadius: AppRadius.mdAll,
+                border: Border.all(color: errColor.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.error_outline, color: errColor),
+                  const SizedBox(width: AppSpacing.s8),
+                  Expanded(child: Text('Failed to load: $e')),
+                ],
+              ),
+            );
+          },
+        ),
+        data: (final items) {
+          final now = DateTime.now();
+          final monthStart = DateTime(now.year, now.month);
+          final nextMonthStart = DateTime(now.year, now.month + 1);
+          final monthItems = items
+              .where(
+                (final t) =>
+                    t.date.isAfter(
+                      monthStart.subtract(const Duration(seconds: 1)),
+                    ) &&
+                    t.date.isBefore(nextMonthStart),
+              )
+              .toList();
+
+          if (monthItems.isEmpty) {
+            final l10n = AppLocalizations.of(context);
+            return Container(
+              key: const ValueKey('rt-empty'),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                vertical: AppSpacing.s32,
+                horizontal: AppSpacing.s16,
+              ),
+              decoration: BoxDecoration(
+                borderRadius: AppRadius.lgAll,
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.receipt_long_outlined,
+                    size: 32,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
+                  const SizedBox(height: AppSpacing.s8),
+                  Text(
+                    l10n?.homeNoTransactionsMonth ??
+                        'No transactions this month',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            );
+          }
+          return GroupedSection(
+            key: const ValueKey('rt-data'),
+            children: [
+              for (final tx in monthItems.take(5))
+                RecentTransactionItem(tx: tx, currency: currency),
+            ],
           );
         },
       ),
-      data: (final items) {
-        final now = DateTime.now();
-        final monthStart = DateTime(now.year, now.month);
-        final nextMonthStart = DateTime(now.year, now.month + 1);
-        final monthItems = items
-            .where(
-              (final t) =>
-                  t.date.isAfter(
-                    monthStart.subtract(const Duration(seconds: 1)),
-                  ) &&
-                  t.date.isBefore(nextMonthStart),
-            )
-            .toList();
-
-        if (monthItems.isEmpty) {
-          final l10n = AppLocalizations.of(context);
-          return Container(
-            key: const ValueKey('rt-empty'),
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.s32, horizontal: AppSpacing.s16),
-            decoration: BoxDecoration(
-              borderRadius: AppRadius.lgAll,
-              border: Border.all(color: Theme.of(context).colorScheme.outline),
-            ),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.receipt_long_outlined,
-                  size: 32,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-                const SizedBox(height: AppSpacing.s8),
-                Text(
-                  l10n?.homeNoTransactionsMonth ?? 'No transactions this month',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
-            ),
-          );
-        }
-        return GroupedSection(
-          key: const ValueKey('rt-data'),
-          children: [
-            for (final tx in monthItems.take(5)) RecentTransactionItem(tx: tx, currency: currency),
-          ],
-        );
-      },
-    ),
     );
   }
 
-  Future<void> _performRefresh(final BuildContext context, final WidgetRef ref) async {
+  Future<void> _performRefresh(
+    final BuildContext context,
+    final WidgetRef ref,
+  ) async {
     try {
       ref.invalidate(currentMonthKpisProvider);
       ref.invalidate(recentTransactionsProvider);
@@ -320,7 +337,8 @@ class RecentTransactionItem extends StatelessWidget {
   final String currency;
 
   @override
-  Widget build(final BuildContext context) => TransactionRow(tx: tx, currency: currency);
+  Widget build(final BuildContext context) =>
+      TransactionRow(tx: tx, currency: currency);
 }
 
 /// Personalized greeting + date, and the search/notifications/refresh
@@ -332,19 +350,19 @@ class _HomeHeader extends ConsumerWidget {
     required this.l10n,
     required this.onSearch,
     required this.onNotifications,
-    required this.onRefresh,
   });
 
   final String greeting;
   final AppLocalizations? l10n;
   final VoidCallback onSearch;
   final VoidCallback onNotifications;
-  final VoidCallback onRefresh;
 
   String _greetingFor(final String name) {
     final h = DateTime.now().hour;
     if (h < 12) return l10n?.homeGreetingMorning(name) ?? 'Good morning, $name';
-    if (h < 17) return l10n?.homeGreetingAfternoon(name) ?? 'Good afternoon, $name';
+    if (h < 17) {
+      return l10n?.homeGreetingAfternoon(name) ?? 'Good afternoon, $name';
+    }
     return l10n?.homeGreetingEvening(name) ?? 'Good evening, $name';
   }
 
@@ -365,7 +383,7 @@ class _HomeHeader extends ConsumerWidget {
               Text(
                 name.isEmpty ? greeting : _greetingFor(name),
                 style: theme.textTheme.titleLarge,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: AppSpacing.s2),
@@ -373,16 +391,27 @@ class _HomeHeader extends ConsumerWidget {
             ],
           ),
         ),
-        _HeaderIconButton(icon: Icons.search_rounded, tooltip: 'Search', onPressed: onSearch),
-        _HeaderIconButton(icon: Icons.notifications_none_rounded, tooltip: 'Notifications', onPressed: onNotifications),
-        _HeaderIconButton(icon: Icons.refresh_rounded, tooltip: 'Refresh', onPressed: onRefresh),
+        _HeaderIconButton(
+          icon: Icons.search_rounded,
+          tooltip: 'Search',
+          onPressed: onSearch,
+        ),
+        _HeaderIconButton(
+          icon: Icons.notifications_none_rounded,
+          tooltip: 'Notifications',
+          onPressed: onNotifications,
+        ),
       ],
     );
   }
 }
 
 class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({required this.icon, required this.tooltip, required this.onPressed});
+  const _HeaderIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
 
   final IconData icon;
   final String tooltip;

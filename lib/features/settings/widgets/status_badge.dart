@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/ui/constants.dart';
 
 /// A small colored pill badge indicating status (Active, Disabled, etc.)
 class StatusBadge extends StatelessWidget {
@@ -24,7 +25,7 @@ class StatusBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.smAll,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/ui/constants.dart';
 
 /// A reusable delete account confirmation dialog.
 class DeleteAccountDialog extends StatefulWidget {
@@ -62,7 +63,7 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '⚠️ This action is IRREVERSIBLE!\n\n'
+              'This action is irreversible.\n\n'
               'Deleting your account will permanently remove:\n\n'
               '• Your account and login credentials\n'
               '• All transactions\n'
@@ -77,7 +78,7 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.orange.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppRadius.smAll,
               ),
               child: const Row(
                 children: [
@@ -201,7 +202,7 @@ class _ClearDataDialogState extends State<ClearDataDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '⚠️ This action is IRREVERSIBLE!\n\n'
+              'This action is irreversible.\n\n'
               'Clearing all local data will permanently remove:\n\n'
               '• All transactions\n'
               '• All budgets\n'

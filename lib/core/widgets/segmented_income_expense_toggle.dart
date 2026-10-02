@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import '../ui/constants.dart';
 import '../ui/motion.dart';
 
-/// A two-way pill toggle for Income/Expense, replacing a plain dropdown on
-/// the add/edit transaction form. Income uses the success/secondary tone,
-/// Expense uses the error tone, so the selected state doubles as a visual
-/// confirmation of which kind of transaction is being entered.
+/// A two-way segmented control for Expense / Income on the add/edit
+/// transaction form.
+///
+/// Deliberately neutral: the selected segment is a raised, hairline-bordered
+/// surface with strong text, not a red or green fill. The kind is stated by
+/// the label and the direction arrow, so it never relies on colour, and red
+/// stays reserved for errors and overspend.
 class SegmentedIncomeExpenseToggle extends StatelessWidget {
   const SegmentedIncomeExpenseToggle({
     super.key,
@@ -28,26 +31,24 @@ class SegmentedIncomeExpenseToggle extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s4),
       decoration: BoxDecoration(
-        color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-        borderRadius: AppRadius.mdAll,
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: AppRadius.lgAll,
       ),
       child: Row(
         children: [
           Expanded(
             child: _Segment(
               label: expenseLabel,
-              icon: Icons.arrow_upward_rounded,
+              icon: Icons.north_east_rounded,
               selected: !isIncome,
-              color: theme.colorScheme.error,
               onTap: () => onChanged(false),
             ),
           ),
           Expanded(
             child: _Segment(
               label: incomeLabel,
-              icon: Icons.arrow_downward_rounded,
+              icon: Icons.south_west_rounded,
               selected: isIncome,
-              color: AppColors.success,
               onTap: () => onChanged(true),
             ),
           ),
@@ -62,39 +63,49 @@ class _Segment extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.selected,
-    required this.color,
     required this.onTap,
   });
 
   final String label;
   final IconData icon;
   final bool selected;
-  final Color color;
   final VoidCallback onTap;
 
   @override
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final fg = selected ? scheme.onSurface : scheme.onSurface.withValues(alpha: 0.6);
 
-    return PressableScale(
-      onTap: onTap,
-      child: MotionSwitcher(
-        child: Container(
-          key: ValueKey(selected),
+    return Semantics(
+      button: true,
+      selected: selected,
+      inMutuallyExclusiveGroup: true,
+      child: PressableScale(
+        onTap: onTap,
+        pressedScale: 0.98,
+        child: AnimatedContainer(
+          duration: reduceMotionOf(context) ? Duration.zero : const Duration(milliseconds: 160),
           height: AppSpacing.buttonHeight - AppSpacing.s8,
           decoration: BoxDecoration(
-            color: selected ? color.withValues(alpha: 0.16) : Colors.transparent,
-            borderRadius: AppRadius.smAll,
+            color: selected ? scheme.surface : Colors.transparent,
+            borderRadius: AppRadius.mdAll,
+            border: Border.all(color: selected ? scheme.outline : Colors.transparent),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 16, color: selected ? color : theme.colorScheme.onSurface.withValues(alpha: 0.5)),
-              const SizedBox(width: AppSpacing.s4 + 2),
-              Text(
-                label,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: selected ? color : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              Icon(icon, size: 16, color: fg),
+              const SizedBox(width: AppSpacing.s8),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: fg,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  ),
                 ),
               ),
             ],

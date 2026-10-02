@@ -264,10 +264,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'categories',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const CategoriesScreen(),
-          transitionsBuilder: AppMotion.fadeThrough,
+          transitionsBuilder: AppMotion.sharedAxisX,
+          reverseTransitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialReverseDuration,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
-              : kRouteFadeDuration,
+              : AppMotion.spatialDuration,
         ),
       ),
       GoRoute(
@@ -286,10 +289,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'help_center',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const HelpCenterScreen(),
-          transitionsBuilder: AppMotion.fadeThrough,
+          transitionsBuilder: AppMotion.sharedAxisX,
+          reverseTransitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialReverseDuration,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
-              : kRouteFadeDuration,
+              : AppMotion.spatialDuration,
         ),
       ),
       GoRoute(
@@ -297,10 +303,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'search',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const SearchScreen(),
-          transitionsBuilder: AppMotion.fadeThrough,
+          transitionsBuilder: AppMotion.sharedAxisX,
+          reverseTransitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialReverseDuration,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
-              : kRouteFadeDuration,
+              : AppMotion.spatialDuration,
         ),
       ),
       GoRoute(
@@ -308,10 +317,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'emi_dashboard',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const EMIDashboardScreen(),
-          transitionsBuilder: AppMotion.fadeThrough,
+          transitionsBuilder: AppMotion.sharedAxisX,
+          reverseTransitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialReverseDuration,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
-              : kRouteFadeDuration,
+              : AppMotion.spatialDuration,
         ),
       ),
       GoRoute(
@@ -319,10 +331,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'emi_new',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const EMIFormScreen(),
-          transitionsBuilder: AppMotion.fadeThrough,
+          transitionsBuilder: AppMotion.riseIn,
+          reverseTransitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialReverseDuration,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
-              : kRouteFadeDuration,
+              : AppMotion.spatialDuration,
         ),
       ),
       GoRoute(
@@ -330,10 +345,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'goals',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const GoalsScreen(),
-          transitionsBuilder: AppMotion.fadeThrough,
+          transitionsBuilder: AppMotion.sharedAxisX,
+          reverseTransitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialReverseDuration,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
-              : kRouteFadeDuration,
+              : AppMotion.spatialDuration,
         ),
       ),
       GoRoute(
@@ -341,10 +359,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'scan',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const ScanReceiptScreen(),
-          transitionsBuilder: AppMotion.fadeThrough,
+          transitionsBuilder: AppMotion.sharedAxisX,
+          reverseTransitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialReverseDuration,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
-              : kRouteFadeDuration,
+              : AppMotion.spatialDuration,
         ),
       ),
       GoRoute(
@@ -352,10 +373,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'scan_result',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const ScanResultScreen(),
-          transitionsBuilder: AppMotion.fadeThrough,
+          transitionsBuilder: AppMotion.riseIn,
+          reverseTransitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialReverseDuration,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
-              : kRouteFadeDuration,
+              : AppMotion.spatialDuration,
         ),
       ),
       GoRoute(
@@ -363,10 +387,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'ai_assistant',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const AiAssistantScreen(),
-          transitionsBuilder: AppMotion.fadeThrough,
+          transitionsBuilder: AppMotion.sharedAxisX,
+          reverseTransitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialReverseDuration,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
-              : kRouteFadeDuration,
+              : AppMotion.spatialDuration,
         ),
       ),
     ],

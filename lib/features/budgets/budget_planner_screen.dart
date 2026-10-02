@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -88,7 +89,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: AppColors.warning.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: AppRadius.lgAll,
                   border: Border.all(
                     color: AppColors.warning.withValues(alpha: 0.3),
                   ),
@@ -263,40 +264,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       return budgetCard;
     }
 
-    return Dismissible(
-      key: ValueKey('budget_dismissible_${budget.id}'),
-      background: Container(
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: AppColors.success.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Row(
-          children: [
-            Icon(Icons.edit, color: AppColors.success),
-            SizedBox(width: 8),
-            Text('Adjust'),
-          ],
-        ),
-      ),
-      secondaryBackground: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: AppColors.error.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text('Delete'),
-            SizedBox(width: 8),
-            Icon(Icons.delete, color: AppColors.error),
-          ],
-        ),
-      ),
-      confirmDismiss: (final dir) async {
+    Future<bool> confirmAction(final DismissDirection dir) async {
         if (dir == DismissDirection.startToEnd) {
           await _openAdjustBudget(context, budget.id, budget.allocated, budget.name);
           return false;
@@ -615,8 +583,55 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           }
           return false;
         }
+      }
+
+    // Swipe is invisible to screen-reader users: expose the same actions
+    // as custom accessibility actions (TalkBack / VoiceOver actions menu).
+    return Semantics(
+      customSemanticsActions: {
+        const CustomSemanticsAction(label: 'Adjust budget'): () {
+          confirmAction(DismissDirection.startToEnd);
+        },
+        const CustomSemanticsAction(label: 'Delete budget'): () {
+          confirmAction(DismissDirection.endToStart);
+        },
       },
+      child: Dismissible(
+      key: ValueKey('budget_dismissible_${budget.id}'),
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: AppColors.success.withValues(alpha: 0.15),
+          borderRadius: AppRadius.lgAll,
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.edit, color: AppColors.success),
+            SizedBox(width: 8),
+            Text('Adjust'),
+          ],
+        ),
+      ),
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: AppColors.error.withValues(alpha: 0.15),
+          borderRadius: AppRadius.lgAll,
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Text('Delete'),
+            SizedBox(width: 8),
+            Icon(Icons.delete, color: AppColors.error),
+          ],
+        ),
+      ),
+      confirmDismiss: confirmAction,
       child: budgetCard,
+    ),
     );
   }
 
@@ -660,7 +675,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       isScrollControlled: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
       ),
       builder: (final ctx) {
         final nav = Navigator.of(ctx);
@@ -885,7 +900,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       isScrollControlled: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
       ),
       builder: (final ctx) {
         final nav = Navigator.of(ctx);
@@ -1156,7 +1171,7 @@ class _BudgetsHeroCard extends StatelessWidget {
                   children: [
                     Text('Allocated', style: theme.textTheme.labelSmall?.copyWith(color: onHero.withValues(alpha: 0.7))),
                     const SizedBox(height: AppSpacing.s4),
-                    Text(formatAmount(totalAllocated, currency), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800, color: onHero)),
+                    Text(formatAmount(totalAllocated, currency), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700, color: onHero)),
                   ],
                 ),
               ),
@@ -1167,7 +1182,7 @@ class _BudgetsHeroCard extends StatelessWidget {
                   children: [
                     Text('Spent', style: theme.textTheme.labelSmall?.copyWith(color: onHero.withValues(alpha: 0.7))),
                     const SizedBox(height: AppSpacing.s4),
-                    Text(formatAmount(totalSpent, currency), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800, color: onHero)),
+                    Text(formatAmount(totalSpent, currency), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700, color: onHero)),
                   ],
                 ),
               ),

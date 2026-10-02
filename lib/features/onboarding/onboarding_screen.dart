@@ -333,7 +333,7 @@ class _OnboardingPage extends StatelessWidget {
                       header: true,
                       child: Text(
                         spec.title(l10n),
-                        style: theme.textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.w800),
+                        style: theme.textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.w700),
                       ),
                     ),
                   ),

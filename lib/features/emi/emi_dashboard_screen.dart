@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +9,7 @@ import '../../core/models/emi.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/repositories/emi_repository.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/ui/constants.dart';
 import '../../core/ui/motion.dart';
 import '../../core/utils/format.dart';
 import '../../core/utils/repo_error_handler.dart';
@@ -145,7 +147,7 @@ class _PlanCard extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: AppRadius.lgAll,
           border: Border.all(
             color: Theme.of(
               context,
@@ -163,40 +165,7 @@ class _PlanCard extends ConsumerWidget {
             .where((final x) => !x.paid)
             .fold<double>(0, (final p, final e) => p + e.installment);
 
-        return Dismissible(
-          key: ValueKey('emi_plan_${plan.id}'),
-          background: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            alignment: Alignment.centerLeft,
-            decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.check, color: Colors.green),
-                SizedBox(width: 8),
-                Text('Mark as paid'),
-              ],
-            ),
-          ),
-          secondaryBackground: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            alignment: Alignment.centerRight,
-            decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text('Delete'),
-                SizedBox(width: 8),
-                Icon(Icons.delete, color: Colors.red),
-              ],
-            ),
-          ),
-          confirmDismiss: (final dir) async {
+        Future<bool> confirmAction(final DismissDirection dir) async {
             final messenger = ScaffoldMessenger.of(context);
             final user = ref.read(currentUserProvider);
             if (user == null) return false;
@@ -236,21 +205,67 @@ class _PlanCard extends ConsumerWidget {
               }
               return deleted;
             }
+          }
+
+        // Swipe is invisible to screen-reader users: expose the same actions
+        // as custom accessibility actions (TalkBack / VoiceOver actions menu).
+        return Semantics(
+          customSemanticsActions: {
+            const CustomSemanticsAction(label: 'Mark next installment as paid'): () {
+              confirmAction(DismissDirection.startToEnd);
+            },
+            const CustomSemanticsAction(label: 'Delete loan'): () {
+              confirmAction(DismissDirection.endToStart);
+            },
           },
+          child: Dismissible(
+          key: ValueKey('emi_plan_${plan.id}'),
+          background: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            alignment: Alignment.centerLeft,
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.12),
+              borderRadius: AppRadius.lgAll,
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.check, color: Colors.green),
+                SizedBox(width: 8),
+                Text('Mark as paid'),
+              ],
+            ),
+          ),
+          secondaryBackground: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            alignment: Alignment.centerRight,
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.12),
+              borderRadius: AppRadius.lgAll,
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text('Delete'),
+                SizedBox(width: 8),
+                Icon(Icons.delete, color: Colors.red),
+              ],
+            ),
+          ),
+          confirmDismiss: confirmAction,
           child: InkWell(
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => EMIFormScreen(initialPlan: plan),
               ),
             ),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: AppRadius.lgAll,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: AppRadius.lgAll,
                 border: Border.all(
                   color: Theme.of(
                     context,
@@ -390,9 +405,7 @@ class _PlanCard extends ConsumerWidget {
                                           color: pillColor.withValues(
                                             alpha: 0.12,
                                           ),
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
+                                          borderRadius: AppRadius.lgAll,
                                         ),
                                         child: Text(
                                           pillLabel,
@@ -454,6 +467,7 @@ class _PlanCard extends ConsumerWidget {
               ),
             ),
           ),
+        ),
         );
       },
     );

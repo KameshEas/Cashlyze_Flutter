@@ -105,10 +105,12 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
             onPressed: () =>
                 _exportInsights(context, ref, categoryBreakdownAsync, kpis),
           ),
-          _TimeRangePicker(
-            selected: selectedRange,
-            onChanged: (final r) =>
-                ref.read(selectedTimeRangeProvider.notifier).setRange(r),
+          Center(
+            child: _TimeRangePicker(
+              selected: selectedRange,
+              onChanged: (final r) =>
+                  ref.read(selectedTimeRangeProvider.notifier).setRange(r),
+            ),
           ),
           const SizedBox(width: AppSpacing.s16),
         ],
@@ -122,7 +124,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.pagePadding,
-            0,
+            AppSpacing.s12,
             AppSpacing.pagePadding,
             AppSpacing.pagePadding,
           ),
@@ -298,6 +300,7 @@ class _BaseCard extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: AppRadius.lgAll,
         border: Border.all(color: theme.colorScheme.outline),
+        boxShadow: theme.brightness == Brightness.light ? AppShadow.soft : null,
       ),
       child: child,
     );
@@ -337,9 +340,9 @@ class _TimeRangePicker extends StatelessWidget {
             onTap: () => onChanged(r),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 180),
-              constraints: const BoxConstraints(minWidth: 44, minHeight: 36),
+              constraints: const BoxConstraints(minWidth: 44, minHeight: 34),
               alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
                 color: isSelected
                     ? theme.colorScheme.primary
@@ -569,6 +572,7 @@ class _ForecastCard extends StatelessWidget {
               ],
             ),
           ),
+          if (lastMonth != 0)
           Container(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.s8,

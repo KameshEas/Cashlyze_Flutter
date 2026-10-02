@@ -55,12 +55,10 @@ CategoryStyle categoryStyleFor(final String? name, {final bool isIncome = false}
       : const CategoryStyle(Icons.category_rounded, Color(0xFF1C7ED6));
 }
 
-/// Calm category glyph for lists: a neutral rounded square with a muted
-/// icon. Per-category colour is deliberately NOT used here (a rainbow of
-/// tiles reads as playful and slows scanning); it is kept for charts and
-/// legend dots via [categoryStyleFor].
+/// Category glyph for lists: a rounded tile tinted with the category's own
+/// colour and a matching icon, so rows are quick to tell apart at a glance.
 class CategoryGlyph extends StatelessWidget {
-  const CategoryGlyph({super.key, required this.style, this.size = 40});
+  const CategoryGlyph({super.key, required this.style, this.size = 44});
 
   final CategoryStyle style;
   final double size;
@@ -68,19 +66,14 @@ class CategoryGlyph extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurfaceHigh : AppColors.tint050,
+        color: style.tint(theme.brightness),
         borderRadius: AppRadius.mdAll,
       ),
-      child: Icon(
-        style.icon,
-        size: size * 0.5,
-        color: isDark ? AppColors.ocean400 : AppColors.ocean700,
-      ),
+      child: Icon(style.icon, size: size * 0.5, color: style.color),
     );
   }
 }

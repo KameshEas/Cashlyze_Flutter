@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/branding/flow_backdrop.dart';
 import '../../../core/providers/insights_providers.dart';
 import '../../../core/providers/shared_prefs_provider.dart';
 import '../../../core/ui/constants.dart';
@@ -8,9 +9,8 @@ import '../../../core/ui/finance_style.dart';
 import '../../../core/utils/format.dart';
 import '../../../l10n/app_localizations.dart';
 
-/// The month's net position: one flat, solid surface with a single large
-/// figure and a hairline-separated Income | Expense pair. No gradients, arcs
-/// or glow — the number is the design.
+/// The month's net position: a teal gradient card with the brand's flowing
+/// arcs, one large figure, and Income | Expense in two tinted pills.
 class BalanceCard extends ConsumerWidget {
   const BalanceCard({super.key});
 
@@ -23,7 +23,7 @@ class BalanceCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
 
     const onHero = Colors.white;
-    final muted = onHero.withValues(alpha: 0.72);
+    final muted = onHero.withValues(alpha: 0.78);
     final label = theme.textTheme.labelMedium?.copyWith(color: muted, fontWeight: FontWeight.w600);
 
     return Semantics(
@@ -31,102 +31,128 @@ class BalanceCard extends ConsumerWidget {
       label: '${l10n?.homeNetBalance ?? 'Net balance'}, ${status.message}',
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(AppSpacing.s20),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: AppColors.ocean800,
-          borderRadius: AppRadius.lgAll,
-          border: Border.all(color: onHero.withValues(alpha: 0.08)),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.ocean600, AppColors.ocean800],
+          ),
+          borderRadius: AppRadius.xlAll,
+          boxShadow: AppShadow.brand(AppColors.ocean700),
         ),
-        child: ExcludeSemantics(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(child: Text(l10n?.homeNetBalance ?? 'Net balance', style: label)),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      borderRadius: AppRadius.smAll,
-                      border: Border.all(color: onHero.withValues(alpha: 0.24)),
+        child: Stack(
+          children: [
+            const Positioned.fill(child: FlowArcs()),
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.s24),
+              child: ExcludeSemantics(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            l10n?.homeNetBalance ?? 'Net balance',
+                            style: label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.s8),
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: onHero.withValues(alpha: 0.16),
+                              borderRadius: AppRadius.fullAll,
+                            ),
+                            child: Text(
+                              l10n?.homeThisMonth ?? 'This month',
+                              style: label?.copyWith(color: onHero),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    child: Text(l10n?.homeThisMonth ?? 'This month', style: label),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.s12),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: AmountText(
-                  key: ValueKey(kpis.net),
-                  amount: kpis.net,
-                  currency: currency,
-                  showSign: kpis.net < 0,
-                  alignment: Alignment.centerLeft,
-                  color: onHero,
-                  incomeColor: onHero,
-                  style: theme.textTheme.displayMedium?.copyWith(
-                    color: onHero,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -0.5,
-                  ),
+                    const SizedBox(height: AppSpacing.s16),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: AmountText(
+                        key: ValueKey(kpis.net),
+                        amount: kpis.net,
+                        currency: currency,
+                        showSign: kpis.net < 0,
+                        alignment: Alignment.centerLeft,
+                        color: onHero,
+                        incomeColor: onHero,
+                        style: theme.textTheme.displayMedium?.copyWith(
+                          color: onHero,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.s8),
+                    Row(
+                      children: [
+                        Icon(
+                          status.isPositive ? Icons.check_circle_rounded : Icons.error_rounded,
+                          size: 16,
+                          color: status.isPositive ? kIncomeOnHero : const Color(0xFFFFB4B4),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            status.message,
+                            style: theme.textTheme.bodySmall?.copyWith(color: muted),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.s20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _Pill(
+                            icon: Icons.south_west_rounded,
+                            label: l10n?.income ?? 'Income',
+                            amount: kpis.income,
+                            currency: currency,
+                            labelStyle: label,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.s12),
+                        Expanded(
+                          child: _Pill(
+                            icon: Icons.north_east_rounded,
+                            label: l10n?.expense ?? 'Expense',
+                            amount: -kpis.expense.abs(),
+                            currency: currency,
+                            labelStyle: label,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.s4),
-              Row(
-                children: [
-                  Icon(
-                    status.isPositive ? Icons.check_circle_outline_rounded : Icons.error_outline_rounded,
-                    size: 16,
-                    color: status.isPositive ? kIncomeOnHero : const Color(0xFFFFB4B4),
-                  ),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      status.message,
-                      style: theme.textTheme.bodySmall?.copyWith(color: muted),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.s16),
-              Container(height: 1, color: onHero.withValues(alpha: 0.16)),
-              const SizedBox(height: AppSpacing.s16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _Figure(
-                      icon: Icons.south_west_rounded,
-                      label: l10n?.income ?? 'Income',
-                      amount: kpis.income,
-                      currency: currency,
-                      labelStyle: label,
-                    ),
-                  ),
-                  Container(width: 1, height: 36, color: onHero.withValues(alpha: 0.16)),
-                  const SizedBox(width: AppSpacing.s16),
-                  Expanded(
-                    child: _Figure(
-                      icon: Icons.north_east_rounded,
-                      label: l10n?.expense ?? 'Expense',
-                      amount: -kpis.expense.abs(),
-                      currency: currency,
-                      labelStyle: label,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _Figure extends StatelessWidget {
-  const _Figure({
+/// A tinted glass pill holding one figure (Income or Expense).
+class _Pill extends StatelessWidget {
+  const _Pill({
     required this.icon,
     required this.label,
     required this.amount,
@@ -143,26 +169,34 @@ class _Figure extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 14, color: labelStyle?.color),
-            const SizedBox(width: 4),
-            Flexible(child: Text(label, style: labelStyle, overflow: TextOverflow.ellipsis)),
-          ],
-        ),
-        const SizedBox(height: 4),
-        AmountText(
-          amount: amount,
-          currency: currency,
-          alignment: Alignment.centerLeft,
-          color: Colors.white,
-          incomeColor: kIncomeOnHero,
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, color: Colors.white),
-        ),
-      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: AppRadius.lgAll,
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 14, color: labelStyle?.color),
+              const SizedBox(width: 4),
+              Flexible(child: Text(label, style: labelStyle, overflow: TextOverflow.ellipsis)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          AmountText(
+            amount: amount,
+            currency: currency,
+            alignment: Alignment.centerLeft,
+            color: Colors.white,
+            incomeColor: kIncomeOnHero,
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: Colors.white),
+          ),
+        ],
+      ),
     );
   }
 }

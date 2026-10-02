@@ -187,5 +187,6 @@
   "tryAgain": "फिर से कोशिश करें",
   "offlineBanner": "आप ऑफ़लाइन हैं। कुछ सुविधाएँ उपलब्ध नहीं हो सकतीं।",
   "scanReadingTitle": "आपकी रसीद पढ़ी जा रही है",
-  "scanReadingBody": "बस एक पल लगेगा।"
+  "scanReadingBody": "बस एक पल लगेगा।",
+  "transactionsEmptyHint": "अपना पहला लेन-देन जोड़ें और देखें कि आपका पैसा कहाँ जाता है।"
 }

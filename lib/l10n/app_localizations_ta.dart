@@ -622,4 +622,8 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get scanReadingBody => 'ஒரு நொடி மட்டுமே ஆகும்.';
+
+  @override
+  String get transactionsEmptyHint =>
+      'உங்கள் பணம் எங்கே செல்கிறது என்பதைக் காண முதல் பரிவர்த்தனையைச் சேர்க்கவும்.';
 }
