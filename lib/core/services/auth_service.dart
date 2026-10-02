@@ -1,5 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,10 +22,16 @@ const _kUserEmail = 'auth_user_email';
 /// Provides the [AuthService] singleton. Depends on [apiClientProvider] and
 /// [secureStorageServiceProvider] so those must be in scope.
 final authServiceProvider = Provider<AuthService>((final ref) {
-  return AuthService(
+  final service = AuthService(
     authDataSource: ref.watch(authRemoteDataSourceProvider),
     secureStorage: ref.watch(secureStorageServiceProvider),
   );
+  dbg('[AUTHDBG] authServiceProvider create ${identityHashCode(service)}');
+  ref.onDispose(() {
+    dbg('[AUTHDBG] authServiceProvider dispose ${identityHashCode(service)}');
+    service.dispose();
+  });
+  return service;
 });
 
 /// Stream of the authenticated [AuthUser].  Emits `null` when signed out.
@@ -31,6 +40,7 @@ final authServiceProvider = Provider<AuthService>((final ref) {
 /// is synchronous (via a seeded broadcast controller) so route guards never
 /// see a spurious loading state on cold start.
 final authStateChangesProvider = StreamProvider<AuthUser?>((final ref) {
+  dbg('[AUTHDBG] authStateChangesProvider build');
   return ref.watch(authServiceProvider).authStateChanges;
 });
 
@@ -51,8 +61,10 @@ class AuthService {
   AuthService({
     required final AuthRemoteDataSource authDataSource,
     required final SecureStorageService secureStorage,
+    final Duration startupReadTimeout = defaultStartupReadTimeout,
   })  : _auth = authDataSource,
-        _storage = secureStorage {
+        _storage = secureStorage,
+        _startupReadTimeout = startupReadTimeout {
     _init();
   }
 
@@ -72,9 +84,10 @@ class AuthService {
   bool _hasLast = false;
 
   void _emit(final AuthUser? user) {
+    dbg('[AUTHDBG] emit ${user?.email}');
     _last = user;
     _hasLast = true;
-    _controller.add(user);
+    if (!_controller.isClosed) _controller.add(user);
   }
 
   /// Public stream of auth state changes. Replays the most recent value to
@@ -94,12 +107,50 @@ class AuthService {
     _forcedLogoutSub = forcedLogoutEvents.stream.listen((final _) => forceSignOutLocally());
   }
 
+  /// How long the cold-start read of the saved session may take before we
+  /// give up and treat the user as signed out. Secure storage is backed by the
+  /// Android Keystore, which can stall or throw (for example when an
+  /// auto-backup restore brings back encrypted data without its key). Without
+  /// this bound the router waited on the loading screen forever.
+  static const Duration defaultStartupReadTimeout = Duration(seconds: 6);
+  final Duration _startupReadTimeout;
+
+  Timer? _startupTimer;
+
   Future<void> _emitCurrentUser() async {
-    final token = await _storage.getAuthToken();
-    if (token != null) {
-      final user = await _loadCachedUser();
-      _emit(user);
-    } else {
+    dbg('[AUTHDBG] emitCurrentUser start');
+    // A hand-rolled bound (rather than Future.timeout) so the timer can be
+    // cancelled the moment the read finishes or the service is disposed, and
+    // never lingers past either.
+    final read = Completer<String?>();
+    _startupTimer = Timer(_startupReadTimeout, () {
+      if (!read.isCompleted) read.completeError(TimeoutException('secure storage read', _startupReadTimeout));
+    });
+    unawaited(_storage.getAuthToken().then(
+      (final token) {
+        if (!read.isCompleted) read.complete(token);
+      },
+      onError: (final Object e, final StackTrace st) {
+        if (!read.isCompleted) read.completeError(e, st);
+      },
+    ));
+    try {
+      final token = await read.future;
+      dbg('[AUTHDBG] token read, present=${token != null}');
+      _startupTimer?.cancel();
+      if (token != null) {
+        final user = await _loadCachedUser();
+        dbg('[AUTHDBG] cached user ${user?.email}');
+        _emit(user);
+      } else {
+        _emit(null);
+      }
+    } catch (e) {
+      dbg('[AUTHDBG] startup read failed: $e');
+      // Unreadable or unresponsive storage: fall back to signed-out so the
+      // user reaches the login screen instead of a loading screen that never
+      // resolves. A fresh sign-in rewrites the session.
+      _startupTimer?.cancel();
       _emit(null);
     }
   }
@@ -218,7 +269,17 @@ class AuthService {
   }
 
   void dispose() {
+    _startupTimer?.cancel();
     _forcedLogoutSub?.cancel();
     _controller.close();
   }
+}
+
+/// TEMPORARY: append a timestamped line to the app's files dir so startup can
+/// be traced on a device whose logcat drops Flutter logs.
+void dbg(final String message) {
+  try {
+    File('/data/user/0/com.aspiredesignovation.cashlyze/files/dbg.log')
+        .writeAsStringSync('${DateTime.now().toIso8601String()} $message\n', mode: FileMode.append);
+  } catch (_) {}
 }

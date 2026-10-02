@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cashlyze/core/models/auth_user.dart';
 import 'package:cashlyze/core/services/auth_service.dart';
 import 'package:cashlyze/core/services/secure_storage_service.dart';
@@ -11,6 +13,19 @@ class _FakeStorage extends Fake implements SecureStorageService {
 
   @override
   Future<String?> getAuthToken() async => token;
+}
+
+/// Secure storage whose read throws (e.g. Keystore key missing after a backup
+/// restore).
+class _ThrowingStorage extends Fake implements SecureStorageService {
+  @override
+  Future<String?> getAuthToken() async => throw Exception('keystore unavailable');
+}
+
+/// Secure storage whose read never completes (e.g. a stalled Keystore call).
+class _HangingStorage extends Fake implements SecureStorageService {
+  @override
+  Future<String?> getAuthToken() => Completer<String?>().future;
 }
 
 class _FakeRemote extends Fake implements AuthRemoteDataSource {}
@@ -54,6 +69,36 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 50));
     expect(seen.length, 1);
     expect(seen.single?.userId, 'u1');
+
+    await sub.cancel();
+    service.dispose();
+  });
+
+  test('storage that throws falls back to signed-out instead of hanging', () async {
+    SharedPreferences.setMockInitialValues({'auth_user_id': 'u1', 'auth_user_email': 'a@b.com'});
+    final service = AuthService(authDataSource: _FakeRemote(), secureStorage: _ThrowingStorage());
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    final first = await service.authStateChanges.first.timeout(const Duration(seconds: 2));
+    expect(first, isNull);
+    service.dispose();
+  });
+
+  test('storage that never answers resolves to signed-out after the startup timeout', () async {
+    SharedPreferences.setMockInitialValues({'auth_user_id': 'u1', 'auth_user_email': 'a@b.com'});
+    final service = AuthService(
+      authDataSource: _FakeRemote(),
+      secureStorage: _HangingStorage(),
+      startupReadTimeout: const Duration(milliseconds: 150),
+    );
+    final seen = <AuthUser?>[];
+    final sub = service.authStateChanges.listen(seen.add);
+
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    expect(seen, isEmpty, reason: 'still waiting on storage');
+
+    await Future<void>.delayed(const Duration(milliseconds: 250)); // past the bound
+    expect(seen, [null]);
 
     await sub.cancel();
     service.dispose();

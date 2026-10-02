@@ -434,6 +434,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       final isOtp = state.matchedLocation.startsWith('/otp');
 
       final isLoadingRoute = state.matchedLocation == '/loading';
+      dbg('[AUTHDBG] redirect loc=${state.matchedLocation} authLoading=${authState.isLoading} user=${currentUser?.email} hasValue=${authState.hasValue} err=${authState.hasError}');
 
       // If auth state is still resolving, show the loader route so the
       // user doesn't briefly land on the login page before the router

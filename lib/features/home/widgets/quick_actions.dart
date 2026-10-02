@@ -7,14 +7,13 @@ import '../../../core/ui/motion.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../transactions/transaction_form_sheet.dart';
 
-/// Home's shortcuts, as one light row with no card chrome.
+/// Home's shortcuts, as one light, uniform row with no card chrome.
 ///
-/// Hierarchy carries the meaning instead of colour: the two money actions
-/// people use every day (Expense, Top-up) are solid brand buttons; the three
-/// occasional ones (EMI, Budget, Scan) are quiet tonal buttons. Labels are
-/// short and single-line (they scale down rather than wrap, so the row never
-/// goes uneven), and the buttons shrink on narrow phones instead of
-/// overflowing.
+/// All five are the same quiet tonal button: colour and weight don't rank them,
+/// the labels do. Expense and Top-up use a custom coin-on-the-flow-wave mark
+/// (a minus or a plus in the coin) from the illustration family instead of
+/// generic arrows. Labels are short and single-line (they scale down rather
+/// than wrap), and the buttons shrink on narrow phones instead of overflowing.
 class QuickActions extends ConsumerWidget {
   const QuickActions({super.key});
 
@@ -58,18 +57,16 @@ class QuickActions extends ConsumerWidget {
 
   List<_QuickAction> _buildActions(final AppLocalizations? t) => [
     _QuickAction(
-      icon: Icons.north_east_rounded,
+      coin: _CoinSign.minus,
       label: t?.expense ?? 'Expense',
       semanticLabel: 'Add expense',
       type: 'Expense',
-      primary: true,
     ),
     _QuickAction(
-      icon: Icons.south_west_rounded,
+      coin: _CoinSign.plus,
       label: t?.quickTopUp ?? 'Top-up',
       semanticLabel: 'Add income',
       type: 'Income',
-      primary: true,
     ),
     const _QuickAction(
       icon: Icons.payments_outlined,
@@ -170,13 +167,12 @@ class _ActionButton extends StatelessWidget {
     final scheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    // Solid brand for the daily money actions; quiet tint for the rest. The
-    // icon on the tint uses the lighter brand tone in dark mode so it stays
-    // readable (colorScheme.primary is a fill colour there).
-    final background = action.primary ? scheme.primary : scheme.primaryContainer;
-    final foreground = action.primary
-        ? scheme.onPrimary
-        : (isDark ? AppColors.ocean400 : AppColors.ocean700);
+    // One quiet tonal style for all five. The icon uses the lighter brand tone
+    // in dark mode so it stays readable (colorScheme.primary is a fill colour
+    // there).
+    final background = scheme.primaryContainer;
+    final foreground = isDark ? AppColors.ocean400 : AppColors.ocean700;
+    final iconSize = size * 0.5;
 
     return Semantics(
       label: action.semanticLabel,
@@ -198,7 +194,10 @@ class _ActionButton extends StatelessWidget {
                   color: background,
                   borderRadius: BorderRadius.circular(size * 0.34),
                 ),
-                child: Icon(action.icon, size: size * 0.46, color: foreground),
+                alignment: Alignment.center,
+                child: action.coin != null
+                    ? _CoinIcon(sign: action.coin!, color: foreground, size: iconSize)
+                    : Icon(action.icon, size: iconSize, color: foreground),
               ),
               const SizedBox(height: AppSpacing.s8),
               // Scales down instead of wrapping or truncating, so every label
@@ -214,8 +213,8 @@ class _ActionButton extends StatelessWidget {
                     action.label,
                     maxLines: 1,
                     style: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: action.primary ? FontWeight.w700 : FontWeight.w600,
-                      color: scheme.onSurface.withValues(alpha: action.primary ? 0.92 : 0.78),
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurface.withValues(alpha: 0.82),
                     ),
                   ),
                 ),
@@ -228,18 +227,19 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-/// Internal model for a quick action item.
+/// Internal model for a quick action item. Either an [icon] or a [coin] mark.
 class _QuickAction {
   const _QuickAction({
-    required this.icon,
+    this.icon,
+    this.coin,
     required this.label,
     required this.semanticLabel,
     this.type,
     this.route,
-    this.primary = false,
-  });
+  }) : assert(icon != null || coin != null, 'an action needs an icon or a coin mark');
 
-  final IconData icon;
+  final IconData? icon;
+  final _CoinSign? coin;
 
   /// Short visible label.
   final String label;
@@ -248,7 +248,71 @@ class _QuickAction {
   final String semanticLabel;
   final String? type;
   final String? route;
+}
 
-  /// A daily money action (solid) rather than an occasional shortcut (tonal).
-  final bool primary;
+/// Which sign sits in the coin.
+enum _CoinSign { minus, plus }
+
+/// A solid coin above the logo's flow wave, with a minus (money out) or a plus
+/// (money in) knocked out of it. Same visual language as the illustration
+/// family (round caps, the wave baseline), and a solid disc so it carries the
+/// same visual weight as the other filled icons in the row. Drawn on a 24-unit
+/// grid and scaled, so it stays crisp at any size.
+class _CoinIcon extends StatelessWidget {
+  const _CoinIcon({required this.sign, required this.color, required this.size});
+
+  final _CoinSign sign;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(final BuildContext context) => CustomPaint(
+        size: Size.square(size),
+        painter: _CoinPainter(sign: sign, color: color),
+      );
+}
+
+class _CoinPainter extends CustomPainter {
+  const _CoinPainter({required this.sign, required this.color});
+
+  final _CoinSign sign;
+  final Color color;
+
+  @override
+  void paint(final Canvas canvas, final Size size) {
+    canvas.scale(size.width / 24);
+    const centre = Offset(12, 9.5);
+
+    // Solid coin with the sign cut out of it.
+    final coin = Path()..addOval(Rect.fromCircle(center: centre, radius: 7.4));
+    RRect bar(final double w, final double h) => RRect.fromRectAndRadius(
+          Rect.fromCenter(center: centre, width: w, height: h),
+          Radius.circular(h / 2),
+        );
+    final sign = Path()..addRRect(bar(8, 2.4));
+    if (this.sign == _CoinSign.plus) {
+      sign.addRRect(bar(2.4, 8));
+    }
+    canvas.drawPath(
+      Path.combine(PathOperation.difference, coin, sign),
+      Paint()..color = color,
+    );
+
+    // The flow wave beneath it.
+    final wave = Path()
+      ..moveTo(4, 21.2)
+      ..cubicTo(7, 19.2, 9.2, 23.2, 12, 21.2)
+      ..cubicTo(14.8, 19.2, 17, 23.2, 20, 21.2);
+    canvas.drawPath(
+      wave,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.8
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(final _CoinPainter old) => old.sign != sign || old.color != color;
 }

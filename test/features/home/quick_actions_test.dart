@@ -50,57 +50,59 @@ Future<void> _pump(
   await tester.pumpAndSettle();
 }
 
-Color _buttonColor(final WidgetTester tester, final IconData icon) {
-  final container = tester.widget<Container>(
-    find.ancestor(of: find.byIcon(icon), matching: find.byType(Container)).first,
-  );
-  return (container.decoration! as BoxDecoration).color!;
-}
+const _labels = ['Expense', 'Top-up', 'EMI', 'Budget', 'Scan'];
+
+/// The rounded-square button above a label.
+Finder _button(final String label) => find
+    .descendant(
+      of: find.ancestor(of: find.text(label), matching: find.byType(GestureDetector)).first,
+      matching: find.byType(Container),
+    )
+    .first;
+
+Color _buttonColor(final WidgetTester tester, final String label) =>
+    (tester.widget<Container>(_button(label)).decoration! as BoxDecoration).color!;
+
+/// The custom coin marks (Expense, Top-up).
+Finder get _coinMarks => find.byWidgetPredicate(
+      (final w) => w is CustomPaint && w.painter.runtimeType.toString() == '_CoinPainter',
+    );
 
 void main() {
   testWidgets('shows the five actions with short one-line labels', (final tester) async {
     await _pump(tester);
-    for (final label in ['Expense', 'Top-up', 'EMI', 'Budget', 'Scan']) {
+    for (final label in _labels) {
       expect(find.text(label), findsOneWidget);
     }
   });
 
-  testWidgets('daily money actions are solid, occasional ones are tonal', (final tester) async {
+  testWidgets('all five are the same quiet tonal button: no ranking by colour', (final tester) async {
     await _pump(tester);
-    expect(_buttonColor(tester, Icons.north_east_rounded), _scheme.primary);
-    expect(_buttonColor(tester, Icons.south_west_rounded), _scheme.primary);
-    expect(_buttonColor(tester, Icons.payments_outlined), _scheme.primaryContainer);
-    expect(_buttonColor(tester, Icons.donut_small_rounded), _scheme.primaryContainer);
-    expect(_buttonColor(tester, Icons.document_scanner_outlined), _scheme.primaryContainer);
+    final colors = {for (final l in _labels) _buttonColor(tester, l)};
+    expect(colors, {_scheme.primaryContainer});
   });
 
-  testWidgets('no action is colour-coded beyond the two tiers', (final tester) async {
+  testWidgets('Expense and Top-up use the coin mark, not arrows', (final tester) async {
     await _pump(tester);
-    final colors = {
-      for (final i in [
-        Icons.north_east_rounded,
-        Icons.south_west_rounded,
-        Icons.payments_outlined,
-        Icons.donut_small_rounded,
-        Icons.document_scanner_outlined,
-      ])
-        _buttonColor(tester, i),
-    };
-    expect(colors, {_scheme.primary, _scheme.primaryContainer});
+    expect(find.byIcon(Icons.north_east_rounded), findsNothing);
+    expect(find.byIcon(Icons.south_west_rounded), findsNothing);
+    expect(_coinMarks, findsNWidgets(2));
+    // Inside the Expense and Top-up buttons specifically.
+    expect(find.descendant(of: _button('Expense'), matching: _coinMarks), findsOneWidget);
+    expect(find.descendant(of: _button('Top-up'), matching: _coinMarks), findsOneWidget);
+    expect(find.descendant(of: _button('EMI'), matching: _coinMarks), findsNothing);
+  });
+
+  testWidgets('the other three keep their icons', (final tester) async {
+    await _pump(tester);
+    expect(find.byIcon(Icons.payments_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.donut_small_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.document_scanner_outlined), findsOneWidget);
   });
 
   testWidgets('every button is the same size and sits on one baseline', (final tester) async {
     await _pump(tester);
-    final rects = [
-      for (final i in [
-        Icons.north_east_rounded,
-        Icons.south_west_rounded,
-        Icons.payments_outlined,
-        Icons.donut_small_rounded,
-        Icons.document_scanner_outlined,
-      ])
-        tester.getRect(find.ancestor(of: find.byIcon(i), matching: find.byType(Container)).first),
-    ];
+    final rects = [for (final l in _labels) tester.getRect(_button(l))];
     for (final r in rects) {
       expect(r.width, closeTo(56, 0.01));
       expect(r.height, closeTo(56, 0.01));
@@ -160,7 +162,7 @@ void main() {
 
   testWidgets('buttons shrink on a narrow phone but stay tappable', (final tester) async {
     await _pump(tester, size: const Size(320, 640));
-    final w = tester.getSize(find.ancestor(of: find.byIcon(Icons.north_east_rounded), matching: find.byType(Container)).first).width;
+    final w = tester.getSize(_button('Expense')).width;
     expect(w, lessThan(56));
     expect(w, greaterThanOrEqualTo(44));
   });
