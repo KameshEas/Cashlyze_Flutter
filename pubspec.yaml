@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.5+12
+version: 1.0.5+17
 
 environment:
   sdk: ^3.10.1
@@ -40,18 +40,24 @@ dependencies:
   dio: ^5.9.0
   fl_chart: ^1.1.1
   lottie: ^3.3.2
+  flutter_svg: ^2.2.1
   intl: ^0.20.2
   firebase_analytics: ^12.0.0
   flutter_localizations:
     sdk: flutter
   onesignal_flutter: ^5.4.5
   flutter_local_notifications: ^21.0.0
+  # Android App Links: routes an incoming https://<domain>/l/{code} click
+  # straight into the app while it's already running or cold-starting.
+  app_links: ^7.0.0
+  # Reads the Play Store install referrer once, so a deep link clicked
+  # before the app was installed still reaches its destination afterward.
+  play_install_referrer: ^0.5.0
   
   google_sign_in: ^6.2.1
   googleapis: ^13.2.0
   path_provider: ^2.1.4
   share_plus: ^10.1.0
-  file_picker: ^8.0.0
   image_picker: ^1.1.2
   google_mlkit_text_recognition: ^0.14.0
   
@@ -74,12 +80,15 @@ dependencies:
 
   # Offline queue & sync
   sqlite_async: ^0.11.0
-  workmanager: ^0.7.0
 
   riverpod: any
   http: any
   crypto: any
   firebase_core: any
+
+  # Requests the device's max refresh rate on Android (90/120Hz) instead of
+  # defaulting to 60Hz - see main.dart's `_appRunner`.
+  flutter_displaymode: ^0.6.0
 dev_dependencies:
   sentry_dart_plugin: ^3.2.1
   flutter_test:
@@ -97,24 +106,27 @@ dev_dependencies:
   flutter_launcher_icons: ^0.13.1
   mockito: ^5.4.4
   build_runner: ^2.4.9
-
-  google_fonts: any
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: assets/logo_icon.png
+  # Square teal tile from the brand kit — the wordmark lockup used as
+  # assets/logo_icon.png is a wide banner and illegible once scaled down
+  # to launcher-icon sizes.
+  image_path: assets/branding/cashlyze_app_icon.png
   min_sdk_android: 21
+  # App Store rejects icons carrying an alpha channel, even fully opaque.
+  remove_alpha_ios: true
   web:
     generate: true
-    image_path: assets/logo_icon.png
-    background_color: "#ffffff"
-    theme_color: "#ffffff"
+    image_path: assets/branding/cashlyze_app_icon.png
+    background_color: "#228992"
+    theme_color: "#228992"
   windows:
     generate: true
-    image_path: assets/logo_icon.png
+    image_path: assets/branding/cashlyze_app_icon.png
   macos:
     generate: true
-    image_path: assets/logo_icon.png
+    image_path: assets/branding/cashlyze_app_icon.png
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -130,7 +142,31 @@ flutter:
 
   assets:
     - assets/logo_icon.png
+    - assets/branding/cashlyze_logo_primary.svg
+    - assets/branding/cashlyze_logo_white.svg
+    - assets/animations/goal_complete.json
+    - assets/aspire-services.json
     - shorebird.yaml
+    - .env
+    - assets/fonts/OFL.txt
+
+  # Geist is the app's single typeface (docs/redesign/09). Bundled, not fetched
+  # at runtime, so every amount and the rupee sign render correctly on the first
+  # offline launch. Static instances of the official variable font (SIL OFL,
+  # see assets/fonts/OFL.txt) for the weights the app uses.
+  fonts:
+    - family: Geist
+      fonts:
+        - asset: assets/fonts/Geist-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Geist-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Geist-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Geist-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Geist-ExtraBold.ttf
+          weight: 800
 
   # To add assets to your application, add an assets section, like this:
   # assets:

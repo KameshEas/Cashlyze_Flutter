@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+
+import '../config/env_config.dart';
 // Note: We intentionally avoid calling OneSignal SDK methods here because
 // the app initializes OneSignal in `main.dart` and server-side delivery
 // should be preferred. This service will attempt REST delivery when a
@@ -36,7 +38,7 @@ class NotificationService {
     final body = '$budgetName budget reached ${utilPercent.toStringAsFixed(0)}% of allocated (threshold ${(thresholdPercent * 100).toStringAsFixed(0)}%). Allocated: ${allocated.toStringAsFixed(2)}, Spent: ${spent.toStringAsFixed(2)}.';
 
     // Prefer server-side REST API when REST key available.
-    if (restKey != null && restKey!.isNotEmpty && userPlayerId.isNotEmpty) {
+    if (appId.isNotEmpty && restKey != null && restKey!.isNotEmpty && userPlayerId.isNotEmpty) {
       final url = Uri.parse('https://onesignal.com/api/v1/notifications');
       final payload = {
         'app_id': appId,
@@ -76,7 +78,8 @@ class NotificationService {
 }
 
 final notificationServiceProvider = Provider<NotificationService>((final ref) {
-  final appId = dotenv.env['ONESIGNAL_APP_ID'] ?? '37af7f2d-22d4-4eac-972b-50cb1377fbb8';
+  // Empty when the build has no OneSignal App ID; the REST path is then skipped.
+  final appId = EnvConfig.oneSignalAppId ?? '';
   final restKey = dotenv.env['ONESIGNAL_REST_KEY'];
   return NotificationService(appId: appId, restKey: restKey);
 });

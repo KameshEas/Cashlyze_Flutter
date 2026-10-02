@@ -15,6 +15,11 @@ import '../../core/repositories/transaction_repository.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/drive_backup_service.dart';
+import '../../core/ui/constants.dart';
+import '../../core/ui/finance_style.dart';
+import '../../core/utils/repo_error_handler.dart';
+import '../../core/widgets/dialogs.dart';
+import '../../core/widgets/inline_field_error.dart';
 import '../../features/auth/data/auth_remote_data_source.dart';
 import '../../l10n/app_localizations.dart';
 import '../../routes/app_router.dart';
@@ -30,67 +35,61 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  /// Enhanced section card with better visual hierarchy, spacing, and icons
+  /// Settings group: a small section label above one flat, hairline-bordered
+  /// surface holding the group's rows ([icon] is kept for call-site
+  /// compatibility; the serious layout uses text-only group labels).
   Widget sectionCard(final IconData icon, final String title, final List<Widget> children, {final String? description}) {
     final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Enhanced header with larger icon and better typography
-          Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
+              SectionLabel(title, padding: EdgeInsets.zero),
+              if (description != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  description,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.66),
+                  ),
                 ),
-                child: Icon(icon, size: 24, color: theme.colorScheme.primary),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (description != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        description,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
+              ],
             ],
           ),
-          const SizedBox(height: 16),
-          ...children,
-        ],
-      ),
+        ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s4),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: AppRadius.lgAll,
+            border: Border.all(color: theme.colorScheme.outline),
+            boxShadow: theme.brightness == Brightness.light ? AppShadow.soft : null,
+          ),
+          child: Column(children: children),
+        ),
+      ],
+    );
+  }
+
+  /// Neutral icon tile shared by settings rows; only destructive rows keep
+  /// the error tone so colour means "careful".
+  Widget _iconTile(final IconData icon, {final bool danger = false}) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final fg = danger ? theme.colorScheme.error : (isDark ? AppColors.ocean400 : AppColors.ocean700);
+    final bg = danger
+        ? theme.colorScheme.error.withValues(alpha: 0.10)
+        : (isDark ? AppColors.darkSurfaceHigh : AppColors.tint050);
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(color: bg, borderRadius: AppRadius.mdAll),
+      child: Icon(icon, size: 18, color: fg),
     );
   }
 
@@ -104,22 +103,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final Color? iconColor,
   }) {
     final theme = Theme.of(context);
-    final bgColor = iconColor ?? theme.colorScheme.primary;
+    final danger = iconColor != null && iconColor == theme.colorScheme.error;
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: bgColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 18, color: bgColor),
-              ),
+              _iconTile(icon, danger: danger),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -161,25 +152,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   /// Status badge widget for showing active/inactive states
-  Widget _statusBadge(final bool isActive) {
-    final theme = Theme.of(context);
-    final color = isActive ? Colors.green : Colors.grey;
-    final text = isActive ? 'Active' : 'Inactive';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        text,
-        style: theme.textTheme.bodySmall?.copyWith(
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    );
-  }
 
   Future<void> _showExportDataDialog(
     final BuildContext context,
@@ -249,7 +221,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         const SnackBar(content: Text('Export copied to clipboard')),
       );
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      messenger.showSnackBar(SnackBar(content: Text(repoErrorMessage(e))));
     }
   }
 
@@ -259,27 +231,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     required final String title,
     final String? subtitle,
     required final VoidCallback onTap,
-    final Color? color,
     final bool isDangerous = false,
   }) {
     final theme = Theme.of(context);
-    final iconColor = isDangerous ? Colors.red : (color ?? theme.colorScheme.primary);
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppRadius.mdAll,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
         child: Row(
           children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: iconColor, size: 18),
-            ),
+            _iconTile(icon, danger: isDangerous),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -289,7 +251,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     title,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: isDangerous ? Colors.red : null,
+                      color: isDangerous ? theme.colorScheme.error : null,
                     ),
                   ),
                   if (subtitle != null) ...[
@@ -340,8 +302,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _statusBadge(alertsEnabled),
-              const SizedBox(width: 8),
               Switch.adaptive(
                 value: alertsEnabled,
                 onChanged: (final v) async {
@@ -357,7 +317,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         // Alert threshold slider (shown when enabled)
         if (prefs.alertsEnabled) ...[
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.only(top: 12, bottom: 4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -373,20 +333,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(6),
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        borderRadius: AppRadius.smAll,
                       ),
                       child: Text(
                         '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.primary,
-                        ),
+                        style: tabular(theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        )),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 0),
                 Semantics(
                   label: 'Budget alert threshold',
                   value: '${(prefs.alertThreshold * 100).toStringAsFixed(0)}%',
@@ -427,7 +386,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 height: 36,
                 decoration: BoxDecoration(
                   color: theme.colorScheme.secondary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.smAll,
                 ),
                 child: Icon(Icons.currency_exchange, size: 18, color: theme.colorScheme.secondary),
               ),
@@ -458,10 +417,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     if (v == null) return;
                     await ref.read(currencyProvider.notifier).set(v);
                   },
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadius.smAll,
                     ),
                     filled: true,
                   ),
@@ -486,7 +446,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 height: 36,
                 decoration: BoxDecoration(
                   color: theme.colorScheme.secondary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.smAll,
                 ),
                 child: Icon(Icons.calendar_today, size: 18, color: theme.colorScheme.secondary),
               ),
@@ -506,20 +466,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   initialValue: dateFormat,
+                  isExpanded: true,
                   items: const [
-                    DropdownMenuItem(value: 'yyyy-MM-dd', child: Text('yyyy-MM-dd')),
-                    DropdownMenuItem(value: 'dd/MM/yyyy', child: Text('dd/MM/yyyy')),
-                    DropdownMenuItem(value: 'MM/dd/yyyy', child: Text('MM/dd/yyyy')),
+                    DropdownMenuItem(
+                      value: 'yyyy-MM-dd',
+                      child: Text('yyyy-MM-dd', overflow: TextOverflow.ellipsis),
+                    ),
+                    DropdownMenuItem(
+                      value: 'dd/MM/yyyy',
+                      child: Text('dd/MM/yyyy', overflow: TextOverflow.ellipsis),
+                    ),
+                    DropdownMenuItem(
+                      value: 'MM/dd/yyyy',
+                      child: Text('MM/dd/yyyy', overflow: TextOverflow.ellipsis),
+                    ),
                   ],
                   onChanged: (final v) async {
                     if (v == null) return;
                     await prefs.setDateFormat(v);
                     setState(() {});
                   },
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadius.smAll,
                     ),
                     filled: true,
                   ),
@@ -530,6 +501,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ],
     );
+    final aiAssistantSection = sectionCard(
+      Icons.auto_awesome_outlined,
+      'AI Assistant',
+      [
+        _actionTile(
+          icon: Icons.chat_bubble_outline,
+          title: 'Ask Cashlyze AI',
+          subtitle: 'Ask about spending, budgets, and shared expenses',
+          onTap: () => context.push('/ai-assistant'),
+        ),
+      ],
+      description: 'Chat with an assistant that can see your finances',
+    );
     final dataSection = sectionCard(
       Icons.cloud_outlined,
       t?.dataPrivacyTitle ?? 'Data & Privacy',
@@ -539,21 +523,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           icon: Icons.payments_outlined,
           title: t?.emiTrackerTitle ?? 'EMI Tracker',
           subtitle: 'Track installments',
-          onTap: () => GoRouter.of(context).go('/emi'),
+          onTap: () => context.push('/emi'),
         ),
         const Divider(height: 1, indent: 52),
         _actionTile(
           icon: Icons.add_card,
           title: t?.addEmiPlanTitle ?? 'Add EMI Plan',
           subtitle: t?.addEmiPlanSubtitle ?? 'Create plan',
-          onTap: () => GoRouter.of(context).go('/emi/new'),
+          onTap: () => context.push('/emi/new'),
         ),
         const Divider(height: 1, indent: 52),
         _actionTile(
           icon: Icons.savings_outlined,
           title: 'Savings Goals',
           subtitle: 'Track your savings targets',
-          onTap: () => GoRouter.of(context).go('/goals'),
+          onTap: () => context.push('/goals'),
         ),
         const Divider(height: 1, indent: 52),
         _actionTile(
@@ -568,6 +552,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           title: t?.restoreFromDriveTitle ?? 'Restore from Drive',
           subtitle: t?.restoreFromDriveSubtitle ?? 'Download & import JSON',
           onTap: () async => _restoreTransactionsFromDrive(context, ref),
+        ),
+        const Divider(height: 1, indent: 52),
+        _actionTile(
+          icon: Icons.delete_sweep_outlined,
+          title: 'Clear All Data',
+          subtitle: 'Erase transactions, budgets, categories & EMI plans',
+          isDangerous: true,
+          onTap: () async {
+            final confirm = await ClearDataDialog.show(
+              context,
+              onConfirm: (_) {},
+            );
+            if (confirm == true) {
+              final user = ref.read(currentUserProvider);
+              if (user == null) return;
+              final failures = await _clearAllUserData(ref, user.uid);
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(
+                    failures.isEmpty
+                        ? 'All data cleared'
+                        : 'Data cleared, but some items failed (${failures.join(', ')}). Try again if needed.',
+                  ),
+                ),
+              );
+            }
+          },
         ),
         const Divider(height: 1, indent: 52),
         // Connect Mock Bank removed from Settings.
@@ -599,51 +610,90 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           onTap: () async {
             final currentController = TextEditingController();
             final newController = TextEditingController();
-            final confirm = await showDialog<bool>(
+            var isSubmitting = false;
+            String? errorText;
+            await showDialog<void>(
               context: context,
-              builder: (final ctx) => AlertDialog(
-                title: const Text('Change Password'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: currentController,
-                      obscureText: true,
-                      decoration: const InputDecoration(labelText: 'Current password'),
+              builder: (final ctx) => StatefulBuilder(
+                builder: (final ctx, final setDialogState) {
+                  Future<void> submit() async {
+                    final current = currentController.text.trim();
+                    final next = newController.text.trim();
+                    if (current.isEmpty || next.isEmpty) {
+                      setDialogState(() => errorText = 'Enter both passwords');
+                      return;
+                    }
+                    if (next.length < 8 ||
+                        !next.contains(RegExp('[A-Z]')) ||
+                        !next.contains(RegExp('[a-z]')) ||
+                        !next.contains(RegExp('[0-9]'))) {
+                      setDialogState(
+                        () => errorText =
+                            'New password needs 8+ characters with upper, lower, and a digit',
+                      );
+                      return;
+                    }
+                    setDialogState(() {
+                      errorText = null;
+                      isSubmitting = true;
+                    });
+                    try {
+                      await ref.read(authRemoteDataSourceProvider).changePassword(
+                        currentPassword: current,
+                        newPassword: next,
+                      );
+                      if (!ctx.mounted) return;
+                      Navigator.of(ctx).pop();
+                      messenger.showSnackBar(
+                        const SnackBar(content: Text('Password updated')),
+                      );
+                    } catch (e) {
+                      setDialogState(() {
+                        isSubmitting = false;
+                        errorText = repoErrorMessage(e);
+                      });
+                    }
+                  }
+
+                  return AlertDialog(
+                    title: const Text('Change Password'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: currentController,
+                          obscureText: true,
+                          decoration: const InputDecoration(labelText: 'Current password'),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: newController,
+                          obscureText: true,
+                          decoration: const InputDecoration(labelText: 'New password'),
+                        ),
+                        InlineFieldError(message: errorText),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: newController,
-                      obscureText: true,
-                      decoration: const InputDecoration(labelText: 'New password'),
-                    ),
-                  ],
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(false),
-                    child: const Text('Cancel'),
-                  ),
-                  FilledButton(
-                    onPressed: () => Navigator.of(ctx).pop(true),
-                    child: const Text('Update'),
-                  ),
-                ],
+                    actions: [
+                      TextButton(
+                        onPressed: isSubmitting ? null : () => Navigator.of(ctx).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                      FilledButton(
+                        onPressed: isSubmitting ? null : submit,
+                        child: isSubmitting
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('Update'),
+                      ),
+                    ],
+                  );
+                },
               ),
             );
-            if (confirm == true) {
-              try {
-                await ref.read(authRemoteDataSourceProvider).changePassword(
-                  currentPassword: currentController.text.trim(),
-                  newPassword: newController.text.trim(),
-                );
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Password updated')),
-                );
-              } catch (e) {
-                messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
-              }
-            }
           },
         ),
         const Divider(height: 1, indent: 52),
@@ -654,24 +704,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           title: 'Sign Out',
           subtitle: 'End your session',
           onTap: () async {
-            final confirm = await showDialog<bool>(
-              context: context,
-              builder: (final ctx) {
-                return AlertDialog(
-                  title: const Text('Sign Out'),
-                  content: const Text('Are you sure you want to sign out?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(false),
-                      child: const Text('Cancel'),
-                    ),
-                    FilledButton(
-                      onPressed: () => Navigator.of(ctx).pop(true),
-                      child: const Text('Sign Out'),
-                    ),
-                  ],
-                );
-              },
+            final confirm = await showConfirmDialog(
+              context,
+              title: 'Sign Out',
+              content: 'Are you sure you want to sign out?',
+              confirmLabel: 'Sign Out',
             );
             if (confirm == true) {
               // Clear cached repositories first so they don't hold user data.
@@ -690,7 +727,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               messenger.showSnackBar(
                 const SnackBar(
                   content: Text('Signed out successfully'),
-                  backgroundColor: Colors.green,
+                  backgroundColor: AppColors.success,
                 ),
               );
               try {
@@ -718,26 +755,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               context: context,
               builder: (final ctx) => DeleteAccountDialog(
                 userEmail: ref.read(currentUserProvider)?.email,
-                onExportPressed: () async {
-                  Navigator.pop(ctx);
-                  await _showExportDataDialog(context, ref);
-                },
+                onExportPressed: () => _showExportDataDialog(context, ref),
                 onConfirm: (_) {},
               ),
             );
             if (confirm == true) {
               try {
                 final user = ref.read(currentUserProvider);
+                List<String> failures = const [];
                 if (user != null) {
-                  await _clearAllUserData(ref, user.uid);
+                  failures = await _clearAllUserData(ref, user.uid);
                 }
                 await ref.read(authRemoteDataSourceProvider).deleteAccount();
                 messenger.showSnackBar(
-                  const SnackBar(content: Text('Account and all data deleted')),
+                  SnackBar(
+                    content: Text(
+                      failures.isEmpty
+                          ? 'Account and all data deleted'
+                          : 'Account deleted, but some data failed to clear (${failures.join(', ')}). Contact support if this persists.',
+                    ),
+                  ),
                 );
                 router.go('/login');
               } catch (e) {
-                messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+                messenger.showSnackBar(SnackBar(content: Text(repoErrorMessage(e))));
               }
             }
           },
@@ -745,7 +786,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ],
     );
 
-    // Developer tools removed from Settings UI.
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: LayoutBuilder(
@@ -764,6 +804,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         children: [
                           preferences,
                           const SizedBox(height: 20),
+                          aiAssistantSection,
+                          const SizedBox(height: 20),
                           dataSection,
                         ],
                       ),
@@ -773,8 +815,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       child: Column(
                         children: [
                           accountSection,
-                          const SizedBox(height: 20),
-                          // Developer tools removed.
                         ],
                       ),
                     ),
@@ -790,11 +830,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               children: [
                 preferences,
                 const SizedBox(height: 20),
+                aiAssistantSection,
+                const SizedBox(height: 20),
                 dataSection,
                 const SizedBox(height: 20),
                 accountSection,
-                const SizedBox(height: 20),
-                // Developer tools removed.
               ],
             ),
           );
@@ -883,7 +923,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         messenger.showSnackBar(
           const SnackBar(
             content: Text('Uploaded to Google Drive'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -893,7 +933,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           e.toString().contains('Google Sign-In failed')) {
         errorMsg = 'Google sign-in failed. Please sign in to continue.';
       } else {
-        errorMsg = 'Upload failed: $e';
+        errorMsg = repoErrorMessage(e);
       }
 
       progressController.add((
@@ -1021,7 +1061,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         messenger.showSnackBar(
           SnackBar(
             content: Text('Restored $count transactions from Drive'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -1031,7 +1071,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           e.toString().contains('Google Sign-In failed')) {
         errorMsg = 'Google sign-in failed. Please sign in to continue.';
       } else {
-        errorMsg = 'Restore failed: $e';
+        errorMsg = repoErrorMessage(e);
       }
 
       progressController.add((
@@ -1109,7 +1149,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
 
 
-  Future<void> _clearAllUserData(final WidgetRef ref, final String userId) async {
+  /// Clears all of the user's transactions/budgets/categories/EMI plans.
+  ///
+  /// Each category is attempted independently so one failure doesn't block
+  /// the rest. Returns the list of data categories that failed to clear
+  /// (empty if everything succeeded) so callers can give an honest outcome
+  /// message instead of an unconditional "success".
+  Future<List<String>> _clearAllUserData(final WidgetRef ref, final String userId) async {
+    final failures = <String>[];
+
     // Clear transactions
     try {
       final transactions = await ref
@@ -1121,7 +1169,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             .deleteForUser(userId, transaction.id);
       }
     } catch (e) {
-      // Continue with other data even if transactions fail
+      debugPrint('Failed to clear transactions: $e');
+      failures.add('transactions');
     }
 
     // Clear budgets
@@ -1134,7 +1183,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         await ref.read(budgetRepositoryProvider).delete(userId, budget.id);
       }
     } catch (e) {
-      // Continue with other data even if budgets fail
+      debugPrint('Failed to clear budgets: $e');
+      failures.add('budgets');
     }
 
     // Clear categories
@@ -1147,7 +1197,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         await ref.read(categoryRepositoryProvider).delete(userId, category.id);
       }
     } catch (e) {
-      // Continue with other data even if categories fail
+      debugPrint('Failed to clear categories: $e');
+      failures.add('categories');
     }
 
     // Clear EMI plans and payments
@@ -1159,7 +1210,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         await ref.read(emiRepositoryProvider).deletePlan(userId, plan.id);
       }
     } catch (e) {
-      // Continue even if EMI data fails
+      debugPrint('Failed to clear EMI plans: $e');
+      failures.add('EMI plans');
     }
+
+    return failures;
   }
 }

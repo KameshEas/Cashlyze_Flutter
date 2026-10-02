@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/ui/constants.dart';
 
 /// A group of related SettingCards with a section header and optional description
 class SettingCardGroup extends StatelessWidget {
@@ -24,10 +25,13 @@ class SettingCardGroup extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-        ),
+        borderRadius: AppRadius.xlAll,
+        border: Border.all(color: theme.colorScheme.outline),
+        boxShadow: theme.brightness == Brightness.dark
+            ? null
+            : const [
+                BoxShadow(color: Color(0x0F16201B), blurRadius: 18, offset: Offset(0, 6)),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,9 +85,8 @@ class SettingCardGroup extends StatelessWidget {
                       const SizedBox(height: 1),
                       Divider(
                         height: 1,
-                        indent: 52,
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.06),
+                        indent: 56,
+                        color: theme.colorScheme.outline,
                       ),
                       const SizedBox(height: 1),
                     ],

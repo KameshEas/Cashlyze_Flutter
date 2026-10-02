@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../../core/models/app_version.dart';
 import '../../../../../../core/providers/app_version_providers.dart';
 import '../../../../../../core/services/store_redirect_service.dart';
+import '../../../core/ui/constants.dart';
 
 /// Force update screen - full-page non-dismissible blocking screen
 /// Users must update or force close the app
@@ -165,7 +166,7 @@ class _ForceUpdateDialogState extends ConsumerState<ForceUpdateDialog>
                           Container(
                             decoration: BoxDecoration(
                               color: colorScheme.surface.withValues(alpha: 0.5),
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: AppRadius.lgAll,
                               border: Border.all(
                                 color: colorScheme.primary.withValues(alpha: 0.2),
                               ),
@@ -227,7 +228,7 @@ class _ForceUpdateDialogState extends ConsumerState<ForceUpdateDialog>
                           Container(
                             decoration: BoxDecoration(
                               color: colorScheme.surface.withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: AppRadius.lgAll,
                               border: Border.all(
                                 color: colorScheme.secondary.withValues(alpha: 0.2),
                               ),
@@ -279,8 +280,8 @@ class _ForceUpdateDialogState extends ConsumerState<ForceUpdateDialog>
                                 foregroundColor: Colors.white,
                                 disabledBackgroundColor: colorScheme.primary.withValues(alpha: 0.5),
                                 elevation: 4,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: AppRadius.lgAll,
                                 ),
                               ),
                               child: _isLoading

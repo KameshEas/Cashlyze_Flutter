@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class GoalProgressRing extends StatelessWidget {
+import '../../core/providers/onboarding_provider.dart';
+import '../../core/ui/motion.dart';
+import '../../core/utils/format.dart';
+
+class GoalProgressRing extends ConsumerWidget {
   const GoalProgressRing({
     required this.progress,
     required this.currentAmount,
@@ -17,8 +22,12 @@ class GoalProgressRing extends StatelessWidget {
   final Color color;
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final theme = Theme.of(context);
+    final currency = ref.watch(currencyProvider);
     final progressValue = (progress / 100).clamp(0.0, 1.0);
+    final reduce = reduceMotionOf(context);
+    final trackColor = theme.colorScheme.onSurface.withValues(alpha: 0.12);
 
     return SizedBox(
       width: size,
@@ -26,33 +35,43 @@ class GoalProgressRing extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          CustomPaint(
-            size: Size(size, size),
-            painter: _ProgressRingPainter(
-              progress: progressValue,
-              color: color,
+          TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0, end: progressValue),
+            duration: reduce ? Duration.zero : AppDuration.slow,
+            curve: AppCurve.decelerate,
+            builder: (final context, final value, final child) => CustomPaint(
+              size: Size(size, size),
+              painter: _ProgressRingPainter(
+                progress: value,
+                color: color,
+                trackColor: trackColor,
+              ),
             ),
           ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '${progress.toStringAsFixed(1)}%',
-                style: TextStyle(
-                  fontSize: size * 0.25,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${progress.toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    fontSize: size * 0.25,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
                 ),
-              ),
-              Text(
-                '${currentAmount.toStringAsFixed(0)} / ${targetAmount.toStringAsFixed(0)}',
-                style: TextStyle(
-                  fontSize: size * 0.12,
-                  color: Colors.grey,
+                Text(
+                  '${formatAmount(currentAmount, currency)} / ${formatAmount(targetAmount, currency)}',
+                  style: TextStyle(
+                    fontSize: size * 0.12,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -64,10 +83,12 @@ class _ProgressRingPainter extends CustomPainter {
   _ProgressRingPainter({
     required this.progress,
     required this.color,
+    required this.trackColor,
   });
 
   final double progress;
   final Color color;
+  final Color trackColor;
 
   @override
   void paint(final Canvas canvas, final Size size) {
@@ -75,7 +96,7 @@ class _ProgressRingPainter extends CustomPainter {
     final radius = size.width / 2 - 8;
 
     final backgroundPaint = Paint()
-      ..color = Colors.grey.withValues(alpha: 0.2)
+      ..color = trackColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 8
       ..strokeCap = StrokeCap.round;
@@ -100,6 +121,8 @@ class _ProgressRingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(final _ProgressRingPainter oldDelegate) {
-    return oldDelegate.progress != progress;
+    return oldDelegate.progress != progress ||
+        oldDelegate.color != color ||
+        oldDelegate.trackColor != trackColor;
   }
 }

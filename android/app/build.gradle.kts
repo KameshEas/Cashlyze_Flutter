@@ -28,7 +28,12 @@ if (envKeystorePassword != null) {
 
 android {
     namespace = "com.aspiredesignovation.cashlyze"
-    compileSdk = flutter.compileSdkVersion
+    // Pinned explicitly rather than trusting flutter.compileSdkVersion/
+    // targetSdkVersion - those are derived from whatever Flutter SDK happens
+    // to build the release, so an outdated local/CI Flutter install would
+    // silently ship a build below Google Play's current minimum target API
+    // requirement (a common, confusing-looking cause of Play rejections).
+    compileSdk = 36
     ndkVersion = "28.2.13676358"
 
     compileOptions {
@@ -47,8 +52,11 @@ android {
         applicationId = (project.findProperty("APP_ID") as String?) ?: "com.aspiredesignovation.cashlyze"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        // flutter_gemma (on-device Gemma inference) requires a 64-bit-capable
+        // API level; Flutter's own default is already >= this, pinned
+        // explicitly so it doesn't silently drift below it.
+        minSdk = maxOf(flutter.minSdkVersion, 26)
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         
@@ -74,19 +82,24 @@ android {
         release {
             // Use custom keystore for production release builds
             signingConfig = signingConfigs.getByName("release")
-            
-            // Enable R8/ProGuard minification and obfuscation for release
+
+            // R8 shrinking/obfuscation. AGP bundles the resulting mapping file
+            // into the .aab, which is what Play Console uses to deobfuscate.
             isMinifyEnabled = true
             isShrinkResources = true
-            
-            // Configure R8/ProGuard rules
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
+        // TEMPORARY: release-signed so a profile build (debugPrint still
+        // works, unlike release) doesn't force-uninstall the release build
+        // and lose its logged-in session. Revert after this diagnostic pass.
+        getByName("profile") {
+            signingConfig = signingConfigs.getByName("release")
+        }
     }
-    
+
     // R8 configuration for code shrinking and obfuscation
     packaging {
         jniLibs {

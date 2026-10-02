@@ -15,7 +15,9 @@ import 'package:flutter/material.dart';
 ///   • MotionStagger  — cascade a Column/Row of children in sequence
 ///   • PressableScale — iOS-style press-to-shrink tap feedback
 ///   • MotionSwitcher — smooth fade+scale swap between two widgets
-///   • AppMotion.fadeThrough — route transition for go_router/Navigator
+///   • AppMotion.fadeThrough — peer / system-state route transition
+///   • AppMotion.sharedAxisX — parent -> child route transition
+///   • AppMotion.riseIn      — task / creation flow route transition
 /// ─────────────────────────────────────────────────────────────────────────
 
 /// Standard motion durations. Apple UIs favour short, confident timings.
@@ -37,6 +39,27 @@ abstract final class AppDuration {
 
   /// Delay added per item in a staggered sequence.
   static const Duration stagger = Duration(milliseconds: 60);
+
+  // ── Motion tiers (docs/redesign/08) ─────────────────────────────────────
+  // Level 1 micro 100-200ms, Level 2 component 180-350ms, Level 3 screen
+  // 250-500ms. `fast`/`normal`/`slow` above sit inside these ranges.
+
+  /// Level 1: press, toggle, focus, hover, validation.
+  static const Duration micro = Duration(milliseconds: 120);
+
+  /// Level 2: dialog, sheet, dropdown, expand/collapse, tab content.
+  static const Duration component = Duration(milliseconds: 260);
+
+  /// Level 3: route changes with spatial meaning (shared-axis / rise).
+  static const Duration screen = Duration(milliseconds: 320);
+
+  /// Exits run at this fraction of their enter duration: quick, controlled,
+  /// out of the way.
+  static const double exitFactor = 0.7;
+
+  /// The exit duration matching an enter [d].
+  static Duration exitOf(final Duration d) =>
+      Duration(microseconds: (d.inMicroseconds * exitFactor).round());
 }
 
 /// Apple-like easing curves — smooth deceleration, no springy bounce.
@@ -55,6 +78,9 @@ abstract final class AppCurve {
 
   /// Press / release feedback.
   static const Curve tap = Curves.easeOut;
+
+  /// Exits and dismissals: accelerate away, don't linger.
+  static const Curve exit = Curves.easeInCubic;
 }
 
 /// Returns true when the user has requested reduced motion.
@@ -396,6 +422,12 @@ abstract final class AppMotion {
   /// Duration for page/route transitions.
   static const Duration pageDuration = AppDuration.page;
 
+  /// Duration for spatial route transitions ([sharedAxisX], [riseIn]).
+  static const Duration spatialDuration = AppDuration.screen;
+
+  /// Pop duration for spatial transitions (see [AppDuration.exitFactor]).
+  static final Duration spatialReverseDuration = AppDuration.exitOf(AppDuration.screen);
+
   /// A minimalist "fade-through": the incoming page fades in while scaling
   /// up subtly from 0.98. Matches the signature expected by
   /// `CustomTransitionPage.transitionsBuilder` and `PageRouteBuilder`.
@@ -414,6 +446,74 @@ abstract final class AppMotion {
     return FadeTransition(
       opacity: curved,
       child: ScaleTransition(scale: scale, child: child),
+    );
+  }
+
+  /// Parent -> child navigation ("go deeper"): the incoming page slides in
+  /// from the trailing edge while the page beneath drifts back. Popping runs
+  /// the reverse on the exit curve and a shorter clock.
+  ///
+  /// Use for destinations reached *from* the current context (a feature page
+  /// opened from the quick menu). Not for peer tabs (use [fadeThrough]) or
+  /// task flows (use [riseIn]). Collapses to no movement under reduce-motion.
+  static Widget sharedAxisX(
+    final BuildContext context,
+    final Animation<double> animation,
+    final Animation<double> secondaryAnimation,
+    final Widget child,
+  ) {
+    if (reduceMotionOf(context)) return child;
+
+    final textDir = Directionality.of(context);
+    final sign = textDir == TextDirection.rtl ? -1.0 : 1.0;
+    final incoming = CurvedAnimation(
+      parent: animation,
+      curve: AppCurve.standard,
+      reverseCurve: AppCurve.exit,
+    );
+    final outgoing = CurvedAnimation(
+      parent: secondaryAnimation,
+      curve: AppCurve.standard,
+      reverseCurve: AppCurve.exit,
+    );
+    // 0.08 of the width is ~30dp on a phone: enough to read as direction.
+    final enter = Tween<Offset>(begin: Offset(0.08 * sign, 0), end: Offset.zero).animate(incoming);
+    final leave = Tween<Offset>(begin: Offset.zero, end: Offset(-0.08 * sign, 0)).animate(outgoing);
+    final leaveFade = Tween<double>(begin: 1, end: 0.6).animate(outgoing);
+
+    return FadeTransition(
+      opacity: leaveFade,
+      child: SlideTransition(
+        position: leave,
+        child: FadeTransition(
+          opacity: incoming,
+          child: SlideTransition(position: enter, child: child),
+        ),
+      ),
+    );
+  }
+
+  /// Task / creation flows ("start something", "see the result"): the page
+  /// rises a short distance and fades in, which reads as a temporary layer
+  /// above the current context rather than a place you navigated *to*.
+  /// Collapses to no movement under reduce-motion.
+  static Widget riseIn(
+    final BuildContext context,
+    final Animation<double> animation,
+    final Animation<double> secondaryAnimation,
+    final Widget child,
+  ) {
+    if (reduceMotionOf(context)) return child;
+
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: AppCurve.standard,
+      reverseCurve: AppCurve.exit,
+    );
+    final rise = Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero).animate(curved);
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(position: rise, child: child),
     );
   }
 

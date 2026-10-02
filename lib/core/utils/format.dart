@@ -5,6 +5,12 @@ String formatAmount(final num amount, final String currencyCode) {
   return fmt.format(amount);
 }
 
+/// The bare currency symbol (e.g. '₹', '\$') for a given currency code,
+/// for use as a text-field prefix where a fully formatted amount isn't wanted.
+String currencySymbol(final String currencyCode) {
+  return NumberFormat.simpleCurrency(name: currencyCode).currencySymbol;
+}
+
 String formatDate(final DateTime date, final String pattern) {
   return DateFormat(pattern).format(date);
 }

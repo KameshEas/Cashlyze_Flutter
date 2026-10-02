@@ -45,12 +45,25 @@ final class ConflictException extends ApiException {
   const ConflictException([super.message = 'Conflict']);
 }
 
+/// 429 – Client has been rate-limited (e.g. too many login attempts).
+final class TooManyRequestsException extends ApiException {
+  const TooManyRequestsException([super.message = 'Too many requests. Please try again later.']);
+}
+
+/// Raised locally, without sending a request, when a change is attempted while
+/// the backend has the app in read-only maintenance.
+final class ReadOnlyModeException extends ApiException {
+  const ReadOnlyModeException([
+    super.message = 'The app is read-only during maintenance. Please try again later.',
+  ]);
+}
+
 /// 5xx – Backend returned a server error.
 final class ServerException extends ApiException {
   const ServerException([super.message = 'Server error']);
 
-  factory ServerException.withStatus(final int statusCode) =>
-      ServerException('Server error ($statusCode)');
+  factory ServerException.withStatus(final int statusCode, [final String? detail]) =>
+      ServerException(detail ?? 'Server error ($statusCode)');
 }
 
 // ── Network / transport errors ────────────────────────────────────────────────

@@ -5,10 +5,14 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/env_config.dart';
+import '../providers/read_only_mode_provider.dart';
+import '../services/auth_session_events.dart';
 import '../services/secure_storage_service.dart';
 import 'api_exception.dart';
 import 'auth_interceptor.dart';
+import 'read_only_interceptor.dart';
 import 'retry_interceptor.dart';
+import 'sentry_breadcrumb_interceptor.dart';
 
 /// Central HTTP client for the Cashlyze backend API.
 ///
@@ -22,6 +26,7 @@ class ApiClient {
   factory ApiClient.create({
     required final SecureStorageService secureStorage,
     required final void Function() onForceLogout,
+    final bool Function()? isReadOnly,
   }) {
     final dio = Dio(
       BaseOptions(
@@ -32,6 +37,10 @@ class ApiClient {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          // Required by the backend's multi-tenant middleware on every
+          // protected endpoint (auth/login, /auth/register and /auth/refresh
+          // are exempted server-side, so sending it there too is harmless).
+          'X-App-ID': 'cashlyze',
         },
       ),
     );
@@ -45,6 +54,16 @@ class ApiClient {
         },
       ),
     );
+
+    // Refuse writes during read-only maintenance before anything else runs
+    // (no token attachment or refresh for a request that won't be sent).
+    if (isReadOnly != null) {
+      dio.interceptors.add(ReadOnlyInterceptor(isReadOnly));
+    }
+
+    // HTTP breadcrumbs for Sentry (method/path/status/duration only, never
+    // headers or bodies - see SentryBreadcrumbInterceptor for why).
+    dio.interceptors.add(SentryBreadcrumbInterceptor());
 
     // Token attachment + silent refresh.
     dio.interceptors.add(
@@ -148,6 +167,7 @@ class ApiClient {
       case DioExceptionType.badResponse:
         return _mapHttpStatus(e.response);
       case DioExceptionType.cancel:
+        if (e.error is ApiException) return e.error! as ApiException;
         return const UnknownApiException('Request cancelled');
       default:
         if (e.error is SocketException) return const NetworkException();
@@ -169,7 +189,8 @@ class ApiClient {
       403 => ForbiddenException(message ?? 'Forbidden'),
       404 => NotFoundException(message ?? 'Not found'),
       409 => ConflictException(message ?? 'Conflict'),
-      _ when statusCode >= 500 => ServerException.withStatus(statusCode),
+      429 => TooManyRequestsException(message ?? 'Too many requests. Please try again later.'),
+      _ when statusCode >= 500 => ServerException.withStatus(statusCode, message),
       _ => UnknownApiException('HTTP $statusCode: ${message ?? 'Unknown'}'),
     };
   }
@@ -201,12 +222,14 @@ final apiClientProvider = Provider<ApiClient>((final ref) {
   final storage = ref.watch(secureStorageServiceProvider);
   return ApiClient.create(
     secureStorage: storage,
+    isReadOnly: () => ref.read(readOnlyModeProvider),
     onForceLogout: () async {
-      // Clear tokens — enough to force the router guard to redirect to login.
-      // We intentionally do NOT call authServiceProvider here to avoid a
-      // circular dependency (authServiceProvider → apiClientProvider → here).
       await storage.deleteAuthToken();
       await storage.deleteRefreshToken();
+      // Notify AuthService via the dependency-free event bus (see
+      // auth_session_events.dart) rather than depending on authServiceProvider
+      // directly, which would create a provider cycle.
+      forcedLogoutEvents.add(null);
     },
   );
 });

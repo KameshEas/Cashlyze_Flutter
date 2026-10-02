@@ -1,9 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/illustrations/app_illustration.dart';
 import '../../core/models/search_result.dart';
 import '../../core/providers/search_providers.dart';
+import '../../core/ui/constants.dart';
+import '../../core/ui/motion.dart';
+import '../../core/utils/repo_error_handler.dart';
+import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/skeleton.dart';
+import '../../l10n/app_localizations.dart';
 
 class SearchScreen extends ConsumerWidget {
   const SearchScreen({super.key});
@@ -29,6 +38,7 @@ class SearchBody extends ConsumerStatefulWidget {
 
 class _SearchBodyState extends ConsumerState<SearchBody> {
   late final TextEditingController _searchController;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -39,13 +49,18 @@ class _SearchBodyState extends ConsumerState<SearchBody> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }
 
   void _onSearchChanged() {
-    ref.read(searchQueryProvider.notifier).setQuery(_searchController.text);
+    setState(() {}); // keep suffix icon / empty-state text in sync immediately
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      ref.read(searchQueryProvider.notifier).setQuery(_searchController.text);
+    });
   }
 
   @override
@@ -69,8 +84,8 @@ class _SearchBodyState extends ConsumerState<SearchBody> {
                       },
                     )
                   : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+              border: const OutlineInputBorder(
+                borderRadius: AppRadius.lgAll,
               ),
             ),
             autofocus: true,
@@ -80,47 +95,22 @@ class _SearchBodyState extends ConsumerState<SearchBody> {
           child: searchResultsAsync.when(
             data: (final results) {
               if (_searchController.text.trim().isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.search_outlined,
-                        size: 64,
-                        color: Colors.grey.shade300,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Start typing to search',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
+                return const Center(
+                  child: AppEmptyState(
+                    title: 'Start typing to search',
+                    icon: Icons.search_outlined,
                   ),
                 );
               }
 
               if (results.isEmpty) {
+                final l10n = AppLocalizations.of(context);
                 return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.search_off_outlined,
-                        size: 64,
-                        color: Colors.grey.shade300,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No results found',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
+                  child: AppEmptyState(
+                    title: l10n?.searchNoResultsTitle ?? 'No results found',
+                    subtitle: l10n?.searchNoResultsBody ?? 'Try a different keyword or check the spelling.',
+                    icon: Icons.search_off_outlined,
+                    illustration: AppIllustrationKind.magnifier,
                   ),
                 );
               }
@@ -130,25 +120,30 @@ class _SearchBodyState extends ConsumerState<SearchBody> {
                 itemCount: results.length,
                 itemBuilder: (final context, final index) {
                   final result = results[index];
-                  return SearchResultTile(
-                    result: result,
-                    onTap: () => _handleResultTap(context, result),
+                  return MotionFadeIn(
+                    delay: MotionStagger.delayFor(index),
+                    child: SearchResultTile(
+                      result: result,
+                      onTap: () => _handleResultTap(context, result),
+                    ),
                   );
                 },
               );
             },
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              itemBuilder: (final context, final i) => const SkeletonListTile(),
+              separatorBuilder: (final context, final i) => const SizedBox(height: 8),
+              itemCount: 6,
+            ),
             error: (final err, final stack) => Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Error: $err'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => ref.invalidate(searchResultsProvider),
-                    child: const Text('Retry'),
-                  ),
-                ],
+              child: AppEmptyState(
+                title: 'Failed to search',
+                subtitle: repoErrorMessage(err),
+                icon: Icons.error_outline_rounded,
+                illustration: illustrationForError(err),
+                actionLabel: AppLocalizations.of(context)?.tryAgain ?? 'Try again',
+                onAction: () => ref.invalidate(searchResultsProvider),
               ),
             ),
           ),
@@ -172,7 +167,7 @@ class _SearchBodyState extends ConsumerState<SearchBody> {
         break;
       case 'savings_goal':
         Navigator.pop(context);
-        GoRouter.of(context).go('/goals');
+        context.push('/goals');
         break;
     }
   }
@@ -203,7 +198,7 @@ class SearchResultTile extends StatelessWidget {
                 height: 48,
                 decoration: BoxDecoration(
                   color: Colors.blue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.smAll,
                 ),
                 child: Center(
                   child: Text(

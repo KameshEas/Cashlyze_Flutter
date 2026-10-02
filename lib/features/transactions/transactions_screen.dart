@@ -1,18 +1,25 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart' show Share, XFile;
 
+import '../../core/illustrations/app_illustration.dart';
 import '../../core/models/transaction.dart';
 import '../../core/providers/export_service_provider.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/shared_prefs_provider.dart';
+import '../../core/providers/transaction_providers.dart' show transactionsCacheProvider;
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/ui/constants.dart';
+import '../../core/ui/finance_style.dart';
 import '../../core/ui/motion.dart';
 import '../../core/utils/repo_error_handler.dart';
 import '../../core/widgets/dialogs.dart';
 import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/grouped_list.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../l10n/app_localizations.dart';
 import 'transaction_filter_sheet.dart';
@@ -32,6 +39,31 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   final Set<String> _selectedIds = {};
   bool _selectionMode = false;
 
+  /// Row to flash after a save (see TransactionListItem.highlight).
+  String? _highlightId;
+
+  /// Ids present before a create, so the new row can be found by diff (the
+  /// create flow doesn't return the new id).
+  Set<String>? _createSnapshot;
+  Timer? _createSnapshotTimer;
+  Timer? _highlightTimer;
+
+  void _flash(final String id) {
+    _highlightTimer?.cancel();
+    setState(() => _highlightId = id);
+    // Clear after the animation so a recycled lazy row doesn't replay it.
+    _highlightTimer = Timer(kSavedHighlightDuration + const Duration(milliseconds: 300), () {
+      if (mounted) setState(() => _highlightId = null);
+    });
+  }
+
+  /// Within a few seconds of a create, the first id not in the snapshot is it.
+  void _watchForNewRow(final Set<String> before) {
+    _createSnapshot = before;
+    _createSnapshotTimer?.cancel();
+    _createSnapshotTimer = Timer(const Duration(seconds: 4), () => _createSnapshot = null);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -47,6 +79,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
   @override
   void dispose() {
+    _createSnapshotTimer?.cancel();
+    _highlightTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -60,7 +94,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       isScrollControlled: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
       ),
       builder: (final sheetCtx) => const TransactionFilterSheet(),
     );
@@ -113,7 +147,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 IconButton(
                   tooltip: 'Global search',
                   icon: const Icon(Icons.search),
-                  onPressed: () => GoRouter.of(context).go('/search'),
+                  onPressed: () => context.push('/search'),
                 ),
                 IconButton(
                   tooltip: 'Export',
@@ -122,7 +156,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 ),
               ],
             ),
-      floatingActionButton: Tooltip(
+      floatingActionButton: (allFiltered.isEmpty && !txsAsync.isLoading)
+          ? null
+          : Tooltip(
         message: t?.addTransaction ?? 'Add transaction',
         child: FloatingActionButton.extended(
           onPressed: () => _openAddForm(context),
@@ -149,19 +185,23 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         prefixIcon: const Icon(Icons.search),
                         hintText: t?.search ?? 'Search',
                         filled: true,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                        border: const OutlineInputBorder(
+                          borderRadius: AppRadius.lgAll,
                         ),
                         // Inline clear button
                         suffixIcon: filterState.query.isNotEmpty
                             ? IconButton(
                                 icon: const Icon(Icons.close, size: 18),
                                 tooltip: 'Clear search',
-                                onPressed: () => ref.read(transactionFilterProvider.notifier).setQueryImmediate(''),
+                                onPressed: () => ref
+                                    .read(transactionFilterProvider.notifier)
+                                    .setQueryImmediate(''),
                               )
                             : null,
                       ),
-                      onChanged: (final v) => ref.read(transactionFilterProvider.notifier).setQueryImmediate(v),
+                      onChanged: (final v) => ref
+                          .read(transactionFilterProvider.notifier)
+                          .setQueryImmediate(v),
                     ),
                   ),
                 ),
@@ -171,17 +211,21 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   message: 'Filter & sort',
                   child: InkWell(
                     onTap: () => _openFilterSheet(context),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.lgAll,
                     child: Consumer(
                       builder: (final ctx, final consumerRef, final _) {
-                        final activeCount = consumerRef.watch(activeFilterCountProvider);
+                        final activeCount = consumerRef.watch(
+                          activeFilterCountProvider,
+                        );
                         return Container(
-                          padding: const EdgeInsets.all(12),
+                          width: 56,
+                          height: 56,
+                          alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: activeCount > 0
                                 ? theme.colorScheme.primary
                                 : theme.colorScheme.surface,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: AppRadius.lgAll,
                             border: Border.all(
                               color: theme.colorScheme.onSurface.withValues(
                                 alpha: 0.1,
@@ -195,7 +239,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               Icons.tune,
                               size: 20,
                               color: activeCount > 0
-                                  ? Colors.white
+                                  ? theme.colorScheme.onPrimary
                                   : theme.colorScheme.onSurface,
                             ),
                           ),
@@ -209,259 +253,407 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           ),
           const SizedBox(height: 4),
           Expanded(
-            child: Builder(builder: (final ctx) {
-              if (txsAsync.isLoading) {
-                return RefreshIndicator(
-                  onRefresh: () async {
-                    ref.invalidate(userTransactionsProvider);
-                    await Future.delayed(const Duration(milliseconds: 150));
-                  },
-                  child: ListView.separated(
-                    padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 88),
-                    itemBuilder: (final listCtx, final i) => const SkeletonListTile(),
-                    separatorBuilder: (final sepCtx, final i) => const SizedBox(height: 12),
-                    itemCount: 6,
-                  ),
-                );
-              }
-              if (txsAsync.hasError) {
-                final e = txsAsync.error;
-                return Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.error.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: theme.colorScheme.error.withValues(alpha: 0.3),
+            child: Builder(
+              builder: (final ctx) {
+                if (txsAsync.isLoading) {
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      ref.invalidate(userTransactionsProvider);
+                      await Future.delayed(const Duration(milliseconds: 150));
+                    },
+                    child: ListView.separated(
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        16,
+                        16,
+                        MediaQuery.of(context).padding.bottom + 88,
                       ),
+                      itemBuilder: (final listCtx, final i) =>
+                          const SkeletonListTile(),
+                      separatorBuilder: (final sepCtx, final i) =>
+                          const SizedBox(height: 12),
+                      itemCount: 6,
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error_outline, color: Colors.red),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text('Failed to load: $e')),
-                        TextButton(
-                          onPressed: () => ref.refresh(userTransactionsProvider),
-                          child: Text(AppLocalizations.of(context)?.retry ?? 'Retry'),
+                  );
+                }
+                if (txsAsync.hasError) {
+                  final e = txsAsync.error;
+                  return Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.error.withValues(alpha: 0.08),
+                        borderRadius: AppRadius.lgAll,
+                        border: Border.all(
+                          color: theme.colorScheme.error.withValues(alpha: 0.3),
                         ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              final allFiltered = ref.watch(filteredTransactionsProvider);
-              final paged = ref.watch(paginatedTransactionsProvider);
-              final hasMore = ref.watch(transactionsHasMoreProvider);
-
-              Widget listChild;
-              if (allFiltered.isEmpty) {
-                listChild = Center(
-                  key: const ValueKey('tx_empty'),
-                  child: AppEmptyState(
-                    title: t?.noTransactions ?? 'No transactions',
-                    subtitle: t?.noTransactions == null
-                        ? 'You have no transactions yet. Tap Add to create one.'
-                        : '${t?.noTransactions}',
-                    icon: Icons.receipt_long,
-                    actionLabel: t?.addTransaction ?? 'Add transaction',
-                    onAction: () => _openAddForm(context),
-                  ),
-                );
-              } else {
-                // Group transactions by date for better UX
-                final grouped = groupTransactionsByDate(paged);
-                final groupOrder = ['Today', 'Yesterday', 'This Week', 'This Month', 'Last Month', 'Older'];
-                final activeGroups = groupOrder.where(grouped.containsKey).toList();
-                
-                // Build flat list with headers: [Header, Item, Item, Header, Item, ...]
-                final listItems = <Widget>[];
-                for (final groupKey in activeGroups) {
-                  final transactions = grouped[groupKey] ?? [];
-                  
-                  // Add group header
-                  listItems.add(
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                      ),
                       child: Row(
                         children: [
-                          Text(
-                            groupKey,
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                              letterSpacing: 0.5,
-                            ),
+                          Icon(
+                            Icons.error_outline,
+                            color: theme.colorScheme.error,
                           ),
                           const SizedBox(width: 8),
-                          Expanded(
-                            child: Container(
-                              height: 1,
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.12),
+                          Expanded(child: Text('Failed to load: $e')),
+                          TextButton(
+                            onPressed: () =>
+                                ref.refresh(userTransactionsProvider),
+                            child: Text(
+                              AppLocalizations.of(context)?.retry ?? 'Retry',
                             ),
                           ),
                         ],
                       ),
                     ),
                   );
-                  
-                  // Add transactions for this group
-                  for (final tx in transactions) {
+                }
+
+                final allFiltered = ref.watch(filteredTransactionsProvider);
+              final snapshot = _createSnapshot;
+              if (snapshot != null) {
+                for (final t in allFiltered) {
+                  if (!snapshot.contains(t.id)) {
+                    _createSnapshot = null;
+                    _createSnapshotTimer?.cancel();
+                    final newId = t.id;
+                    WidgetsBinding.instance.addPostFrameCallback((final _) {
+                      if (mounted) _flash(newId);
+                    });
+                    break;
+                  }
+                }
+              }
+                final paged = ref.watch(paginatedTransactionsProvider);
+                final hasMore = ref.watch(transactionsHasMoreProvider);
+
+                Widget listChild;
+                if (allFiltered.isEmpty) {
+                  listChild = Center(
+                    key: const ValueKey('tx_empty'),
+                    child: AppEmptyState(
+                      title: t?.noTransactions ?? 'No transactions',
+                      subtitle: t?.transactionsEmptyHint ??
+                        'Add your first transaction to start tracking where your money goes.',
+                    icon: Icons.receipt_long,
+                      illustration: AppIllustrationKind.ledger,
+                      actionLabel: t?.addTransaction ?? 'Add transaction',
+                      onAction: () => _openAddForm(context),
+                    ),
+                  );
+                } else {
+                  // Group transactions by date for better UX
+                  final grouped = groupTransactionsByDate(paged);
+                  final groupOrder = [
+                    'Today',
+                    'Yesterday',
+                    'This Week',
+                    'This Month',
+                    'Last Month',
+                    'Older',
+                  ];
+                  final activeGroups = groupOrder
+                      .where(grouped.containsKey)
+                      .toList();
+
+                  // Build flat list with headers: [Header, Item, Item, Header, Item, ...]
+                  final listItems = <Widget>[];
+                  for (final groupKey in activeGroups) {
+                    final transactions = grouped[groupKey] ?? [];
+
+                    // Group header: label + the group's net total.
+                    final groupNet = transactions.fold<double>(
+                      0,
+                      (final sum, final e) => sum + e.amount,
+                    );
                     listItems.add(
-                      Dismissible(
-                        key: ValueKey('tx_${tx.id}'),
-                        direction: _selectionMode ? DismissDirection.none : DismissDirection.horizontal,
-                        background: Container(
-                          alignment: Alignment.centerLeft,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(children: [const Icon(Icons.edit, color: Colors.green), const SizedBox(width: 8), Text(t?.edit ?? 'Edit')]),
+                      Padding(
+                        padding: EdgeInsets.only(
+                          top: listItems.isEmpty ? 0 : AppSpacing.s20,
                         ),
-                        secondaryBackground: Container(
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(16),
+                        child: SectionLabel(
+                          groupKey,
+                          trailing: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 160),
+                            child: AmountText(
+                              amount: groupNet,
+                              currency: currency,
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
-                          child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [Text(t?.delete ?? 'Delete'), const SizedBox(width: 8), const Icon(Icons.delete, color: Colors.red)]),
                         ),
-                        confirmDismiss: (final dir) async {
-                          if (dir == DismissDirection.startToEnd) {
-                            await _openEditForm(context, tx.id, tx.title, tx.amount, tx.categoryId, tx.date);
-                            return false;
-                          }
-                          final messenger = ScaffoldMessenger.of(context);
-                          final confirm = await showConfirmDialog(
-                            context,
-                            title: AppLocalizations.of(context)?.deleteTransactionTitle ?? 'Delete transaction',
-                            content: 'Are you sure you want to delete this transaction?',
-                            confirmLabel: AppLocalizations.of(context)?.delete ?? 'Delete',
-                            cancelLabel: AppLocalizations.of(context)?.cancel ?? 'Cancel',
-                          );
-                          if (confirm == true) {
-                            try {
-                              final payload = {'title': tx.title, 'amount': tx.amount, 'categoryId': tx.categoryId, 'date': tx.date};
-                              final user = ref.read(currentUserProvider);
-                              if (user == null) return false;
-                              await ref.read(transactionRepositoryProvider).deleteForUser(user.uid, tx.id);
-                              messenger.clearSnackBars();
-                              final snack = SnackBar(
-                                content: Text(t?.deleted ?? 'Deleted'),
-                                duration: const Duration(seconds: 3),
-                                behavior: SnackBarBehavior.floating,
-                                action: SnackBarAction(
-                                  label: 'Undo',
-                                  onPressed: () async {
-                                    final user = ref.read(currentUserProvider);
-                                    if (user == null) return;
-                                    try {
-                                      await ref.read(transactionRepositoryProvider).create(
-                                            userId: user.uid,
-                                            title: payload['title'] as String,
-                                            amount: payload['amount'] as double,
-                                            categoryId: payload['categoryId'] as String?,
-                                            date: payload['date'] as DateTime,
-                                          );
-                                    } catch (_) {}
-                                  },
+                      ),
+                    );
+
+                    // Add transactions for this group
+                    for (
+                      var txIndex = 0;
+                      txIndex < transactions.length;
+                      txIndex++
+                    ) {
+                      final tx = transactions[txIndex];
+                      final position = groupPositionOf(
+                        txIndex,
+                        transactions.length,
+                      );
+                      final rowRadius = BorderRadius.vertical(
+                        top:
+                            (position == GroupPosition.first ||
+                                position == GroupPosition.only)
+                            ? const Radius.circular(AppRadius.lg)
+                            : Radius.zero,
+                        bottom:
+                            (position == GroupPosition.last ||
+                                position == GroupPosition.only)
+                            ? const Radius.circular(AppRadius.lg)
+                            : Radius.zero,
+                      );
+                      listItems.add(
+                        ClipRRect(
+                          borderRadius: rowRadius,
+                          child: Dismissible(
+                            key: ValueKey('tx_${tx.id}'),
+                            direction: _selectionMode
+                                ? DismissDirection.none
+                                : DismissDirection.horizontal,
+                            background: Container(
+                              alignment: Alignment.centerLeft,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.success.withValues(
+                                  alpha: 0.15,
                                 ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.edit,
+                                    color: AppColors.success,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(t?.edit ?? 'Edit'),
+                                ],
+                              ),
+                            ),
+                            secondaryBackground: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.error.withValues(
+                                  alpha: 0.15,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Text(t?.delete ?? 'Delete'),
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    Icons.delete,
+                                    color: theme.colorScheme.error,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            confirmDismiss: (final dir) async {
+                              if (dir == DismissDirection.startToEnd) {
+                                await _openEditForm(
+                                  context,
+                                  tx.id,
+                                  tx.title,
+                                  tx.amount,
+                                  tx.categoryId,
+                                  tx.date,
+                                );
+                                return false;
+                              }
+                              final messenger = ScaffoldMessenger.of(context);
+                              final confirm = await showConfirmDialog(
+                                context,
+                                title:
+                                    AppLocalizations.of(
+                                      context,
+                                    )?.deleteTransactionTitle ??
+                                    'Delete transaction',
+                                content:
+                                    'Are you sure you want to delete this transaction?',
+                                confirmLabel:
+                                    AppLocalizations.of(context)?.delete ??
+                                    'Delete',
+                                cancelLabel:
+                                    AppLocalizations.of(context)?.cancel ??
+                                    'Cancel',
                               );
-                              final controller = messenger.showSnackBar(snack);
-                              Future.delayed(snack.duration + const Duration(milliseconds: 200), () {
+                              if (confirm == true) {
                                 try {
-                                  controller.close();
-                                } catch (_) {}
-                              });
-                              return true;
-                            } catch (err) {
-                              messenger.clearSnackBars();
-                              showRepoErrorSnackBar(messenger, err);
-                              return false;
-                            }
-                          }
-                          return false;
-                        },
-                        child: TransactionListItem(
-                          tx: tx,
-                          currency: currency,
-                          datePattern: datePattern,
-                          selectionMode: _selectionMode,
-                          selected: _selectedIds.contains(tx.id),
-                          onSelectedChanged: (final v) => setState(() {
-                            if (v) {
-                              _selectedIds.add(tx.id);
-                              _selectionMode = true;
-                            } else {
-                              _selectedIds.remove(tx.id);
-                              if (_selectedIds.isEmpty) _selectionMode = false;
-                            }
-                          }),
-                          onLongPress: () => setState(() {
-                            _selectionMode = true;
-                            _selectedIds.add(tx.id);
-                          }),
-                          onTap: () {
-                            if (_selectionMode) {
-                              setState(() {
-                                if (_selectedIds.contains(tx.id)) {
-                                  _selectedIds.remove(tx.id);
-                                  if (_selectedIds.isEmpty) _selectionMode = false;
-                                } else {
-                                  _selectedIds.add(tx.id);
+                                  final payload = {
+                                    'title': tx.title,
+                                    'amount': tx.amount,
+                                    'categoryId': tx.categoryId,
+                                    'date': tx.date,
+                                  };
+                                  final user = ref.read(currentUserProvider);
+                                  if (user == null) return false;
+                                  await ref
+                                      .read(transactionRepositoryProvider)
+                                      .deleteForUser(user.uid, tx.id);
+                                  messenger.clearSnackBars();
+                                  final snack = SnackBar(
+                                    content: Text(t?.deleted ?? 'Deleted'),
+                                    duration: const Duration(seconds: 3),
+                                    behavior: SnackBarBehavior.floating,
+                                    action: SnackBarAction(
+                                      label: 'Undo',
+                                      onPressed: () async {
+                                        final user = ref.read(
+                                          currentUserProvider,
+                                        );
+                                        if (user == null) return;
+                                        try {
+                                          await ref
+                                              .read(
+                                                transactionRepositoryProvider,
+                                              )
+                                              .create(
+                                                userId: user.uid,
+                                                title:
+                                                    payload['title'] as String,
+                                                amount:
+                                                    payload['amount'] as double,
+                                                categoryId:
+                                                    payload['categoryId']
+                                                        as String?,
+                                                date:
+                                                    payload['date'] as DateTime,
+                                              );
+                                        } catch (_) {}
+                                      },
+                                    ),
+                                  );
+                                  final controller = messenger.showSnackBar(
+                                    snack,
+                                  );
+                                  Future.delayed(
+                                    snack.duration +
+                                        const Duration(milliseconds: 200),
+                                    () {
+                                      try {
+                                        controller.close();
+                                      } catch (_) {}
+                                    },
+                                  );
+                                  return true;
+                                } catch (err) {
+                                  messenger.clearSnackBars();
+                                  showRepoErrorSnackBar(messenger, err);
+                                  return false;
                                 }
-                              });
-                            } else {
-                              _openEditForm(context, tx.id, tx.title, tx.amount, tx.categoryId, tx.date);
-                            }
-                          },
+                              }
+                              return false;
+                            },
+                            child: TransactionListItem(
+                              position: position,
+                              highlight: tx.id == _highlightId,
+                              tx: tx,
+                              currency: currency,
+                              datePattern: datePattern,
+                              selectionMode: _selectionMode,
+                              selected: _selectedIds.contains(tx.id),
+                              onSelectedChanged: (final v) => setState(() {
+                                if (v) {
+                                  _selectedIds.add(tx.id);
+                                  _selectionMode = true;
+                                } else {
+                                  _selectedIds.remove(tx.id);
+                                  if (_selectedIds.isEmpty) {
+                                    _selectionMode = false;
+                                  }
+                                }
+                              }),
+                              onLongPress: () => setState(() {
+                                _selectionMode = true;
+                                _selectedIds.add(tx.id);
+                              }),
+                              onTap: () {
+                                if (_selectionMode) {
+                                  setState(() {
+                                    if (_selectedIds.contains(tx.id)) {
+                                      _selectedIds.remove(tx.id);
+                                      if (_selectedIds.isEmpty) {
+                                        _selectionMode = false;
+                                      }
+                                    } else {
+                                      _selectedIds.add(tx.id);
+                                    }
+                                  });
+                                } else {
+                                  _openEditForm(
+                                    context,
+                                    tx.id,
+                                    tx.title,
+                                    tx.amount,
+                                    tx.categoryId,
+                                    tx.date,
+                                  );
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                  }
+
+                  // Add load more indicator if needed
+                  if (hasMore) {
+                    listItems.add(
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Center(
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
                         ),
                       ),
                     );
                   }
-                }
-                
-                // Add load more indicator if needed
-                if (hasMore) {
-                  listItems.add(
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Center(
-                        child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
+
+                  listChild = RefreshIndicator(
+                    key: const ValueKey('tx_list'),
+                    onRefresh: () async {
+                      ref.invalidate(userTransactionsProvider);
+                      await Future.delayed(const Duration(milliseconds: 150));
+                    },
+                    child: ListView.separated(
+                      controller: _scrollController,
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        16,
+                        16,
+                        MediaQuery.of(context).padding.bottom + 88,
+                      ),
+                      itemCount: listItems.length,
+                      separatorBuilder: (final ctx, final i) =>
+                          const SizedBox.shrink(),
+                      itemBuilder: (final ctx, final i) => MotionFadeIn(
+                        delay: MotionStagger.delayFor(i),
+                        child: listItems[i],
                       ),
                     ),
                   );
                 }
-                
-                listChild = RefreshIndicator(
-                  key: const ValueKey('tx_list'),
-                  onRefresh: () async {
-                    ref.invalidate(userTransactionsProvider);
-                    await Future.delayed(const Duration(milliseconds: 150));
-                  },
-                  child: ListView.separated(
-                    controller: _scrollController,
-                    padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 88),
-                    itemCount: listItems.length,
-                    separatorBuilder: (final ctx, final i) => const SizedBox(height: 12),
-                    itemBuilder: (final ctx, final i) => MotionFadeIn(
-                      delay: MotionStagger.delayFor(i),
-                      child: listItems[i],
-                    ),
-                  ),
-                );
-              }
-              return MotionSwitcher(child: listChild);
-            }),
+                return MotionSwitcher(child: listChild);
+              },
+            ),
           ),
         ],
       ),
@@ -470,23 +662,32 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
   Future<void> _openAddForm(final BuildContext context) async {
     final theme = Theme.of(context);
+    final before = ref.read(transactionsCacheProvider).map((final t) => t.id).toSet();
     final result = await showModalBottomSheet<bool?>(
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
       ),
       builder: (final ctx) => const TransactionFormSheet.create(),
     );
     // If the sheet indicated a successful save, refresh and show feedback.
     if (result == true) {
+      _watchForNewRow(before);
       ref.read(transactionFilterProvider.notifier).resetFilters();
       if (!context.mounted) return;
       final messenger = ScaffoldMessenger.of(context);
       messenger.clearSnackBars();
-      messenger.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)?.transactionSaved ?? 'Transaction saved')));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)?.transactionSaved ??
+                'Transaction saved',
+          ),
+        ),
+      );
     }
     return;
   }
@@ -507,7 +708,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       isDismissible: false,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
       ),
       builder: (final ctx) => TransactionFormSheet.edit(
         id: id,
@@ -518,11 +719,19 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       ),
     );
     if (result == true) {
+      _flash(id);
       ref.read(transactionFilterProvider.notifier).resetFilters();
       if (!context.mounted) return;
       final messenger = ScaffoldMessenger.of(context);
       messenger.clearSnackBars();
-      messenger.showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)?.transactionUpdated ?? 'Transaction updated')));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)?.transactionUpdated ??
+                'Transaction updated',
+          ),
+        ),
+      );
     }
   }
 
@@ -532,7 +741,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final confirm = await showConfirmDialog(
       context,
       title: t?.deleteTransactionTitle ?? 'Delete transactions',
-      content: 'Are you sure you want to delete ${_selectedIds.length} transactions?',
+      content:
+          'Are you sure you want to delete ${_selectedIds.length} transactions?',
       confirmLabel: t?.delete ?? 'Delete',
       cancelLabel: t?.cancel ?? 'Cancel',
     );
@@ -552,7 +762,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
     try {
       for (final id in _selectedIds.toList()) {
-        await ref.read(transactionRepositoryProvider).deleteForUser(user.uid, id);
+        await ref
+            .read(transactionRepositoryProvider)
+            .deleteForUser(user.uid, id);
       }
       messenger.clearSnackBars();
       final snack = SnackBar(
@@ -563,7 +775,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           onPressed: () async {
             for (final tx in payloads.values) {
               try {
-                await ref.read(transactionRepositoryProvider).create(
+                await ref
+                    .read(transactionRepositoryProvider)
+                    .create(
                       userId: user.uid,
                       title: tx.title,
                       amount: tx.amount,
@@ -600,12 +814,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
     try {
       final exportService = ref.read(exportServiceProvider);
-      final file =
-          await exportService.saveTransactionsCSV(allFiltered, currency);
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: 'Transactions export',
+      final datePattern = ref.read(sharedPrefsServiceProvider).dateFormat;
+      final file = await exportService.saveTransactionsCSV(
+        allFiltered,
+        currency,
+        dateFormatPattern: datePattern,
       );
+      await Share.shareXFiles([XFile(file.path)], text: 'Transactions export');
     } catch (e) {
       showRepoErrorSnackBar(messenger, e);
     }

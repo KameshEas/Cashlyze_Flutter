@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/goals_model.dart';
 import '../../core/providers/goals_providers.dart';
+import '../../core/providers/onboarding_provider.dart';
+import '../../core/providers/shared_prefs_provider.dart';
+import '../../core/ui/constants.dart';
+import '../../core/utils/format.dart';
+import '../../core/utils/repo_error_handler.dart';
+import 'widgets/goal_completion_celebration.dart';
 
 class CreateEditGoalSheet extends ConsumerStatefulWidget {
   const CreateEditGoalSheet({
@@ -27,22 +34,24 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
   late String _selectedIcon;
   late String _selectedColor;
   late bool _isActive;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
-    if (widget.goal != null) {
-      _nameController = TextEditingController(text: widget.goal!.name);
+    final goal = widget.goal;
+    if (goal != null) {
+      _nameController = TextEditingController(text: goal.name);
       _descriptionController =
-          TextEditingController(text: widget.goal!.description ?? '');
+          TextEditingController(text: goal.description ?? '');
       _targetAmountController =
-          TextEditingController(text: widget.goal!.targetAmount.toString());
+          TextEditingController(text: goal.targetAmount.toString());
       _currentAmountController =
-          TextEditingController(text: widget.goal!.currentAmount.toString());
-      _selectedTargetDate = widget.goal!.targetDate;
-      _selectedIcon = widget.goal!.icon ?? '🎯';
-      _selectedColor = widget.goal!.color ?? '#2196F3';
-      _isActive = widget.goal!.isActive;
+          TextEditingController(text: goal.currentAmount.toString());
+      _selectedTargetDate = goal.targetDate;
+      _selectedIcon = goal.icon ?? '🎯';
+      _selectedColor = goal.color ?? '#2196F3';
+      _isActive = goal.isActive;
     } else {
       _nameController = TextEditingController();
       _descriptionController = TextEditingController();
@@ -105,6 +114,8 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
   }
 
   Future<void> _submit() async {
+    if (_isSubmitting) return;
+
     if (_nameController.text.isEmpty ||
         _targetAmountController.text.isEmpty) {
       if (!mounted) return;
@@ -114,13 +125,25 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
       return;
     }
 
+    final targetAmount = double.tryParse(_targetAmountController.text);
+    final currentAmount = _currentAmountController.text.isEmpty
+        ? 0.0
+        : double.tryParse(_currentAmountController.text);
+    if (targetAmount == null || currentAmount == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid amount')),
+      );
+      return;
+    }
+
     final goal = GoalsModel(
       id: widget.goal?.id ?? '',
       userId: widget.goal?.userId ?? '',
       name: _nameController.text,
       description: _descriptionController.text,
-      targetAmount: double.parse(_targetAmountController.text),
-      currentAmount: double.parse(_currentAmountController.text),
+      targetAmount: targetAmount,
+      currentAmount: currentAmount,
       targetDate: _selectedTargetDate,
       icon: _selectedIcon,
       color: _selectedColor,
@@ -128,33 +151,52 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
       createdAt: widget.goal?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
     );
+    final wasCompleted = widget.goal?.isCompleted ?? false;
 
+    setState(() => _isSubmitting = true);
     try {
       if (widget.goal == null) {
         await ref.read(goalsServiceProvider).createGoal(goal);
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
+        final messenger = ScaffoldMessenger.of(context);
+        await HapticFeedback.lightImpact();
+        messenger.showSnackBar(
           const SnackBar(content: Text('Goal created successfully')),
         );
       } else {
         await ref.read(goalsServiceProvider).updateGoal(goal.id, goal);
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
+        final messenger = ScaffoldMessenger.of(context);
+        await HapticFeedback.lightImpact();
+        messenger.showSnackBar(
           const SnackBar(content: Text('Goal updated successfully')),
         );
+
+        final justCompleted = !wasCompleted && goal.isCompleted;
+        if (justCompleted) {
+          final prefs = ref.read(sharedPrefsServiceProvider);
+          if (!prefs.hasCelebratedGoal(goal.id)) {
+            await prefs.markGoalCelebrated(goal.id);
+            if (mounted) await GoalCompletionCelebration.show(context);
+          }
+        }
       }
       ref.invalidate(goalsListProvider);
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text(repoErrorMessage(e))),
       );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
   @override
   Widget build(final BuildContext context) {
+    final theme = Theme.of(context);
+    final currency = ref.watch(currencyProvider);
     return SingleChildScrollView(
       child: Container(
         padding: EdgeInsets.only(
@@ -169,8 +211,7 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
           children: [
             Text(
               widget.goal == null ? 'Create Goal' : 'Edit Goal',
-              style: const TextStyle(
-                fontSize: 20,
+              style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -182,8 +223,8 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: theme.colorScheme.outline),
+                      borderRadius: AppRadius.smAll,
                     ),
                     child: Text(
                       _selectedIcon,
@@ -195,10 +236,10 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
                 Expanded(
                   child: TextField(
                     controller: _nameController,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: 'Goal name',
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: AppRadius.smAll,
                       ),
                     ),
                   ),
@@ -208,10 +249,10 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
             const SizedBox(height: 16),
             TextField(
               controller: _descriptionController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Description (optional)',
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.smAll,
                 ),
               ),
               maxLines: 2,
@@ -224,10 +265,10 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
                     controller: _targetAmountController,
                     decoration: InputDecoration(
                       labelText: 'Target Amount',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      border: const OutlineInputBorder(
+                        borderRadius: AppRadius.smAll,
                       ),
-                      prefix: const Text('\$ '),
+                      prefix: Text('${currencySymbol(currency)} '),
                     ),
                     keyboardType: TextInputType.number,
                   ),
@@ -238,10 +279,10 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
                     controller: _currentAmountController,
                     decoration: InputDecoration(
                       labelText: 'Current Amount',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      border: const OutlineInputBorder(
+                        borderRadius: AppRadius.smAll,
                       ),
-                      prefix: const Text('\$ '),
+                      prefix: Text('${currencySymbol(currency)} '),
                     ),
                     keyboardType: TextInputType.number,
                   ),
@@ -254,8 +295,8 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: theme.colorScheme.outline),
+                  borderRadius: AppRadius.smAll,
                 ),
                 child: Row(
                   children: [
@@ -284,8 +325,8 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
                     height: 40,
                     decoration: BoxDecoration(
                       color: _parseColor(_selectedColor),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: AppRadius.smAll,
+                      border: Border.all(color: theme.colorScheme.outline),
                     ),
                   ),
                 ),
@@ -306,11 +347,17 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _submit,
-                child: Text(
-                  widget.goal == null ? 'Create Goal' : 'Update Goal',
-                  style: const TextStyle(fontSize: 16),
-                ),
+                onPressed: _isSubmitting ? null : _submit,
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(
+                        widget.goal == null ? 'Create Goal' : 'Update Goal',
+                        style: theme.textTheme.titleMedium,
+                      ),
               ),
             ),
           ],
@@ -339,6 +386,7 @@ class _IconPickerDialog extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
+    final theme = Theme.of(context);
     final icons = ['🎯', '💰', '🏠', '🎓', '✈️', '🚗', '💍', '🏥'];
 
     return AlertDialog(
@@ -353,10 +401,12 @@ class _IconPickerDialog extends StatelessWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: selectedIcon == icon ? Colors.blue : Colors.grey,
+                      color: selectedIcon == icon
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.outline,
                       width: selectedIcon == icon ? 2 : 1,
                     ),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: AppRadius.smAll,
                   ),
                   child: Center(
                     child: Text(icon, style: const TextStyle(fontSize: 28)),
@@ -381,6 +431,7 @@ class _ColorPickerDialog extends StatelessWidget {
 
   @override
   Widget build(final BuildContext context) {
+    final theme = Theme.of(context);
     final colors = [
       '#2196F3',
       '#4CAF50',
@@ -405,10 +456,12 @@ class _ColorPickerDialog extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: _parseColor(color),
                     border: Border.all(
-                      color: selectedColor == color ? Colors.black : Colors.grey,
+                      color: selectedColor == color
+                          ? theme.colorScheme.onSurface
+                          : theme.colorScheme.outline,
                       width: selectedColor == color ? 3 : 1,
                     ),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: AppRadius.smAll,
                   ),
                 ),
               ),

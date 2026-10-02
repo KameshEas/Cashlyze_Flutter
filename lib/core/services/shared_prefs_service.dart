@@ -14,8 +14,22 @@ class SharedPrefsService {
   static const String _showDevKey = 'show_development_section';
   static const String _languageKey = 'app_language_code';
   static const String _analyticsConsentKey = 'analytics_consent_given';
-  static const String _crashlyticsConsentKey = 'crashlytics_consent_given';
+  // Named for crash *reporting* (Sentry), not Firebase Crashlytics - this
+  // app doesn't use Crashlytics at all.
+  static const String _crashReportingConsentKey = 'crash_reporting_consent_given';
+  static const String _celebratedGoalsKey = 'celebrated_goal_ids';
+  static const String _announcementSeenKey = 'announcement_seen_at';
+  static const String _installReferrerCheckedKey = 'deeplink_install_referrer_checked';
   final SharedPreferences _prefs;
+
+  // The Play Install Referrer is only meaningful once, right after a fresh
+  // install - checking it again on every launch would be pointless (Play
+  // keeps returning the same original-install value forever) and each check
+  // is a real service call, so this gates it to exactly one attempt ever.
+  bool get installReferrerChecked => _prefs.getBool(_installReferrerCheckedKey) ?? false;
+  Future<void> markInstallReferrerChecked() async {
+    await _prefs.setBool(_installReferrerCheckedKey, true);
+  }
 
   bool get isOnboardingCompleted => _prefs.getBool(_onboardingKey) ?? false;
 
@@ -85,8 +99,45 @@ class SharedPrefsService {
     await _prefs.setBool(_analyticsConsentKey, value);
   }
 
-  bool get crashlyticsConsentGiven => _prefs.getBool(_crashlyticsConsentKey) ?? false;
-  Future<void> setCrashlyticsConsentGiven(final bool value) async {
-    await _prefs.setBool(_crashlyticsConsentKey, value);
+  bool get crashReportingConsentGiven => _prefs.getBool(_crashReportingConsentKey) ?? false;
+  Future<void> setCrashReportingConsentGiven(final bool value) async {
+    await _prefs.setBool(_crashReportingConsentKey, value);
+  }
+
+  // Tracks which savings goals have already shown the completion celebration,
+  // so it only plays once per goal rather than on every screen revisit.
+  bool hasCelebratedGoal(final String goalId) =>
+      (_prefs.getStringList(_celebratedGoalsKey) ?? const []).contains(goalId);
+
+  Future<void> markGoalCelebrated(final String goalId) async {
+    final current = _prefs.getStringList(_celebratedGoalsKey) ?? const [];
+    if (current.contains(goalId)) return;
+    await _prefs.setStringList(_celebratedGoalsKey, [...current, goalId]);
+  }
+
+  // When the user last saw/dismissed each announcement (id -> epoch millis),
+  // so `once` and `daily` announcements don't keep coming back.
+  Map<String, int> get announcementSeenAt {
+    final raw = _prefs.getString(_announcementSeenKey);
+    if (raw == null) return const {};
+    try {
+      return (jsonDecode(raw) as Map<String, dynamic>)
+          .map((final id, final at) => MapEntry(id, (at as num).toInt()));
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  Future<void> markAnnouncementSeen(final String id, final int epochMillis) async {
+    final seen = {...announcementSeenAt, id: epochMillis};
+    // Keep the newest entries so ids of long-gone announcements don't pile up.
+    if (seen.length > 100) {
+      final newest = seen.entries.toList()
+        ..sort((final a, final b) => b.value.compareTo(a.value));
+      seen
+        ..clear()
+        ..addEntries(newest.take(100));
+    }
+    await _prefs.setString(_announcementSeenKey, jsonEncode(seen));
   }
 }

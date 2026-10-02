@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/illustrations/app_illustration.dart';
+import '../../core/models/category.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/ui/constants.dart';
+import '../../core/ui/motion.dart';
+import '../../core/utils/repo_error_handler.dart';
 import '../../core/widgets/dialogs.dart';
+import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/skeleton.dart';
 import '../../l10n/app_localizations.dart';
 
 class CategoriesScreen extends ConsumerWidget {
@@ -21,23 +28,31 @@ class CategoriesScreen extends ConsumerWidget {
         label: Text(t?.add ?? 'Add'),
       ),
       body: catsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (final e, _) => Center(child: Text('Failed to load: $e')),
+        loading: () => ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemBuilder: (final context, final i) => const SkeletonListTile(),
+          separatorBuilder: (final context, final i) => const SizedBox(height: 8),
+          itemCount: 6,
+        ),
+        error: (final e, _) => Center(
+          child: AppEmptyState(
+            title: 'Failed to load categories',
+            subtitle: repoErrorMessage(e),
+            icon: Icons.error_outline_rounded,
+            illustration: illustrationForError(e),
+            actionLabel: t?.retry ?? 'Retry',
+            onAction: () => ref.invalidate(userCategoriesProvider),
+          ),
+        ),
         data: (final list) {
           if (list.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.category_outlined, size: 72),
-                  const SizedBox(height: 8),
-                  Text(t?.noCategories ?? 'No categories'),
-                  const SizedBox(height: 8),
-                  FilledButton(
-                    onPressed: () => _openEdit(context, ref),
-                    child: Text(t?.addCategory ?? 'Add category'),
-                  ),
-                ],
+              child: AppEmptyState(
+                title: t?.noCategories ?? 'No categories',
+                icon: Icons.category_outlined,
+                illustration: AppIllustrationKind.tags,
+                actionLabel: t?.addCategory ?? 'Add category',
+                onAction: () => _openEdit(context, ref),
               ),
             );
           }
@@ -47,11 +62,13 @@ class CategoriesScreen extends ConsumerWidget {
             separatorBuilder: (final sepCtx, final i) => const SizedBox(height: 8),
             itemBuilder: (final ctx, final i) {
               final c = list[i];
-              return Container(
+              return MotionFadeIn(
+                delay: MotionStagger.delayFor(i),
+                child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Theme.of(ctx).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: AppRadius.lgAll,
                   border: Border.all(
                     color: Colors.white.withValues(alpha: 0.05),
                   ),
@@ -99,7 +116,7 @@ class CategoriesScreen extends ConsumerWidget {
                             );
                           } catch (e) {
                             messenger.showSnackBar(
-                              SnackBar(content: Text('Failed: $e')),
+                              SnackBar(content: Text(repoErrorMessage(e))),
                             );
                           }
                         }
@@ -107,7 +124,7 @@ class CategoriesScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-              );
+              ));
             },
           );
         },
@@ -132,9 +149,23 @@ class CategoriesScreen extends ConsumerWidget {
       initial: initialName ?? '',
     );
     if (name == null) return;
-    if (name.trim().isEmpty) {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
       messenger.showSnackBar(
         SnackBar(content: Text(l10n?.nameEmptyError ?? 'Name cannot be empty')),
+      );
+      return;
+    }
+    final existing = ref.read(userCategoriesProvider).maybeWhen(
+          data: (final list) => list,
+          orElse: () => const <CategoryModel>[],
+        );
+    final isDuplicate = existing.any(
+      (final c) => c.id != categoryId && c.name.toLowerCase() == trimmedName.toLowerCase(),
+    );
+    if (isDuplicate) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n?.nameDuplicateError ?? 'A category with this name already exists')),
       );
       return;
     }
@@ -153,7 +184,7 @@ class CategoriesScreen extends ConsumerWidget {
       } catch (_) {}
       messenger.showSnackBar(SnackBar(content: Text(l10n?.saved ?? 'Saved')));
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Failed: $e')));
+      messenger.showSnackBar(SnackBar(content: Text(repoErrorMessage(e))));
     }
   }
 }

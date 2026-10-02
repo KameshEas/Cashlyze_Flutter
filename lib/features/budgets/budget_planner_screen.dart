@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/illustrations/app_illustration.dart';
 import '../../core/models/budget.dart';
 import '../../core/models/category.dart';
 import '../../core/models/transaction.dart';
@@ -16,10 +18,13 @@ import '../../core/services/auth_service.dart';
 import '../../core/ui/constants.dart';
 import '../../core/ui/motion.dart';
 import '../../core/utils/format.dart';
+import '../../core/utils/repo_error_handler.dart';
 import '../../core/utils/validation.dart';
 import '../../core/widgets/animated_progress_indicator.dart';
 import '../../core/widgets/animated_progress_text.dart';
+import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/skeleton.dart';
+import '../../l10n/app_localizations.dart';
 import '../onboarding/budget_tutorial_overlay.dart';
 import 'budget_card.dart';
 
@@ -83,17 +88,17 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppColors.warning.withValues(alpha: 0.1),
+                  borderRadius: AppRadius.lgAll,
                   border: Border.all(
-                    color: Colors.orange.withValues(alpha: 0.3),
+                    color: AppColors.warning.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
                   children: [
                     const Icon(
                       Icons.warning_amber_outlined,
-                      color: Colors.orange,
+                      color: AppColors.warning,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -155,26 +160,28 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
               ),
               error: (final e, final _) => Center(
                 key: const ValueKey('budgets-error'),
-                child: Text('Failed to load budgets: $e'),
+                child: AppEmptyState(
+                  title: 'Failed to load budgets',
+                  subtitle: repoErrorMessage(e),
+                  icon: Icons.error_outline_rounded,
+                  illustration: illustrationForError(e),
+                  actionLabel: AppLocalizations.of(context)?.tryAgain ?? 'Try again',
+                  onAction: () => ref.invalidate(userBudgetsProvider),
+                ),
               ),
               data: (final list) {
                 if (orderedBudgets.isEmpty) {
-                  return Column(
+                  return Center(
                     key: const ValueKey('budgets-empty'),
-                    children: [
-                      const SizedBox(height: AppSpacing.s8),
-                      const _EmptyState(
-                        message: 'No budgets',
-                        icon: Icons.account_balance_wallet,
-                      ),
-                      const SizedBox(height: AppSpacing.s12),
-                      Center(
-                        child: FilledButton(
-                          onPressed: () => _openCreateBudget(context),
-                          child: const Text('Create budget'),
-                        ),
-                      ),
-                    ],
+                    child: AppEmptyState(
+                      title: 'No budgets',
+                      subtitle: AppLocalizations.of(context)?.budgetsEmptyBody ??
+                          'Set a limit for a category and get a heads-up before you overspend.',
+                      icon: Icons.account_balance_wallet,
+                      illustration: AppIllustrationKind.envelope,
+                      actionLabel: 'Create budget',
+                      onAction: () => _openCreateBudget(context),
+                    ),
                   );
                 }
                 return ReorderableListView(
@@ -257,40 +264,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       return budgetCard;
     }
 
-    return Dismissible(
-      key: ValueKey('budget_dismissible_${budget.id}'),
-      background: Container(
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: Colors.green.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Row(
-          children: [
-            Icon(Icons.edit, color: Colors.green),
-            SizedBox(width: 8),
-            Text('Adjust'),
-          ],
-        ),
-      ),
-      secondaryBackground: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text('Delete'),
-            SizedBox(width: 8),
-            Icon(Icons.delete, color: Colors.red),
-          ],
-        ),
-      ),
-      confirmDismiss: (final dir) async {
+    Future<bool> confirmAction(final DismissDirection dir) async {
         if (dir == DismissDirection.startToEnd) {
           await _openAdjustBudget(context, budget.id, budget.allocated, budget.name);
           return false;
@@ -309,7 +283,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                child: const Text('Delete', style: TextStyle(color: AppColors.error)),
               ),
             ],
           ),
@@ -609,8 +583,55 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           }
           return false;
         }
+      }
+
+    // Swipe is invisible to screen-reader users: expose the same actions
+    // as custom accessibility actions (TalkBack / VoiceOver actions menu).
+    return Semantics(
+      customSemanticsActions: {
+        const CustomSemanticsAction(label: 'Adjust budget'): () {
+          confirmAction(DismissDirection.startToEnd);
+        },
+        const CustomSemanticsAction(label: 'Delete budget'): () {
+          confirmAction(DismissDirection.endToStart);
+        },
       },
+      child: Dismissible(
+      key: ValueKey('budget_dismissible_${budget.id}'),
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: AppColors.success.withValues(alpha: 0.15),
+          borderRadius: AppRadius.lgAll,
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.edit, color: AppColors.success),
+            SizedBox(width: 8),
+            Text('Adjust'),
+          ],
+        ),
+      ),
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: AppColors.error.withValues(alpha: 0.15),
+          borderRadius: AppRadius.lgAll,
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Text('Delete'),
+            SizedBox(width: 8),
+            Icon(Icons.delete, color: AppColors.error),
+          ],
+        ),
+      ),
+      confirmDismiss: confirmAction,
       child: budgetCard,
+    ),
     );
   }
 
@@ -628,6 +649,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
     final allocatedController = TextEditingController();
     
     BudgetPeriod selectedPeriod = BudgetPeriod.monthly;
+    bool isSubmitting = false;
 
     final prefs = ref.read(sharedPrefsServiceProvider);
     final draft = prefs.getDraft('budget_create');
@@ -653,7 +675,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       isScrollControlled: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
       ),
       builder: (final ctx) {
         final nav = Navigator.of(ctx);
@@ -674,7 +696,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                     width: 48,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -739,7 +761,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                     children: [
                       Expanded(
                         child: FilledButton(
-                          onPressed: () async {
+                          onPressed: isSubmitting ? null : () async {
                             final user = ref.read(currentUserProvider);
                             if (user == null) {
                               // In normal app flow this shouldn't happen because
@@ -784,6 +806,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                             }
 
                             final messenger = ScaffoldMessenger.of(ctx);
+                            setSheetState(() => isSubmitting = true);
                             try {
                               await repo.create(
                                 userId: user.uid,
@@ -798,11 +821,18 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                             } catch (e) {
                               debugPrint('Budget creation failed: $e');
                               messenger.showSnackBar(
-                                SnackBar(content: Text('Failed: $e')),
+                                SnackBar(content: Text(repoErrorMessage(e))),
                               );
+                              setSheetState(() => isSubmitting = false);
                             }
                           },
-                          child: const Text('Save'),
+                          child: isSubmitting
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Text('Save'),
                         ),
                       ),
                     ],
@@ -854,6 +884,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       text: allocated.toStringAsFixed(2),
     );
     final noteController = TextEditingController();
+    bool isSubmitting = false;
     final prefs = ref.read(sharedPrefsServiceProvider);
     final adjustDraft = prefs.getDraft('budget_adjust');
     
@@ -869,7 +900,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
       isScrollControlled: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
       ),
       builder: (final ctx) {
         final nav = Navigator.of(ctx);
@@ -879,14 +910,14 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            child: Column(
+            child: StatefulBuilder(builder: (final ctx, final setSheetState) => Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
                   width: 48,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -929,7 +960,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                   children: [
                     Expanded(
                       child: FilledButton(
-                        onPressed: () async {
+                        onPressed: isSubmitting ? null : () async {
                             if (!validateAmount(amountController.text.trim())) {
                             ScaffoldMessenger.of(ctx).showSnackBar(
                               const SnackBar(
@@ -949,6 +980,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                             return;
                           }
                           final messenger = ScaffoldMessenger.of(ctx);
+                          setSheetState(() => isSubmitting = true);
                           try {
                             final user = ref.read(currentUserProvider);
                             if (user == null) return;
@@ -1005,7 +1037,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                                       );
                                     } catch (err) {
                                       messenger.showSnackBar(
-                                        SnackBar(content: Text('Failed to undo: $err')),
+                                        SnackBar(content: Text(repoErrorMessage(err))),
                                       );
                                     }
                                   },
@@ -1014,17 +1046,24 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                             );
                           } catch (e) {
                             messenger.showSnackBar(
-                                SnackBar(content: Text('Failed: $e')),
+                                SnackBar(content: Text(repoErrorMessage(e))),
                               );
+                            setSheetState(() => isSubmitting = false);
                           }
                         },
-                        child: const Text('Save'),
+                        child: isSubmitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('Save'),
                       ),
                     ),
                   ],
                 ),
               ],
-            ),
+            )),
           ),
         );
       },
@@ -1082,59 +1121,6 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _BaseCard extends StatelessWidget {
-  const _BaseCard({
-    required this.child,
-  });
-  final Widget child;
-
-  @override
-  Widget build(final BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.cardPadding),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: AppRadius.lgAll,
-        border: Border.all(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.07),
-        ),
-        boxShadow: AppShadow.card,
-      ),
-      child: child,
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.message, required this.icon});
-  final String message;
-  final IconData icon;
-
-  @override
-  Widget build(final BuildContext context) {
-    final theme = Theme.of(context);
-    return _BaseCard(
-      child: SizedBox(
-        height: 100,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 36, color: theme.colorScheme.primary),
-            const SizedBox(width: AppSpacing.s12),
-            Text(
-              message,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _BudgetsHeroCard extends StatelessWidget {
   const _BudgetsHeroCard({
@@ -1153,22 +1139,19 @@ class _BudgetsHeroCard extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
-    final color = theme.colorScheme.primary;
+    const onHero = Colors.white;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.cardPadding),
+      padding: const EdgeInsets.all(AppSpacing.heroPadding),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            color.withValues(alpha: 0.16),
-            color.withValues(alpha: 0.02),
-          ],
+          colors: [AppColors.ocean700, AppColors.ocean900],
         ),
-        borderRadius: AppRadius.lgAll,
-        border: Border.all(color: color.withValues(alpha: 0.08)),
+        borderRadius: AppRadius.xlAll,
+        boxShadow: AppShadow.brand(AppColors.ocean800),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1176,7 +1159,7 @@ class _BudgetsHeroCard extends StatelessWidget {
           Text(
             'Monthly Budget',
             style: theme.textTheme.labelLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              color: onHero.withValues(alpha: 0.8),
             ),
           ),
           const SizedBox(height: AppSpacing.s8),
@@ -1186,9 +1169,9 @@ class _BudgetsHeroCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Allocated', style: theme.textTheme.labelSmall),
+                    Text('Allocated', style: theme.textTheme.labelSmall?.copyWith(color: onHero.withValues(alpha: 0.7))),
                     const SizedBox(height: AppSpacing.s4),
-                    Text(formatAmount(totalAllocated, currency), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                    Text(formatAmount(totalAllocated, currency), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700, color: onHero)),
                   ],
                 ),
               ),
@@ -1197,9 +1180,9 @@ class _BudgetsHeroCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Spent', style: theme.textTheme.labelSmall),
+                    Text('Spent', style: theme.textTheme.labelSmall?.copyWith(color: onHero.withValues(alpha: 0.7))),
                     const SizedBox(height: AppSpacing.s4),
-                    Text(formatAmount(totalSpent, currency), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                    Text(formatAmount(totalSpent, currency), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700, color: onHero)),
                   ],
                 ),
               ),
@@ -1211,7 +1194,7 @@ class _BudgetsHeroCard extends StatelessWidget {
               Expanded(
                 child: AnimatedProgressIndicator(
                   progress: utilization.clamp(0.0, double.infinity),
-                  backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+                  backgroundColor: onHero.withValues(alpha: 0.18),
                 ),
               ),
               const SizedBox(width: AppSpacing.s8),
@@ -1219,6 +1202,7 @@ class _BudgetsHeroCard extends StatelessWidget {
                 progress: utilization.clamp(0.0, 1.0),
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w700,
+                  color: onHero,
                 ),
               ),
             ],

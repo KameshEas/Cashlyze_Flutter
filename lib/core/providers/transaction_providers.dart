@@ -24,7 +24,13 @@ final recentTransactionsProvider = StreamProvider<List<TransactionModel>>((
   if (user == null) return Stream.value(<TransactionModel>[]);
   final repo = ref.watch(transactionRepositoryProvider);
   final stream = repo.streamForUser(user.uid);
-  return stream.timeout(const Duration(seconds: 15)).handleError((_, _) {});
+  // Firestore streams go quiet when nothing changes; treat that as normal
+  // idle time rather than an error. Real stream errors (permissions,
+  // network) are left to propagate so the UI can surface them and retry.
+  return stream.timeout(
+    const Duration(seconds: 15),
+    onTimeout: (final sink) {},
+  );
 });
 
 class TransactionsCacheNotifier extends Notifier<List<TransactionModel>> {

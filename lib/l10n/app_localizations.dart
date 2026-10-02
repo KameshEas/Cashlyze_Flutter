@@ -394,6 +394,12 @@ abstract class AppLocalizations {
   /// **'Name cannot be empty'**
   String get nameEmptyError;
 
+  /// No description provided for @nameDuplicateError.
+  ///
+  /// In en, this message translates to:
+  /// **'A category with this name already exists'**
+  String get nameDuplicateError;
+
   /// No description provided for @saved.
   ///
   /// In en, this message translates to:
@@ -867,6 +873,378 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Help improve Cashlyze by sharing usage data'**
   String get analyticsSubtitle;
+
+  /// No description provided for @onboardingSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get onboardingSkip;
+
+  /// No description provided for @onboardingBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get onboardingBack;
+
+  /// No description provided for @onboardingNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get onboardingNext;
+
+  /// No description provided for @onboardingGetStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Started'**
+  String get onboardingGetStarted;
+
+  /// Progress label, e.g. Step 2 of 3
+  ///
+  /// In en, this message translates to:
+  /// **'Step {current} of {total}'**
+  String onboardingStepLabel(int current, int total);
+
+  /// No description provided for @onboardingNearLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Near limit'**
+  String get onboardingNearLimit;
+
+  /// No description provided for @onboardingPage1Title.
+  ///
+  /// In en, this message translates to:
+  /// **'See where your money goes'**
+  String get onboardingPage1Title;
+
+  /// No description provided for @onboardingPage1Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Log expenses in seconds or scan a receipt, and every transaction lands in the right category.'**
+  String get onboardingPage1Body;
+
+  /// No description provided for @onboardingPage1Semantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Illustration: a list of categorised transactions'**
+  String get onboardingPage1Semantics;
+
+  /// No description provided for @onboardingPage2Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Budgets that keep you on track'**
+  String get onboardingPage2Title;
+
+  /// No description provided for @onboardingPage2Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Set daily, weekly or monthly limits and get a heads-up before you overspend.'**
+  String get onboardingPage2Body;
+
+  /// No description provided for @onboardingPage2Semantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Illustration: budget progress bars, one nearing its limit'**
+  String get onboardingPage2Semantics;
+
+  /// No description provided for @onboardingPage3Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Insights you can act on'**
+  String get onboardingPage3Title;
+
+  /// No description provided for @onboardingPage3Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear charts show trends early, so small leaks never turn into big problems.'**
+  String get onboardingPage3Body;
+
+  /// No description provided for @onboardingPage3Semantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Illustration: a bar chart of spending over time'**
+  String get onboardingPage3Semantics;
+
+  /// No description provided for @authSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get authSignIn;
+
+  /// No description provided for @authSignUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Up'**
+  String get authSignUp;
+
+  /// No description provided for @authCreateAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Account'**
+  String get authCreateAccount;
+
+  /// No description provided for @authEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get authEmail;
+
+  /// No description provided for @authPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get authPassword;
+
+  /// No description provided for @authName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get authName;
+
+  /// No description provided for @authMobile.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile'**
+  String get authMobile;
+
+  /// No description provided for @authPasswordHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 6 characters'**
+  String get authPasswordHelper;
+
+  /// No description provided for @authShowPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get authShowPassword;
+
+  /// No description provided for @authHidePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get authHidePassword;
+
+  /// No description provided for @authNoAccountPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t have an account?'**
+  String get authNoAccountPrompt;
+
+  /// No description provided for @authHaveAccountPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have an account?'**
+  String get authHaveAccountPrompt;
+
+  /// No description provided for @authEnterName.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your name'**
+  String get authEnterName;
+
+  /// No description provided for @authEnterMobile.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your mobile number'**
+  String get authEnterMobile;
+
+  /// No description provided for @authMobileMin.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile number must be at least 6 digits'**
+  String get authMobileMin;
+
+  /// No description provided for @authEnterEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your email'**
+  String get authEnterEmail;
+
+  /// No description provided for @authValidEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid email'**
+  String get authValidEmail;
+
+  /// No description provided for @authEnterPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your password'**
+  String get authEnterPassword;
+
+  /// No description provided for @authPasswordMin.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least 6 characters'**
+  String get authPasswordMin;
+
+  /// No description provided for @otpTitleSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your account'**
+  String get otpTitleSend;
+
+  /// No description provided for @otpTitleEnter.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your code'**
+  String get otpTitleEnter;
+
+  /// No description provided for @otpSubtitleSend.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll send a one-time code to {email} to verify your account.'**
+  String otpSubtitleSend(String email);
+
+  /// No description provided for @otpSubtitleSent.
+  ///
+  /// In en, this message translates to:
+  /// **'A one-time code was sent to {email}'**
+  String otpSubtitleSent(String email);
+
+  /// No description provided for @otpSendNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code'**
+  String get otpSendNow;
+
+  /// No description provided for @otpSending.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending…'**
+  String get otpSending;
+
+  /// No description provided for @otpVerify.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get otpVerify;
+
+  /// No description provided for @otpResendIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend in {seconds}s'**
+  String otpResendIn(int seconds);
+
+  /// No description provided for @otpResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend code'**
+  String get otpResend;
+
+  /// No description provided for @otpCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification code, 6 digits'**
+  String get otpCodeLabel;
+
+  /// No description provided for @otpEnterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter all 6 digits of the code'**
+  String get otpEnterAll;
+
+  /// No description provided for @otpUseDifferentEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a different email'**
+  String get otpUseDifferentEmail;
+
+  /// No description provided for @otpSentBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Code sent to {email}. Check your inbox.'**
+  String otpSentBanner(String email);
+
+  /// No description provided for @homeGreetingMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Good morning, {name}'**
+  String homeGreetingMorning(String name);
+
+  /// No description provided for @homeGreetingAfternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Good afternoon, {name}'**
+  String homeGreetingAfternoon(String name);
+
+  /// No description provided for @homeGreetingEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'Good evening, {name}'**
+  String homeGreetingEvening(String name);
+
+  /// No description provided for @homeNetBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Net balance'**
+  String get homeNetBalance;
+
+  /// No description provided for @homeThisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'This month'**
+  String get homeThisMonth;
+
+  /// No description provided for @homeSeeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get homeSeeAll;
+
+  /// No description provided for @homeNoTransactionsMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions this month'**
+  String get homeNoTransactionsMonth;
+
+  /// No description provided for @searchNoResultsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No results found'**
+  String get searchNoResultsTitle;
+
+  /// No description provided for @searchNoResultsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Try a different keyword or check the spelling.'**
+  String get searchNoResultsBody;
+
+  /// No description provided for @budgetsEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a limit for a category and get a heads-up before you overspend.'**
+  String get budgetsEmptyBody;
+
+  /// No description provided for @tryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get tryAgain;
+
+  /// No description provided for @offlineBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re offline. Some features may be unavailable.'**
+  String get offlineBanner;
+
+  /// No description provided for @scanReadingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading your receipt'**
+  String get scanReadingTitle;
+
+  /// No description provided for @scanReadingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This only takes a moment.'**
+  String get scanReadingBody;
+
+  /// No description provided for @transactionsEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your first transaction to start tracking where your money goes.'**
+  String get transactionsEmptyHint;
 }
 
 class _AppLocalizationsDelegate

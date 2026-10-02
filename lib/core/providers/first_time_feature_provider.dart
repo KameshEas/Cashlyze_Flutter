@@ -160,6 +160,32 @@ final firstTimeAppLaunchProvider = NotifierProvider<FirstTimeAppLaunchNotifier, 
   FirstTimeAppLaunchNotifier.new,
 );
 
+// First-time quick menu (center nav button) discovery
+class FirstTimeQuickMenuNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    final prefs = ref.read(sharedPrefsProvider);
+    final seen = prefs.getBool('first_time_quick_menu_tutorial_seen') ?? false;
+    return !seen;
+  }
+
+  Future<void> markAsSeen() async {
+    final prefs = ref.read(sharedPrefsProvider);
+    await prefs.setBool('first_time_quick_menu_tutorial_seen', true);
+    state = false;
+  }
+
+  Future<void> reset() async {
+    final prefs = ref.read(sharedPrefsProvider);
+    await prefs.setBool('first_time_quick_menu_tutorial_seen', false);
+    state = true;
+  }
+}
+
+final firstTimeQuickMenuProvider = NotifierProvider<FirstTimeQuickMenuNotifier, bool>(
+  FirstTimeQuickMenuNotifier.new,
+);
+
 // Dismissed tooltips (tracking which tooltips user has dismissed)
 class DismissedTooltipsNotifier extends Notifier<Set<String>> {
   @override

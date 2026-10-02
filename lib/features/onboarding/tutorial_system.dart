@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/ui/constants.dart';
 
 /// Tutorial event that can be triggered throughout the app
 enum TutorialEvent {
@@ -8,7 +9,8 @@ enum TutorialEvent {
   transactionEntry('transaction_entry', 'Transaction Entry'),
   categorySelection('category_selection', 'Category Selection'),
   emiTracking('emi_tracking', 'EMI Tracking'),
-  settingsAccess('settings_access', 'App Settings');
+  settingsAccess('settings_access', 'App Settings'),
+  quickMenu('quick_menu', 'Quick Menu');
 
   const TutorialEvent(this.id, this.title);
 
@@ -75,7 +77,7 @@ abstract class BaseTutorialOverlay extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.lgAll,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.3),
@@ -113,7 +115,7 @@ abstract class BaseTutorialOverlay extends ConsumerWidget {
                     markAsSeen(ref);
                     onComplete();
                   },
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: AppRadius.xlAll,
                   child: Padding(
                     padding: const EdgeInsets.all(8),
                     child: Icon(
@@ -136,14 +138,19 @@ abstract class BaseTutorialOverlay extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
-                      color: section.color.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
+                      color: theme.brightness == Brightness.dark
+                          ? AppColors.darkSurfaceHigh
+                          : AppColors.tint050,
+                      borderRadius: AppRadius.mdAll,
                     ),
                     child: Icon(
                       section.icon,
-                      color: section.color,
+                      color: theme.brightness == Brightness.dark
+                          ? AppColors.ocean400
+                          : AppColors.ocean700,
                       size: 18,
                     ),
                   ),
@@ -178,15 +185,15 @@ abstract class BaseTutorialOverlay extends ConsumerWidget {
 
           // Footer
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              color: theme.colorScheme.surfaceContainerHighest,
+              borderRadius: AppRadius.smAll,
             ),
             child: Text(
-              '💡 Tap anywhere to dismiss',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.primary,
+              'Tap anywhere to dismiss',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
                 fontWeight: FontWeight.w500,
               ),
             ),

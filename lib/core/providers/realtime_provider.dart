@@ -1,14 +1,42 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/auth_user.dart';
 import '../repositories/budget_repository.dart';
 import '../repositories/category_repository.dart';
+import '../repositories/emi_repository.dart';
 import '../repositories/transaction_repository.dart';
 import '../services/auth_service.dart';
 import '../services/ws_service.dart';
+
+/// Pauses the websocket + fallback pollers while the app is backgrounded and
+/// resumes them in the foreground. Without this, a backgrounded app that
+/// falls back to polling (see [WsService.onFallbackToPoll]) keeps hitting
+/// the backend on a 30s timer indefinitely, since neither the websocket nor
+/// the repository timers otherwise know the app isn't in use.
+class _AppLifecycleObserver extends WidgetsBindingObserver {
+  _AppLifecycleObserver({required this.onPaused, required this.onResumed});
+
+  final VoidCallback onPaused;
+  final VoidCallback onResumed;
+
+  @override
+  void didChangeAppLifecycleState(final AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        onPaused();
+      case AppLifecycleState.resumed:
+        onResumed();
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+        break;
+    }
+  }
+}
 
 /// Provider that ensures the WebSocket service connects when a user signs
 /// in and listens to realtime events. On relevant events it invalidates
@@ -18,6 +46,43 @@ final wsListenerProvider = Provider<void>((final ref) {
   StreamSubscription<WsEvent>? sub;
   StreamSubscription<WsConnectionState>? stateSub;
   StreamSubscription<void>? fallbackSub;
+  String? activeUserId;
+
+  final lifecycleObserver = _AppLifecycleObserver(
+    onPaused: () {
+      final userId = activeUserId;
+      if (userId == null) return;
+      try {
+        ref.read(transactionRepositoryProvider).disablePollingForUser(userId);
+        ref.read(budgetRepositoryProvider).disablePollingForUser(userId);
+      } catch (e) {
+        debugPrint('[wsListenerProvider] pause disablePolling failed: $e');
+      }
+      try {
+        ws.disconnect();
+      } catch (e) {
+        debugPrint('[wsListenerProvider] pause ws disconnect failed: $e');
+      }
+    },
+    onResumed: () {
+      final userId = activeUserId;
+      if (userId == null) return;
+      // Re-enable polling immediately as a fallback (mirrors sign-in
+      // behaviour), then attempt to reconnect the websocket - the existing
+      // stateSub listener below will disable polling again once connected.
+      try {
+        ref.read(transactionRepositoryProvider).enablePollingForUser(userId);
+        ref.read(budgetRepositoryProvider).enablePollingForUser(userId);
+      } catch (e) {
+        debugPrint('[wsListenerProvider] resume enablePolling failed: $e');
+      }
+      unawaited(ws.connect(userId).catchError((final e) {
+        debugPrint('[wsListenerProvider] resume ws connect failed: $e');
+      }));
+    },
+  );
+  WidgetsBinding.instance.addObserver(lifecycleObserver);
+  ref.onDispose(() => WidgetsBinding.instance.removeObserver(lifecycleObserver));
 
   // React to auth changes and connect/disconnect accordingly.
   ref.listen<AuthUser?>(currentUserProvider, (final previous, final next) {
@@ -35,6 +100,7 @@ final wsListenerProvider = Provider<void>((final ref) {
     }
 
     if (next == null) {
+      activeUserId = null;
       // Signed out: cancel subscription and disconnect
       try {
         sub?.cancel();
@@ -59,6 +125,8 @@ final wsListenerProvider = Provider<void>((final ref) {
       sub = null;
       return;
     }
+
+    activeUserId = next.userId;
 
     // Signed in: enable polling immediately while attempting websocket connect,
     // then connect and switch to websocket-driven updates when connected.
@@ -133,6 +201,18 @@ final wsListenerProvider = Provider<void>((final ref) {
             budgetRepo.applyRemoteBudgetEvent(next.userId, t, payload);
           } catch (e) {
             debugPrint('[wsListenerProvider] budget event failed: $e');
+          }
+          return;
+        }
+
+        // EMI plans: no local cache to update directly - just refetch.
+        if (t == WsEventType.emiPlanCreated ||
+            t == WsEventType.emiPlanUpdated ||
+            t == WsEventType.emiPlanDeleted) {
+          try {
+            ref.invalidate(userEMIPlansProvider);
+          } catch (e) {
+            debugPrint('[wsListenerProvider] invalidate EMI plans failed: $e');
           }
           return;
         }

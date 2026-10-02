@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/connectivity_service.dart';
 
@@ -9,18 +11,23 @@ final connectivityProvider = FutureProvider<bool>((final ref) async {
 
 /// Notifier that tracks connectivity status
 class ConnectivityNotifier extends Notifier<bool> {
+  Timer? _timer;
+
   @override
   bool build() {
+    ref.onDispose(() {
+      _timer?.cancel();
+      _timer = null;
+    });
     _startMonitoring();
     return true;
   }
 
   void _startMonitoring() {
-    Future.doWhile(() async {
-      await Future.delayed(const Duration(seconds: 10));
+    _timer = Timer(const Duration(seconds: 10), () async {
       final isConnected = await ConnectivityService.hasInternetConnection();
       state = isConnected;
-      return true;
+      _startMonitoring();
     });
   }
 }

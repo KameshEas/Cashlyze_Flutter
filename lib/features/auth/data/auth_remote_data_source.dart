@@ -65,6 +65,7 @@ class AuthRemoteDataSource {
       data: {
         'email': email,
         'password': password,
+        'app_id': 'cashlyze',
         if (otpToken != null && otpToken.isNotEmpty) 'otp_token': otpToken,
         if (name != null) 'name': name,
         if (mobile != null && mobile.isNotEmpty) 'mobile': mobile,
@@ -96,16 +97,22 @@ class AuthRemoteDataSource {
     required final String email,
     required final String password,
   }) async {
-    final response = await _api.post<Map<String, dynamic>>(
-      ApiEndpoints.login,
-      queryParameters: {'email': email, 'password': password},
-    );
-    final tokens = AuthTokens.fromJson(
-      (response.data as Map).cast<String, dynamic>(),
-    );
-    await _persistTokens(tokens);
-    return tokens;
-  }
+  final response = await _api.post<Map<String, dynamic>>(
+    ApiEndpoints.login,
+    data: {
+      'email': email,
+      'password': password,
+      'app_id': 'cashlyze',
+    },
+  );
+
+  final tokens = AuthTokens.fromJson(
+    (response.data as Map).cast<String, dynamic>(),
+  );
+
+  await _persistTokens(tokens);
+  return tokens;
+}
 
   // ── Refresh ────────────────────────────────────────────────────────────────
 

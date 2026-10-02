@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/goals_model.dart';
+import '../../core/providers/onboarding_provider.dart';
+import '../../core/ui/constants.dart';
+import '../../core/ui/motion.dart';
+import '../../core/utils/format.dart';
 import 'goal_progress_ring.dart';
 
-class GoalListItem extends StatelessWidget {
+class GoalListItem extends ConsumerWidget {
   const GoalListItem({
     required this.goal,
     required this.onTap,
@@ -16,10 +21,12 @@ class GoalListItem extends StatelessWidget {
   final VoidCallback onDelete;
 
   @override
-  Widget build(final BuildContext context) {
+  Widget build(final BuildContext context, final WidgetRef ref) {
+    final currency = ref.watch(currencyProvider);
+    final theme = Theme.of(context);
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: InkWell(
+      child: PressableScale(
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -50,8 +57,7 @@ class GoalListItem extends StatelessWidget {
                         Expanded(
                           child: Text(
                             goal.name,
-                            style: const TextStyle(
-                              fontSize: 16,
+                            style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
                             maxLines: 1,
@@ -65,9 +71,8 @@ class GoalListItem extends StatelessWidget {
                         padding: const EdgeInsets.only(top: 4),
                         child: Text(
                           goal.description!,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -82,9 +87,8 @@ class GoalListItem extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  '\$${goal.currentAmount.toStringAsFixed(2)} / \$${goal.targetAmount.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
+                                  '${formatAmount(goal.currentAmount, currency)} / ${formatAmount(goal.targetAmount, currency)}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -95,11 +99,10 @@ class GoalListItem extends StatelessWidget {
                                       goal.isOverdue
                                           ? 'Overdue by ${(DateTime.now().difference(goal.targetDate!).inDays)} days'
                                           : 'In ${goal.daysRemaining} days',
-                                      style: TextStyle(
-                                        fontSize: 11,
+                                      style: theme.textTheme.labelSmall?.copyWith(
                                         color: goal.isOverdue
-                                            ? Colors.red
-                                            : Colors.orange,
+                                            ? AppColors.error
+                                            : AppColors.warning,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -114,14 +117,13 @@ class GoalListItem extends StatelessWidget {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.green.withValues(alpha: 0.2),
+                                color: AppColors.success.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Completed',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.green,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: AppColors.success,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -132,24 +134,28 @@ class GoalListItem extends StatelessWidget {
                   ],
                 ),
               ),
-              PopupMenuButton<String>(
-                onSelected: (final value) {
-                  if (value == 'delete') {
-                    onDelete();
-                  }
-                },
-                itemBuilder: (final BuildContext context) => [
-                  const PopupMenuItem<String>(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete_outline, size: 18),
-                        SizedBox(width: 8),
-                        Text('Delete'),
-                      ],
+              Semantics(
+                label: 'Goal options for ${goal.name}',
+                child: PopupMenuButton<String>(
+                  tooltip: 'More options',
+                  onSelected: (final value) {
+                    if (value == 'delete') {
+                      onDelete();
+                    }
+                  },
+                  itemBuilder: (final BuildContext context) => [
+                    const PopupMenuItem<String>(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_outline, size: 18),
+                          SizedBox(width: 8),
+                          Text('Delete'),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),

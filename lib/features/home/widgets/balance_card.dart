@@ -1,247 +1,205 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/branding/flow_backdrop.dart';
 import '../../../core/providers/insights_providers.dart';
 import '../../../core/providers/shared_prefs_provider.dart';
+import '../../../core/ui/constants.dart';
+import '../../../core/ui/finance_style.dart';
 import '../../../core/utils/format.dart';
 import '../../../l10n/app_localizations.dart';
 
-/// Displays the user's current month balance with income/expense breakdown.
-/// Features enhanced animations and modern UI styling.
+/// The month's net position: a teal gradient card with the brand's flowing
+/// arcs, one large figure, and Income | Expense in two tinted pills.
 class BalanceCard extends ConsumerWidget {
   const BalanceCard({super.key});
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
-    final currency =
-        ref.watch(sharedPrefsServiceProvider.select((final s) => s.currency));
+    final currency = ref.watch(sharedPrefsServiceProvider.select((final s) => s.currency));
     final kpis = ref.watch(currentMonthKpisProvider);
-    final balanceStatus = getBalanceStatus(kpis.net, currency);
-    final isPositive = balanceStatus.isPositive;
+    final status = getBalanceStatus(kpis.net, currency);
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
-    return Container(
+    const onHero = Colors.white;
+    final muted = onHero.withValues(alpha: 0.78);
+    final label = theme.textTheme.labelMedium?.copyWith(color: muted, fontWeight: FontWeight.w600);
+
+    return Semantics(
+      container: true,
+      label: '${l10n?.homeNetBalance ?? 'Net balance'}, ${status.message}',
+      child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(24),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              theme.colorScheme.primary,
-              theme.colorScheme.secondary.withValues(alpha: 0.6),
-            ],
+          gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
+            colors: [AppColors.ocean600, AppColors.ocean800],
           ),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: theme.colorScheme.primary.withValues(alpha: 0.25),
-              blurRadius: 24,
-              offset: const Offset(0, 12),
-            ),
-            BoxShadow(
-              color: theme.colorScheme.secondary.withValues(alpha: 0.12),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          borderRadius: AppRadius.xlAll,
+          boxShadow: AppShadow.brand(AppColors.ocean700),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            // Header Row: Title + Period
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Total Balance',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'This Month',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            // Primary Status Message with Animation
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 400),
-              switchInCurve: Curves.easeOut,
-              switchOutCurve: Curves.easeIn,
-              transitionBuilder: (final child, final animation) =>
-                  ScaleTransition(
-                scale: animation,
-                child: child,
-              ),
-              child: Column(
-                key: ValueKey(kpis.net),
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          balanceStatus.message,
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 28,
-                            height: 1.2,
+            const Positioned.fill(child: FlowArcs()),
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.s24),
+              child: ExcludeSemantics(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            l10n?.homeNetBalance ?? 'Net balance',
+                            style: label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      _buildStatusIndicator(isPositive),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Net: ${formatAmount(kpis.net, currency)}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.75),
-                      fontWeight: FontWeight.w500,
-                      fontSize: 13,
+                        const SizedBox(width: AppSpacing.s8),
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: onHero.withValues(alpha: 0.16),
+                              borderRadius: AppRadius.fullAll,
+                            ),
+                            child: Text(
+                              l10n?.homeThisMonth ?? 'This month',
+                              style: label?.copyWith(color: onHero),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: AppSpacing.s16),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: AmountText(
+                        key: ValueKey(kpis.net),
+                        amount: kpis.net,
+                        currency: currency,
+                        showSign: kpis.net < 0,
+                        alignment: Alignment.centerLeft,
+                        color: onHero,
+                        incomeColor: onHero,
+                        style: theme.textTheme.displayMedium?.copyWith(
+                          color: onHero,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.s8),
+                    Row(
+                      children: [
+                        Icon(
+                          status.isPositive ? Icons.check_circle_rounded : Icons.error_rounded,
+                          size: 16,
+                          color: status.isPositive ? kIncomeOnHero : const Color(0xFFFFB4B4),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            status.message,
+                            style: theme.textTheme.bodySmall?.copyWith(color: muted),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.s20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _Pill(
+                            icon: Icons.south_west_rounded,
+                            label: l10n?.income ?? 'Income',
+                            amount: kpis.income,
+                            currency: currency,
+                            labelStyle: label,
+                            accent: kIncomeOnHero,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.s12),
+                        Expanded(
+                          child: _Pill(
+                            icon: Icons.north_east_rounded,
+                            label: l10n?.expense ?? 'Expense',
+                            amount: -kpis.expense.abs(),
+                            currency: currency,
+                            labelStyle: label,
+                            accent: kExpenseOnHero,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 28),
-            // Income & Expense Breakdown
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(
-                  child: _buildDetail(
-                    context,
-                    AppLocalizations.of(context)?.income ?? 'Income',
-                    formatAmount(kpis.income, currency),
-                    Icons.arrow_downward,
-                    theme.colorScheme.secondary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Flexible(
-                  child: _buildDetail(
-                    context,
-                    AppLocalizations.of(context)?.expense ?? 'Expense',
-                    formatAmount(kpis.expense, currency),
-                    Icons.trending_up,
-                    theme.colorScheme.error,
-                  ),
-                ),
-              ],
             ),
           ],
         ),
-    );
-  }
-
-  static Widget _buildStatusIndicator(final bool isPositive) {
-    return Container(
-      width: 20,
-      height: 20,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isPositive ? Colors.greenAccent : Colors.redAccent,
-        boxShadow: [
-          BoxShadow(
-            color: (isPositive ? Colors.greenAccent : Colors.redAccent)
-                .withValues(alpha: 0.6),
-            blurRadius: 12,
-            spreadRadius: 1,
-          ),
-        ],
-      ),
-      child: Center(
-        child: Icon(
-          isPositive ? Icons.check : Icons.close,
-          color: Colors.black87,
-          size: 12,
-          weight: 700,
-        ),
       ),
     );
   }
+}
 
-  static Widget _buildDetail(
-    final BuildContext context,
-    final String label,
-    final String amount,
-    final IconData icon,
-    final Color color,
-  ) {
-    final scheme = Theme.of(context).colorScheme;
-    final isExpense = label.toLowerCase().contains('expense');
-    final bgColor = isExpense
-        ? scheme.error.withValues(alpha: 0.2)
-        : color.withValues(alpha: 0.18);
+/// A tinted glass pill holding one figure (Income or Expense).
+class _Pill extends StatelessWidget {
+  const _Pill({
+    required this.icon,
+    required this.label,
+    required this.amount,
+    required this.currency,
+    required this.labelStyle,
+    required this.accent,
+  });
 
+  final IconData icon;
+  final String label;
+  final num amount;
+  final String currency;
+  final TextStyle? labelStyle;
+
+  /// Tint for this pill (mint for income, coral for expense).
+  final Color accent;
+
+  @override
+  Widget build(final BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.08),
-        ),
+        color: accent.withValues(alpha: 0.16),
+        borderRadius: AppRadius.lgAll,
+        border: Border.all(color: accent.withValues(alpha: 0.28)),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: 0.12),
-            ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 16,
-            ),
+          Row(
+            children: [
+              Icon(icon, size: 14, color: accent),
+              const SizedBox(width: 4),
+              Flexible(child: Text(label, style: labelStyle, overflow: TextOverflow.ellipsis)),
+            ],
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.85),
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12,
-                      ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  amount,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14,
-                      ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
+          const SizedBox(height: 6),
+          AmountText(
+            amount: amount,
+            currency: currency,
+            alignment: Alignment.centerLeft,
+            incomeColor: kIncomeOnHero,
+            expenseColor: kExpenseOnHero,
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: Colors.white),
           ),
         ],
       ),

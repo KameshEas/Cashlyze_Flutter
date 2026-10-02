@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/ui/constants.dart';
+import '../../core/ui/motion.dart';
 
 /// Help Center screen with FAQ sections grouped by feature
 class HelpCenterScreen extends StatelessWidget {
@@ -142,11 +142,6 @@ class HelpCenterScreen extends StatelessWidget {
           answer:
               'Your data is automatically backed up to Firebase. You can sign out and sign in on another device to access your data.',
         ),
-        FAQItem(
-          question: 'How do I replay the onboarding tutorial?',
-          answer:
-              'In Settings, tap "Replay Onboarding" to see the tutorial again. This is useful if you want to refresh your knowledge about features.',
-        ),
       ],
     ),
   ];
@@ -156,10 +151,6 @@ class HelpCenterScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Help Center'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: context.pop,
-        ),
       ),
       body: SafeArea(
         child: ListView.separated(
@@ -168,7 +159,10 @@ class HelpCenterScreen extends StatelessWidget {
           separatorBuilder: (final _, final _) => const SizedBox(height: AppSpacing.s8),
           itemBuilder: (final BuildContext context, final int index) {
             final section = _helpSections[index];
-            return _buildHelpSection(context, section);
+            return MotionFadeIn(
+              delay: MotionStagger.delayFor(index),
+              child: _buildHelpSection(context, section),
+            );
           },
         ),
       ),

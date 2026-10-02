@@ -31,10 +31,11 @@ abstract final class AppSpacing {
 abstract final class AppRadius {
   static const double none = 0;
   static const double sm   = 8;   // chips, badges, small tags
-  static const double md   = 12;  // buttons, standard inputs
-  static const double lg   = 16;  // cards, list tiles, sheets
-  static const double xl   = 24;  // hero cards, modals
-  static const double full = 999; // pill buttons, avatars
+  static const double md   = 12;  // icon tiles, small controls
+  static const double lg   = 16;  // cards, buttons, inputs, list groups
+  static const double xl   = 24;  // hero surfaces, dialogs
+  static const double sheet = 28; // bottom sheets / modals (kept large on purpose)
+  static const double full = 999; // pills, avatars, dots
 
   static const BorderRadius smAll   = BorderRadius.all(Radius.circular(sm));
   static const BorderRadius mdAll   = BorderRadius.all(Radius.circular(md));
@@ -61,6 +62,15 @@ abstract final class AppShadow {
     BoxShadow(
       color: Color(0x1A000000), // 10 % black
       blurRadius: 20,
+      offset: Offset(0, 8),
+    ),
+  ];
+
+  /// Soft, wide, low-opacity lift for paper cards (light mode only).
+  static const List<BoxShadow> soft = [
+    BoxShadow(
+      color: Color(0x1416201B),
+      blurRadius: 22,
       offset: Offset(0, 8),
     ),
   ];
@@ -97,6 +107,42 @@ abstract final class AppColors {
   // #EF4444 on #121212 = 5.2:1 (passes AA) — replaces #CF6679 (was 3.6:1)
   static const Color error      = Color(0xFFEF4444);
   static const Color info       = Color(0xFF3B82F6);
+
+  // Extra chart-series accents — used when a chart needs more distinct
+  // categories than the semantic colors above provide (e.g. Insights'
+  // category-breakdown palette).
+  static const Color chartViolet = Color(0xFF8B5CF6);
+  static const Color chartPink   = Color(0xFFEC4899);
+
+  // ── Cashlyze 2.0 brand ramp ──────────────────────────────────────────
+  // Built around the logo kit's teal (#228992): a deep ocean-teal ramp for
+  // hero surfaces / primary actions, with the logo teal itself as the bright
+  // accent so the wordmark always sits in family with the UI.
+  static const Color ocean900 = Color(0xFF062B34); // splash end / darkest
+  static const Color ocean800 = Color(0xFF0A3E4B); // hero card start
+  static const Color ocean700 = Color(0xFF115A68); // primary (light mode) — white 7.6:1
+  static const Color ocean600 = Color(0xFF187080); // hero card end
+  static const Color ocean500 = Color(0xFF1B7F8B); // primary (dark mode) — white 4.9:1
+  static const Color ocean400 = Color(0xFF5CC4CE); // links / icons on dark
+  static const Color tint100  = Color(0xFFD7ECEF); // tinted fills in light mode
+  static const Color tint050  = Color(0xFFEAF5F6);
+
+  /// Brand teal from the logo kit (#228992).
+  static const Color brandTeal   = Color(0xFF228992);
+  static const Color brandTealOnDark = Color(0xFF5CC4CE);
+
+  // Cool "paper" surfaces for light mode.
+  static const Color paper        = Color(0xFFF1F6F6); // scaffold
+  static const Color paperSurface = Color(0xFFFFFFFF); // cards
+  static const Color paperBorder  = Color(0xFFE0E9EB);
+  static const Color inkPrimary   = Color(0xFF0F1E22); // text on paper
+  static const Color inkMuted     = Color(0xFF54666B);
+
+  // Deep blue-teal surfaces for dark mode.
+  static const Color darkBg          = Color(0xFF0F2027);
+  static const Color darkSurface     = Color(0xFF18303A);
+  static const Color darkSurfaceHigh = Color(0xFF223D49);
+  static const Color darkBorder      = Color(0xFF2F4B57);
 
   // Neutral ramp (for dark-mode scaffold / surfaces)
   static const Color neutral950 = Color(0xFF0A0A0A);

@@ -6,7 +6,16 @@
 /// NEVER show `error.toString()` directly to users.
 library;
 
+import '../api/api_exception.dart';
+
 String friendlyAuthError(final Object error) {
+  // Backend API errors already carry a user-safe message (from the
+  // response's `detail`/`message` field) — trust it instead of trying to
+  // pattern-match Firebase-style error codes against it.
+  if (error is ApiException) {
+    return error.message;
+  }
+
   final raw = error.toString().toLowerCase();
 
   // ── Firebase Auth ──────────────────────────────────────────────────

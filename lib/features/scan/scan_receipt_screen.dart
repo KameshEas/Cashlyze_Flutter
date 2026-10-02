@@ -1,12 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/providers/scan_providers.dart';
 import '../../core/ui/constants.dart';
+import '../../core/ui/motion.dart';
+import '../../core/widgets/skeleton.dart';
+import '../../l10n/app_localizations.dart';
 
 class ScanReceiptScreen extends ConsumerStatefulWidget {
   const ScanReceiptScreen({super.key});
@@ -25,14 +29,15 @@ class _ScanReceiptScreenState extends ConsumerState<ScanReceiptScreen> {
         title: const Text('Scan Receipt'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: context.pop,
+          tooltip: 'Back',
+          onPressed: () => context.canPop() ? context.pop() : null,
         ),
       ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.s24),
-            child: Column(
+            child: MotionFadeIn(child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Large camera icon
@@ -124,7 +129,7 @@ class _ScanReceiptScreenState extends ConsumerState<ScanReceiptScreen> {
                   ),
                 ),
               ],
-            ),
+            )),
           ),
         ),
       ),
@@ -154,17 +159,40 @@ class _ScanReceiptScreenState extends ConsumerState<ScanReceiptScreen> {
   }
 
   Future<void> _pickFromCamera() async {
-    final file = await _imagePicker.pickImage(source: ImageSource.camera);
-    if (file != null) {
-      await _processImage(file.path);
+    try {
+      final file = await _imagePicker.pickImage(source: ImageSource.camera);
+      if (file != null) {
+        await _processImage(file.path);
+      }
+    } on PlatformException catch (e) {
+      _showPickerError(e, deniedMessage: 'Camera access is denied. Enable it in Settings to scan receipts.');
     }
   }
 
   Future<void> _pickFromGallery() async {
-    final file = await _imagePicker.pickImage(source: ImageSource.gallery);
-    if (file != null) {
-      await _processImage(file.path);
+    try {
+      final file = await _imagePicker.pickImage(source: ImageSource.gallery);
+      if (file != null) {
+        await _processImage(file.path);
+      }
+    } on PlatformException catch (e) {
+      _showPickerError(e, deniedMessage: 'Photo access is denied. Enable it in Settings to pick a receipt.');
     }
+  }
+
+  /// Surfaces an `image_picker` permission-denial (or other platform)
+  /// failure as a snackbar - previously these calls had no error handling
+  /// at all, so a denied camera/gallery permission failed completely
+  /// silently with no feedback, indistinguishable from a frozen screen.
+  void _showPickerError(final PlatformException e, {required final String deniedMessage}) {
+    if (!mounted) return;
+    final isDenied = e.code == 'camera_access_denied' || e.code == 'photo_access_denied';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(isDenied ? deniedMessage : 'Could not open the camera/gallery. Please try again.'),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
   }
 
   Future<void> _processImage(final String imagePath) async {
@@ -174,9 +202,7 @@ class _ScanReceiptScreenState extends ConsumerState<ScanReceiptScreen> {
     unawaited(showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (final ctx) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (final ctx) => const _ScanProgressDialog(),
     ));
 
     // Start OCR processing
@@ -190,7 +216,7 @@ class _ScanReceiptScreenState extends ConsumerState<ScanReceiptScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(scanState.errorMessage!),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       } else if (scanState.result != null) {
@@ -200,5 +226,71 @@ class _ScanReceiptScreenState extends ConsumerState<ScanReceiptScreen> {
         }
       }
     }
+  }
+}
+
+/// Shown while OCR runs. Receipt-shaped placeholder lines pulse (reduced
+/// motion: static) so it reads as "working", not "stuck", and says what is
+/// happening. Not dismissible: the caller pops it when scanning finishes.
+class _ScanProgressDialog extends StatelessWidget {
+  const _ScanProgressDialog();
+
+  @override
+  Widget build(final BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final title = l10n?.scanReadingTitle ?? 'Reading your receipt';
+    final body = l10n?.scanReadingBody ?? 'This only takes a moment.';
+    return PopScope(
+      canPop: false,
+      child: Dialog(
+        child: Semantics(
+          liveRegion: true,
+          label: '$title. $body',
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.s24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ExcludeSemantics(
+                  child: Container(
+                    width: 160,
+                    padding: const EdgeInsets.all(AppSpacing.s16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: AppRadius.lgAll,
+                    ),
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SkeletonLine(height: 10, width: 90),
+                        SizedBox(height: AppSpacing.s12),
+                        SkeletonLine(height: 8, width: double.infinity),
+                        SizedBox(height: AppSpacing.s8),
+                        SkeletonLine(height: 8, width: double.infinity),
+                        SizedBox(height: AppSpacing.s8),
+                        SkeletonLine(height: 8, width: 70),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s16),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleMedium,
+                ),
+                const SizedBox(height: AppSpacing.s4),
+                Text(
+                  body,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

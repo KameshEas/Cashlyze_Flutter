@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Deep Links (Helm's per-app "Deep Links" feature): a verified click on
+	     https://links.aspired2d.cloud/l/{code} opens the app directly instead
+	     of Safari. Requires Apple to successfully fetch and check
+	     https://links.aspired2d.cloud/.well-known/apple-app-site-association
+	     at install time - this stays a no-op link until that domain serves
+	     this app's entry (Apple Team ID + bundle ID) in Helm's Integrations
+	     settings. Mirrors the Android intent-filter in AndroidManifest.xml. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:links.aspired2d.cloud</string>
+	</array>
+</dict>
+</plist>
