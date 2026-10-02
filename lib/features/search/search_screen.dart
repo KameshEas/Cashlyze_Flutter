@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/illustrations/app_illustration.dart';
 import '../../core/models/search_result.dart';
 import '../../core/providers/search_providers.dart';
 import '../../core/ui/motion.dart';
 import '../../core/utils/repo_error_handler.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/skeleton.dart';
+import '../../l10n/app_localizations.dart';
 
 class SearchScreen extends ConsumerWidget {
   const SearchScreen({super.key});
@@ -101,10 +103,13 @@ class _SearchBodyState extends ConsumerState<SearchBody> {
               }
 
               if (results.isEmpty) {
-                return const Center(
+                final l10n = AppLocalizations.of(context);
+                return Center(
                   child: AppEmptyState(
-                    title: 'No results found',
+                    title: l10n?.searchNoResultsTitle ?? 'No results found',
+                    subtitle: l10n?.searchNoResultsBody ?? 'Try a different keyword or check the spelling.',
                     icon: Icons.search_off_outlined,
+                    illustration: AppIllustrationKind.magnifier,
                   ),
                 );
               }
@@ -135,7 +140,8 @@ class _SearchBodyState extends ConsumerState<SearchBody> {
                 title: 'Failed to search',
                 subtitle: repoErrorMessage(err),
                 icon: Icons.error_outline_rounded,
-                actionLabel: 'Retry',
+                illustration: illustrationForError(err),
+                actionLabel: AppLocalizations.of(context)?.tryAgain ?? 'Try again',
                 onAction: () => ref.invalidate(searchResultsProvider),
               ),
             ),

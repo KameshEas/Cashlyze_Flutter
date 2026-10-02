@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/illustrations/app_illustration.dart';
 import '../../core/models/budget.dart';
 import '../../core/models/category.dart';
 import '../../core/models/transaction.dart';
@@ -22,6 +23,7 @@ import '../../core/widgets/animated_progress_indicator.dart';
 import '../../core/widgets/animated_progress_text.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/skeleton.dart';
+import '../../l10n/app_localizations.dart';
 import '../onboarding/budget_tutorial_overlay.dart';
 import 'budget_card.dart';
 
@@ -161,6 +163,9 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                   title: 'Failed to load budgets',
                   subtitle: repoErrorMessage(e),
                   icon: Icons.error_outline_rounded,
+                  illustration: illustrationForError(e),
+                  actionLabel: AppLocalizations.of(context)?.tryAgain ?? 'Try again',
+                  onAction: () => ref.invalidate(userBudgetsProvider),
                 ),
               ),
               data: (final list) {
@@ -169,7 +174,10 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
                     key: const ValueKey('budgets-empty'),
                     child: AppEmptyState(
                       title: 'No budgets',
+                      subtitle: AppLocalizations.of(context)?.budgetsEmptyBody ??
+                          'Set a limit for a category and get a heads-up before you overspend.',
                       icon: Icons.account_balance_wallet,
+                      illustration: AppIllustrationKind.envelope,
                       actionLabel: 'Create budget',
                       onAction: () => _openCreateBudget(context),
                     ),
@@ -1116,22 +1124,19 @@ class _BudgetsHeroCard extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
-    final color = theme.colorScheme.primary;
+    const onHero = Colors.white;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.cardPadding),
+      padding: const EdgeInsets.all(AppSpacing.heroPadding),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            color.withValues(alpha: 0.16),
-            color.withValues(alpha: 0.02),
-          ],
+          colors: [AppColors.ocean700, AppColors.ocean900],
         ),
-        borderRadius: AppRadius.lgAll,
-        border: Border.all(color: color.withValues(alpha: 0.08)),
+        borderRadius: AppRadius.xlAll,
+        boxShadow: AppShadow.brand(AppColors.ocean800),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1139,7 +1144,7 @@ class _BudgetsHeroCard extends StatelessWidget {
           Text(
             'Monthly Budget',
             style: theme.textTheme.labelLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              color: onHero.withValues(alpha: 0.8),
             ),
           ),
           const SizedBox(height: AppSpacing.s8),
@@ -1149,9 +1154,9 @@ class _BudgetsHeroCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Allocated', style: theme.textTheme.labelSmall),
+                    Text('Allocated', style: theme.textTheme.labelSmall?.copyWith(color: onHero.withValues(alpha: 0.7))),
                     const SizedBox(height: AppSpacing.s4),
-                    Text(formatAmount(totalAllocated, currency), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                    Text(formatAmount(totalAllocated, currency), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800, color: onHero)),
                   ],
                 ),
               ),
@@ -1160,9 +1165,9 @@ class _BudgetsHeroCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Spent', style: theme.textTheme.labelSmall),
+                    Text('Spent', style: theme.textTheme.labelSmall?.copyWith(color: onHero.withValues(alpha: 0.7))),
                     const SizedBox(height: AppSpacing.s4),
-                    Text(formatAmount(totalSpent, currency), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                    Text(formatAmount(totalSpent, currency), style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800, color: onHero)),
                   ],
                 ),
               ),
@@ -1174,7 +1179,7 @@ class _BudgetsHeroCard extends StatelessWidget {
               Expanded(
                 child: AnimatedProgressIndicator(
                   progress: utilization.clamp(0.0, double.infinity),
-                  backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+                  backgroundColor: onHero.withValues(alpha: 0.18),
                 ),
               ),
               const SizedBox(width: AppSpacing.s8),
@@ -1182,6 +1187,7 @@ class _BudgetsHeroCard extends StatelessWidget {
                 progress: utilization.clamp(0.0, 1.0),
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w700,
+                  color: onHero,
                 ),
               ),
             ],

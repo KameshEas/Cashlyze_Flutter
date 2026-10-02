@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/branding/animated_brand_logo.dart';
+import '../../core/branding/cash_count_loader.dart';
+import '../../core/branding/flow_backdrop.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/services/auth_service.dart';
-import '../../core/widgets/brand_logo.dart';
+import '../../core/ui/constants.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({
     super.key,
-    this.duration = const Duration(milliseconds: 1100),
+    this.duration = const Duration(milliseconds: 1900),
   });
   final Duration duration;
 
@@ -20,9 +24,6 @@ class SplashScreen extends ConsumerStatefulWidget {
 class _SplashScreenState extends ConsumerState<SplashScreen>
     with TickerProviderStateMixin {
   late final AnimationController _controller;
-  late final Animation<double> _fadeIn;
-  late final Animation<double> _logoScale;
-  late final Animation<double> _glow;
   late final AnimationController _dotsController;
   bool _navigated = false;
 
@@ -30,23 +31,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration);
-    _fadeIn = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.0, 0.55, curve: Curves.easeOut),
-    );
-    _logoScale = Tween<double>(begin: 0.82, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.75, curve: Curves.easeOutBack),
-      ),
-    );
-    _glow = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.1, 1.0, curve: Curves.easeOut),
-    );
     _dotsController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 4000),
     )..repeat();
     _controller.forward();
 
@@ -111,95 +98,38 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         (final _) => _maybeNavigate(),
       );
     });
-    final theme = Theme.of(context);
-    final glowColor = theme.colorScheme.primary;
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: Center(
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (final context, final child) {
-            return Stack(
-              alignment: Alignment.center,
+    // The splash is always the deep-ocean brand moment (both themes), so the
+    // white logo variant is used and status-bar icons are forced light.
+    final logoWidth = (MediaQuery.sizeOf(context).width * 0.72).clamp(220.0, 340.0);
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: AppColors.ocean900,
+        body: FlowBackdrop.ocean(
+          drift: _dotsController,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Soft radial glow that blooms in behind the wordmark.
-                Opacity(
-                  opacity: _glow.value * 0.35,
-                  child: Container(
-                    width: 320,
-                    height: 320,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [glowColor, glowColor.withValues(alpha: 0)],
-                      ),
-                    ),
-                  ),
+                AnimatedBrandLogo(
+                  progress: _controller,
+                  color: Colors.white,
+                  taglineColor: Colors.white.withValues(alpha: 0.85),
+                  width: logoWidth,
                 ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Transform.scale(
-                      scale: _logoScale.value,
-                      child: FadeTransition(
-                        opacity: _fadeIn,
-                        child: const SizedBox(
-                          width: 240,
-                          height: 96,
-                          child: BrandLogo(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-                    FadeTransition(opacity: _fadeIn, child: child),
-                  ],
+                const SizedBox(height: 48),
+                FadeTransition(
+                  opacity: CurvedAnimation(
+                    parent: _controller,
+                    curve: const Interval(0.7, 1.0, curve: Curves.easeOut),
+                  ),
+                  child: const CashCountLoader(width: 170),
                 ),
               ],
-            );
-          },
-          child: _PulsingDots(controller: _dotsController, color: glowColor),
+            ),
+          ),
         ),
       ),
-    );
-  }
-}
-
-/// Three dots that pulse in sequence — a lighter, brand-owned stand-in for
-/// the default [CircularProgressIndicator] while auth/onboarding state
-/// resolves.
-class _PulsingDots extends StatelessWidget {
-  const _PulsingDots({required this.controller, required this.color});
-
-  final AnimationController controller;
-  final Color color;
-
-  @override
-  Widget build(final BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (final context, final child) {
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(3, (final i) {
-            final t = (controller.value - i * 0.2) % 1.0;
-            final scale = 0.6 + 0.4 * (1 - (t - 0.5).abs() * 2).clamp(0.0, 1.0);
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Transform.scale(
-                scale: scale,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            );
-          }),
-        );
-      },
     );
   }
 }

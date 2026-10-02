@@ -47,7 +47,7 @@ class AppCard extends StatelessWidget {
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final resolvedColor = color ?? theme.colorScheme.surface;
-    final resolvedBorder = borderColor ?? theme.colorScheme.onSurface.withValues(alpha: 0.06);
+    final resolvedBorder = borderColor ?? theme.colorScheme.outline;
 
     final card = Container(
       padding: padding,
@@ -55,6 +55,7 @@ class AppCard extends StatelessWidget {
         color: resolvedColor,
         borderRadius: radius,
         border: Border.all(color: resolvedBorder),
+        // Flat by default: hairline border, no resting shadow.
         boxShadow: elevated ? AppShadow.elevated : null,
       ),
       foregroundDecoration: accentColor == null

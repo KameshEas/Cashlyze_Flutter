@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/illustrations/app_illustration.dart';
 import '../../core/models/category.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/services/auth_service.dart';
@@ -37,6 +38,7 @@ class CategoriesScreen extends ConsumerWidget {
             title: 'Failed to load categories',
             subtitle: repoErrorMessage(e),
             icon: Icons.error_outline_rounded,
+            illustration: illustrationForError(e),
             actionLabel: t?.retry ?? 'Retry',
             onAction: () => ref.invalidate(userCategoriesProvider),
           ),
@@ -47,6 +49,7 @@ class CategoriesScreen extends ConsumerWidget {
               child: AppEmptyState(
                 title: t?.noCategories ?? 'No categories',
                 icon: Icons.category_outlined,
+                illustration: AppIllustrationKind.tags,
                 actionLabel: t?.addCategory ?? 'Add category',
                 onAction: () => _openEdit(context, ref),
               ),

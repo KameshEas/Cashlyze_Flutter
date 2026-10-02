@@ -1,142 +1,65 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../core/ui/constants.dart';
 import '../../../core/ui/motion.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../transactions/transaction_form_sheet.dart';
 
-/// Row of quick action buttons with enhanced styling and animations.
-/// Includes: Expense, Top-up, Add EMI, Add Budget, Scan, and more.
+/// The five most common actions as one even row of quiet, outlined tiles:
+/// a single-tone icon over a short label. Colour is not used to tell the
+/// actions apart (the labels do), which keeps the row calm.
 class QuickActions extends ConsumerWidget {
   const QuickActions({super.key});
 
   @override
   Widget build(final BuildContext context, final WidgetRef ref) {
     final t = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
     final actions = _buildActions(t);
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      // Horizontal padding must be >= the action card's own shadow blur
-      // (see _buildActionButton) or the first/last card's shadow gets
-      // clipped by the viewport edge - matches home_screen.dart's own page
-      // padding so the row's cards line up with the rest of the page.
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
-      child: Row(
-        children: List.generate(actions.length, (final index) {
-          final action = actions[index];
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < actions.length; i++) ...[
+          if (i > 0) const SizedBox(width: AppSpacing.s8),
+          Expanded(
             child: MotionFadeIn(
-              delay: MotionStagger.delayFor(index),
-              slideY: 16,
-              beginScale: 0.96,
-              child: _buildActionButton(context, action, scheme),
+              delay: MotionStagger.delayFor(i),
+              slideY: 8,
+              child: _ActionTile(action: actions[i], onTap: () => _onActionTap(context, actions[i])),
             ),
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildActionButton(
-    final BuildContext context,
-    final _QuickAction action,
-    final ColorScheme scheme,
-  ) {
-    final color = action.getColor(scheme);
-    final bgColor = color.withValues(alpha: 0.15);
-
-    return Semantics(
-      label: '${action.label} action',
-      button: true,
-      child: PressableScale(
-        onTap: () => _onActionTap(context, action),
-        child: Container(
-          width: 92,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
-          decoration: BoxDecoration(
-            color: scheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: color.withValues(alpha: 0.2),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.08),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  action.icon,
-                  color: color,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                action.label,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 11,
-                    ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ),
+        ],
+      ],
     );
   }
 
   List<_QuickAction> _buildActions(final AppLocalizations? t) => [
-        const _QuickAction(
-          icon: Icons.remove_circle_outline,
-          label: 'Expense',
+        _QuickAction(
+          icon: Icons.remove_rounded,
+          label: t?.expense ?? 'Expense',
           type: 'Expense',
-          colorType: ActionColorType.expense,
         ),
         _QuickAction(
-          icon: Icons.add_card,
+          icon: Icons.add_rounded,
           label: t?.quickTopUp ?? 'Top-up',
           type: 'Income',
-          colorType: ActionColorType.income,
         ),
         const _QuickAction(
-          icon: Icons.payments,
+          icon: Icons.payments_outlined,
           label: 'Add EMI',
           route: '/emi/new',
-          colorType: ActionColorType.emi,
         ),
         const _QuickAction(
-          icon: Icons.savings,
+          icon: Icons.savings_outlined,
           label: 'Add Budget',
           route: '/budgets',
-          colorType: ActionColorType.budget,
         ),
         const _QuickAction(
-          icon: Icons.camera_alt,
+          icon: Icons.document_scanner_outlined,
           label: 'Scan',
           route: '/scan',
-          colorType: ActionColorType.scan,
         ),
       ];
 
@@ -170,7 +93,7 @@ class QuickActions extends ConsumerWidget {
       isScrollControlled: true,
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
       ),
       builder: (final ctx) => TransactionFormSheet.create(initialType: type),
     );
@@ -182,31 +105,64 @@ class QuickActions extends ConsumerWidget {
   }
 }
 
-enum ActionColorType { expense, income, emi, budget, scan }
+class _ActionTile extends StatelessWidget {
+  const _ActionTile({required this.action, required this.onTap});
+
+  final _QuickAction action;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(final BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    return Semantics(
+      label: action.label,
+      button: true,
+      excludeSemantics: true,
+      onTap: onTap,
+      child: PressableScale(
+        onTap: onTap,
+        pressedScale: 0.98,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 76),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: AppSpacing.s12),
+          decoration: BoxDecoration(
+            color: scheme.surface,
+            borderRadius: AppRadius.lgAll,
+            border: Border.all(color: scheme.outline),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(action.icon, size: 22, color: isDark ? AppColors.ocean400 : AppColors.ocean700),
+              const SizedBox(height: AppSpacing.s8),
+              Text(
+                action.label,
+                style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 /// Internal model for a quick action item.
 class _QuickAction {
-
   const _QuickAction({
     required this.icon,
     required this.label,
     this.type,
     this.route,
-    required this.colorType,
   });
+
   final IconData icon;
   final String label;
   final String? type;
   final String? route;
-  final ActionColorType colorType;
-
-  Color getColor(final ColorScheme scheme) {
-    return switch (colorType) {
-      ActionColorType.expense => scheme.error,
-      ActionColorType.income => scheme.secondary,
-      ActionColorType.emi => Colors.amber,
-      ActionColorType.budget => Colors.cyan,
-      ActionColorType.scan => Colors.purple,
-    };
-  }
 }

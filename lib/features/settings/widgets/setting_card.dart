@@ -44,24 +44,11 @@ class _SettingCardState extends State<SettingCard> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
+            // Rows sit flat inside their group card (no card-in-card border).
             color: _isHovered
-                ? theme.colorScheme.surface.withValues(alpha: 0.8)
-                : theme.colorScheme.surface,
+                ? theme.colorScheme.surfaceContainerHighest
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: theme.colorScheme.onSurface.withValues(
-                alpha: _isHovered ? 0.1 : 0.06,
-              ),
-            ),
-            boxShadow: _isHovered
-                ? [
-                    BoxShadow(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.08),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : [],
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
@@ -69,13 +56,13 @@ class _SettingCardState extends State<SettingCard> {
               children: [
                 // Left: Icon in colored background
                 Container(
-                  width: 36,
-                  height: 36,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
-                    color: iconColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
+                    color: iconColor.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(widget.icon, color: iconColor, size: 18),
+                  child: Icon(widget.icon, color: iconColor, size: 20),
                 ),
                 const SizedBox(width: 12),
 

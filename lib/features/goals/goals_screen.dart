@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/illustrations/app_illustration.dart';
 import '../../core/models/goals_model.dart';
 import '../../core/providers/goals_providers.dart';
 import '../../core/ui/motion.dart';
@@ -49,6 +50,7 @@ class GoalsScreen extends ConsumerWidget {
                 title: 'No savings goals yet',
                 subtitle: 'Create a goal to start tracking your progress.',
                 icon: Icons.savings_outlined,
+                illustration: AppIllustrationKind.jar,
                 actionLabel: 'Create Goal',
                 onAction: () => _showCreateGoalSheet(context),
               ),
@@ -142,6 +144,7 @@ class GoalsScreen extends ConsumerWidget {
             title: 'Failed to load savings goals',
             subtitle: repoErrorMessage(err),
             icon: Icons.error_outline_rounded,
+            illustration: illustrationForError(err),
             actionLabel: 'Retry',
             onAction: () => ref.invalidate(goalsListProvider),
           ),

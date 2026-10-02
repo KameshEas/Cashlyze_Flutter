@@ -53,8 +53,7 @@
   "quickTransfer": "Transfer",
   "quickTopUp": "Top-up",
   "quickBill": "Bill",
-  "quickMore": "More"
-  ,
+  "quickMore": "More",
   "emiUpcoming": "Upcoming EMI",
   "viewDetails": "View Details",
   "noUpcomingEmi": "No upcoming EMI this month",
@@ -128,5 +127,126 @@
   "typeDeleteConfirm": "Type DELETE to confirm",
   "deleteEverything": "Delete Everything",
   "analyticsTitle": "Analytics & Crash Reporting",
-  "analyticsSubtitle": "Help improve Cashlyze by sharing usage data"
+  "analyticsSubtitle": "Help improve Cashlyze by sharing usage data",
+  "onboardingSkip": "Skip",
+  "onboardingBack": "Back",
+  "onboardingNext": "Next",
+  "onboardingGetStarted": "Get Started",
+  "onboardingStepLabel": "Step {current} of {total}",
+  "@onboardingStepLabel": {
+    "description": "Progress label, e.g. Step 2 of 3",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "onboardingNearLimit": "Near limit",
+  "onboardingPage1Title": "See where your money goes",
+  "onboardingPage1Body": "Log expenses in seconds or scan a receipt, and every transaction lands in the right category.",
+  "onboardingPage1Semantics": "Illustration: a list of categorised transactions",
+  "onboardingPage2Title": "Budgets that keep you on track",
+  "onboardingPage2Body": "Set daily, weekly or monthly limits and get a heads-up before you overspend.",
+  "onboardingPage2Semantics": "Illustration: budget progress bars, one nearing its limit",
+  "onboardingPage3Title": "Insights you can act on",
+  "onboardingPage3Body": "Clear charts show trends early, so small leaks never turn into big problems.",
+  "onboardingPage3Semantics": "Illustration: a bar chart of spending over time",
+  "authSignIn": "Sign In",
+  "authSignUp": "Sign Up",
+  "authCreateAccount": "Create Account",
+  "authEmail": "Email",
+  "authPassword": "Password",
+  "authName": "Name",
+  "authMobile": "Mobile",
+  "authPasswordHelper": "At least 6 characters",
+  "authShowPassword": "Show password",
+  "authHidePassword": "Hide password",
+  "authNoAccountPrompt": "Don't have an account?",
+  "authHaveAccountPrompt": "Already have an account?",
+  "authEnterName": "Please enter your name",
+  "authEnterMobile": "Please enter your mobile number",
+  "authMobileMin": "Mobile number must be at least 6 digits",
+  "authEnterEmail": "Please enter your email",
+  "authValidEmail": "Please enter a valid email",
+  "authEnterPassword": "Please enter your password",
+  "authPasswordMin": "Password must be at least 6 characters",
+  "otpTitleSend": "Verify your account",
+  "otpTitleEnter": "Enter your code",
+  "otpSubtitleSend": "We'll send a one-time code to {email} to verify your account.",
+  "@otpSubtitleSend": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "otpSubtitleSent": "A one-time code was sent to {email}",
+  "@otpSubtitleSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "otpSendNow": "Send code",
+  "otpSending": "Sending…",
+  "otpVerify": "Verify",
+  "otpResendIn": "Resend in {seconds}s",
+  "@otpResendIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "otpResend": "Resend code",
+  "otpCodeLabel": "Verification code, 6 digits",
+  "otpEnterAll": "Enter all 6 digits of the code",
+  "otpUseDifferentEmail": "Use a different email",
+  "otpSentBanner": "Code sent to {email}. Check your inbox.",
+  "@otpSentBanner": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "homeGreetingMorning": "Good morning, {name}",
+  "@homeGreetingMorning": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "homeGreetingAfternoon": "Good afternoon, {name}",
+  "@homeGreetingAfternoon": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "homeGreetingEvening": "Good evening, {name}",
+  "@homeGreetingEvening": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "homeNetBalance": "Net balance",
+  "homeThisMonth": "This month",
+  "homeSeeAll": "See all",
+  "homeNoTransactionsMonth": "No transactions this month",
+  "searchNoResultsTitle": "No results found",
+  "searchNoResultsBody": "Try a different keyword or check the spelling.",
+  "budgetsEmptyBody": "Set a limit for a category and get a heads-up before you overspend.",
+  "tryAgain": "Try again",
+  "offlineBanner": "You're offline. Some features may be unavailable.",
+  "scanReadingTitle": "Reading your receipt",
+  "scanReadingBody": "This only takes a moment."
 }

@@ -16,6 +16,7 @@ import '../../core/services/analytics_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/drive_backup_service.dart';
 import '../../core/ui/constants.dart';
+import '../../core/ui/finance_style.dart';
 import '../../core/utils/repo_error_handler.dart';
 import '../../core/widgets/dialogs.dart';
 import '../../features/auth/data/auth_remote_data_source.dart';
@@ -33,67 +34,60 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  /// Enhanced section card with better visual hierarchy, spacing, and icons
+  /// Settings group: a small section label above one flat, hairline-bordered
+  /// surface holding the group's rows ([icon] is kept for call-site
+  /// compatibility; the serious layout uses text-only group labels).
   Widget sectionCard(final IconData icon, final String title, final List<Widget> children, {final String? description}) {
     final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Enhanced header with larger icon and better typography
-          Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
+              SectionLabel(title, padding: EdgeInsets.zero),
+              if (description != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  description,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.66),
+                  ),
                 ),
-                child: Icon(icon, size: 24, color: theme.colorScheme.primary),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (description != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        description,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
+              ],
             ],
           ),
-          const SizedBox(height: 16),
-          ...children,
-        ],
-      ),
+        ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s4),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: AppRadius.lgAll,
+            border: Border.all(color: theme.colorScheme.outline),
+          ),
+          child: Column(children: children),
+        ),
+      ],
+    );
+  }
+
+  /// Neutral icon tile shared by settings rows; only destructive rows keep
+  /// the error tone so colour means "careful".
+  Widget _iconTile(final IconData icon, {final bool danger = false}) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final fg = danger ? theme.colorScheme.error : (isDark ? AppColors.ocean400 : AppColors.ocean700);
+    final bg = danger
+        ? theme.colorScheme.error.withValues(alpha: 0.10)
+        : (isDark ? AppColors.darkSurfaceHigh : AppColors.tint050);
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(color: bg, borderRadius: AppRadius.mdAll),
+      child: Icon(icon, size: 18, color: fg),
     );
   }
 
@@ -107,22 +101,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final Color? iconColor,
   }) {
     final theme = Theme.of(context);
-    final bgColor = iconColor ?? theme.colorScheme.primary;
+    final danger = iconColor != null && iconColor == theme.colorScheme.error;
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: bgColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 18, color: bgColor),
-              ),
+              _iconTile(icon, danger: danger),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -261,28 +247,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     required final IconData icon,
     required final String title,
     final String? subtitle,
-    required final VoidCallback onTap,
     final Color? color,
     final bool isDangerous = false,
   }) {
     final theme = Theme.of(context);
-    final iconColor = isDangerous ? theme.colorScheme.error : (color ?? theme.colorScheme.primary);
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppRadius.mdAll,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
         child: Row(
           children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: iconColor, size: 18),
-            ),
+            _iconTile(icon, danger: isDangerous),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

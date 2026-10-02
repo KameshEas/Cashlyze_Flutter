@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/illustrations/app_illustration.dart';
 import '../../core/models/emi.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/repositories/emi_repository.dart';
@@ -61,6 +62,7 @@ class EMIDashboardScreen extends ConsumerWidget {
               title: 'Failed to load EMI plans',
               subtitle: repoErrorMessage(e),
               icon: Icons.error_outline_rounded,
+              illustration: illustrationForError(e),
               actionLabel: 'Retry',
               onAction: () => ref.invalidate(userEMIPlansProvider),
             ),
@@ -72,6 +74,7 @@ class EMIDashboardScreen extends ConsumerWidget {
                   title: 'No EMIs yet',
                   subtitle: 'Add your first loan to start tracking payments.',
                   icon: Icons.payments_outlined,
+                  illustration: AppIllustrationKind.calendar,
                   actionLabel: 'Add Loan',
                   onAction: () => context.push('/emi/new'),
                 ),
