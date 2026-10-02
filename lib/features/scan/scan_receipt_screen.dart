@@ -9,6 +9,8 @@ import 'package:image_picker/image_picker.dart';
 import '../../core/providers/scan_providers.dart';
 import '../../core/ui/constants.dart';
 import '../../core/ui/motion.dart';
+import '../../core/widgets/skeleton.dart';
+import '../../l10n/app_localizations.dart';
 
 class ScanReceiptScreen extends ConsumerStatefulWidget {
   const ScanReceiptScreen({super.key});
@@ -200,9 +202,7 @@ class _ScanReceiptScreenState extends ConsumerState<ScanReceiptScreen> {
     unawaited(showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (final ctx) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (final ctx) => const _ScanProgressDialog(),
     ));
 
     // Start OCR processing
@@ -226,5 +226,71 @@ class _ScanReceiptScreenState extends ConsumerState<ScanReceiptScreen> {
         }
       }
     }
+  }
+}
+
+/// Shown while OCR runs. Receipt-shaped placeholder lines pulse (reduced
+/// motion: static) so it reads as "working", not "stuck", and says what is
+/// happening. Not dismissible: the caller pops it when scanning finishes.
+class _ScanProgressDialog extends StatelessWidget {
+  const _ScanProgressDialog();
+
+  @override
+  Widget build(final BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final title = l10n?.scanReadingTitle ?? 'Reading your receipt';
+    final body = l10n?.scanReadingBody ?? 'This only takes a moment.';
+    return PopScope(
+      canPop: false,
+      child: Dialog(
+        child: Semantics(
+          liveRegion: true,
+          label: '$title. $body',
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.s24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ExcludeSemantics(
+                  child: Container(
+                    width: 160,
+                    padding: const EdgeInsets.all(AppSpacing.s16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: AppRadius.lgAll,
+                    ),
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SkeletonLine(height: 10, width: 90),
+                        SizedBox(height: AppSpacing.s12),
+                        SkeletonLine(height: 8, width: double.infinity),
+                        SizedBox(height: AppSpacing.s8),
+                        SkeletonLine(height: 8, width: double.infinity),
+                        SizedBox(height: AppSpacing.s8),
+                        SkeletonLine(height: 8, width: 70),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s16),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleMedium,
+                ),
+                const SizedBox(height: AppSpacing.s4),
+                Text(
+                  body,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

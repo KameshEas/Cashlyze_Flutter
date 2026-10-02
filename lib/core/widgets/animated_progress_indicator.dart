@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../ui/constants.dart';
 
 /// Animated progress indicator that smoothly transitions progress value and color changes.
 /// 
@@ -50,12 +51,12 @@ class _AnimatedProgressIndicatorState extends State<AnimatedProgressIndicator> {
   /// - Red (≥100%): Overspent state - clear red indication
   Color _getProgressColor(final double progress) {
     if (progress >= 1.0) {
-      return Colors.red; // Over budget - bold red for overspend
+      return AppColors.error; // Over budget - bold red for overspend
     }
     if (progress >= 0.9) {
-      return Colors.orange; // Warning: approaching limit (90-100%)
+      return AppColors.warning; // Warning: approaching limit (90-100%)
     }
-    return Colors.green; // Under budget (0-90%)
+    return AppColors.brandTeal; // On track (0-90%)
   }
 
   @override

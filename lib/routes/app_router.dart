@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 import '../core/constants/feature_flags.dart';
 import '../core/providers/app_version_providers.dart';
@@ -52,22 +53,43 @@ const _kRouteFeatureFlags = {
   '/ai-assistant': FeatureFlags.aiAssistant,
 };
 
+/// Tells GoRouter to re-run its `redirect` callback on the *current* route,
+/// without rebuilding the router itself - unlike `ref.watch` inside
+/// [appRouterProvider], which would reconstruct a brand-new [GoRouter] (and
+/// silently discard whatever it just navigated to) every time auth state,
+/// onboarding, feature flags, or OTP-pending changes. That reset is exactly
+/// what broke deep links resolving after login: the resolved destination was
+/// reached, then wiped out moments later when feature flags finished loading
+/// and rebuilt the whole provider.
+class _RouterRefreshNotifier extends ChangeNotifier {
+  _RouterRefreshNotifier(this._ref) {
+    _ref.listen(onboardingCompletedProvider, (final _, final _) => notifyListeners());
+    _ref.listen(authStateChangesProvider, (final _, final _) => notifyListeners());
+    _ref.listen(currentUserProvider, (final _, final _) => notifyListeners());
+    _ref.listen(otpPendingProvider, (final _, final _) => notifyListeners());
+    _ref.listen(featureFlagsProvider, (final _, final _) => notifyListeners());
+  }
+
+  final Ref _ref;
+}
+
 final appRouterProvider = Provider<GoRouter>((final ref) {
   final rootKey = ref.watch(rootNavigatorKeyProvider);
-  final onboardingCompleted = ref.watch(onboardingCompletedProvider);
-  final authState = ref.watch(authStateChangesProvider);
-  final currentUser = ref.watch(currentUserProvider);
-  final otpPending = ref.watch(otpPendingProvider);
-  final featureFlags = ref.watch(featureFlagsProvider).maybeWhen(
-    data: (final flags) => flags,
-    orElse: () => const <String, bool>{},
-  );
+  final refreshNotifier = _RouterRefreshNotifier(ref);
+  ref.onDispose(refreshNotifier.dispose);
   const kRouteFadeDuration = AppMotion.pageDuration;
   final shellKey = GlobalKey<NavigatorState>();
 
   return GoRouter(
     navigatorKey: rootKey,
     initialLocation: '/splash',
+    // Leaves a breadcrumb trail of route names for every crash report - route
+    // names only (e.g. "transactions"), never the data shown on the screen.
+    observers: [SentryNavigatorObserver()],
+    // Re-evaluates `redirect` on the current location when auth/onboarding/
+    // feature-flag/OTP state changes, instead of GoRouter itself being
+    // recreated (see _RouterRefreshNotifier).
+    refreshListenable: refreshNotifier,
     routes: [
       GoRoute(
         path: '/loading',
@@ -242,10 +264,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'categories',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const CategoriesScreen(),
-          transitionsBuilder: AppMotion.fadeThrough,
+          transitionsBuilder: AppMotion.sharedAxisX,
+          reverseTransitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialReverseDuration,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
-              : kRouteFadeDuration,
+              : AppMotion.spatialDuration,
         ),
       ),
       GoRoute(
@@ -264,10 +289,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'help_center',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const HelpCenterScreen(),
-          transitionsBuilder: AppMotion.fadeThrough,
+          transitionsBuilder: AppMotion.sharedAxisX,
+          reverseTransitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialReverseDuration,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
-              : kRouteFadeDuration,
+              : AppMotion.spatialDuration,
         ),
       ),
       GoRoute(
@@ -275,10 +303,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'search',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const SearchScreen(),
-          transitionsBuilder: AppMotion.fadeThrough,
+          transitionsBuilder: AppMotion.sharedAxisX,
+          reverseTransitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialReverseDuration,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
-              : kRouteFadeDuration,
+              : AppMotion.spatialDuration,
         ),
       ),
       GoRoute(
@@ -286,10 +317,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'emi_dashboard',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const EMIDashboardScreen(),
-          transitionsBuilder: AppMotion.fadeThrough,
+          transitionsBuilder: AppMotion.sharedAxisX,
+          reverseTransitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialReverseDuration,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
-              : kRouteFadeDuration,
+              : AppMotion.spatialDuration,
         ),
       ),
       GoRoute(
@@ -297,10 +331,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'emi_new',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const EMIFormScreen(),
-          transitionsBuilder: AppMotion.fadeThrough,
+          transitionsBuilder: AppMotion.riseIn,
+          reverseTransitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialReverseDuration,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
-              : kRouteFadeDuration,
+              : AppMotion.spatialDuration,
         ),
       ),
       GoRoute(
@@ -308,10 +345,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'goals',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const GoalsScreen(),
-          transitionsBuilder: AppMotion.fadeThrough,
+          transitionsBuilder: AppMotion.sharedAxisX,
+          reverseTransitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialReverseDuration,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
-              : kRouteFadeDuration,
+              : AppMotion.spatialDuration,
         ),
       ),
       GoRoute(
@@ -319,10 +359,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'scan',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const ScanReceiptScreen(),
-          transitionsBuilder: AppMotion.fadeThrough,
+          transitionsBuilder: AppMotion.sharedAxisX,
+          reverseTransitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialReverseDuration,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
-              : kRouteFadeDuration,
+              : AppMotion.spatialDuration,
         ),
       ),
       GoRoute(
@@ -330,10 +373,13 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'scan_result',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const ScanResultScreen(),
-          transitionsBuilder: AppMotion.fadeThrough,
+          transitionsBuilder: AppMotion.riseIn,
+          reverseTransitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialReverseDuration,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
-              : kRouteFadeDuration,
+              : AppMotion.spatialDuration,
         ),
       ),
       GoRoute(
@@ -341,14 +387,43 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         name: 'ai_assistant',
         pageBuilder: (final context, final state) => CustomTransitionPage(
           child: const AiAssistantScreen(),
-          transitionsBuilder: AppMotion.fadeThrough,
+          transitionsBuilder: AppMotion.sharedAxisX,
+          reverseTransitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialReverseDuration,
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
-              : kRouteFadeDuration,
+              : AppMotion.spatialDuration,
         ),
       ),
     ],
     redirect: (final context, final state) {
+      // Android hands a deep link's full URL (https://<domain>/l/{code}) to
+      // Flutter as the platform's initial route, and GoRouter tries to match
+      // it as one of its own paths before DeepLinkListener ever sees it -
+      // none of our routes start with a scheme, so this always fails with
+      // "no routes for location". Bounce it to splash instead: the app still
+      // starts normally, and DeepLinkListener (via app_links, a separate,
+      // slightly later path) resolves the same URL and navigates for real
+      // once it knows where "https://.../l/{code}" actually leads.
+      if (state.uri.hasScheme) {
+        return '/splash';
+      }
+
+      // Read fresh on every redirect evaluation (not captured once at router
+      // construction) - refreshListenable is what triggers this callback to
+      // re-run when any of these change; ref.read here gets this run's
+      // current value rather than whatever was true when the GoRouter was
+      // first built.
+      final onboardingCompleted = ref.read(onboardingCompletedProvider);
+      final authState = ref.read(authStateChangesProvider);
+      final currentUser = ref.read(currentUserProvider);
+      final otpPending = ref.read(otpPendingProvider);
+      final featureFlags = ref.read(featureFlagsProvider).maybeWhen(
+        data: (final flags) => flags,
+        orElse: () => const <String, bool>{},
+      );
+
       final isOnboarding = state.matchedLocation == '/onboarding';
       final isAuthRoute =
           state.matchedLocation == '/auth' ||
@@ -359,6 +434,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       final isOtp = state.matchedLocation.startsWith('/otp');
 
       final isLoadingRoute = state.matchedLocation == '/loading';
+      dbg('[AUTHDBG] redirect loc=${state.matchedLocation} authLoading=${authState.isLoading} user=${currentUser?.email} hasValue=${authState.hasValue} err=${authState.hasError}');
 
       // If auth state is still resolving, show the loader route so the
       // user doesn't briefly land on the login page before the router

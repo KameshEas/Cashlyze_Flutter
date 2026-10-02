@@ -406,4 +406,216 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get analyticsSubtitle => 'Help improve Cashlyze by sharing usage data';
+
+  @override
+  String get onboardingSkip => 'Skip';
+
+  @override
+  String get onboardingBack => 'Back';
+
+  @override
+  String get onboardingNext => 'Next';
+
+  @override
+  String get onboardingGetStarted => 'Get Started';
+
+  @override
+  String onboardingStepLabel(int current, int total) {
+    return 'Step $current of $total';
+  }
+
+  @override
+  String get onboardingNearLimit => 'Near limit';
+
+  @override
+  String get onboardingPage1Title => 'See where your money goes';
+
+  @override
+  String get onboardingPage1Body =>
+      'Log expenses in seconds or scan a receipt, and every transaction lands in the right category.';
+
+  @override
+  String get onboardingPage1Semantics =>
+      'Illustration: a list of categorised transactions';
+
+  @override
+  String get onboardingPage2Title => 'Budgets that keep you on track';
+
+  @override
+  String get onboardingPage2Body =>
+      'Set daily, weekly or monthly limits and get a heads-up before you overspend.';
+
+  @override
+  String get onboardingPage2Semantics =>
+      'Illustration: budget progress bars, one nearing its limit';
+
+  @override
+  String get onboardingPage3Title => 'Insights you can act on';
+
+  @override
+  String get onboardingPage3Body =>
+      'Clear charts show trends early, so small leaks never turn into big problems.';
+
+  @override
+  String get onboardingPage3Semantics =>
+      'Illustration: a bar chart of spending over time';
+
+  @override
+  String get authSignIn => 'Sign In';
+
+  @override
+  String get authSignUp => 'Sign Up';
+
+  @override
+  String get authCreateAccount => 'Create Account';
+
+  @override
+  String get authEmail => 'Email';
+
+  @override
+  String get authPassword => 'Password';
+
+  @override
+  String get authName => 'Name';
+
+  @override
+  String get authMobile => 'Mobile';
+
+  @override
+  String get authPasswordHelper => 'At least 6 characters';
+
+  @override
+  String get authShowPassword => 'Show password';
+
+  @override
+  String get authHidePassword => 'Hide password';
+
+  @override
+  String get authNoAccountPrompt => 'Don\'t have an account?';
+
+  @override
+  String get authHaveAccountPrompt => 'Already have an account?';
+
+  @override
+  String get authEnterName => 'Please enter your name';
+
+  @override
+  String get authEnterMobile => 'Please enter your mobile number';
+
+  @override
+  String get authMobileMin => 'Mobile number must be at least 6 digits';
+
+  @override
+  String get authEnterEmail => 'Please enter your email';
+
+  @override
+  String get authValidEmail => 'Please enter a valid email';
+
+  @override
+  String get authEnterPassword => 'Please enter your password';
+
+  @override
+  String get authPasswordMin => 'Password must be at least 6 characters';
+
+  @override
+  String get otpTitleSend => 'Verify your account';
+
+  @override
+  String get otpTitleEnter => 'Enter your code';
+
+  @override
+  String otpSubtitleSend(String email) {
+    return 'We\'ll send a one-time code to $email to verify your account.';
+  }
+
+  @override
+  String otpSubtitleSent(String email) {
+    return 'A one-time code was sent to $email';
+  }
+
+  @override
+  String get otpSendNow => 'Send code';
+
+  @override
+  String get otpSending => 'Sending…';
+
+  @override
+  String get otpVerify => 'Verify';
+
+  @override
+  String otpResendIn(int seconds) {
+    return 'Resend in ${seconds}s';
+  }
+
+  @override
+  String get otpResend => 'Resend code';
+
+  @override
+  String get otpCodeLabel => 'Verification code, 6 digits';
+
+  @override
+  String get otpEnterAll => 'Enter all 6 digits of the code';
+
+  @override
+  String get otpUseDifferentEmail => 'Use a different email';
+
+  @override
+  String otpSentBanner(String email) {
+    return 'Code sent to $email. Check your inbox.';
+  }
+
+  @override
+  String homeGreetingMorning(String name) {
+    return 'Good morning, $name';
+  }
+
+  @override
+  String homeGreetingAfternoon(String name) {
+    return 'Good afternoon, $name';
+  }
+
+  @override
+  String homeGreetingEvening(String name) {
+    return 'Good evening, $name';
+  }
+
+  @override
+  String get homeNetBalance => 'Net balance';
+
+  @override
+  String get homeThisMonth => 'This month';
+
+  @override
+  String get homeSeeAll => 'See all';
+
+  @override
+  String get homeNoTransactionsMonth => 'No transactions this month';
+
+  @override
+  String get searchNoResultsTitle => 'No results found';
+
+  @override
+  String get searchNoResultsBody =>
+      'Try a different keyword or check the spelling.';
+
+  @override
+  String get budgetsEmptyBody =>
+      'Set a limit for a category and get a heads-up before you overspend.';
+
+  @override
+  String get tryAgain => 'Try again';
+
+  @override
+  String get offlineBanner =>
+      'You\'re offline. Some features may be unavailable.';
+
+  @override
+  String get scanReadingTitle => 'Reading your receipt';
+
+  @override
+  String get scanReadingBody => 'This only takes a moment.';
+
+  @override
+  String get transactionsEmptyHint =>
+      'Add your first transaction to start tracking where your money goes.';
 }

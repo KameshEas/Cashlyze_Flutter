@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/illustrations/app_illustration.dart';
 import '../../core/models/category.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/ui/constants.dart';
 import '../../core/ui/motion.dart';
 import '../../core/utils/repo_error_handler.dart';
 import '../../core/widgets/dialogs.dart';
@@ -37,6 +39,7 @@ class CategoriesScreen extends ConsumerWidget {
             title: 'Failed to load categories',
             subtitle: repoErrorMessage(e),
             icon: Icons.error_outline_rounded,
+            illustration: illustrationForError(e),
             actionLabel: t?.retry ?? 'Retry',
             onAction: () => ref.invalidate(userCategoriesProvider),
           ),
@@ -47,6 +50,7 @@ class CategoriesScreen extends ConsumerWidget {
               child: AppEmptyState(
                 title: t?.noCategories ?? 'No categories',
                 icon: Icons.category_outlined,
+                illustration: AppIllustrationKind.tags,
                 actionLabel: t?.addCategory ?? 'Add category',
                 onAction: () => _openEdit(context, ref),
               ),
@@ -64,7 +68,7 @@ class CategoriesScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Theme.of(ctx).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: AppRadius.lgAll,
                   border: Border.all(
                     color: Colors.white.withValues(alpha: 0.05),
                   ),

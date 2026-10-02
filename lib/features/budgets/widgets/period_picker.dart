@@ -33,7 +33,7 @@ class _PeriodPickerState extends State<PeriodPicker> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
       ),
       builder: (final BuildContext context) {
         return SingleChildScrollView(
@@ -107,11 +107,11 @@ class _PeriodPickerState extends State<PeriodPicker> {
           widget.onPeriodChanged(value);
           Navigator.pop(context);
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.lgAll,
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: AppRadius.lgAll,
             border: Border.all(
               color: isSelected
                   ? color
@@ -183,12 +183,12 @@ class _PeriodPickerState extends State<PeriodPicker> {
           color: Colors.transparent,
           child: InkWell(
             onTap: _showPeriodMenu,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: AppRadius.lgAll,
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: AppRadius.lgAll,
                 border: Border.all(
                   color: theme.colorScheme.outline.withValues(alpha: 0.2),
                 ),

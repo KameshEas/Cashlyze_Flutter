@@ -53,18 +53,20 @@ class AppListTile extends StatelessWidget {
         children: [
           if (leadingIcon != null) ...[
             Container(
-              padding: const EdgeInsets.all(AppSpacing.s8 + 2),
+              padding: const EdgeInsets.all(AppSpacing.s12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-                shape: BoxShape.circle,
+                color: (leadingIconColor ?? theme.colorScheme.primary).withValues(
+                  alpha: theme.brightness == Brightness.dark ? 0.22 : 0.14,
+                ),
+                borderRadius: AppRadius.mdAll,
               ),
               child: Icon(
                 leadingIcon,
                 color: leadingIconColor ?? theme.colorScheme.primary,
-                size: 20,
+                size: 22,
               ),
             ),
-            const SizedBox(width: AppSpacing.s16),
+            const SizedBox(width: AppSpacing.s12),
           ],
           Expanded(
             child: Column(
@@ -77,19 +79,12 @@ class AppListTile extends StatelessWidget {
                   maxLines: 1,
                 ),
                 if (subtitle != null) ...[
-                  const SizedBox(height: AppSpacing.s4 + 2),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s8, vertical: AppSpacing.s4),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
-                      borderRadius: AppRadius.mdAll,
-                    ),
-                    child: Text(
-                      subtitle!,
-                      style: theme.textTheme.bodySmall,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
+                  const SizedBox(height: AppSpacing.s2),
+                  Text(
+                    subtitle!,
+                    style: theme.textTheme.bodySmall,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ],
               ],
@@ -100,7 +95,7 @@ class AppListTile extends StatelessWidget {
             trailing,
             style: theme.textTheme.bodyLarge?.copyWith(
               color: trailingColor ?? theme.colorScheme.onSurface,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],

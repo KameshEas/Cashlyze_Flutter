@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/ui/constants.dart';
 
 enum ProgressDialogType { backup, restore, export }
 
@@ -146,7 +147,7 @@ class _EnhancedProgressDialogState extends State<EnhancedProgressDialog> {
         children: [
           // Progress indicator
           ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppRadius.smAll,
             child: LinearProgressIndicator(
               value: _progress,
               minHeight: 8,
@@ -166,7 +167,7 @@ class _EnhancedProgressDialogState extends State<EnhancedProgressDialog> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppRadius.smAll,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,7 +194,7 @@ class _EnhancedProgressDialogState extends State<EnhancedProgressDialog> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.red.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppRadius.smAll,
                 border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
               ),
               child: Row(

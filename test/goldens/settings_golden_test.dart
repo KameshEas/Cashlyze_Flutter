@@ -5,18 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  setUpAll(() {
-    // Allow google_fonts to fetch fonts during tests since the app theme
-    // requires Plus Jakarta Sans and Inter fonts from Google Fonts.
-    try {
-      GoogleFonts.config.allowRuntimeFetching = true;
-    } catch (_) {}
-  });
-
   testWidgets('Settings screen dark theme golden', (final WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();

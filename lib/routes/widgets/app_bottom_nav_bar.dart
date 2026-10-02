@@ -12,19 +12,30 @@ import '../../features/onboarding/quick_menu_tutorial_overlay.dart';
 import 'radial_quick_menu.dart';
 
 class _NavEntry {
-  const _NavEntry({required this.branchIndex, required this.destination});
+  const _NavEntry({
+    required this.branchIndex,
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+  });
 
   /// Index into the router's [StatefulShellRoute] branches — fixed, must
-  /// NOT be confused with this entry's position in the (possibly filtered)
-  /// visible destinations list.
+  /// NOT be confused with this entry's position in the bar.
   final int branchIndex;
-  final NavigationDestination destination;
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
 }
 
-/// The app's bottom navigation bar: the stock 5-destination [NavigationBar]
-/// with an elevated center button overlaid on top that expands into a
-/// [showRadialQuickMenu] fan-out menu for less-frequent destinations
-/// (Goals, Categories, EMI, Search, Scan, Help Center).
+/// The app's bottom navigation bar: two destinations on each side of a
+/// floating center button that expands into a [showRadialQuickMenu] fan-out
+/// menu for less-frequent destinations (Goals, Categories, EMI, Search,
+/// Scan, Help Center).
+///
+/// The center button is an action, never a tab: it is not part of the
+/// selection state, so it stays un-highlighted on every screen (including
+/// Budgets, which has no tab of its own and is reached from Home's quick
+/// actions).
 class AppBottomNavBar extends ConsumerStatefulWidget {
   const AppBottomNavBar({required this.navigationShell, super.key});
 
@@ -33,6 +44,9 @@ class AppBottomNavBar extends ConsumerStatefulWidget {
   @override
   ConsumerState<AppBottomNavBar> createState() => _AppBottomNavBarState();
 }
+
+/// Height of the bar's tappable row (excludes the bottom system inset).
+const double _kBarHeight = 68;
 
 class _AppBottomNavBarState extends ConsumerState<AppBottomNavBar> {
   bool _menuOpen = false;
@@ -69,80 +83,88 @@ class _AppBottomNavBarState extends ConsumerState<AppBottomNavBar> {
     final showTransactions = ref.watch(
       featureEnabledProvider((flag: FeatureFlags.transactions, defaultValue: true)),
     );
-    final showBudgets = ref.watch(
-      featureEnabledProvider((flag: FeatureFlags.budgets, defaultValue: true)),
-    );
     final showInsights = ref.watch(
       featureEnabledProvider((flag: FeatureFlags.insights, defaultValue: true)),
     );
 
     // Home and Settings are always shown — see FeatureFlags doc comment.
-    final entries = <_NavEntry>[
-      const _NavEntry(
-        branchIndex: 0,
-        destination: NavigationDestination(
-          icon: Icon(Icons.home_outlined),
-          selectedIcon: Icon(Icons.home),
-          label: 'Home',
-        ),
-      ),
-      if (showTransactions)
-        const _NavEntry(
-          branchIndex: 1,
-          destination: NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: 'Transactions',
-          ),
-        ),
-      // Labeled "More" rather than "Budgets" - the floating quick-menu button
-      // (below) sits directly on top of this destination's icon, so its own
-      // real label would be misleading (tapping the visible button opens the
-      // quick menu, not the Budgets screen).
-      if (showBudgets)
-        const _NavEntry(
-          branchIndex: 2,
-          destination: NavigationDestination(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            selectedIcon: Icon(Icons.account_balance_wallet),
-            label: 'More',
-          ),
-        ),
-      if (showInsights)
-        const _NavEntry(
-          branchIndex: 3,
-          destination: NavigationDestination(
-            icon: Icon(Icons.insights_outlined),
-            selectedIcon: Icon(Icons.insights),
-            label: 'Insights',
-          ),
-        ),
-      const _NavEntry(
-        branchIndex: 4,
-        destination: NavigationDestination(
-          icon: Icon(Icons.settings_outlined),
-          selectedIcon: Icon(Icons.settings),
-          label: 'Settings',
-        ),
-      ),
-    ];
+    // Budgets (branch 2) deliberately has no slot: the center button owns
+    // that spot in the bar.
+    const home = _NavEntry(
+      branchIndex: 0,
+      icon: Icons.home_outlined,
+      selectedIcon: Icons.home_rounded,
+      label: 'Home',
+    );
+    const transactions = _NavEntry(
+      branchIndex: 1,
+      icon: Icons.receipt_long_outlined,
+      selectedIcon: Icons.receipt_long_rounded,
+      label: 'Transactions',
+    );
+    const insights = _NavEntry(
+      branchIndex: 3,
+      icon: Icons.insights_outlined,
+      selectedIcon: Icons.insights_rounded,
+      label: 'Insights',
+    );
+    const settings = _NavEntry(
+      branchIndex: 4,
+      icon: Icons.settings_outlined,
+      selectedIcon: Icons.settings_rounded,
+      label: 'Settings',
+    );
+    // Two slots per side keep the center button centered even when a
+    // feature flag hides a destination (null = empty slot).
+    final left = <_NavEntry?>[home, if (showTransactions) transactions else null];
+    final right = <_NavEntry?>[if (showInsights) insights else null, settings];
+    final currentBranch = widget.navigationShell.currentIndex;
+    final isDark = theme.brightness == Brightness.dark;
+    final selectedColor = isDark ? AppColors.ocean400 : AppColors.ocean700;
+    final idleColor = theme.colorScheme.onSurface.withValues(alpha: 0.55);
 
-    final selectedPosition = entries.indexWhere(
-      (final e) => e.branchIndex == widget.navigationShell.currentIndex,
+    Widget slot(final _NavEntry? e) {
+      if (e == null) return const Expanded(child: SizedBox.shrink());
+      return Expanded(
+        child: _NavItem(
+          entry: e,
+          selected: e.branchIndex == currentBranch,
+          selectedColor: selectedColor,
+          idleColor: idleColor,
+          onTap: () => widget.navigationShell.goBranch(
+            e.branchIndex,
+            initialLocation: e.branchIndex == currentBranch,
+          ),
+        ),
+      );
+    }
+
+    final bar = Container(
+      height: _kBarHeight,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(top: BorderSide(color: theme.colorScheme.outline)),
+      ),
+      child: Row(
+        children: [
+          for (final e in left) slot(e),
+          const SizedBox(width: 84), // room for the floating center button
+          for (final e in right) slot(e),
+        ],
+      ),
     );
 
     return Stack(
       clipBehavior: Clip.none,
       alignment: Alignment.topCenter,
       children: [
-        NavigationBar(
-          selectedIndex: selectedPosition == -1 ? 0 : selectedPosition,
-          onDestinationSelected: (final position) =>
-              widget.navigationShell.goBranch(entries[position].branchIndex),
-          destinations: [for (final e in entries) e.destination],
+        // Bar sits on the system inset so gesture-nav phones don't overlap it.
+        Container(
+          color: theme.colorScheme.surface,
+          child: SafeArea(top: false, child: bar),
         ),
         Transform.translate(
-          offset: const Offset(0, -20),
+          offset: const Offset(0, -22),
           child: Tooltip(
             message: _menuOpen ? 'Close quick menu' : 'Open quick menu',
             child: Semantics(
@@ -156,8 +178,13 @@ class _AppBottomNavBarState extends ConsumerState<AppBottomNavBar> {
                   height: 60,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: theme.colorScheme.primary,
-                    boxShadow: AppShadow.brand(theme.colorScheme.primary),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [AppColors.brandTeal, AppColors.ocean700],
+                    ),
+                    border: Border.all(color: theme.scaffoldBackgroundColor, width: 4),
+                    boxShadow: AppShadow.brand(AppColors.brandTeal),
                   ),
                   child: Center(
                     child: MotionSwitcher(
@@ -175,6 +202,54 @@ class _AppBottomNavBarState extends ConsumerState<AppBottomNavBar> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.entry,
+    required this.selected,
+    required this.selectedColor,
+    required this.idleColor,
+    required this.onTap,
+  });
+
+  final _NavEntry entry;
+  final bool selected;
+  final Color selectedColor;
+  final Color idleColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(final BuildContext context) {
+    final color = selected ? selectedColor : idleColor;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: entry.label,
+      excludeSemantics: true,
+      child: InkResponse(
+        onTap: onTap,
+        radius: 36,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(selected ? entry.selectedIcon : entry.icon, color: color, size: 24),
+            const SizedBox(height: 4),
+            Text(
+              entry.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

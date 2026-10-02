@@ -6,6 +6,7 @@ import '../../core/models/goals_model.dart';
 import '../../core/providers/goals_providers.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/shared_prefs_provider.dart';
+import '../../core/ui/constants.dart';
 import '../../core/utils/format.dart';
 import '../../core/utils/repo_error_handler.dart';
 import 'widgets/goal_completion_celebration.dart';
@@ -223,7 +224,7 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       border: Border.all(color: theme.colorScheme.outline),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadius.smAll,
                     ),
                     child: Text(
                       _selectedIcon,
@@ -235,10 +236,10 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
                 Expanded(
                   child: TextField(
                     controller: _nameController,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: 'Goal name',
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: AppRadius.smAll,
                       ),
                     ),
                   ),
@@ -248,10 +249,10 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
             const SizedBox(height: 16),
             TextField(
               controller: _descriptionController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: 'Description (optional)',
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.smAll,
                 ),
               ),
               maxLines: 2,
@@ -264,8 +265,8 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
                     controller: _targetAmountController,
                     decoration: InputDecoration(
                       labelText: 'Target Amount',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      border: const OutlineInputBorder(
+                        borderRadius: AppRadius.smAll,
                       ),
                       prefix: Text('${currencySymbol(currency)} '),
                     ),
@@ -278,8 +279,8 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
                     controller: _currentAmountController,
                     decoration: InputDecoration(
                       labelText: 'Current Amount',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      border: const OutlineInputBorder(
+                        borderRadius: AppRadius.smAll,
                       ),
                       prefix: Text('${currencySymbol(currency)} '),
                     ),
@@ -295,7 +296,7 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   border: Border.all(color: theme.colorScheme.outline),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.smAll,
                 ),
                 child: Row(
                   children: [
@@ -324,7 +325,7 @@ class _CreateEditGoalSheetState extends ConsumerState<CreateEditGoalSheet> {
                     height: 40,
                     decoration: BoxDecoration(
                       color: _parseColor(_selectedColor),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadius.smAll,
                       border: Border.all(color: theme.colorScheme.outline),
                     ),
                   ),
@@ -405,7 +406,7 @@ class _IconPickerDialog extends StatelessWidget {
                           : theme.colorScheme.outline,
                       width: selectedIcon == icon ? 2 : 1,
                     ),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: AppRadius.smAll,
                   ),
                   child: Center(
                     child: Text(icon, style: const TextStyle(fontSize: 28)),
@@ -460,7 +461,7 @@ class _ColorPickerDialog extends StatelessWidget {
                           : theme.colorScheme.outline,
                       width: selectedColor == color ? 3 : 1,
                     ),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: AppRadius.smAll,
                   ),
                 ),
               ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../providers/connectivity_provider.dart';
 import '../providers/offline_queue_providers.dart';
 
@@ -41,23 +42,28 @@ class _OfflineSyncListenerState extends ConsumerState<OfflineSyncListener> {
             top: 0,
             left: 0,
             right: 0,
-            child: Container(
-              color: Colors.red.shade700,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.cloud_off, color: Colors.white, size: 18),
-                  SizedBox(width: 8),
-                  Text(
-                    'You are offline',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
+            // Calm, not alarming: being offline is a state, not a failure
+            // (illustration system, docs/redesign/07).
+            child: Material(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.cloud_off_rounded, size: 18, color: Theme.of(context).colorScheme.onSurface),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          AppLocalizations.of(context)?.offlineBanner ?? "You're offline. Some features may be unavailable.",
+                          style: Theme.of(context).textTheme.labelMedium,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),

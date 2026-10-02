@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/app_version.dart';
 import '../repositories/app_version_repository.dart';
 import '../services/analytics_service.dart';
+import '../services/announcement_rules.dart';
 import '../services/app_version_service.dart';
+import 'read_only_mode_provider.dart';
 import 'shared_prefs_provider.dart';
 
 /// Provider for AppVersionService
@@ -19,7 +21,14 @@ final currentPlatformVersionProvider =
   final service = ref.watch(appVersionServiceProvider);
 
   final platform = service.getPlatformName();
-  final versionConfig = await repository.getVersionByPlatform(platform);
+  final installedVersion = await service.getCurrentAppVersion();
+  // Watched, so changing the app language refetches (translated announcements).
+  final languageCode = ref.watch(localeProvider)?.languageCode;
+  final versionConfig = await repository.getVersionByPlatform(
+    platform,
+    version: installedVersion,
+    locale: languageCode,
+  );
   return versionConfig;
 });
 
@@ -152,15 +161,21 @@ sealed class MaintenanceState {
   const MaintenanceState();
 
   const factory MaintenanceState.initial() = _MaintenanceInitial;
-  const factory MaintenanceState.active(final String? message) = _MaintenanceActive;
+  const factory MaintenanceState.active(final MaintenanceInfo info) = _MaintenanceActive;
   const factory MaintenanceState.inactive() = _MaintenanceInactive;
 
-  bool get isActive => this is _MaintenanceActive;
-
-  String? get message => switch (this) {
-        _MaintenanceActive(:final message) => message,
+  MaintenanceInfo? get info => switch (this) {
+        _MaintenanceActive(:final info) => info,
         _ => null,
       };
+
+  /// Full-screen block: maintenance is on and the app can't be used.
+  bool get isBlocking => info != null && !info!.isReadOnly;
+
+  /// Maintenance is on but the app stays usable; writes are rejected.
+  bool get isReadOnly => info != null && info!.isReadOnly;
+
+  String? get message => info?.message;
 }
 
 class _MaintenanceInitial extends MaintenanceState {
@@ -168,9 +183,9 @@ class _MaintenanceInitial extends MaintenanceState {
 }
 
 class _MaintenanceActive extends MaintenanceState {
-  const _MaintenanceActive(this.message);
+  const _MaintenanceActive(this.info);
   @override
-  final String? message;
+  final MaintenanceInfo info;
 }
 
 class _MaintenanceInactive extends MaintenanceState {
@@ -188,8 +203,8 @@ class MaintenanceStateNotifier extends Notifier<MaintenanceState> {
       ref.invalidate(currentPlatformVersionProvider);
       final versionConfig = await ref.read(currentPlatformVersionProvider.future);
 
-      if (versionConfig != null && versionConfig.maintenanceMode) {
-        state = MaintenanceState.active(versionConfig.maintenanceMessage);
+      if (versionConfig != null && versionConfig.maintenance.active) {
+        state = MaintenanceState.active(versionConfig.maintenance);
       } else {
         state = const MaintenanceState.inactive();
       }
@@ -198,6 +213,8 @@ class MaintenanceStateNotifier extends Notifier<MaintenanceState> {
       // failed (e.g. no network).
       state = const MaintenanceState.inactive();
     }
+    // Lets the API client reject writes during read-only maintenance.
+    ref.read(readOnlyModeProvider.notifier).update(state.isReadOnly);
   }
 }
 
@@ -208,48 +225,66 @@ final maintenanceStateProvider =
 // ── Announcement banner ─────────────────────────────────────────────────────
 
 class AnnouncementState {
-  const AnnouncementState({this.message, this.visible = false});
-  final String? message;
-  final bool visible;
+  const AnnouncementState({this.banner, this.dialog});
+
+  /// The highest-priority banner the user hasn't hidden.
+  final AnnouncementInfo? banner;
+
+  /// The highest-priority dialog the user hasn't seen yet.
+  final AnnouncementInfo? dialog;
 }
 
 class AnnouncementStateNotifier extends Notifier<AnnouncementState> {
+  // Announcements dismissed since the app launched, for `every_launch`.
+  final Set<String> _seenThisSession = {};
+  List<AnnouncementInfo> _live = const [];
+
   @override
-  AnnouncementState build() => const AnnouncementState();
+  AnnouncementState build() {
+    // A new language means new text: fetch again. Invalidate explicitly, since
+    // this listener can run before the cached fetch notices the language change.
+    ref.listen(localeProvider, (_, _) {
+      ref.invalidate(currentPlatformVersionProvider);
+      check();
+    });
+    return const AnnouncementState();
+  }
 
   Future<void> check() async {
     try {
       final versionConfig = await ref.read(currentPlatformVersionProvider.future);
-      final message = versionConfig?.announcementMessage;
-
-      if (versionConfig == null ||
-          !versionConfig.announcementActive ||
-          message == null ||
-          message.isEmpty) {
-        state = const AnnouncementState();
-        return;
-      }
-
-      final dismissedHash =
-          ref.read(sharedPrefsServiceProvider).dismissedAnnouncementHash;
-      if (dismissedHash == message.hashCode.toString()) {
-        state = const AnnouncementState();
-        return;
-      }
-
-      state = AnnouncementState(message: message, visible: true);
+      _live = versionConfig?.announcements ?? const [];
     } catch (_) {
-      state = const AnnouncementState();
+      _live = const [];
     }
+    _publish();
   }
 
-  Future<void> dismiss() async {
-    final message = state.message;
-    if (message == null) return;
-    await ref
-        .read(sharedPrefsServiceProvider)
-        .setDismissedAnnouncementHash(message.hashCode.toString());
-    state = const AnnouncementState();
+  Future<void> dismiss(final AnnouncementInfo announcement) async {
+    _seenThisSession.add(announcement.id);
+    await ref.read(sharedPrefsServiceProvider).markAnnouncementSeen(
+          announcement.id,
+          DateTime.now().millisecondsSinceEpoch,
+        );
+    _publish();
+  }
+
+  void _publish() {
+    final seenAt = ref.read(sharedPrefsServiceProvider).announcementSeenAt;
+    final now = DateTime.now();
+    final visible = _live.where(
+      (final a) => !isAnnouncementSuppressed(
+        a,
+        lastSeenMillis: seenAt[a.id],
+        seenThisSession: _seenThisSession.contains(a.id),
+        now: now,
+      ),
+    );
+    // The backend already sorted by priority, so the first of each kind wins.
+    state = AnnouncementState(
+      banner: visible.where((final a) => a.isBanner).firstOrNull,
+      dialog: visible.where((final a) => a.isDialog).firstOrNull,
+    );
   }
 }
 

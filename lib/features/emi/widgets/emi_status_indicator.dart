@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/ui/constants.dart';
 
 /// EMI status types
 enum EMIStatus {
@@ -67,7 +68,7 @@ class EMIStatusBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.smAll,
         border: Border.all(color: textColor.withValues(alpha: 0.3)),
       ),
       child: Row(
@@ -117,7 +118,7 @@ class EMIStatusIndicator extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.lgAll,
         border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
@@ -167,10 +168,10 @@ class EMIStatusIndicator extends StatelessWidget {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppRadius.smAll,
               ),
               child: Text(
-                '⚠️ Payment is overdue. Please pay as soon as possible.',
+                'Payment is overdue. Please pay as soon as possible.',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: color,
                   fontWeight: FontWeight.w500,

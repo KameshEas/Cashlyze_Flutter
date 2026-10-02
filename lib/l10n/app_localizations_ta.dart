@@ -411,4 +411,219 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get analyticsSubtitle => 'Cashlyze-ஐ மேம்படுத்த உதவுங்கள்';
+
+  @override
+  String get onboardingSkip => 'தவிர்';
+
+  @override
+  String get onboardingBack => 'பின்';
+
+  @override
+  String get onboardingNext => 'அடுத்து';
+
+  @override
+  String get onboardingGetStarted => 'தொடங்கு';
+
+  @override
+  String onboardingStepLabel(int current, int total) {
+    return 'படி $current / $total';
+  }
+
+  @override
+  String get onboardingNearLimit => 'வரம்பு அருகில்';
+
+  @override
+  String get onboardingPage1Title =>
+      'உங்கள் பணம் எங்கே செல்கிறது என்று பாருங்கள்';
+
+  @override
+  String get onboardingPage1Body =>
+      'சில நொடிகளில் செலவுகளைப் பதிவு செய்யுங்கள் அல்லது ரசீதை ஸ்கேன் செய்யுங்கள்; ஒவ்வொரு பரிவர்த்தனையும் சரியான வகையில் சேரும்.';
+
+  @override
+  String get onboardingPage1Semantics =>
+      'விளக்கப்படம்: வகை வாரியான பரிவர்த்தனைகளின் பட்டியல்';
+
+  @override
+  String get onboardingPage2Title => 'இலக்கில் நிற்க உதவும் பட்ஜெட்கள்';
+
+  @override
+  String get onboardingPage2Body =>
+      'தினசரி, வாராந்திர அல்லது மாதாந்திர வரம்புகளை அமைத்து, அதிகம் செலவழிக்கும் முன் எச்சரிக்கை பெறுங்கள்.';
+
+  @override
+  String get onboardingPage2Semantics =>
+      'விளக்கப்படம்: பட்ஜெட் முன்னேற்றப் பட்டைகள், ஒன்று வரம்பை நெருங்குகிறது';
+
+  @override
+  String get onboardingPage3Title => 'செயல்படக்கூடிய நுண்ணறிவுகள்';
+
+  @override
+  String get onboardingPage3Body =>
+      'தெளிவான வரைபடங்கள் போக்குகளை முன்கூட்டியே காட்டுகின்றன; சிறிய கசிவுகள் பெரிய பிரச்சினையாக மாறாது.';
+
+  @override
+  String get onboardingPage3Semantics =>
+      'விளக்கப்படம்: காலப்போக்கில் செலவின் பட்டை வரைபடம்';
+
+  @override
+  String get authSignIn => 'உள்நுழை';
+
+  @override
+  String get authSignUp => 'பதிவு செய்';
+
+  @override
+  String get authCreateAccount => 'கணக்கை உருவாக்கு';
+
+  @override
+  String get authEmail => 'மின்னஞ்சல்';
+
+  @override
+  String get authPassword => 'கடவுச்சொல்';
+
+  @override
+  String get authName => 'பெயர்';
+
+  @override
+  String get authMobile => 'மொபைல்';
+
+  @override
+  String get authPasswordHelper => 'குறைந்தது 6 எழுத்துகள்';
+
+  @override
+  String get authShowPassword => 'கடவுச்சொல்லைக் காட்டு';
+
+  @override
+  String get authHidePassword => 'கடவுச்சொல்லை மறை';
+
+  @override
+  String get authNoAccountPrompt => 'கணக்கு இல்லையா?';
+
+  @override
+  String get authHaveAccountPrompt => 'ஏற்கனவே கணக்கு உள்ளதா?';
+
+  @override
+  String get authEnterName => 'உங்கள் பெயரை உள்ளிடவும்';
+
+  @override
+  String get authEnterMobile => 'உங்கள் மொபைல் எண்ணை உள்ளிடவும்';
+
+  @override
+  String get authMobileMin =>
+      'மொபைல் எண் குறைந்தது 6 இலக்கங்கள் இருக்க வேண்டும்';
+
+  @override
+  String get authEnterEmail => 'உங்கள் மின்னஞ்சலை உள்ளிடவும்';
+
+  @override
+  String get authValidEmail => 'சரியான மின்னஞ்சலை உள்ளிடவும்';
+
+  @override
+  String get authEnterPassword => 'உங்கள் கடவுச்சொல்லை உள்ளிடவும்';
+
+  @override
+  String get authPasswordMin =>
+      'கடவுச்சொல் குறைந்தது 6 எழுத்துகள் இருக்க வேண்டும்';
+
+  @override
+  String get otpTitleSend => 'உங்கள் கணக்கைச் சரிபார்க்கவும்';
+
+  @override
+  String get otpTitleEnter => 'உங்கள் குறியீட்டை உள்ளிடவும்';
+
+  @override
+  String otpSubtitleSend(String email) {
+    return 'கணக்கைச் சரிபார்க்க $email முகவரிக்கு ஒருமுறை குறியீட்டை அனுப்புவோம்.';
+  }
+
+  @override
+  String otpSubtitleSent(String email) {
+    return '$email முகவரிக்கு ஒருமுறை குறியீடு அனுப்பப்பட்டது';
+  }
+
+  @override
+  String get otpSendNow => 'குறியீட்டை அனுப்பு';
+
+  @override
+  String get otpSending => 'அனுப்புகிறது…';
+
+  @override
+  String get otpVerify => 'சரிபார்';
+
+  @override
+  String otpResendIn(int seconds) {
+    return '$seconds வினாடியில் மீண்டும் அனுப்பலாம்';
+  }
+
+  @override
+  String get otpResend => 'குறியீட்டை மீண்டும் அனுப்பு';
+
+  @override
+  String get otpCodeLabel => 'சரிபார்ப்புக் குறியீடு, 6 இலக்கங்கள்';
+
+  @override
+  String get otpEnterAll => 'குறியீட்டின் 6 இலக்கங்களையும் உள்ளிடவும்';
+
+  @override
+  String get otpUseDifferentEmail => 'வேறு மின்னஞ்சலைப் பயன்படுத்து';
+
+  @override
+  String otpSentBanner(String email) {
+    return '$email முகவரிக்குக் குறியீடு அனுப்பப்பட்டது. இன்பாக்ஸைப் பாருங்கள்.';
+  }
+
+  @override
+  String homeGreetingMorning(String name) {
+    return 'காலை வணக்கம், $name';
+  }
+
+  @override
+  String homeGreetingAfternoon(String name) {
+    return 'மதிய வணக்கம், $name';
+  }
+
+  @override
+  String homeGreetingEvening(String name) {
+    return 'மாலை வணக்கம், $name';
+  }
+
+  @override
+  String get homeNetBalance => 'நிகர இருப்பு';
+
+  @override
+  String get homeThisMonth => 'இந்த மாதம்';
+
+  @override
+  String get homeSeeAll => 'அனைத்தையும் காண்க';
+
+  @override
+  String get homeNoTransactionsMonth => 'இந்த மாதம் பரிவர்த்தனைகள் இல்லை';
+
+  @override
+  String get searchNoResultsTitle => 'முடிவுகள் எதுவும் இல்லை';
+
+  @override
+  String get searchNoResultsBody =>
+      'வேறு சொல்லை முயற்சிக்கவும் அல்லது எழுத்துப்பிழையைச் சரிபார்க்கவும்.';
+
+  @override
+  String get budgetsEmptyBody =>
+      'ஒரு வகைக்கு வரம்பை அமைத்து, அதிகமாகச் செலவழிக்கும் முன் எச்சரிக்கை பெறுங்கள்.';
+
+  @override
+  String get tryAgain => 'மீண்டும் முயற்சிக்கவும்';
+
+  @override
+  String get offlineBanner =>
+      'நீங்கள் ஆஃப்லைனில் உள்ளீர்கள். சில அம்சங்கள் கிடைக்காமல் போகலாம்.';
+
+  @override
+  String get scanReadingTitle => 'உங்கள் ரசீது படிக்கப்படுகிறது';
+
+  @override
+  String get scanReadingBody => 'ஒரு நொடி மட்டுமே ஆகும்.';
+
+  @override
+  String get transactionsEmptyHint =>
+      'உங்கள் பணம் எங்கே செல்கிறது என்பதைக் காண முதல் பரிவர்த்தனையைச் சேர்க்கவும்.';
 }

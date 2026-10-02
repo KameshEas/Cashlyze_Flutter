@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart' show Share, XFile;
 
+import '../../core/illustrations/app_illustration.dart';
 import '../../core/models/category.dart';
 import '../../core/models/transaction.dart';
 import '../../core/providers/budget_analytics_providers.dart';
@@ -14,19 +15,21 @@ import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/providers/transaction_providers.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/ui/constants.dart';
+import '../../core/ui/finance_style.dart';
 import '../../core/utils/format.dart';
 import '../../core/utils/repo_error_handler.dart';
 import '../../core/widgets/animated_progress_indicator.dart';
 import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/grouped_list.dart';
 import '../../core/widgets/skeleton.dart';
 
 const List<Color> _kPalette = [
-  AppColors.emerald600,
-  AppColors.teal500,
-  AppColors.info,
-  AppColors.warning,
-  AppColors.chartViolet,
-  AppColors.chartPink,
+  AppColors.ocean700,
+  AppColors.brandTeal,
+  Color(0xFF7CC7CF),
+  Color(0xFF5B6B79),
+  Color(0xFF9AA8B4),
+  Color(0xFFC9A66B),
 ];
 
 class InsightsScreen extends ConsumerStatefulWidget {
@@ -102,10 +105,12 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
             onPressed: () =>
                 _exportInsights(context, ref, categoryBreakdownAsync, kpis),
           ),
-          _TimeRangePicker(
-            selected: selectedRange,
-            onChanged: (final r) =>
-                ref.read(selectedTimeRangeProvider.notifier).setRange(r),
+          Center(
+            child: _TimeRangePicker(
+              selected: selectedRange,
+              onChanged: (final r) =>
+                  ref.read(selectedTimeRangeProvider.notifier).setRange(r),
+            ),
           ),
           const SizedBox(width: AppSpacing.s16),
         ],
@@ -119,7 +124,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.pagePadding,
-            0,
+            AppSpacing.s12,
             AppSpacing.pagePadding,
             AppSpacing.pagePadding,
           ),
@@ -176,6 +181,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
                   title: 'No trend data',
                   subtitle: 'Add transactions to see your monthly trend',
                   icon: Icons.show_chart_rounded,
+                  illustration: AppIllustrationKind.chart,
                 )
               else
                 _MonthlyTrendCard(monthly: monthly),
@@ -192,14 +198,14 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
                 error: (final err, final stack) => const AppEmptyState(
                   title: 'Failed to load category data',
                   subtitle: 'Unable to fetch category breakdown from server',
-                  icon: Icons.pie_chart_rounded,
+                  compact: true,
                 ),
                 data: (final breakdown) {
                   if (breakdown.isEmpty) {
                     return const AppEmptyState(
                       title: 'No category data',
                       subtitle: 'Add transactions to see category breakdown',
-                      icon: Icons.pie_chart_rounded,
+                      compact: true,
                     );
                   }
                   return _CategoryBreakdownCard(
@@ -222,7 +228,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
                 const AppEmptyState(
                   title: 'No merchant data',
                   subtitle: 'No merchant data for this period',
-                  icon: Icons.storefront_rounded,
+                  compact: true,
                 )
               else
                 _MerchantsCard(merchants: topMerchants, currency: currency),
@@ -240,7 +246,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
                 const AppEmptyState(
                   title: 'No recurring payments',
                   subtitle: 'No recurring payments detected yet',
-                  icon: Icons.repeat_rounded,
+                  compact: true,
                 )
               else
                 _RecurringCard(recurring: recurring, currency: currency),
@@ -271,26 +277,14 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({required this.title, required this.icon});
   final String title;
+  // Kept for call-site compatibility; the serious layout uses text-only labels.
   final IconData icon;
 
   @override
-  Widget build(final BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Icon(icon, size: 17, color: theme.colorScheme.primary),
-        const SizedBox(width: AppSpacing.s8),
-        Text(
-          title,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
+  Widget build(final BuildContext context) => SectionLabel(title);
 }
 
+/// Flat, hairline-bordered surface shared by every insight card.
 class _BaseCard extends StatelessWidget {
   const _BaseCard({required this.child, this.padding});
   final Widget child;
@@ -305,10 +299,8 @@ class _BaseCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: AppRadius.lgAll,
-        border: Border.all(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.07),
-        ),
-        boxShadow: AppShadow.card,
+        border: Border.all(color: theme.colorScheme.outline),
+        boxShadow: theme.brightness == Brightness.light ? AppShadow.soft : null,
       ),
       child: child,
     );
@@ -333,7 +325,7 @@ class _TimeRangePicker extends StatelessWidget {
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-        borderRadius: AppRadius.fullAll,
+        borderRadius: AppRadius.mdAll,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -348,16 +340,18 @@ class _TimeRangePicker extends StatelessWidget {
             onTap: () => onChanged(r),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 180),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              constraints: const BoxConstraints(minWidth: 44, minHeight: 34),
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
                 color: isSelected
                     ? theme.colorScheme.primary
                     : Colors.transparent,
-                borderRadius: AppRadius.fullAll,
+                borderRadius: AppRadius.smAll,
               ),
               child: Text(
                 label,
-                style: theme.textTheme.labelSmall?.copyWith(
+                style: theme.textTheme.labelMedium?.copyWith(
                   color: isSelected
                       ? Colors.white
                       : theme.colorScheme.onSurface.withValues(alpha: 0.6),
@@ -390,78 +384,42 @@ class _NetHeroCard extends StatelessWidget {
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final isPositive = kpis.net >= 0;
-    final netColor = isPositive ? AppColors.success : AppColors.error;
+    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.66);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.cardPadding),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            netColor.withValues(alpha: 0.13),
-            netColor.withValues(alpha: 0.03),
-          ],
-        ),
-        borderRadius: AppRadius.lgAll,
-        border: Border.all(color: netColor.withValues(alpha: 0.2)),
-      ),
+    return _BaseCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Net Balance',
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text('Net balance', style: theme.textTheme.labelLarge?.copyWith(color: muted)),
+              ),
+              // Direction is stated in words and an icon, not colour alone.
+              Icon(
+                isPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                size: 16,
+                color: muted,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                isPositive ? 'Surplus' : 'Deficit',
+                style: theme.textTheme.labelMedium?.copyWith(color: muted, fontWeight: FontWeight.w600),
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.s4),
+          const SizedBox(height: AppSpacing.s8),
           if (isLoading)
             const SkeletonLine(height: 32, width: 160)
           else
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    formatAmount(kpis.net.abs(), currency),
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      color: netColor,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.s12,
-                    vertical: AppSpacing.s4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: netColor.withValues(alpha: 0.14),
-                    borderRadius: AppRadius.fullAll,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isPositive
-                            ? Icons.trending_up_rounded
-                            : Icons.trending_down_rounded,
-                        size: 15,
-                        color: netColor,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        isPositive ? 'Surplus' : 'Deficit',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: netColor,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            AmountText(
+              amount: kpis.net,
+              currency: currency,
+              alignment: Alignment.centerLeft,
+              style: theme.textTheme.displayMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.5,
+              ),
             ),
         ],
       ),
@@ -470,7 +428,7 @@ class _NetHeroCard extends StatelessWidget {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 4-metric strip: Income | Expense | Savings % | Daily avg
+// Key figures: Income | Expense | Savings % | Daily avg
 // ════════════════════════════════════════════════════════════════════════════
 
 class _MetricStrip extends StatelessWidget {
@@ -486,104 +444,70 @@ class _MetricStrip extends StatelessWidget {
   @override
   Widget build(final BuildContext context) {
     final savingsPct = (kpis.savingsRate * 100).clamp(0, 100);
-    return Row(
+    return GroupedSection(
+      dividerIndent: AppSpacing.s16,
       children: [
-        Expanded(
-          child: _MetricTile(
-            icon: Icons.arrow_downward_rounded,
-            color: AppColors.success,
-            label: 'Income',
-            value: isLoading ? null : formatAmount(kpis.income, currency),
-          ),
+        _FigureRow(
+          label: 'Income',
+          value: isLoading ? null : AmountText(amount: kpis.income, currency: currency),
         ),
-        const SizedBox(width: AppSpacing.s8),
-        Expanded(
-          child: _MetricTile(
-            icon: Icons.arrow_upward_rounded,
-            color: AppColors.error,
-            label: 'Expenses',
-            value: isLoading ? null : formatAmount(kpis.expense, currency),
-          ),
+        _FigureRow(
+          label: 'Expenses',
+          value: isLoading ? null : AmountText(amount: -kpis.expense.abs(), currency: currency),
         ),
-        const SizedBox(width: AppSpacing.s8),
-        Expanded(
-          child: _MetricTile(
-            icon: Icons.savings_outlined,
-            color: AppColors.info,
-            label: 'Savings',
-            value: isLoading ? null : '${savingsPct.toStringAsFixed(1)}%',
-          ),
+        _FigureRow(
+          label: 'Savings rate',
+          value: isLoading ? null : _PlainFigure('${savingsPct.toStringAsFixed(1)}%'),
         ),
-        const SizedBox(width: AppSpacing.s8),
-        Expanded(
-          child: _MetricTile(
-            icon: Icons.today_rounded,
-            color: AppColors.warning,
-            label: 'Daily avg',
-            value: isLoading
-                ? null
-                : formatAmount(kpis.avgDailySpend, currency),
-          ),
+        _FigureRow(
+          label: 'Daily average spend',
+          value: isLoading ? null : AmountText(amount: kpis.avgDailySpend, currency: currency, showSign: false),
         ),
       ],
     );
   }
 }
 
-class _MetricTile extends StatelessWidget {
-  // null = loading
-  const _MetricTile({
-    required this.icon,
-    required this.color,
-    required this.label,
-    required this.value,
-  });
-  final IconData icon;
-  final Color color;
+class _PlainFigure extends StatelessWidget {
+  const _PlainFigure(this.text);
+  final String text;
+
+  @override
+  Widget build(final BuildContext context) => Align(
+        alignment: Alignment.centerRight,
+        child: Text(
+          text,
+          style: tabular(Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+        ),
+      );
+}
+
+class _FigureRow extends StatelessWidget {
+  // value == null means loading
+  const _FigureRow({required this.label, required this.value});
   final String label;
-  final String? value;
+  final Widget? value;
 
   @override
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.s8,
-        vertical: AppSpacing.s12,
-      ),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: AppRadius.mdAll,
-        border: Border.all(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 15, color: color),
-          const SizedBox(height: AppSpacing.s4),
-          value == null
-              ? const SkeletonLine(height: 13, width: 40)
-              : Text(
-                  value!,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-          const SizedBox(height: 2),
-          Text(
+    return Row(
+      children: [
+        Expanded(
+          flex: 3,
+          child: Text(
             label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-              fontSize: 10,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
             ),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(width: AppSpacing.s12),
+        Flexible(
+          flex: 2,
+          child: value ?? const Align(alignment: Alignment.centerRight, child: SkeletonLine(height: 14, width: 64)),
+        ),
+      ],
     );
   }
 }
@@ -617,13 +541,13 @@ class _ForecastCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(AppSpacing.s12),
             decoration: BoxDecoration(
-              color: AppColors.info.withValues(alpha: 0.10),
+              color: theme.brightness == Brightness.dark ? AppColors.darkSurfaceHigh : AppColors.tint050,
               borderRadius: AppRadius.mdAll,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.auto_graph_rounded,
-              color: AppColors.info,
-              size: 26,
+              color: theme.brightness == Brightness.dark ? AppColors.ocean400 : AppColors.ocean700,
+              size: 24,
             ),
           ),
           const SizedBox(width: AppSpacing.s16),
@@ -638,23 +562,25 @@ class _ForecastCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.s4),
-                Text(
-                  formatAmount(forecast, currency),
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                AmountText(
+                  amount: forecast,
+                  currency: currency,
+                  showSign: false,
+                  alignment: Alignment.centerLeft,
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ],
             ),
           ),
+          if (lastMonth != 0)
           Container(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.s8,
               vertical: AppSpacing.s4,
             ),
             decoration: BoxDecoration(
-              color: changeColor.withValues(alpha: 0.10),
-              borderRadius: AppRadius.fullAll,
+              borderRadius: AppRadius.smAll,
+              border: Border.all(color: changeColor.withValues(alpha: 0.5)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -663,7 +589,7 @@ class _ForecastCard extends StatelessWidget {
                   isUp
                       ? Icons.arrow_upward_rounded
                       : Icons.arrow_downward_rounded,
-                  size: 12,
+                  size: 14,
                   color: changeColor,
                 ),
                 const SizedBox(width: 3),
@@ -853,16 +779,13 @@ class _CategoryBreakdownCard extends ConsumerWidget {
       final entry = top[i];
       final color = _kPalette[i % _kPalette.length];
       final value = entry.value;
-      final pct = total > 0 ? (value / total * 100) : 0.0;
-
+      // No in-slice labels: percentages live in the legend list below, where
+      // they can't collide on small slices or fail contrast on light slices.
       return PieChartSectionData(
         color: color,
         value: value,
-        title: '${pct.toStringAsFixed(0)}%',
-        titleStyle: theme.textTheme.labelSmall?.copyWith(
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
-        ),
+        radius: 26,
+        showTitle: false,
       );
     });
 
@@ -882,43 +805,62 @@ class _CategoryBreakdownCard extends ConsumerWidget {
             child: SizedBox(
               height: 200,
               child: ExcludeSemantics(
-                child: PieChart(PieChartData(sections: sections)),
+                child: PieChart(
+                  PieChartData(
+                    sections: sections,
+                    centerSpaceRadius: 58,
+                    sectionsSpace: 2,
+                  ),
+                ),
               ),
             ),
           ),
           const SizedBox(height: AppSpacing.s16),
-          Wrap(
-            spacing: AppSpacing.s12,
-            runSpacing: AppSpacing.s8,
-            children: top.asMap().entries.map((final e) {
-              final idx = e.key;
-              final entry = e.value;
-              final color = _kPalette[idx % _kPalette.length];
-              final catName = catById[entry.key] ?? entry.key;
-              final pct = total > 0 ? (entry.value / total * 100) : 0.0;
-
-              return Row(
-                mainAxisSize: MainAxisSize.min,
+          // Legend as a list: colour dot + name on the left, share and amount
+          // on the right, so identity never depends on the colour ramp alone.
+          for (var idx = 0; idx < top.length; idx++)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+              child: Row(
                 children: [
                   Container(
                     width: 10,
                     height: 10,
                     decoration: BoxDecoration(
-                      color: color,
+                      color: _kPalette[idx % _kPalette.length],
                       shape: BoxShape.circle,
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: AppSpacing.s12),
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      catById[top[idx].key] ?? top[idx].key,
+                      style: theme.textTheme.bodyMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.s8),
                   Text(
-                    '$catName ${pct.toStringAsFixed(0)}%',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w500,
+                    '${(total > 0 ? top[idx].value / total * 100 : 0).toStringAsFixed(0)}%',
+                    style: tabular(theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.66),
+                    )),
+                  ),
+                  const SizedBox(width: AppSpacing.s12),
+                  Flexible(
+                    flex: 2,
+                    child: AmountText(
+                      amount: -top[idx].value.abs(),
+                      currency: currency,
+                      showSign: false,
+                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
-              );
-            }).toList(),
-          ),
+              ),
+            ),
         ],
       ),
     );

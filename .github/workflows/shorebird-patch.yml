@@ -18,6 +18,8 @@ jobs:
     with:
       release-version: ${{ inputs.release-version }}
       ensure-env-file: true
+      # Must match build-and-deploy.yml: .env is an asset and Shorebird patches can't change assets.
+      env-file-keys: ONESIGNAL_APP_ID,SENTRY_DSN
       enable-sops-secrets: true
       sops-secrets-file: cashlyze.env
     secrets: inherit

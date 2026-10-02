@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/budget.dart';
 import '../repositories/budget_repository.dart';
 import '../repositories/category_repository.dart';
+import '../ui/constants.dart';
 
 class CategoryPickerField extends ConsumerWidget {
 
@@ -80,7 +81,7 @@ class CategoryPickerField extends ConsumerWidget {
           isScrollControlled: true,
           backgroundColor: theme.colorScheme.surface,
           shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
           ),
           builder: (final BuildContext sheetCtx) {
             return SizedBox(

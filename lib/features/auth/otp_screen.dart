@@ -1,13 +1,18 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api/api_exception.dart';
+import '../../core/branding/animated_brand_logo.dart';
+import '../../core/branding/flow_backdrop.dart';
 import '../../core/providers/otp_pending_provider.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/ui/constants.dart';
 import '../../core/utils/repo_error_handler.dart';
+import '../../l10n/app_localizations.dart';
 import 'data/auth_remote_data_source.dart';
 import 'data/otp_remote_data_source.dart';
 
@@ -28,6 +33,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   bool _verifying = false;
   // Two-phase UI: first "Send Now", then OTP input after sending.
   bool _otpSent = false;
+  // Inline status (replaces snackbars, which are poorly announced and vanish).
+  String? _message;
+  bool _messageIsError = false;
 
   // Resend cooldown — user must wait 2 minutes before requesting another OTP.
   static const int _kCooldownSeconds = 120;
@@ -90,9 +98,11 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         ref.read(otpPendingProvider.notifier).markOtpSent();
         setState(() => _otpSent = true);
         _startCooldown();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('OTP sent to $email. Check your inbox.')),
-        );
+        setState(() {
+          _messageIsError = false;
+          _message = AppLocalizations.of(context)?.otpSentBanner(email) ??
+              'Code sent to $email. Check your inbox.';
+        });
       }
     } on ConflictException {
       ref.read(otpPendingProvider.notifier).clearPending();
@@ -103,12 +113,10 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(repoErrorMessage(e)),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        setState(() {
+          _messageIsError = true;
+          _message = repoErrorMessage(e);
+        });
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -120,12 +128,16 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     final email = _userEmail;
     if (email.isEmpty) return;
     if (entered.length != 6 || !RegExp(r'^\d{6}$').hasMatch(entered)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter all 6 digits of the code')),
-      );
+      setState(() {
+        _messageIsError = true;
+        _message = AppLocalizations.of(context)?.otpEnterAll ?? 'Enter all 6 digits of the code';
+      });
       return;
     }
-    setState(() => _verifying = true);
+    setState(() {
+      _verifying = true;
+      _message = null;
+    });
     try {
       final result = await ref
           .read(otpRemoteDataSourceProvider)
@@ -152,12 +164,6 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       ref.read(otpPendingProvider.notifier).clearPending();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Account created. Please login using the account created.'),
-            backgroundColor: Colors.green,
-          ),
-        );
         GoRouter.of(context).go(
           '/login?notice=${Uri.encodeComponent('Account created successfully. Please login using the account created.')}',
         );
@@ -171,117 +177,302 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(repoErrorMessage(e)),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        setState(() {
+          _messageIsError = true;
+          _message = repoErrorMessage(e);
+        });
       }
     } finally {
       if (mounted) setState(() => _verifying = false);
     }
   }
 
+  /// Mistyped email escape hatch: pending state must be cleared first, or the
+  /// router's OTP redirect would bounce the user straight back here.
+  void _useDifferentEmail() {
+    ref.read(otpPendingProvider.notifier).clearPending();
+    GoRouter.of(context).go('/login');
+  }
+
   @override
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
     final email = _userEmail;
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Verify Account')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  _otpSent
-                      ? Icons.mark_email_read_outlined
-                      : Icons.email_outlined,
-                  size: 64,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  _otpSent ? 'Enter your OTP' : 'Verify your account',
-                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _otpSent
-                      ? 'A one-time code was sent to\n$email'
-                      : 'We will send a one-time code to\n$email\nto verify your account.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 36),
-                if (!_otpSent) ...([
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: _sending ? null : _sendOtp,
-                      icon: _sending
-                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Icon(Icons.send_outlined),
-                      label: Text(_sending ? 'Sending…' : 'Send Now'),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: isDark ? const FlowBackdrop.ocean() : const FlowBackdrop.paper(),
+          ),
+          SafeArea(
+            bottom: false,
+            child: CustomScrollView(
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Column(
+                    children: [
+                      const Spacer(),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.s24),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 220),
+                          width: keyboardOpen ? 120 : 170,
+                          child: FittedBox(
+                            child: PlayOnceBrandLogo(
+                              color: isDark ? Colors.white : AppColors.brandTeal,
+                              showTagline: false,
+                              width: 170,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ]) else ...[
-                  TextField(
-                    controller: _otpController,
-                    keyboardType: TextInputType.number,
-                    maxLength: 6,
-                    textAlign: TextAlign.center,
-                    autofocus: true,
-                    style: theme.textTheme.headlineSmall?.copyWith(letterSpacing: 8),
-                    decoration: InputDecoration(
-                      labelText: 'Enter OTP',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      counterText: '',
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: _verifying ? null : _verifyOtp,
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      const Spacer(),
+                      Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 480),
+                          child: _buildSheet(context, theme, scheme, isDark, l10n, email),
+                        ),
                       ),
-                      child: _verifying
-                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Verify OTP'),
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  TextButton.icon(
-                    onPressed: (_sending || _resendCooldown > 0) ? null : _sendOtp,
-                    icon: _sending
-                        ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.refresh),
-                    label: Text(
-                      _sending
-                          ? 'Sending…'
-                          : _resendCooldown > 0
-                              ? 'Resend in ${_resendCooldown}s'
-                              : 'Resend OTP',
-                    ),
-                  ),
-                ],
+                ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSheet(
+    final BuildContext context,
+    final ThemeData theme,
+    final ColorScheme scheme,
+    final bool isDark,
+    final AppLocalizations? l10n,
+    final String email,
+  ) {
+    final muted = scheme.onSurface.withValues(alpha: 0.72);
+    final cooldownBucket = ((_resendCooldown + 9) ~/ 10) * 10; // announce coarsely
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        border: Border.all(color: scheme.outline),
+        boxShadow: isDark
+            ? null
+            : const [
+                BoxShadow(color: Color(0x1416201B), blurRadius: 28, offset: Offset(0, -8)),
+              ],
+      ),
+      padding: EdgeInsets.fromLTRB(24, 28, 24, 24 + MediaQuery.paddingOf(context).bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Semantics(
+            header: true,
+            child: Text(
+              _otpSent
+                  ? (l10n?.otpTitleEnter ?? 'Enter your code')
+                  : (l10n?.otpTitleSend ?? 'Verify your account'),
+              style: theme.textTheme.headlineMedium,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s8),
+          Text(
+            _otpSent
+                ? (l10n?.otpSubtitleSent(email) ?? 'A one-time code was sent to $email')
+                : (l10n?.otpSubtitleSend(email) ??
+                    "We'll send a one-time code to $email to verify your account."),
+            style: theme.textTheme.bodyMedium?.copyWith(color: muted),
+          ),
+          const SizedBox(height: AppSpacing.s24),
+          if (_message != null)
+            Semantics(
+              liveRegion: true,
+              container: true,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: AppSpacing.s16),
+                decoration: BoxDecoration(
+                  color: (_messageIsError ? scheme.error : scheme.primary).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: (_messageIsError ? scheme.error : scheme.primary).withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      _messageIsError ? Icons.error_outline_rounded : Icons.mark_email_read_outlined,
+                      size: 20,
+                      color: _messageIsError
+                          ? (isDark ? const Color(0xFFFF9A9A) : AppColors.error)
+                          : (isDark ? AppColors.ocean400 : scheme.primary),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(_message!)),
+                  ],
+                ),
+              ),
+            ),
+          if (!_otpSent)
+            FilledButton(
+              onPressed: _sending ? null : _sendOtp,
+              child: _sending
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text(l10n?.otpSendNow ?? 'Send code'),
+            )
+          else ...[
+            _CodeField(
+              controller: _otpController,
+              label: l10n?.otpCodeLabel ?? 'Verification code, 6 digits',
+              onCompleted: _verifying ? null : _verifyOtp,
+            ),
+            const SizedBox(height: AppSpacing.s20),
+            FilledButton(
+              onPressed: _verifying ? null : _verifyOtp,
+              child: _verifying
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text(l10n?.otpVerify ?? 'Verify'),
+            ),
+            const SizedBox(height: AppSpacing.s4),
+            Semantics(
+              button: true,
+              enabled: !(_sending || _resendCooldown > 0),
+              excludeSemantics: true,
+              label: _resendCooldown > 0
+                  ? (l10n?.otpResendIn(cooldownBucket) ?? 'Resend in ${cooldownBucket}s')
+                  : (l10n?.otpResend ?? 'Resend code'),
+              onTap: (_sending || _resendCooldown > 0) ? null : _sendOtp,
+              child: TextButton(
+                onPressed: (_sending || _resendCooldown > 0) ? null : _sendOtp,
+                style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+                child: Text(
+                  _sending
+                      ? (l10n?.otpSending ?? 'Sending…')
+                      : _resendCooldown > 0
+                          ? (l10n?.otpResendIn(_resendCooldown) ?? 'Resend in ${_resendCooldown}s')
+                          : (l10n?.otpResend ?? 'Resend code'),
+                ),
+              ),
+            ),
+          ],
+          TextButton(
+            onPressed: _useDifferentEmail,
+            style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+            child: Text(l10n?.otpUseDifferentEmail ?? 'Use a different email'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Six display boxes over ONE real, invisible [TextField]. Screen readers
+/// see a single labelled field (not six), paste and the OS one-time-code
+/// autofill work, and there is no per-box focus logic to break on backspace.
+class _CodeField extends StatelessWidget {
+  const _CodeField({required this.controller, required this.label, this.onCompleted});
+
+  final TextEditingController controller;
+  final String label;
+  final VoidCallback? onCompleted;
+
+  static const int _length = 6;
+
+  @override
+  Widget build(final BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final focus = isDark ? AppColors.ocean400 : theme.colorScheme.primary;
+
+    return Semantics(
+      label: label,
+      textField: true,
+      child: SizedBox(
+        height: 60,
+        child: Stack(
+          children: [
+            ExcludeSemantics(
+              child: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: controller,
+                builder: (final context, final value, final _) {
+                  final text = value.text;
+                  return Row(
+                    children: [
+                      for (var i = 0; i < _length; i++) ...[
+                        if (i > 0) const SizedBox(width: AppSpacing.s8),
+                        Expanded(
+                          child: Container(
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColors.darkSurfaceHigh : Colors.white,
+                              borderRadius: AppRadius.mdAll,
+                              border: Border.all(
+                                color: i == text.length.clamp(0, _length - 1)
+                                    ? focus
+                                    : theme.colorScheme.outline,
+                                width: i == text.length.clamp(0, _length - 1) ? 2 : 1,
+                              ),
+                            ),
+                            child: Text(
+                              i < text.length ? text[i] : '',
+                              style: theme.textTheme.headlineSmall,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                },
+              ),
+            ),
+            Positioned.fill(
+              child: TextField(
+                controller: controller,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                autofillHints: const [AutofillHints.oneTimeCode],
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(_length),
+                ],
+                showCursor: false,
+                enableInteractiveSelection: false,
+                // Invisible: the boxes above are the visual.
+                style: const TextStyle(color: Colors.transparent),
+                decoration: const InputDecoration(
+                  filled: false,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  counterText: '',
+                  contentPadding: EdgeInsets.zero,
+                ),
+                onChanged: (final v) {
+                  if (v.length == _length) onCompleted?.call();
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );

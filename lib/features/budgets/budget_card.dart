@@ -121,7 +121,7 @@ class _BudgetCardState extends ConsumerState<BudgetCard> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: periodColor.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.smAll,
                   border: Border.all(color: periodColor.withValues(alpha: 0.5)),
                 ),
                 child: Text(

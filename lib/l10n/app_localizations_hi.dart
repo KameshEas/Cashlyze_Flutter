@@ -407,4 +407,214 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get analyticsSubtitle => 'Cashlyze को बेहतर बनाने में मदद करें';
+
+  @override
+  String get onboardingSkip => 'छोड़ें';
+
+  @override
+  String get onboardingBack => 'वापस';
+
+  @override
+  String get onboardingNext => 'आगे';
+
+  @override
+  String get onboardingGetStarted => 'शुरू करें';
+
+  @override
+  String onboardingStepLabel(int current, int total) {
+    return 'चरण $current / $total';
+  }
+
+  @override
+  String get onboardingNearLimit => 'सीमा के करीब';
+
+  @override
+  String get onboardingPage1Title => 'देखें, आपका पैसा कहाँ जाता है';
+
+  @override
+  String get onboardingPage1Body =>
+      'कुछ ही सेकंड में खर्च दर्ज करें या रसीद स्कैन करें, और हर लेन-देन सही श्रेणी में पहुँच जाएगा।';
+
+  @override
+  String get onboardingPage1Semantics =>
+      'चित्र: श्रेणी के अनुसार लेन-देन की सूची';
+
+  @override
+  String get onboardingPage2Title => 'बजट जो आपको सही राह पर रखें';
+
+  @override
+  String get onboardingPage2Body =>
+      'दैनिक, साप्ताहिक या मासिक सीमा तय करें और ज़्यादा खर्च से पहले चेतावनी पाएँ।';
+
+  @override
+  String get onboardingPage2Semantics =>
+      'चित्र: बजट प्रगति की पट्टियाँ, एक सीमा के करीब';
+
+  @override
+  String get onboardingPage3Title => 'ऐसी जानकारी जिस पर आप अमल कर सकें';
+
+  @override
+  String get onboardingPage3Body =>
+      'साफ़ चार्ट रुझान जल्दी दिखाते हैं, ताकि छोटी फ़िज़ूलखर्ची बड़ी समस्या न बन जाए।';
+
+  @override
+  String get onboardingPage3Semantics => 'चित्र: समय के साथ खर्च का बार चार्ट';
+
+  @override
+  String get authSignIn => 'साइन इन';
+
+  @override
+  String get authSignUp => 'साइन अप';
+
+  @override
+  String get authCreateAccount => 'खाता बनाएँ';
+
+  @override
+  String get authEmail => 'ईमेल';
+
+  @override
+  String get authPassword => 'पासवर्ड';
+
+  @override
+  String get authName => 'नाम';
+
+  @override
+  String get authMobile => 'मोबाइल';
+
+  @override
+  String get authPasswordHelper => 'कम से कम 6 अक्षर';
+
+  @override
+  String get authShowPassword => 'पासवर्ड दिखाएँ';
+
+  @override
+  String get authHidePassword => 'पासवर्ड छिपाएँ';
+
+  @override
+  String get authNoAccountPrompt => 'खाता नहीं है?';
+
+  @override
+  String get authHaveAccountPrompt => 'पहले से खाता है?';
+
+  @override
+  String get authEnterName => 'कृपया अपना नाम दर्ज करें';
+
+  @override
+  String get authEnterMobile => 'कृपया अपना मोबाइल नंबर दर्ज करें';
+
+  @override
+  String get authMobileMin => 'मोबाइल नंबर कम से कम 6 अंकों का होना चाहिए';
+
+  @override
+  String get authEnterEmail => 'कृपया अपना ईमेल दर्ज करें';
+
+  @override
+  String get authValidEmail => 'कृपया सही ईमेल दर्ज करें';
+
+  @override
+  String get authEnterPassword => 'कृपया अपना पासवर्ड दर्ज करें';
+
+  @override
+  String get authPasswordMin => 'पासवर्ड कम से कम 6 अक्षरों का होना चाहिए';
+
+  @override
+  String get otpTitleSend => 'अपना खाता सत्यापित करें';
+
+  @override
+  String get otpTitleEnter => 'अपना कोड दर्ज करें';
+
+  @override
+  String otpSubtitleSend(String email) {
+    return 'खाता सत्यापित करने के लिए हम $email पर एक वन-टाइम कोड भेजेंगे।';
+  }
+
+  @override
+  String otpSubtitleSent(String email) {
+    return '$email पर वन-टाइम कोड भेजा गया है';
+  }
+
+  @override
+  String get otpSendNow => 'कोड भेजें';
+
+  @override
+  String get otpSending => 'भेज रहे हैं…';
+
+  @override
+  String get otpVerify => 'सत्यापित करें';
+
+  @override
+  String otpResendIn(int seconds) {
+    return '$seconds सेकंड में दोबारा भेजें';
+  }
+
+  @override
+  String get otpResend => 'कोड दोबारा भेजें';
+
+  @override
+  String get otpCodeLabel => 'सत्यापन कोड, 6 अंक';
+
+  @override
+  String get otpEnterAll => 'कोड के सभी 6 अंक दर्ज करें';
+
+  @override
+  String get otpUseDifferentEmail => 'दूसरा ईमेल इस्तेमाल करें';
+
+  @override
+  String otpSentBanner(String email) {
+    return 'कोड $email पर भेजा गया। अपना इनबॉक्स देखें।';
+  }
+
+  @override
+  String homeGreetingMorning(String name) {
+    return 'सुप्रभात, $name';
+  }
+
+  @override
+  String homeGreetingAfternoon(String name) {
+    return 'नमस्कार, $name';
+  }
+
+  @override
+  String homeGreetingEvening(String name) {
+    return 'शुभ संध्या, $name';
+  }
+
+  @override
+  String get homeNetBalance => 'शुद्ध शेष';
+
+  @override
+  String get homeThisMonth => 'इस महीने';
+
+  @override
+  String get homeSeeAll => 'सभी देखें';
+
+  @override
+  String get homeNoTransactionsMonth => 'इस महीने कोई लेन-देन नहीं';
+
+  @override
+  String get searchNoResultsTitle => 'कोई परिणाम नहीं मिला';
+
+  @override
+  String get searchNoResultsBody => 'कोई दूसरा शब्द आज़माएँ या वर्तनी जाँचें।';
+
+  @override
+  String get budgetsEmptyBody =>
+      'किसी श्रेणी की सीमा तय करें और ज़्यादा खर्च से पहले सूचना पाएँ।';
+
+  @override
+  String get tryAgain => 'फिर से कोशिश करें';
+
+  @override
+  String get offlineBanner =>
+      'आप ऑफ़लाइन हैं। कुछ सुविधाएँ उपलब्ध नहीं हो सकतीं।';
+
+  @override
+  String get scanReadingTitle => 'आपकी रसीद पढ़ी जा रही है';
+
+  @override
+  String get scanReadingBody => 'बस एक पल लगेगा।';
+
+  @override
+  String get transactionsEmptyHint =>
+      'अपना पहला लेन-देन जोड़ें और देखें कि आपका पैसा कहाँ जाता है।';
 }

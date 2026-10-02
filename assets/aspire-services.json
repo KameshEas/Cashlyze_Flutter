@@ -1,0 +1,7 @@
+{
+  "project": "aspired2d",
+  "app_name": "cashlyze",
+  "platforms": ["android"],
+  "api_base_url": "https://api.aspired2d.cloud",
+  "app_version_url": "https://api.aspired2d.cloud/api/v1/cashlyze/app-version"
+}

@@ -62,12 +62,12 @@ const _kQuickMenuItems = [
   ),
 ];
 
-/// Material 3's default [NavigationBar] height.
-const _kNavBarHeight = 80.0;
+/// Height of the bottom bar's row (see `_kBarHeight` in app_bottom_nav_bar).
+const _kNavBarHeight = 68.0;
 
 /// How far the center button in [AppBottomNavBar] floats above the nav bar's
 /// top edge — must match that widget's `Transform.translate` offset.
-const _kCenterButtonOverlap = 20.0;
+const _kCenterButtonOverlap = 22.0;
 
 /// Gap between the nav bar's top edge and the quick-menu card.
 const _kCardGap = 12.0;
