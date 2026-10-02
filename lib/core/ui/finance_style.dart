@@ -13,8 +13,17 @@ const String kMinus = '−';
 Color incomeColorOf(final BuildContext context) =>
     Theme.of(context).brightness == Brightness.dark ? const Color(0xFF5BD39B) : const Color(0xFF1B7A4B);
 
+/// Money-out colour: a soft coral, deliberately warmer and quieter than the
+/// error red (which stays reserved for overspend and failures). 5.0:1 on
+/// light surfaces; a lightened tone on dark ones.
+Color expenseColorOf(final BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark ? const Color(0xFFFF8F86) : const Color(0xFFC2453B);
+
 /// Income tone for use on the deep-ocean hero surface.
 const Color kIncomeOnHero = Color(0xFF7FE3B2);
+
+/// Expense tone for use on the deep-ocean hero surface.
+const Color kExpenseOnHero = Color(0xFFFFB0A8);
 
 /// Adds tabular (fixed-width) figures so columns of amounts line up and
 /// digits don't jitter while values animate.
@@ -25,8 +34,9 @@ TextStyle tabular(final TextStyle? base) => (base ?? const TextStyle()).copyWith
 /// A signed money value: `+₹5,000.00` / `−₹420.00`.
 ///
 /// Meaning is carried by the sign (and the screen-reader label), never by
-/// colour alone. Income is tinted green; money-out stays in the neutral text
-/// colour so red remains reserved for overspend and errors.
+/// colour alone. Income is tinted green and money-out a soft coral, so the
+/// two read differently at a glance; the error red stays reserved for
+/// overspend and failures.
 ///
 /// Wrap in a [Flexible]/[Expanded] inside rows: it scales down rather than
 /// overflowing for very large numbers or large text sizes.
@@ -39,6 +49,7 @@ class AmountText extends StatelessWidget {
     this.showSign = true,
     this.alignment = Alignment.centerRight,
     this.incomeColor,
+    this.expenseColor,
     this.color,
   });
 
@@ -52,7 +63,12 @@ class AmountText extends StatelessWidget {
   /// Override for the income tint (e.g. [kIncomeOnHero] on dark surfaces).
   final Color? incomeColor;
 
-  /// Override for the non-income colour.
+  /// Override for the expense tint (e.g. [kExpenseOnHero] on dark surfaces).
+  final Color? expenseColor;
+
+  /// Override for the neutral colour; also used for expense when
+  /// [expenseColor] isn't given (so a caller forcing, say, white text on a
+  /// hero keeps it).
   final Color? color;
 
   @override
@@ -70,9 +86,12 @@ class AmountText extends StatelessWidget {
         : (isExpense ? (l10n?.filterExpense ?? 'Expense') : '');
 
     final base = style ?? theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600);
-    final resolved = tabular(base).copyWith(
-      color: isIncome ? (incomeColor ?? incomeColorOf(context)) : (color ?? base?.color),
-    );
+    final Color? tint = isIncome
+        ? (incomeColor ?? incomeColorOf(context))
+        : isExpense
+            ? (expenseColor ?? color ?? expenseColorOf(context))
+            : (color ?? base?.color);
+    final resolved = tabular(base).copyWith(color: tint);
 
     return Semantics(
       label: kind.isEmpty ? formatted : '$kind $formatted',

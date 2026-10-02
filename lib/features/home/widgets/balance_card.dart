@@ -125,6 +125,7 @@ class BalanceCard extends ConsumerWidget {
                             amount: kpis.income,
                             currency: currency,
                             labelStyle: label,
+                            accent: kIncomeOnHero,
                           ),
                         ),
                         const SizedBox(width: AppSpacing.s12),
@@ -135,6 +136,7 @@ class BalanceCard extends ConsumerWidget {
                             amount: -kpis.expense.abs(),
                             currency: currency,
                             labelStyle: label,
+                            accent: kExpenseOnHero,
                           ),
                         ),
                       ],
@@ -158,6 +160,7 @@ class _Pill extends StatelessWidget {
     required this.amount,
     required this.currency,
     required this.labelStyle,
+    required this.accent,
   });
 
   final IconData icon;
@@ -166,22 +169,25 @@ class _Pill extends StatelessWidget {
   final String currency;
   final TextStyle? labelStyle;
 
+  /// Tint for this pill (mint for income, coral for expense).
+  final Color accent;
+
   @override
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
+        color: accent.withValues(alpha: 0.16),
         borderRadius: AppRadius.lgAll,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        border: Border.all(color: accent.withValues(alpha: 0.28)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 14, color: labelStyle?.color),
+              Icon(icon, size: 14, color: accent),
               const SizedBox(width: 4),
               Flexible(child: Text(label, style: labelStyle, overflow: TextOverflow.ellipsis)),
             ],
@@ -191,8 +197,8 @@ class _Pill extends StatelessWidget {
             amount: amount,
             currency: currency,
             alignment: Alignment.centerLeft,
-            color: Colors.white,
             incomeColor: kIncomeOnHero,
+            expenseColor: kExpenseOnHero,
             style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: Colors.white),
           ),
         ],

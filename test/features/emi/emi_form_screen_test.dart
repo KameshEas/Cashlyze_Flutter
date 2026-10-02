@@ -7,9 +7,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Future<void> _pump(final WidgetTester tester, {final bool reduce = false, final EMIPlan? plan}) async {
+Future<void> _pump(
+  final WidgetTester tester, {
+  final bool reduce = false,
+  final EMIPlan? plan,
+  final Size size = const Size(360, 800),
+  final double textScale = 1,
+}) async {
   tester.view
-    ..physicalSize = const Size(1080, 2400)
+    ..physicalSize = size * 3
     ..devicePixelRatio = 3;
   addTearDown(tester.view.reset);
   SharedPreferences.setMockInitialValues({});
@@ -19,7 +25,10 @@ Future<void> _pump(final WidgetTester tester, {final bool reduce = false, final 
       overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
       child: MaterialApp(
         builder: (final context, final child) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(disableAnimations: reduce),
+          data: MediaQuery.of(context).copyWith(
+            disableAnimations: reduce,
+            textScaler: TextScaler.linear(textScale),
+          ),
           child: child!,
         ),
         home: EMIFormScreen(initialPlan: plan),
@@ -217,6 +226,19 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(EmiPreviewCard), findsNothing);
   });
+
+  for (final (size, scale) in [(const Size(320, 640), 1.0), (const Size(320, 640), 2.0), (const Size(412, 915), 1.3)]) {
+    testWidgets('no overflow at ${size.width.toInt()}dp wide, ${scale}x text', (final tester) async {
+      await _pump(tester, size: size, textScale: scale);
+      await _fill(tester);
+      await tester.tap(find.text('Create plan'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      // The primary action stays reachable.
+      expect(find.text('Create plan'), findsOneWidget);
+      expect(tester.getRect(find.byType(FilledButton)).bottom, lessThanOrEqualTo(size.height));
+    });
+  }
 
   testWidgets('works under reduced motion (no animation assertions)', (final tester) async {
     await _pump(tester, reduce: true);

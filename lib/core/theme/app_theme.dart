@@ -1,22 +1,34 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../ui/constants.dart';
 
-/// Central place the app's two typefaces are chosen, so a future change is
-/// one edit instead of a grep-and-replace:
-/// - Display/headings/balances (AppType.d1/d2/h1/h2/h3): geometric,
-///   distinctive - carries the brand and gives large currency numbers real
-///   presence, instead of falling back to stock Roboto.
-/// - Body/UI/buttons (AppType.b1/b2/b3): a proven dense-UI workhorse, tuned
-///   for lists/forms/labels where legibility at small sizes matters more
-///   than character.
+/// The app's single typeface: Geist, bundled as an asset (assets/fonts, SIL OFL)
+/// rather than fetched at runtime, so every amount and the rupee sign render
+/// correctly on a first offline launch. Chosen over Onest (no rupee glyph),
+/// Plus Jakarta Sans and Manrope (cramped word spacing at 12-14px); see
+/// docs/redesign/09-typography.md.
+///
+/// One family does both jobs, differing only by tracking: display/headings/
+/// balances (AppType.d1/d2/h1/h2/h3) are set slightly tighter, as Geist is
+/// drawn to be at large sizes; body/UI/buttons (AppType.b1/b2/b3) stay at the
+/// font's natural spacing. Figures use tabular alignment via `tabular()` in
+/// finance_style.dart (Geist ships `tnum`).
+const String kFontFamily = 'Geist';
+
 TextStyle _display({
   required final double fontSize,
   required final FontWeight fontWeight,
   required final Color color,
   final double? height,
 }) =>
-    GoogleFonts.plusJakartaSans(fontSize: fontSize, fontWeight: fontWeight, color: color, height: height);
+    TextStyle(
+      fontFamily: kFontFamily,
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      height: height,
+      // ~-2% at display sizes, easing to a hair at heading size.
+      letterSpacing: fontSize >= 24 ? -fontSize * 0.02 : -0.2,
+    );
 
 TextStyle _body({
   required final double fontSize,
@@ -24,7 +36,13 @@ TextStyle _body({
   required final Color color,
   final double? height,
 }) =>
-    GoogleFonts.inter(fontSize: fontSize, fontWeight: fontWeight, color: color, height: height);
+    TextStyle(
+      fontFamily: kFontFamily,
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      height: height,
+    );
 
 /// Cashlyze 2.0 theme: cool paper + deep ocean teal (from the logo) in light mode,
 /// deep blue-teal surfaces in dark mode. Both modes are built from one
@@ -149,6 +167,8 @@ class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
+      // Anything that doesn't take a style from the text theme still gets Geist.
+      fontFamily: kFontFamily,
       brightness: brightness,
       materialTapTargetSize: MaterialTapTargetSize.padded,
       colorScheme: scheme,

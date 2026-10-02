@@ -22,6 +22,7 @@ import 'core/providers/shared_prefs_provider.dart';
 import 'core/services/local_notification_service.dart';
 import 'core/services/push_actions.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/font_licenses.dart';
 import 'core/widgets/announcement_banner.dart';
 import 'core/widgets/announcement_dialog_host.dart';
 import 'core/widgets/content_frame.dart';
@@ -40,6 +41,7 @@ bool _sentryReady = false;
 
 Future<void> _runAppWithPrefs() async {
   final prefs = await SharedPreferences.getInstance();
+  registerFontLicenses();
 
   // Initialize LocalNotificationService before starting the app
   // so it's ready when budgetAlertsHandlerProvider needs it.

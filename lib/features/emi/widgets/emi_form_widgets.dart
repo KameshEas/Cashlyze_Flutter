@@ -409,7 +409,9 @@ class EmiValueRow extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s8),
               child: Row(
                 children: [
-                  Expanded(
+                  // The label wraps if it must; the value scales down rather
+                  // than overflowing at large text sizes / narrow phones.
+                  Flexible(
                     child: Text(
                       label,
                       style: theme.textTheme.bodyMedium?.copyWith(
@@ -418,9 +420,17 @@ class EmiValueRow extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Text(
-                    value,
-                    style: tabular(theme.textTheme.titleMedium).copyWith(color: _accent(context)),
+                  const SizedBox(width: AppSpacing.s12),
+                  Expanded(
+                    flex: 2,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        value,
+                        style: tabular(theme.textTheme.titleMedium).copyWith(color: _accent(context)),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: AppSpacing.s8),
                   Icon(icon, size: 20, color: _muted(context)),
@@ -658,22 +668,44 @@ class EmiSummaryLine extends StatelessWidget {
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final reduce = reduceMotionOf(context);
+    // Always one line: the label truncates and the figure scales down, so a
+    // narrow phone or a large text size can't make this bar grow.
     return Row(
       children: [
-        Expanded(
-          child: Text('Estimated EMI', style: theme.textTheme.bodyMedium?.copyWith(color: _muted(context))),
-        ),
-        TweenAnimationBuilder<double>(
-          tween: Tween<double>(end: data.installment),
-          duration: reduce ? Duration.zero : AppDuration.normal,
-          curve: AppCurve.standard,
-          builder: (final context, final v, final _) => Text(
-            formatAmount(v, currency),
-            style: tabular(theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        Flexible(
+          child: Text(
+            'Estimated EMI',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(color: _muted(context)),
           ),
         ),
-        const SizedBox(width: AppSpacing.s4),
-        Text('/ $periodLabel', style: theme.textTheme.bodyMedium?.copyWith(color: _muted(context))),
+        const SizedBox(width: AppSpacing.s12),
+        Expanded(
+          flex: 2,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                TweenAnimationBuilder<double>(
+                  tween: Tween<double>(end: data.installment),
+                  duration: reduce ? Duration.zero : AppDuration.normal,
+                  curve: AppCurve.standard,
+                  builder: (final context, final v, final _) => Text(
+                    formatAmount(v, currency),
+                    style: tabular(theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.s4),
+                Text('/ $periodLabel', style: theme.textTheme.bodyMedium?.copyWith(color: _muted(context))),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }

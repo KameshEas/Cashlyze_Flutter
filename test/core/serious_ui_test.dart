@@ -112,18 +112,25 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('income is green and expense keeps the neutral text colour (not red)', (final tester) async {
+    testWidgets('income is green and expense is a distinct soft coral (not the error red)', (final tester) async {
       await _pump(
         tester,
         const Column(children: [
           AmountText(amount: 10, currency: 'INR'),
           AmountText(amount: -10, currency: 'INR'),
+          AmountText(amount: 10, currency: 'INR', showSign: false),
         ]),
       );
       final income = tester.widget<Text>(find.text('+₹10.00'));
       final expense = tester.widget<Text>(find.text('$kMinus₹10.00'));
+      final plain = tester.widget<Text>(find.text('₹10.00'));
       expect(income.style?.color, const Color(0xFF1B7A4B));
+      expect(expense.style?.color, const Color(0xFFC2453B));
+      expect(expense.style?.color, isNot(income.style?.color));
       expect(expense.style?.color, isNot(const Color(0xFFEF4444)));
+      // Unsigned figures (averages, forecasts) are plain numbers, never tinted.
+      expect(plain.style?.color, isNot(income.style?.color));
+      expect(plain.style?.color, isNot(expense.style?.color));
     });
   });
 

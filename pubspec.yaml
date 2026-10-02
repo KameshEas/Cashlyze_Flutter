@@ -85,7 +85,6 @@ dependencies:
   http: any
   crypto: any
   firebase_core: any
-  google_fonts: any
 
   # Requests the device's max refresh rate on Android (90/120Hz) instead of
   # defaulting to 60Hz - see main.dart's `_appRunner`.
@@ -149,6 +148,25 @@ flutter:
     - assets/aspire-services.json
     - shorebird.yaml
     - .env
+    - assets/fonts/OFL.txt
+
+  # Geist is the app's single typeface (docs/redesign/09). Bundled, not fetched
+  # at runtime, so every amount and the rupee sign render correctly on the first
+  # offline launch. Static instances of the official variable font (SIL OFL,
+  # see assets/fonts/OFL.txt) for the weights the app uses.
+  fonts:
+    - family: Geist
+      fonts:
+        - asset: assets/fonts/Geist-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Geist-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Geist-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Geist-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Geist-ExtraBold.ttf
+          weight: 800
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -62,8 +62,28 @@ class AuthService {
   final _controller = StreamController<AuthUser?>.broadcast();
   StreamSubscription<void>? _forcedLogoutSub;
 
-  /// Public broadcast stream of auth state changes.
-  Stream<AuthUser?> get authStateChanges => _controller.stream;
+  // The latest emitted value, replayed to late subscribers. A plain broadcast
+  // stream drops events nobody is listening to yet, and `_init` emits as soon
+  // as the service is built - so on a cold start while signed in, a listener
+  // that attached a moment later (the router's `authStateChangesProvider`)
+  // never saw the first value and the app sat on the loading screen until some
+  // unrelated event arrived.
+  AuthUser? _last;
+  bool _hasLast = false;
+
+  void _emit(final AuthUser? user) {
+    _last = user;
+    _hasLast = true;
+    _controller.add(user);
+  }
+
+  /// Public stream of auth state changes. Replays the most recent value to
+  /// each new subscriber, then follows live updates.
+  Stream<AuthUser?> get authStateChanges => Stream<AuthUser?>.multi((final c) {
+        if (_hasLast) c.add(_last);
+        final sub = _controller.stream.listen(c.add, onError: c.addError, onDone: c.close);
+        c.onCancel = sub.cancel;
+      });
 
   // ── Initialisation ──────────────────────────────────────────────────────
 
@@ -78,9 +98,9 @@ class AuthService {
     final token = await _storage.getAuthToken();
     if (token != null) {
       final user = await _loadCachedUser();
-      _controller.add(user);
+      _emit(user);
     } else {
-      _controller.add(null);
+      _emit(null);
     }
   }
 
@@ -95,7 +115,7 @@ class AuthService {
     // Decode userId from the access token payload (sub claim).
     final userId = _extractSubject(tokens.accessToken) ?? email;
     await _persistUser(userId: userId, email: email);
-    _controller.add(AuthUser(userId: userId, email: email));
+    _emit(AuthUser(userId: userId, email: email));
   }
 
   // ── Register ────────────────────────────────────────────────────────────
@@ -119,7 +139,7 @@ class AuthService {
     }
     final userId = _extractSubject(tokens.accessToken) ?? email;
     await _persistUser(userId: userId, email: email);
-    _controller.add(AuthUser(userId: userId, email: email));
+    _emit(AuthUser(userId: userId, email: email));
   }
 
   // ── Sign out ────────────────────────────────────────────────────────────
@@ -128,7 +148,7 @@ class AuthService {
   Future<void> signOut() async {
     await _auth.clearTokens();
     await _clearCachedUser();
-    _controller.add(null);
+    _emit(null);
   }
 
   /// Emits `null` without any network call or re-clearing tokens (the caller
@@ -143,7 +163,7 @@ class AuthService {
   /// restarted or something else happens to re-check auth state.
   void forceSignOutLocally() {
     _cachedUser = null;
-    _controller.add(null);
+    _emit(null);
   }
 
   // ── Current user ────────────────────────────────────────────────────────
