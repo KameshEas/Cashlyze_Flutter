@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,11 +24,7 @@ final authServiceProvider = Provider<AuthService>((final ref) {
     authDataSource: ref.watch(authRemoteDataSourceProvider),
     secureStorage: ref.watch(secureStorageServiceProvider),
   );
-  dbg('[AUTHDBG] authServiceProvider create ${identityHashCode(service)}');
-  ref.onDispose(() {
-    dbg('[AUTHDBG] authServiceProvider dispose ${identityHashCode(service)}');
-    service.dispose();
-  });
+  ref.onDispose(service.dispose);
   return service;
 });
 
@@ -40,7 +34,6 @@ final authServiceProvider = Provider<AuthService>((final ref) {
 /// is synchronous (via a seeded broadcast controller) so route guards never
 /// see a spurious loading state on cold start.
 final authStateChangesProvider = StreamProvider<AuthUser?>((final ref) {
-  dbg('[AUTHDBG] authStateChangesProvider build');
   return ref.watch(authServiceProvider).authStateChanges;
 });
 
@@ -84,7 +77,6 @@ class AuthService {
   bool _hasLast = false;
 
   void _emit(final AuthUser? user) {
-    dbg('[AUTHDBG] emit ${user?.email}');
     _last = user;
     _hasLast = true;
     if (!_controller.isClosed) _controller.add(user);
@@ -118,7 +110,6 @@ class AuthService {
   Timer? _startupTimer;
 
   Future<void> _emitCurrentUser() async {
-    dbg('[AUTHDBG] emitCurrentUser start');
     // A hand-rolled bound (rather than Future.timeout) so the timer can be
     // cancelled the moment the read finishes or the service is disposed, and
     // never lingers past either.
@@ -136,17 +127,14 @@ class AuthService {
     ));
     try {
       final token = await read.future;
-      dbg('[AUTHDBG] token read, present=${token != null}');
       _startupTimer?.cancel();
       if (token != null) {
         final user = await _loadCachedUser();
-        dbg('[AUTHDBG] cached user ${user?.email}');
         _emit(user);
       } else {
         _emit(null);
       }
     } catch (e) {
-      dbg('[AUTHDBG] startup read failed: $e');
       // Unreadable or unresponsive storage: fall back to signed-out so the
       // user reaches the login screen instead of a loading screen that never
       // resolves. A fresh sign-in rewrites the session.
@@ -273,13 +261,4 @@ class AuthService {
     _forcedLogoutSub?.cancel();
     _controller.close();
   }
-}
-
-/// TEMPORARY: append a timestamped line to the app's files dir so startup can
-/// be traced on a device whose logcat drops Flutter logs.
-void dbg(final String message) {
-  try {
-    File('/data/user/0/com.aspiredesignovation.cashlyze/files/dbg.log')
-        .writeAsStringSync('${DateTime.now().toIso8601String()} $message\n', mode: FileMode.append);
-  } catch (_) {}
 }

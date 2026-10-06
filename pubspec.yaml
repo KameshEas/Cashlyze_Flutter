@@ -204,3 +204,6 @@ sentry:
   upload_source_maps: true
   project: cashlyze
   org: aspire-d2d
+  # sentry-cli's libgit2 rejects the container checkout ("not owned by current
+  # user") even with safe.directory set; skip release commit association.
+  commits: false

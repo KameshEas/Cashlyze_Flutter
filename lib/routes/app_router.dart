@@ -434,7 +434,6 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       final isOtp = state.matchedLocation.startsWith('/otp');
 
       final isLoadingRoute = state.matchedLocation == '/loading';
-      dbg('[AUTHDBG] redirect loc=${state.matchedLocation} authLoading=${authState.isLoading} user=${currentUser?.email} hasValue=${authState.hasValue} err=${authState.hasError}');
 
       // If auth state is still resolving, show the loader route so the
       // user doesn't briefly land on the login page before the router
@@ -462,7 +461,11 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
       }
 
       if (user != null) {
-        if (isAuthRoute || isOnboarding) {
+        // /loading is only a holding screen while auth resolves; once a user
+        // is signed in it must hand over to Home. (Nothing else navigates away
+        // from it: the splash that started the app has already been replaced,
+        // so a signed-in user reopening the app stayed on it forever.)
+        if (isAuthRoute || isOnboarding || isLoadingRoute) {
           return '/';
         }
         final requiredFlag = _kRouteFeatureFlags[state.matchedLocation];
