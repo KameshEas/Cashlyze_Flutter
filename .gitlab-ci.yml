@@ -49,9 +49,15 @@ test_code_quality:
   except:
     - tags
 
+# Creates a new Shorebird *release* and the AAB you upload to the Play Store.
+# Manual on purpose: run it only when you are shipping a new version through the
+# Play Store. Merges to development/prod never create releases; they only patch
+# (see build_patch_shorebird).
 build_release_shorebird:
   stage: build
   image: ghcr.io/cirruslabs/flutter:stable
+  when: manual
+  allow_failure: true
 
   script:
     - |
@@ -147,37 +153,74 @@ build_firebase_apk:
       - runner_system_failure
       - stuck_or_timeout_failure
 
+# Over-the-air patch for the version in pubspec.yaml. Runs automatically on merge:
+#   development -> Shorebird "staging" track (NOT delivered to normal installs, so
+#                  development code can't reach Play Store production users;
+#                  promote it with `shorebird patches set-track` once verified)
+#   prod        -> "stable" track (delivered to every install of that release)
+#
+# Requires an existing Shorebird release for the exact pubspec version+build
+# (created by build_release_shorebird, and shipped from THAT job's AAB). If the
+# version was bumped, run build_release_shorebird first.
 build_patch_shorebird:
   stage: build
   image: ghcr.io/cirruslabs/flutter:stable
-  only:
-    - prod
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "development" || $CI_COMMIT_BRANCH == "prod"'
   script:
     - |
       set -e
 
+      if [ -z "$SHOREBIRD_TOKEN" ]; then
+        echo "❌ SHOREBIRD_TOKEN is not set. Add it to the GitLab CI/CD variables."
+        exit 1
+      fi
+
       echo "📦 Installing Shorebird..."
       curl --proto '=https' --tlsv1.2 -LsSf https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh | bash
       export PATH="$HOME/.shorebird/bin:$PATH"
+      shorebird --version
+
+      # Gradle signs release builds with android/app/cashlyze-release.jks (git-ignored),
+      # so it must be recreated here exactly as in build_release_shorebird, and with the
+      # same key, or the patch won't match the release it targets.
+      mkdir -p android/app
+      printf "%s" "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/cashlyze-release.jks
+      export ANDROID_KEYSTORE_PATH="$(pwd)/android/app/cashlyze-release.jks"
+      export ANDROID_KEY_ALIAS="${ANDROID_KEY_ALIAS:-cashlyze}"
+      export ANDROID_KEY_PASSWORD="$ANDROID_KEYSTORE_PASSWORD"
 
       flutter pub get
 
       PKG_VER=$(grep '^version:' pubspec.yaml | head -n1 | sed 's/version: //;s/"//g')
 
-      echo "🐦 Creating OTA Patch for $PKG_VER"
+      if [ "$CI_COMMIT_BRANCH" = "prod" ]; then TRACK="stable"; else TRACK="staging"; fi
+      echo "🐦 Creating OTA patch for release $PKG_VER on the '$TRACK' track"
 
-      shorebird patch \
-        --platforms=android \
+      shorebird patch android \
         --release-version="$PKG_VER" \
-        --no-confirm
+        --track="$TRACK" \
+        --no-confirm || {
+          echo ""
+          echo "❌ shorebird patch failed."
+          echo "   If the message above says the release was not found, no Shorebird release exists"
+          echo "   for $PKG_VER. Run build_release_shorebird (manual) and ship THAT job's AAB to the"
+          echo "   Play Store; installs built any other way (e.g. plain flutter build appbundle) can't be patched."
+          exit 1
+        }
 
-      echo "✅ OTA Patch Published"
+      echo "✅ OTA patch published to '$TRACK'"
+  retry:
+    max: 1
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
 
 deploy_firebase_distribution:
   stage: deploy_internal
   image: ghcr.io/cirruslabs/flutter:stable
   dependencies:
-    - build_release_shorebird
+    - build_firebase_apk
   only:
     - development
   script:
@@ -221,10 +264,13 @@ deploy_firebase_distribution:
 deploy_google_play_internal_testing:
   stage: deploy_internal
   image: ghcr.io/cirruslabs/flutter:stable
-  dependencies:
-    - build_release_shorebird
+  needs:
+    - job: build_release_shorebird
+      artifacts: true
   only:
     - development
+  when: manual
+  allow_failure: true
   script:
     - |
       set -e
@@ -283,8 +329,9 @@ deploy_google_play_internal_testing:
 deploy_google_play_production:
   stage: deploy_production
   image: ghcr.io/cirruslabs/flutter:stable
-  dependencies:
-    - build_release_shorebird
+  needs:
+    - job: build_release_shorebird
+      artifacts: true
   only:
     - prod
   when: manual
