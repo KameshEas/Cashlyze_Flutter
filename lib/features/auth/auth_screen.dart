@@ -481,11 +481,26 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         return null;
                       },
                     ),
-                    // Forgot Password / social sign-in intentionally omitted:
-                    // there is no reset flow, support channel or Google/Apple
-                    // auth endpoint wired up yet, so showing them would be
-                    // dead ends.
-                    const SizedBox(height: 20),
+                    // Social sign-in intentionally omitted: there is no
+                    // Google/Apple auth endpoint wired up yet.
+                    if (_isLogin)
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: TextButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  final email = _emailController.text.trim();
+                                  context.go(email.isEmpty
+                                      ? '/forgot-password'
+                                      : '/forgot-password?email=${Uri.encodeComponent(email)}');
+                                },
+                          style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+                          child: Text(l10n?.resetForgotLink ?? 'Forgot password?'),
+                        ),
+                      )
+                    else
+                      const SizedBox(height: 20),
                     if (_noticeMessage != null)
                       _AuthBanner(
                         message: _noticeMessage!,
