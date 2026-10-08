@@ -11,8 +11,11 @@ import '../core/services/auth_service.dart';
 import '../core/ui/motion.dart';
 import '../features/ai_assistant/ai_assistant_screen.dart';
 import '../features/auth/auth_screen.dart';
+import '../features/auth/forgot_password_screen.dart';
 import '../features/auth/loader_screen.dart';
 import '../features/auth/otp_screen.dart';
+import '../features/auth/reset_code_screen.dart';
+import '../features/auth/reset_new_password_screen.dart';
 import '../features/budgets/budget_planner_screen.dart';
 import '../features/categories/categories_screen.dart';
 import '../features/emi/emi_dashboard_screen.dart';
@@ -260,6 +263,50 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         },
       ),
       GoRoute(
+        path: '/forgot-password',
+        name: 'forgot-password',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          child: ForgotPasswordScreen(
+            initialEmail: state.uri.queryParameters['email'] ?? '',
+            notice: state.uri.queryParameters['notice'],
+          ),
+          transitionsBuilder: AppMotion.fadeThrough,
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
+        ),
+      ),
+      GoRoute(
+        path: '/reset-code',
+        name: 'reset-code',
+        // Without an email there is nothing to verify against (e.g. deep-linked
+        // or restored cold): start from the beginning.
+        redirect: (final context, final state) =>
+            (state.uri.queryParameters['email'] ?? '').isEmpty ? '/forgot-password' : null,
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          child: ResetCodeScreen(email: state.uri.queryParameters['email'] ?? ''),
+          transitionsBuilder: AppMotion.fadeThrough,
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
+        ),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        name: 'reset-password',
+        // The one-time reset token travels only in `extra` (memory), never in
+        // the URL; if it is gone (process restart) the user starts over.
+        redirect: (final context, final state) =>
+            state.extra is ResetPasswordArgs ? null : '/forgot-password',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          child: ResetNewPasswordScreen(args: state.extra! as ResetPasswordArgs),
+          transitionsBuilder: AppMotion.fadeThrough,
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : kRouteFadeDuration,
+        ),
+      ),
+      GoRoute(
         path: '/categories',
         name: 'categories',
         pageBuilder: (final context, final state) => CustomTransitionPage(
@@ -430,6 +477,10 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/signup';
       final isSplash = state.matchedLocation == '/splash';
+      // Forgot-password flow: reachable only while signed out, like the auth routes.
+      final isResetFlow = state.matchedLocation == '/forgot-password' ||
+          state.matchedLocation == '/reset-code' ||
+          state.matchedLocation == '/reset-password';
 
       final isOtp = state.matchedLocation.startsWith('/otp');
 
@@ -465,7 +516,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         // is signed in it must hand over to Home. (Nothing else navigates away
         // from it: the splash that started the app has already been replaced,
         // so a signed-in user reopening the app stayed on it forever.)
-        if (isAuthRoute || isOnboarding || isLoadingRoute) {
+        if (isAuthRoute || isResetFlow || isOnboarding || isLoadingRoute) {
           return '/';
         }
         final requiredFlag = _kRouteFeatureFlags[state.matchedLocation];
@@ -481,7 +532,7 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
         return null;
       }
       if (onboardingCompleted && isOnboarding) return '/login';
-      if (!isAuthRoute) return '/login';
+      if (!isAuthRoute && !isResetFlow) return '/login';
       return null;
     },
   );
