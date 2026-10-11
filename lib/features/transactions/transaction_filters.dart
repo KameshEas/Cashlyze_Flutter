@@ -10,6 +10,7 @@ class TransactionFilterState {
   TransactionFilterState({
     this.filter = 'All',
     this.category = 'All',
+    this.account = 'All',
     this.query = '',
     this.debouncedQuery = '',
     this.minAmount,
@@ -26,6 +27,7 @@ class TransactionFilterState {
 
   final String filter; // 'All' | 'Income' | 'Expense'
   final String category; // 'All' or category label
+  final String account; // 'All' or an account id
   final String query; // immediate query (for textfield)
   final String debouncedQuery; // actual query used to filter
   final double? minAmount;
@@ -41,6 +43,7 @@ class TransactionFilterState {
   TransactionFilterState copyWith({
     final String? filter,
     final String? category,
+    final String? account,
     final String? query,
     final String? debouncedQuery,
     final double? minAmount,
@@ -56,6 +59,7 @@ class TransactionFilterState {
     return TransactionFilterState(
       filter: filter ?? this.filter,
       category: category ?? this.category,
+      account: account ?? this.account,
       query: query ?? this.query,
       debouncedQuery: debouncedQuery ?? this.debouncedQuery,
       minAmount: minAmount ?? this.minAmount,
@@ -96,6 +100,10 @@ class TransactionFilterNotifier extends Notifier<TransactionFilterState> {
 
   void setCategory(final String v) {
     state = state.copyWith(category: v, page: 1);
+  }
+
+  void setAccount(final String v) {
+    state = state.copyWith(account: v, page: 1);
   }
 
   void setMinAmount(final double? v) {
@@ -172,6 +180,7 @@ final filteredTransactionsProvider = Provider<List<TransactionModel>>((final ref
         final matchesType = f.filter == 'All' || (f.filter == 'Income' && e.amount > 0) || (f.filter == 'Expense' && e.amount < 0);
         final catLabel = e.categoryId ?? 'General';
         final matchesCategory = f.category == 'All' || f.category == catLabel;
+        final matchesAccount = f.account == 'All' || f.account == e.accountId;
         final absAmount = e.amount.abs();
         final matchesAmount = (f.minAmount == null || absAmount >= f.minAmount!) && (f.maxAmount == null || absAmount <= f.maxAmount!);
         final matchesTags = f.selectedTags.isEmpty || (e.tags != null && e.tags!.any(f.selectedTags.contains));
@@ -186,7 +195,7 @@ final filteredTransactionsProvider = Provider<List<TransactionModel>>((final ref
         } else {
           inRange = monthStart == null || (e.date.isAtSameMomentAs(monthStart) || e.date.isAfter(monthStart)) && e.date.isBefore(monthEnd!);
         }
-        return matchesQuery && matchesType && matchesCategory && matchesAmount && matchesTags && inRange;
+        return matchesQuery && matchesType && matchesCategory && matchesAccount && matchesAmount && matchesTags && inRange;
       }).toList();
       // Ensure newest transactions appear first before pagination.
       filtered.sort((final a, final b) => b.date.compareTo(a.date));
@@ -217,6 +226,7 @@ final activeFilterCountProvider = Provider<int>((final ref) {
   int count = 0;
   if (state.filter != 'All') count++;
   if (state.category != 'All') count++;
+  if (state.account != 'All') count++;
   if (state.minAmount != null) count++;
   if (state.maxAmount != null) count++;
   if (state.selectedMonth != null && state.selectedMonth != DateTime(DateTime.now().year, DateTime.now().month)) count++;

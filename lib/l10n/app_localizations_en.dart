@@ -565,6 +565,77 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get resetForgotLink => 'Forgot password?';
+
+  @override
+  String get resetTitle => 'Reset your password';
+
+  @override
+  String get resetSubtitle =>
+      'Enter your account email and we\'ll send you a 6-digit code.';
+
+  @override
+  String get resetBackToLogin => 'Back to login';
+
+  @override
+  String get resetCodeTitle => 'Check your email';
+
+  @override
+  String resetCodeSubtitle(String email) {
+    return 'If an account exists for $email, we sent a 6-digit code. It expires in 10 minutes.';
+  }
+
+  @override
+  String get resetCodeSent => 'A new code is on its way.';
+
+  @override
+  String get resetCodeWrong => 'That code is incorrect or has expired.';
+
+  @override
+  String resetCodeAttemptsLeft(int count) {
+    return 'That code is incorrect. Attempts left: $count.';
+  }
+
+  @override
+  String get resetCodeLocked =>
+      'Too many wrong attempts. Request a new code to continue.';
+
+  @override
+  String get resetTooManyRequests =>
+      'Too many attempts. Please wait a few minutes and try again.';
+
+  @override
+  String get resetNewTitle => 'Choose a new password';
+
+  @override
+  String get resetNewSubtitle =>
+      'Use at least 8 characters, with uppercase and lowercase letters and a number.';
+
+  @override
+  String get resetNewPassword => 'New password';
+
+  @override
+  String get resetConfirmPassword => 'Confirm new password';
+
+  @override
+  String get resetPasswordMismatch => 'Passwords don\'t match';
+
+  @override
+  String get resetPasswordWeak =>
+      'Use 8+ characters with an uppercase letter, a lowercase letter and a number.';
+
+  @override
+  String get resetSubmit => 'Reset password';
+
+  @override
+  String get resetSessionExpired =>
+      'Your reset session expired. Please request a new code.';
+
+  @override
+  String get resetSuccess =>
+      'Password reset. Please log in with your new password.';
+
+  @override
   String homeGreetingMorning(String name) {
     return 'Good morning, $name';
   }

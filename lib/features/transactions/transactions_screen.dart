@@ -471,6 +471,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                   tx.amount,
                                   tx.categoryId,
                                   tx.date,
+                                  tx.accountId,
                                 );
                                 return false;
                               }
@@ -601,6 +602,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     tx.amount,
                                     tx.categoryId,
                                     tx.date,
+                                    tx.accountId,
                                   );
                                 }
                               },
@@ -699,6 +701,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final double amount,
     final String? categoryId,
     final DateTime date,
+    final String? accountId,
   ) async {
     final theme = Theme.of(context);
     final result = await showModalBottomSheet<bool?>(
@@ -716,6 +719,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         initialAmount: amount,
         initialCategory: categoryId,
         initialDate: date,
+        initialAccountId: accountId,
       ),
     );
     if (result == true) {

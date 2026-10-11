@@ -26,6 +26,7 @@ class RecurringRemoteDataSource {
     required final DateTime startDate,
     required final RecurringFrequency frequency,
     final String? categoryId,
+    final String? accountId,
   }) async {
     final response = await _api.post<Map<String, dynamic>>(
       ApiEndpoints.recurringRules,
@@ -36,6 +37,15 @@ class RecurringRemoteDataSource {
         'start_date': startDate.toIso8601String(),
         'frequency': frequency.name,
         if (categoryId != null) 'category_id': categoryId,
+        if (accountId != null) 'account_id': accountId,
+        // The server builds each generated transaction from this template
+        // (and requires it); amounts are signed there, expenses negative.
+        'template_data': {
+          'title': title.trim(),
+          'amount': isIncome ? amount.abs() : -amount.abs(),
+          if (categoryId != null) 'category_id': categoryId,
+          if (accountId != null) 'account_id': accountId,
+        },
       },
     );
     return _fromApiJson((response.data as Map).cast<String, dynamic>());
@@ -100,6 +110,7 @@ class RecurringRemoteDataSource {
   // ── Mapper ────────────────────────────────────────────────────────────────
 
   RecurringRule _fromApiJson(final Map<String, dynamic> json) {
+    final template = (json['template_data'] as Map?)?.cast<String, dynamic>() ?? const <String, dynamic>{};
     final startRaw = json['start_date'] ?? json['start_ms'];
     final startDate = startRaw is String
         ? DateTime.parse(startRaw)
@@ -117,10 +128,15 @@ class RecurringRemoteDataSource {
     return RecurringRule(
       id: json['id'] as String,
       userId: json['user_id'] as String? ?? json['userId'] as String? ?? '',
-      title: json['title'] as String,
-      amount: (json['amount'] as num).toDouble(),
-      isIncome: json['is_income'] as bool? ?? json['isIncome'] as bool? ?? false,
-      categoryId: json['category_id'] as String? ?? json['categoryId'] as String?,
+      title: (json['title'] ?? template['title']) as String,
+      amount: ((json['amount'] ?? template['amount']) as num).abs().toDouble(),
+      isIncome: json['is_income'] as bool? ??
+          json['isIncome'] as bool? ??
+          (((template['amount'] as num?) ?? -1) > 0),
+      categoryId: json['category_id'] as String? ??
+          json['categoryId'] as String? ??
+          template['category_id'] as String?,
+      accountId: json['account_id'] as String? ?? template['account_id'] as String?,
       startDate: startDate,
       lastPostedDate: lastPostedDate,
       frequency: frequencyStr == 'weekly'

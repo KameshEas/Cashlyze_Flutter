@@ -214,6 +214,40 @@
       }
     }
   },
+  "resetForgotLink": "Forgot password?",
+  "resetTitle": "Reset your password",
+  "resetSubtitle": "Enter your account email and we'll send you a 6-digit code.",
+  "resetBackToLogin": "Back to login",
+  "resetCodeTitle": "Check your email",
+  "resetCodeSubtitle": "If an account exists for {email}, we sent a 6-digit code. It expires in 10 minutes.",
+  "@resetCodeSubtitle": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "resetCodeSent": "A new code is on its way.",
+  "resetCodeWrong": "That code is incorrect or has expired.",
+  "resetCodeAttemptsLeft": "That code is incorrect. Attempts left: {count}.",
+  "@resetCodeAttemptsLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resetCodeLocked": "Too many wrong attempts. Request a new code to continue.",
+  "resetTooManyRequests": "Too many attempts. Please wait a few minutes and try again.",
+  "resetNewTitle": "Choose a new password",
+  "resetNewSubtitle": "Use at least 8 characters, with uppercase and lowercase letters and a number.",
+  "resetNewPassword": "New password",
+  "resetConfirmPassword": "Confirm new password",
+  "resetPasswordMismatch": "Passwords don't match",
+  "resetPasswordWeak": "Use 8+ characters with an uppercase letter, a lowercase letter and a number.",
+  "resetSubmit": "Reset password",
+  "resetSessionExpired": "Your reset session expired. Please request a new code.",
+  "resetSuccess": "Password reset. Please log in with your new password.",
   "homeGreetingMorning": "Good morning, {name}",
   "@homeGreetingMorning": {
     "placeholders": {

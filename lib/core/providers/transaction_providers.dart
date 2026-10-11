@@ -2,9 +2,12 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/account.dart';
 import '../models/transaction.dart';
+import '../repositories/account_repository.dart';
 import '../repositories/transaction_repository.dart';
 import '../services/auth_service.dart';
+import 'insights_account_providers.dart';
 
 enum TimeRange { last7d, last30d, last90d }
 
@@ -62,6 +65,16 @@ final transactionsCacheProvider =
       TransactionsCacheNotifier.new,
     );
 
+/// Start of the period the Insights time-range selector stands for.
+DateTime insightsRangeCutoff(final TimeRange range, [final DateTime? now]) {
+  final n = now ?? DateTime.now();
+  return switch (range) {
+    TimeRange.last7d => n.subtract(const Duration(days: 7)),
+    TimeRange.last30d => n.subtract(const Duration(days: 30)),
+    TimeRange.last90d => n.subtract(const Duration(days: 90)),
+  };
+}
+
 final filteredTransactionsProvider = Provider<List<TransactionModel>>((final ref) {
   final txsAsync = ref.watch(recentTransactionsProvider);
   // For Insights we want the filtered list to reflect the selected time
@@ -74,17 +87,12 @@ final filteredTransactionsProvider = Provider<List<TransactionModel>>((final ref
   );
   final range = ref.watch(selectedTimeRangeProvider);
   final selectedCats = ref.watch(selectedCategoriesProvider);
-  final now = DateTime.now();
-  DateTime cutoff;
-  if (range == TimeRange.last7d) {
-    cutoff = now.subtract(const Duration(days: 7));
-  } else if (range == TimeRange.last30d) {
-    cutoff = now.subtract(const Duration(days: 30));
-  } else {
-    cutoff = now.subtract(const Duration(days: 90));
-  }
+  final scope = ref.watch(effectiveInsightsAccountProvider);
+  final defaultAccountId = ref.watch(defaultAccountProvider)?.id;
+  final cutoff = insightsRangeCutoff(range);
   return txs
       .where((final t) => t.date.isAfter(cutoff))
+      .where((final t) => txInAccountScope(t, scope, defaultAccountId))
       .where(
         (final t) =>
             selectedCats.isEmpty ||
@@ -99,13 +107,15 @@ final monthlyTrendProvider = Provider<List<double>>((final ref) {
     data: (final d) => d,
     orElse: () => ref.watch(transactionsCacheProvider),
   );
+  final scope = ref.watch(effectiveInsightsAccountProvider);
+  final defaultAccountId = ref.watch(defaultAccountProvider)?.id;
   final now = DateTime.now();
   final months = List.generate(
     6,
     (final i) => DateTime(now.year, now.month - (5 - i)),
   );
   final values = List<double>.filled(6, 0);
-  for (final t in txs) {
+  for (final t in txs.where((final t) => txInAccountScope(t, scope, defaultAccountId))) {
     for (var i = 0; i < months.length; i++) {
       final m = months[i];
       final next = DateTime(m.year, m.month + 1);
@@ -147,3 +157,44 @@ final selectedCategoriesProvider =
     NotifierProvider<SelectedCategoriesNotifier, Set<String>>(
       SelectedCategoriesNotifier.new,
     );
+
+/// Spend per account for the selected period, for comparing accounts.
+///
+/// Deliberately ignores the Insights account selection (it *is* the comparison)
+/// but follows the time range. Transactions with no account are counted on the
+/// default account.
+final accountSpendRowsProvider = Provider<List<AccountSpendRow>>((final ref) {
+  final txs = ref.watch(recentTransactionsProvider).maybeWhen(
+        data: (final d) => d,
+        orElse: () => <TransactionModel>[],
+      );
+  final accounts = ref.watch(userAccountsProvider).value ?? const <AccountModel>[];
+  final defaultAccount = ref.watch(defaultAccountProvider);
+  final cutoff = insightsRangeCutoff(ref.watch(selectedTimeRangeProvider));
+
+  final spend = <String, double>{};
+  final count = <String, int>{};
+  for (final t in txs) {
+    if (t.amount >= 0 || !t.date.isAfter(cutoff)) continue;
+    // null -> the default account (its real row if the server made one).
+    final key = t.accountId ?? defaultAccount?.id ?? kInsightsAccountDefault;
+    spend[key] = (spend[key] ?? 0) + t.amount.abs();
+    count[key] = (count[key] ?? 0) + 1;
+  }
+
+  final rows = <AccountSpendRow>[];
+  for (final entry in spend.entries) {
+    final account = accounts.where((final a) => a.id == entry.key).firstOrNull;
+    final isDefault = entry.key == kInsightsAccountDefault || entry.key == defaultAccount?.id;
+    rows.add(AccountSpendRow(
+      scope: isDefault ? kInsightsAccountDefault : entry.key,
+      name: isDefault ? 'Default account' : (account?.shortLabel ?? 'Unknown account'),
+      subtitle: isDefault ? null : account?.subtitle,
+      kind: account?.kind ?? AccountKind.bank,
+      spend: entry.value,
+      count: count[entry.key] ?? 0,
+    ));
+  }
+  rows.sort((final a, final b) => b.spend.compareTo(a.spend));
+  return rows;
+});

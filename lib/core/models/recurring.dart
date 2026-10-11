@@ -12,6 +12,7 @@ class RecurringRule {
     required this.amount,
     required this.isIncome,
     this.categoryId,
+    this.accountId,
     required this.startDate,
     this.lastPostedDate,
     required this.frequency,
@@ -25,6 +26,7 @@ class RecurringRule {
       amount: (data['amount'] as num).toDouble(),
       isIncome: (data['isIncome'] as bool?) ?? false,
       categoryId: data['categoryId'] as String?,
+      accountId: data['accountId'] as String?,
       startDate: DateTime.fromMillisecondsSinceEpoch(
         (data['start_ms'] as num).toInt(),
       ),
@@ -44,6 +46,7 @@ class RecurringRule {
   final double amount;
   final bool isIncome;
   final String? categoryId;
+  final String? accountId;
   final DateTime startDate;
   final DateTime? lastPostedDate;
   final RecurringFrequency frequency;

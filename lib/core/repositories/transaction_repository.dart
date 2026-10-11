@@ -76,6 +76,7 @@ class TransactionRepository {
     required final DateTime date,
     final String? notes,
     final List<String>? tags,
+    final String? accountId,
   }) async {
     final created = await _dataSource.create(
       title: title,
@@ -86,6 +87,7 @@ class TransactionRepository {
       isIncome: isIncome,
       notes: notes,
       tags: tags,
+      accountId: accountId,
     );
     final current = [...(_cache[userId] ?? const <TransactionModel>[])];
     current.removeWhere((final t) => t.id == created.id);
@@ -114,6 +116,7 @@ class TransactionRepository {
         isIncome: data['isIncome'] as bool?,
         notes: data['notes'] as String?,
         tags: (data['tags'] as List?)?.cast<String>(),
+        accountId: data['accountId'] as String? ?? data['account_id'] as String?,
       );
 
       final current = [...(_cache[userId] ?? const <TransactionModel>[])];
@@ -213,6 +216,7 @@ class TransactionRepository {
         }
         final notes = payload['notes'] as String?;
         final tags = (payload['tags'] as List?)?.cast<String>();
+        final accountId = payload['account_id'] as String? ?? payload['accountId'] as String?;
 
         final created = TransactionModel(
           id: id,
@@ -224,6 +228,7 @@ class TransactionRepository {
           date: date,
           notes: notes,
           tags: tags,
+          accountId: accountId,
         );
 
         final current = [...(_cache[userId] ?? const <TransactionModel>[])];

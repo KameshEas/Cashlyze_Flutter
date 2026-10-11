@@ -5,22 +5,23 @@ import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart' show Share, XFile;
 
 import '../../core/illustrations/app_illustration.dart';
+import '../../core/models/account.dart';
 import '../../core/models/category.dart';
 import '../../core/models/transaction.dart';
 import '../../core/providers/budget_analytics_providers.dart';
 import '../../core/providers/export_service_provider.dart';
+import '../../core/providers/insights_account_providers.dart';
 import '../../core/providers/insights_providers.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/shared_prefs_provider.dart';
 import '../../core/providers/transaction_providers.dart';
+import '../../core/repositories/account_repository.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/ui/constants.dart';
 import '../../core/ui/finance_style.dart';
 import '../../core/utils/format.dart';
 import '../../core/utils/repo_error_handler.dart';
-import '../../core/widgets/animated_progress_indicator.dart';
 import '../../core/widgets/empty_state.dart';
-import '../../core/widgets/grouped_list.dart';
 import '../../core/widgets/skeleton.dart';
 
 const List<Color> _kPalette = [
@@ -81,15 +82,23 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
     final txsAsync = ref.watch(recentTransactionsProvider);
     final kpis = ref.watch(kpisProvider);
     final monthly = ref.watch(monthlyTrendProvider);
-    final categoryBreakdownAsync = ref.watch(serverCategoryBreakdownProvider);
+    final scope = ref.watch(effectiveInsightsAccountProvider);
+    final accounts = ref.watch(userAccountsProvider).value ?? const <AccountModel>[];
+    // The server's breakdown covers every account, so it only answers "All
+    // accounts"; a narrower scope is computed from that scope's transactions.
+    final AsyncValue<Map<String, double>> categoryBreakdownAsync = scope == kInsightsAccountAll
+        ? ref.watch(serverCategoryBreakdownProvider)
+        : AsyncData(ref.watch(categoryBreakdownProvider));
 
     final topMerchants = ref.watch(topMerchantsProvider);
     final recurring = ref.watch(recurringPaymentsProvider);
     final anomalies = ref.watch(anomaliesProvider);
     final forecast = ref.watch(forecastExpenseNextMonthProvider);
+    final accountRows = ref.watch(accountSpendRowsProvider);
     final selectedRange = ref.watch(selectedTimeRangeProvider);
     final currency = ref.watch(currencyProvider);
     final isLoading = txsAsync.isLoading;
+    final scopeLabel = insightsScopeLabel(scope, accounts);
 
     return Scaffold(
       appBar: AppBar(
@@ -101,38 +110,30 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
         actions: [
           IconButton(
             tooltip: 'Export insights',
-            icon: const Icon(Icons.download),
-            onPressed: () =>
-                _exportInsights(context, ref, categoryBreakdownAsync, kpis),
+            icon: const Icon(Icons.download_rounded),
+            onPressed: () => _exportInsights(context, ref, categoryBreakdownAsync, kpis),
           ),
-          Center(
-            child: _TimeRangePicker(
-              selected: selectedRange,
-              onChanged: (final r) =>
-                  ref.read(selectedTimeRangeProvider.notifier).setRange(r),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.s16),
+          const SizedBox(width: AppSpacing.s8),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(recentTransactionsProvider);
+          ref.invalidate(userAccountsProvider);
           await ref.read(recentTransactionsProvider.future);
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.pagePadding,
-            AppSpacing.s12,
+            AppSpacing.s4,
             AppSpacing.pagePadding,
-            AppSpacing.pagePadding,
+            AppSpacing.s32,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (txsAsync.hasError) ...[
-                const SizedBox(height: AppSpacing.s12),
                 AppEmptyState(
                   title: 'Failed to load your latest transactions',
                   subtitle: repoErrorMessage(txsAsync.error ?? 'Unknown error'),
@@ -142,41 +143,67 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
                 ),
                 const SizedBox(height: AppSpacing.sectionGap),
               ],
+
+              // ── What am I looking at? period + account ─────────────────────
+              _RangeSegmented(
+                selected: selectedRange,
+                onChanged: (final r) => ref.read(selectedTimeRangeProvider.notifier).setRange(r),
+              ),
+              const SizedBox(height: AppSpacing.s12),
+              _AccountScopeBar(
+                scope: scope,
+                accounts: accounts,
+                onSelected: (final s) => ref.read(insightsAccountProvider.notifier).select(s),
+              ),
+              const SizedBox(height: AppSpacing.s16),
+
               // ── Net balance hero ───────────────────────────────────────────
               _NetHeroCard(
                 kpis: kpis,
                 currency: currency,
                 isLoading: isLoading,
+                scopeLabel: scopeLabel,
+                rangeLabel: _rangeLongLabel(selectedRange),
               ),
               const SizedBox(height: AppSpacing.s12),
 
-              // ── 4-metric strip ─────────────────────────────────────────────
-              _MetricStrip(
-                kpis: kpis,
-                currency: currency,
-                isLoading: isLoading,
-              ),
+              // ── Key figures ────────────────────────────────────────────────
+              _StatGrid(kpis: kpis, currency: currency, isLoading: isLoading),
               const SizedBox(height: AppSpacing.sectionGap),
 
               // ── Forecast card ──────────────────────────────────────────────
               if (!isLoading && forecast != null) ...[
-                _ForecastCard(
-                  forecast: forecast,
-                  monthly: monthly,
-                  currency: currency,
-                ),
+                _ForecastCard(forecast: forecast, monthly: monthly, currency: currency),
                 const SizedBox(height: AppSpacing.sectionGap),
               ],
 
+              // ── Spend by account ───────────────────────────────────────────
+              const _SectionHeader(title: 'Spend by Account', icon: Icons.credit_card_rounded),
+              const SizedBox(height: AppSpacing.s12),
+              if (isLoading)
+                const SkeletonChartBox(height: 160)
+              else if (accountRows.isEmpty)
+                const AppEmptyState(
+                  title: 'No spending yet',
+                  subtitle: 'Spending by card, UPI and cash shows up here',
+                  icon: Icons.credit_card_outlined,
+                  compact: true,
+                )
+              else
+                _AccountSpendCard(
+                  rows: accountRows,
+                  currency: currency,
+                  selectedScope: scope,
+                  onSelected: (final s) => ref.read(insightsAccountProvider.notifier).select(s),
+                ),
+              const SizedBox(height: AppSpacing.sectionGap),
+
               // ── Monthly trend ──────────────────────────────────────────────
-              const _SectionHeader(
-                title: 'Monthly Trend',
-                icon: Icons.show_chart_rounded,
-              ),
+              const _SectionHeader(title: 'Monthly Trend', icon: Icons.show_chart_rounded),
               const SizedBox(height: AppSpacing.s12),
               if (isLoading)
                 const SkeletonChartBox(height: 200)
-              else if (monthly.isEmpty)
+              else if (monthly.every((final v) => v == 0))
                 const AppEmptyState(
                   title: 'No trend data',
                   subtitle: 'Add transactions to see your monthly trend',
@@ -188,10 +215,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
               const SizedBox(height: AppSpacing.sectionGap),
 
               // ── Category Breakdown ──────────────────────────────────────
-              const _SectionHeader(
-                title: 'Category Breakdown',
-                icon: Icons.pie_chart_rounded,
-              ),
+              const _SectionHeader(title: 'Category Breakdown', icon: Icons.pie_chart_rounded),
               const SizedBox(height: AppSpacing.s12),
               categoryBreakdownAsync.when(
                 loading: () => const SkeletonChartBox(height: 240),
@@ -208,19 +232,13 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
                       compact: true,
                     );
                   }
-                  return _CategoryBreakdownCard(
-                    breakdown: breakdown,
-                    currency: currency,
-                  );
+                  return _CategoryBreakdownCard(breakdown: breakdown, currency: currency);
                 },
               ),
               const SizedBox(height: AppSpacing.sectionGap),
 
               // ── Top Spends ──────────────────────────────────────────────
-              const _SectionHeader(
-                title: 'Top Spends',
-                icon: Icons.storefront_rounded,
-              ),
+              const _SectionHeader(title: 'Top Spends', icon: Icons.storefront_rounded),
               const SizedBox(height: AppSpacing.s12),
               if (isLoading)
                 const SkeletonChartBox(height: 180)
@@ -235,10 +253,7 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
               const SizedBox(height: AppSpacing.sectionGap),
 
               // ── Recurring payments ─────────────────────────────────────────
-              const _SectionHeader(
-                title: 'Recurring Payments',
-                icon: Icons.repeat_rounded,
-              ),
+              const _SectionHeader(title: 'Recurring Payments', icon: Icons.repeat_rounded),
               const SizedBox(height: AppSpacing.s12),
               if (isLoading)
                 const SkeletonChartBox(height: 140)
@@ -250,17 +265,13 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
                 )
               else
                 _RecurringCard(recurring: recurring, currency: currency),
-              const SizedBox(height: AppSpacing.sectionGap),
 
               // ── Unusual activity ───────────────────────────────────────────
               if (!isLoading && anomalies.isNotEmpty) ...[
-                const _SectionHeader(
-                  title: 'Unusual Activity',
-                  icon: Icons.warning_amber_rounded,
-                ),
+                const SizedBox(height: AppSpacing.sectionGap),
+                const _SectionHeader(title: 'Unusual Activity', icon: Icons.warning_amber_rounded),
                 const SizedBox(height: AppSpacing.s12),
                 _AnomalyCard(anomalies: anomalies, currency: currency),
-                const SizedBox(height: AppSpacing.sectionGap),
               ],
             ],
           ),
@@ -269,6 +280,12 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
     );
   }
 }
+
+String _rangeLongLabel(final TimeRange r) => switch (r) {
+      TimeRange.last7d => 'Last 7 days',
+      TimeRange.last30d => 'Last 30 days',
+      TimeRange.last90d => 'Last 90 days',
+    };
 
 // ════════════════════════════════════════════════════════════════════════════
 // Shared primitives
@@ -307,14 +324,43 @@ class _BaseCard extends StatelessWidget {
   }
 }
 
-// _EmptyState removed in favor of shared AppEmptyState widget.
+/// A neutral "share of the total" bar.
+///
+/// Not [AnimatedProgressIndicator]: that one is a *budget* meter (orange past
+/// 90%, red at 100%), which would flag the biggest merchant or account as
+/// "overspent" just for being the largest slice.
+class _ShareBar extends StatelessWidget {
+  const _ShareBar({required this.fraction, required this.color});
+  final double fraction;
+  final Color color;
+
+  @override
+  Widget build(final BuildContext context) {
+    return ClipRRect(
+      borderRadius: AppRadius.fullAll,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(end: fraction.clamp(0.0, 1.0)),
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+        builder: (final context, final value, final _) => LinearProgressIndicator(
+          value: value,
+          minHeight: 4,
+          color: color,
+          backgroundColor: color.withValues(alpha: 0.10),
+        ),
+      ),
+    );
+  }
+}
 
 // ════════════════════════════════════════════════════════════════════════════
-// Time range picker
+// Period + account controls
 // ════════════════════════════════════════════════════════════════════════════
 
-class _TimeRangePicker extends StatelessWidget {
-  const _TimeRangePicker({required this.selected, required this.onChanged});
+/// Full-width 7 / 30 / 90 day control. Three equal segments, so it lines up
+/// with the cards below instead of floating in the app bar.
+class _RangeSegmented extends StatelessWidget {
+  const _RangeSegmented({required this.selected, required this.onChanged});
   final TimeRange selected;
   final ValueChanged<TimeRange> onChanged;
 
@@ -328,39 +374,88 @@ class _TimeRangePicker extends StatelessWidget {
         borderRadius: AppRadius.mdAll,
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: TimeRange.values.map((final r) {
-          final label = switch (r) {
-            TimeRange.last7d => '7d',
-            TimeRange.last30d => '30d',
-            TimeRange.last90d => '90d',
-          };
-          final isSelected = r == selected;
-          return GestureDetector(
-            onTap: () => onChanged(r),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              constraints: const BoxConstraints(minWidth: 44, minHeight: 34),
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? theme.colorScheme.primary
-                    : Colors.transparent,
-                borderRadius: AppRadius.smAll,
-              ),
-              child: Text(
-                label,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: isSelected
-                      ? Colors.white
-                      : theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        children: [
+          for (final r in TimeRange.values)
+            Expanded(
+              child: Semantics(
+                button: true,
+                selected: r == selected,
+                label: _rangeLongLabel(r),
+                excludeSemantics: true,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => onChanged(r),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    height: 38,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: r == selected ? theme.colorScheme.primary : Colors.transparent,
+                      borderRadius: AppRadius.smAll,
+                    ),
+                    child: Text(
+                      switch (r) {
+                        TimeRange.last7d => '7 days',
+                        TimeRange.last30d => '30 days',
+                        TimeRange.last90d => '90 days',
+                      },
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: r == selected ? Colors.white : theme.colorScheme.onSurface.withValues(alpha: 0.66),
+                        fontWeight: r == selected ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-          );
-        }).toList(),
+        ],
+      ),
+    );
+  }
+}
+
+/// "Default account" (nothing chosen), "All accounts", then each card / UPI /
+/// cash. Scrolls sideways, so any number of accounts fits on one line.
+class _AccountScopeBar extends StatelessWidget {
+  const _AccountScopeBar({required this.scope, required this.accounts, required this.onSelected});
+  final String scope;
+  final List<AccountModel> accounts;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(final BuildContext context) {
+    final theme = Theme.of(context);
+    // The server-made "Default Account" is what the first chip already means.
+    final others = accounts.where((final a) => a.name.trim().toLowerCase() != 'default account').toList();
+
+    Widget chip({
+      required final String value,
+      required final String label,
+      required final IconData icon,
+    }) {
+      final selected = scope == value;
+      return ChoiceChip(
+        avatar: Icon(icon, size: 16, color: selected ? Colors.white : theme.colorScheme.onSurface.withValues(alpha: 0.7)),
+        label: Text(label),
+        selected: selected,
+        onSelected: (_) => onSelected(value),
+      );
+    }
+
+    // A handful of chips in a sideways-scrolling row (all built up front, so
+    // each one can be reached and focused, unlike a lazily built list).
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          chip(value: kInsightsAccountDefault, label: 'Default account', icon: Icons.account_balance_wallet_outlined),
+          const SizedBox(width: AppSpacing.s8),
+          chip(value: kInsightsAccountAll, label: 'All accounts', icon: Icons.layers_outlined),
+          for (final a in others) ...[
+            const SizedBox(width: AppSpacing.s8),
+            chip(value: a.id, label: a.shortLabel, icon: a.kind.icon),
+          ],
+        ],
       ),
     );
   }
@@ -375,16 +470,21 @@ class _NetHeroCard extends StatelessWidget {
     required this.kpis,
     required this.currency,
     required this.isLoading,
+    required this.scopeLabel,
+    required this.rangeLabel,
   });
   final Kpis kpis;
   final String currency;
   final bool isLoading;
+  final String scopeLabel;
+  final String rangeLabel;
 
   @override
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
     final isPositive = kpis.net >= 0;
     final muted = theme.colorScheme.onSurface.withValues(alpha: 0.66);
+    final tone = isPositive ? AppColors.success : AppColors.error;
 
     return _BaseCard(
       child: Column(
@@ -396,15 +496,23 @@ class _NetHeroCard extends StatelessWidget {
                 child: Text('Net balance', style: theme.textTheme.labelLarge?.copyWith(color: muted)),
               ),
               // Direction is stated in words and an icon, not colour alone.
-              Icon(
-                isPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
-                size: 16,
-                color: muted,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                isPositive ? 'Surplus' : 'Deficit',
-                style: theme.textTheme.labelMedium?.copyWith(color: muted, fontWeight: FontWeight.w600),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s8, vertical: AppSpacing.s4),
+                decoration: BoxDecoration(
+                  color: tone.withValues(alpha: 0.10),
+                  borderRadius: AppRadius.fullAll,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(isPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded, size: 14, color: tone),
+                    const SizedBox(width: 4),
+                    Text(
+                      isPositive ? 'Surplus' : 'Deficit',
+                      style: theme.textTheme.labelMedium?.copyWith(color: tone, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -412,15 +520,22 @@ class _NetHeroCard extends StatelessWidget {
           if (isLoading)
             const SkeletonLine(height: 32, width: 160)
           else
-            AmountText(
-              amount: kpis.net,
-              currency: currency,
-              alignment: Alignment.centerLeft,
-              style: theme.textTheme.displayMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                letterSpacing: -0.5,
+            SizedBox(
+              width: double.infinity,
+              child: AmountText(
+                amount: kpis.net,
+                currency: currency,
+                alignment: Alignment.centerLeft,
+                style: theme.textTheme.displayMedium?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -0.5),
               ),
             ),
+          const SizedBox(height: AppSpacing.s8),
+          Text(
+            '$scopeLabel · $rangeLabel · ${kpis.txCount} ${kpis.txCount == 1 ? 'transaction' : 'transactions'}',
+            style: theme.textTheme.bodySmall?.copyWith(color: muted),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
@@ -428,86 +543,112 @@ class _NetHeroCard extends StatelessWidget {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// Key figures: Income | Expense | Savings % | Daily avg
+// Key figures: Income | Expenses / Savings rate | Daily average
 // ════════════════════════════════════════════════════════════════════════════
 
-class _MetricStrip extends StatelessWidget {
-  const _MetricStrip({
-    required this.kpis,
-    required this.currency,
-    required this.isLoading,
-  });
+/// Four equal tiles in a 2x2 grid. Label on top, value below, everything
+/// left-aligned to the same edge, so figures read down and across cleanly.
+class _StatGrid extends StatelessWidget {
+  const _StatGrid({required this.kpis, required this.currency, required this.isLoading});
   final Kpis kpis;
   final String currency;
   final bool isLoading;
 
   @override
   Widget build(final BuildContext context) {
+    final theme = Theme.of(context);
     final savingsPct = (kpis.savingsRate * 100).clamp(0, 100);
-    return GroupedSection(
-      dividerIndent: AppSpacing.s16,
+
+    Widget plain(final String text) => FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            text,
+            style: tabular(theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+          ),
+        );
+
+    Widget money(final num amount, {final bool signed = true}) => SizedBox(
+          width: double.infinity,
+          child: AmountText(
+            amount: amount,
+            currency: currency,
+            showSign: signed,
+            alignment: Alignment.centerLeft,
+            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        );
+
+    final tiles = [
+      _StatTile(key: const ValueKey('stat-income'), icon: Icons.south_west_rounded, label: 'Income', isLoading: isLoading, value: money(kpis.income)),
+      _StatTile(key: const ValueKey('stat-expenses'), icon: Icons.north_east_rounded, label: 'Expenses', isLoading: isLoading, value: money(-kpis.expense.abs())),
+      _StatTile(key: const ValueKey('stat-savings'), icon: Icons.savings_outlined, label: 'Savings rate', isLoading: isLoading, value: plain('${savingsPct.toStringAsFixed(1)}%')),
+      _StatTile(key: const ValueKey('stat-daily'), icon: Icons.calendar_today_outlined, label: 'Daily average', isLoading: isLoading, value: money(kpis.avgDailySpend, signed: false)),
+    ];
+
+    return Column(
       children: [
-        _FigureRow(
-          label: 'Income',
-          value: isLoading ? null : AmountText(amount: kpis.income, currency: currency),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: tiles[0]),
+              const SizedBox(width: AppSpacing.s12),
+              Expanded(child: tiles[1]),
+            ],
+          ),
         ),
-        _FigureRow(
-          label: 'Expenses',
-          value: isLoading ? null : AmountText(amount: -kpis.expense.abs(), currency: currency),
-        ),
-        _FigureRow(
-          label: 'Savings rate',
-          value: isLoading ? null : _PlainFigure('${savingsPct.toStringAsFixed(1)}%'),
-        ),
-        _FigureRow(
-          label: 'Daily average spend',
-          value: isLoading ? null : AmountText(amount: kpis.avgDailySpend, currency: currency, showSign: false),
+        const SizedBox(height: AppSpacing.s12),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: tiles[2]),
+              const SizedBox(width: AppSpacing.s12),
+              Expanded(child: tiles[3]),
+            ],
+          ),
         ),
       ],
     );
   }
 }
 
-class _PlainFigure extends StatelessWidget {
-  const _PlainFigure(this.text);
-  final String text;
-
-  @override
-  Widget build(final BuildContext context) => Align(
-        alignment: Alignment.centerRight,
-        child: Text(
-          text,
-          style: tabular(Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
-        ),
-      );
-}
-
-class _FigureRow extends StatelessWidget {
-  // value == null means loading
-  const _FigureRow({required this.label, required this.value});
+class _StatTile extends StatelessWidget {
+  const _StatTile({super.key, required this.icon, required this.label, required this.value, required this.isLoading});
+  final IconData icon;
   final String label;
-  final Widget? value;
+  final Widget value;
+  final bool isLoading;
 
   @override
   Widget build(final BuildContext context) {
     final theme = Theme.of(context);
-    return Row(
-      children: [
-        Expanded(
-          flex: 3,
-          child: Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
-            ),
+    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.66);
+    return _BaseCard(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: muted),
+              const SizedBox(width: AppSpacing.s8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: theme.textTheme.labelMedium?.copyWith(color: muted),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(width: AppSpacing.s12),
-        Flexible(
-          flex: 2,
-          child: value ?? const Align(alignment: Alignment.centerRight, child: SkeletonLine(height: 14, width: 64)),
-        ),
-      ],
+          const SizedBox(height: AppSpacing.s12),
+          if (isLoading) const SkeletonLine(height: 18, width: 84) else value,
+        ],
+      ),
     );
   }
 }
@@ -558,51 +699,145 @@ class _ForecastCard extends StatelessWidget {
                 Text(
                   'Forecast — Next Month',
                   style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.66),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.s4),
-                AmountText(
-                  amount: forecast,
-                  currency: currency,
-                  showSign: false,
-                  alignment: Alignment.centerLeft,
-                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-          ),
-          if (lastMonth != 0)
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.s8,
-              vertical: AppSpacing.s4,
-            ),
-            decoration: BoxDecoration(
-              borderRadius: AppRadius.smAll,
-              border: Border.all(color: changeColor.withValues(alpha: 0.5)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  isUp
-                      ? Icons.arrow_upward_rounded
-                      : Icons.arrow_downward_rounded,
-                  size: 14,
-                  color: changeColor,
-                ),
-                const SizedBox(width: 3),
-                Text(
-                  '${pct.abs().toStringAsFixed(1)}%',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: changeColor,
-                    fontWeight: FontWeight.w700,
+                SizedBox(
+                  width: double.infinity,
+                  child: AmountText(
+                    amount: forecast,
+                    currency: currency,
+                    showSign: false,
+                    alignment: Alignment.centerLeft,
+                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
             ),
           ),
+          if (lastMonth != 0) ...[
+            const SizedBox(width: AppSpacing.s8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s8, vertical: AppSpacing.s4),
+              decoration: BoxDecoration(
+                borderRadius: AppRadius.smAll,
+                border: Border.all(color: changeColor.withValues(alpha: 0.5)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(isUp ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded, size: 14, color: changeColor),
+                  const SizedBox(width: 3),
+                  Text(
+                    '${pct.abs().toStringAsFixed(1)}%',
+                    style: theme.textTheme.labelSmall?.copyWith(color: changeColor, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Spend by account
+// ════════════════════════════════════════════════════════════════════════════
+
+/// Every account's spend for the period, largest first, with a share bar.
+/// Tapping a row drills the whole page into that account.
+class _AccountSpendCard extends StatelessWidget {
+  const _AccountSpendCard({
+    required this.rows,
+    required this.currency,
+    required this.selectedScope,
+    required this.onSelected,
+  });
+  final List<AccountSpendRow> rows;
+  final String currency;
+  final String selectedScope;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(final BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurface.withValues(alpha: 0.66);
+    final total = rows.fold<double>(0, (final s, final r) => s + r.spend);
+
+    return _BaseCard(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s8),
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0) Divider(height: 1, color: theme.colorScheme.outline.withValues(alpha: 0.6)),
+            Builder(builder: (final context) {
+              final r = rows[i];
+              final color = _kPalette[i % _kPalette.length];
+              final share = total > 0 ? r.spend / total : 0.0;
+              final isSelected = r.scope == selectedScope;
+              return InkWell(
+                onTap: () => onSelected(r.scope),
+                borderRadius: AppRadius.mdAll,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.s12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: AppRadius.smAll),
+                            child: Icon(r.kind.icon, size: 18, color: color),
+                          ),
+                          const SizedBox(width: AppSpacing.s12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  r.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600),
+                                ),
+                                Text(
+                                  [if (r.subtitle != null) r.subtitle!, '${r.count} ${r.count == 1 ? 'transaction' : 'transactions'}'].join(' · '),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodySmall?.copyWith(color: muted),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.s12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                formatAmount(r.spend, currency),
+                                style: tabular(theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
+                              ),
+                              Text(
+                                '${(share * 100).toStringAsFixed(0)}%',
+                                style: tabular(theme.textTheme.bodySmall?.copyWith(color: muted)),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.s8),
+                      _ShareBar(fraction: share, color: color),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ],
         ],
       ),
     );
@@ -851,11 +1086,14 @@ class _CategoryBreakdownCard extends ConsumerWidget {
                   const SizedBox(width: AppSpacing.s12),
                   Flexible(
                     flex: 2,
-                    child: AmountText(
-                      amount: -top[idx].value.abs(),
-                      currency: currency,
-                      showSign: false,
-                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: AmountText(
+                        amount: -top[idx].value.abs(),
+                        currency: currency,
+                        showSign: false,
+                        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                      ),
                     ),
                   ),
                 ],
@@ -934,14 +1172,7 @@ class _MerchantsCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.s8),
-                ClipRRect(
-                  borderRadius: AppRadius.fullAll,
-                  child: AnimatedProgressIndicator(
-                    progress: fill,
-                    minHeight: 4,
-                    backgroundColor: color.withValues(alpha: 0.10),
-                  ),
-                ),
+                _ShareBar(fraction: fill, color: color),
               ],
             ),
           );

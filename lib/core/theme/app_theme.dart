@@ -285,12 +285,16 @@ class AppTheme {
         selectedColor: primary,
         secondarySelectedColor: primary,
         // Selected chips are filled with the primary colour, so their label
-        // must flip to white or it would be dark-on-teal.
-        labelStyle: WidgetStateTextStyle.resolveWith(
-          (final s) => _body(
-            fontSize: AppType.b2,
-            fontWeight: FontWeight.w600,
-            color: s.contains(WidgetState.selected) ? Colors.white : onSurface,
+        // must flip to white or it would be dark-on-teal. The state-dependent
+        // part has to be the *colour*: Flutter's chip resolves states only on
+        // labelStyle.color (it merges the style first), so a state-aware
+        // TextStyle collapsed to one colour and unselected labels came out
+        // white-on-pale, i.e. unreadable.
+        labelStyle: _body(
+          fontSize: AppType.b2,
+          fontWeight: FontWeight.w600,
+          color: WidgetStateColor.resolveWith(
+            (final s) => s.contains(WidgetState.selected) ? Colors.white : onSurface,
           ),
         ),
         showCheckmark: false,

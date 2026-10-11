@@ -1156,6 +1156,126 @@ abstract class AppLocalizations {
   /// **'Code sent to {email}. Check your inbox.'**
   String otpSentBanner(String email);
 
+  /// No description provided for @resetForgotLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get resetForgotLink;
+
+  /// No description provided for @resetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset your password'**
+  String get resetTitle;
+
+  /// No description provided for @resetSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your account email and we\'ll send you a 6-digit code.'**
+  String get resetSubtitle;
+
+  /// No description provided for @resetBackToLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to login'**
+  String get resetBackToLogin;
+
+  /// No description provided for @resetCodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your email'**
+  String get resetCodeTitle;
+
+  /// No description provided for @resetCodeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'If an account exists for {email}, we sent a 6-digit code. It expires in 10 minutes.'**
+  String resetCodeSubtitle(String email);
+
+  /// No description provided for @resetCodeSent.
+  ///
+  /// In en, this message translates to:
+  /// **'A new code is on its way.'**
+  String get resetCodeSent;
+
+  /// No description provided for @resetCodeWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'That code is incorrect or has expired.'**
+  String get resetCodeWrong;
+
+  /// No description provided for @resetCodeAttemptsLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'That code is incorrect. Attempts left: {count}.'**
+  String resetCodeAttemptsLeft(int count);
+
+  /// No description provided for @resetCodeLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many wrong attempts. Request a new code to continue.'**
+  String get resetCodeLocked;
+
+  /// No description provided for @resetTooManyRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please wait a few minutes and try again.'**
+  String get resetTooManyRequests;
+
+  /// No description provided for @resetNewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a new password'**
+  String get resetNewTitle;
+
+  /// No description provided for @resetNewSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use at least 8 characters, with uppercase and lowercase letters and a number.'**
+  String get resetNewSubtitle;
+
+  /// No description provided for @resetNewPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get resetNewPassword;
+
+  /// No description provided for @resetConfirmPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm new password'**
+  String get resetConfirmPassword;
+
+  /// No description provided for @resetPasswordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords don\'t match'**
+  String get resetPasswordMismatch;
+
+  /// No description provided for @resetPasswordWeak.
+  ///
+  /// In en, this message translates to:
+  /// **'Use 8+ characters with an uppercase letter, a lowercase letter and a number.'**
+  String get resetPasswordWeak;
+
+  /// No description provided for @resetSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset password'**
+  String get resetSubmit;
+
+  /// No description provided for @resetSessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your reset session expired. Please request a new code.'**
+  String get resetSessionExpired;
+
+  /// No description provided for @resetSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset. Please log in with your new password.'**
+  String get resetSuccess;
+
   /// No description provided for @homeGreetingMorning.
   ///
   /// In en, this message translates to:

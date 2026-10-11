@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/models/account.dart';
 import '../../core/models/budget.dart';
 import '../../core/providers/shared_prefs_provider.dart';
+import '../../core/repositories/account_repository.dart';
 import '../../core/repositories/budget_repository.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/repositories/transaction_repository.dart';
 import '../../core/utils/format.dart';
+import '../../core/widgets/scrollable_column.dart';
 import '../../l10n/app_localizations.dart';
 import 'transaction_filters.dart';
 
@@ -21,6 +24,7 @@ class TransactionFilterSheet extends ConsumerStatefulWidget {
 class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet> {
   late String localFilter;
   late String localCategory;
+  late String localAccount;
   DateTime? localMonth;
   DateTime? localFromDate;
   DateTime? localToDate;
@@ -35,6 +39,7 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
     final f = ref.read(transactionFilterProvider);
     localFilter = f.filter;
     localCategory = f.category;
+    localAccount = f.account;
     localMonth = f.selectedMonth;
     localFromDate = f.fromDate;
     localToDate = f.toDate;
@@ -60,8 +65,7 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 24, top: 16, left: 12, right: 12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: ScrollableColumn(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Center(
@@ -78,9 +82,14 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Filter Transactions',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              // Expanded so a large system font shortens the title (ellipsis)
+              // instead of pushing the close button off-screen.
+              Expanded(
+                child: Text(
+                  'Filter Transactions',
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
               ),
               IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(context).pop()),
             ],
@@ -180,18 +189,25 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
                 ),
             ],
           ),
+          const SizedBox(height: 20),
 
           // Type
           Text('Type', style: theme.textTheme.labelLarge),
           const SizedBox(height: 8),
-          SegmentedButton<String>(
-            segments: [
-              ButtonSegment(value: 'All', label: Text(t?.filterAll ?? 'All')),
-              ButtonSegment(value: 'Income', label: Text(t?.filterIncome ?? 'Income'), icon: const Icon(Icons.arrow_downward, size: 14)),
-              ButtonSegment(value: 'Expense', label: Text(t?.filterExpense ?? 'Expense'), icon: const Icon(Icons.arrow_upward, size: 14)),
-            ],
-            selected: {localFilter},
-            onSelectionChanged: (final v) => setState(() => localFilter = v.first),
+          // A segmented button has a fixed minimum width and can't wrap, so scale
+          // it down when large text or a narrow phone leaves too little room.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: SegmentedButton<String>(
+              segments: [
+                ButtonSegment(value: 'All', label: Text(t?.filterAll ?? 'All')),
+                ButtonSegment(value: 'Income', label: Text(t?.filterIncome ?? 'Income'), icon: const Icon(Icons.arrow_downward, size: 14)),
+                ButtonSegment(value: 'Expense', label: Text(t?.filterExpense ?? 'Expense'), icon: const Icon(Icons.arrow_upward, size: 14)),
+              ],
+              selected: {localFilter},
+              onSelectionChanged: (final v) => setState(() => localFilter = v.first),
+            ),
           ),
           const SizedBox(height: 20),
 
@@ -248,6 +264,39 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
               );
             },
           ),
+          const SizedBox(height: 20),
+
+          // Account (card / UPI / cash / bank)
+          Text('Account', style: theme.textTheme.labelLarge),
+          const SizedBox(height: 8),
+          ref.watch(userAccountsProvider).maybeWhen(
+                data: (final accounts) => accounts.isEmpty
+                    ? Text(
+                        'No accounts yet',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      )
+                    : Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          FilterChip(
+                            label: const Text('All'),
+                            selected: localAccount == 'All',
+                            onSelected: (final _) => setState(() => localAccount = 'All'),
+                          ),
+                          for (final AccountModel a in accounts)
+                            FilterChip(
+                              avatar: Icon(a.kind.icon, size: 16),
+                              label: Text(a.shortLabel),
+                              selected: localAccount == a.id,
+                              onSelected: (final _) => setState(() => localAccount = a.id),
+                            ),
+                        ],
+                      ),
+                orElse: () => const SizedBox.shrink(),
+              ),
           const SizedBox(height: 20),
 
           // Amount range
@@ -317,6 +366,7 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
                     final notifier = ref.read(transactionFilterProvider.notifier);
                     notifier.setFilterType(localFilter);
                     notifier.setCategory(localCategory);
+                    notifier.setAccount(localAccount);
                     notifier.setSelectedMonth(localMonth);
                     notifier.setUseDateRange(localUseDateRange);
                     if (localUseDateRange) {

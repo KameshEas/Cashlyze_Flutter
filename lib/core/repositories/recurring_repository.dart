@@ -14,6 +14,7 @@ class RecurringRepository {
     required final double amount,
     required final bool isIncome,
     final String? categoryId,
+    final String? accountId,
     required final DateTime startDate,
     required final RecurringFrequency frequency,
   }) =>
@@ -22,6 +23,7 @@ class RecurringRepository {
         amount: amount,
         isIncome: isIncome,
         categoryId: categoryId,
+        accountId: accountId,
         startDate: startDate,
         frequency: frequency,
       );

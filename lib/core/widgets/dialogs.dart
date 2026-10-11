@@ -90,6 +90,7 @@ Future<String?> showInputDialog(final BuildContext context, {
     final res = await showAppDialog<String?>(
       context: context,
       builder: (final ctx) => AlertDialog(
+        scrollable: true,
         title: Text(title),
         content: TextField(
           controller: controller,

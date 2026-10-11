@@ -15,12 +15,23 @@ abstract final class ApiEndpoints {
   static const String refresh = '/auth/refresh';
   static const String changePassword = '/auth/password';
 
+  // ── Forgot password (emailed 6-digit code) ────────────────────────────────
+  static const String forgotPassword = '/auth/forgot-password';
+  static const String resetPasswordVerifyOtp = '/auth/reset-password/verify-otp';
+  static const String resetPassword = '/auth/reset-password';
+
   // ── Users ─────────────────────────────────────────────────────────────────
   static const String usersMe = '/users/me';
   // deleteMe uses DELETE method on usersMe
 
   // ── App Version ───────────────────────────────────────────────────────────
   static const String appVersion = '/app-version';
+
+  // ── Accounts (cards, UPI, cash, bank) ─────────────────────────────────────
+  static const String accounts = '/accounts';
+  static const String accountTypes = '/accounts/types';
+  static const String accountsSpendSummary = '/accounts/spend-summary';
+  static String accountById(final String id) => '/accounts/$id';
 
   // ── Categories ────────────────────────────────────────────────────────────
   static const String categories = '/categories';

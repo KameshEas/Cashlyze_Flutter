@@ -1,8 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../services/biometric_service.dart';
-
 final biometricLockEnabledProvider =
     FutureProvider<bool>((final ref) async {
   final prefs = await SharedPreferences.getInstance();
@@ -16,13 +14,12 @@ class BiometricLockNotifier extends AsyncNotifier<bool> {
     return prefs.getBool('biometric_lock_enabled') ?? false;
   }
 
+  /// Turns the lock on. Callers must have already confirmed biometrics are
+  /// enrolled and that the user authenticated (see BiometricLockTile).
   Future<void> enable() async {
     final prefs = await SharedPreferences.getInstance();
-    final supported = await BiometricService.isDeviceSupported();
-    if (supported) {
-      await prefs.setBool('biometric_lock_enabled', true);
-      state = const AsyncValue.data(true);
-    }
+    await prefs.setBool('biometric_lock_enabled', true);
+    state = const AsyncValue.data(true);
   }
 
   Future<void> disable() async {
