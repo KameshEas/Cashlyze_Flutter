@@ -394,6 +394,13 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   ),
                 ),
                 decoration: InputDecoration(
+                  // Flutter hides a prefix until the field is focused or has
+                  // text, which left an unlabeled, symbol-less "0.00". An
+                  // always-floating label keeps both the currency symbol and
+                  // the "Amount" caption visible so it's clear where to type.
+                  labelText: t?.amountLabel ?? 'Amount',
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
+                  floatingLabelAlignment: FloatingLabelAlignment.center,
                   hintText: '0.00',
                   prefixText: '${currencySymbol(prefs.currency)} ',
                   prefixStyle: tabular(
@@ -434,6 +441,9 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                 decoration: InputDecoration(
                   errorText: _titleError,
                   labelText: t?.titleLabel ?? 'Title',
+                  // Keep the label above the box instead of letting it sit
+                  // inside and shrink away as a placeholder.
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
                   filled: true,
                 ),
               ),

@@ -12,7 +12,7 @@ import '../../core/services/auth_service.dart';
 import '../../core/ui/constants.dart';
 import '../../core/utils/error_messages.dart';
 import '../../l10n/app_localizations.dart';
-import 'data/auth_remote_data_source.dart';
+import 'data/otp_remote_data_source.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key, this.initialIsLogin = true});
@@ -71,31 +71,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     _noticeHydrated = true;
   }
 
-  /// Best-effort precheck before OTP send.
-  ///
-  /// Backend currently returns 409 Conflict with "Email already registered"
-  /// on duplicate registration attempts, which lets us fail fast in signup.
-  Future<bool> _isEmailAlreadyRegistered({
-    required final String email,
-    required final String password,
-  }) async {
-    try {
-      await ref
-          .read(authRemoteDataSourceProvider)
-          .register(email: email, password: password);
-      // Unexpected success for precheck path — treat as not-registered for OTP
-      // flow and immediately clear any persisted auth state.
-      await ref.read(authServiceProvider).signOut();
-      return false;
-    } on ConflictException catch (_) {
-      return true;
-    } catch (_) {
-      // Any non-conflict response (for example "OTP verification required")
-      // means we should continue with OTP flow.
-      return false;
-    }
-  }
-
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -122,11 +97,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         final email = _emailController.text.trim();
         final password = _passwordController.text;
 
-        final alreadyRegistered = await _isEmailAlreadyRegistered(
-          email: email,
-          password: password,
-        );
-        if (alreadyRegistered) {
+        // Send the verification code from here, so an email that already has
+        // an account is reported on this screen (the server answers 409)
+        // instead of after the user has been taken to the verification step.
+        try {
+          await ref.read(otpRemoteDataSourceProvider).sendOtp(email: email);
+        } on ConflictException {
+          if (!mounted) return;
           setState(() {
             _errorMessage =
                 'This email is already registered. Please sign in instead.';
@@ -140,6 +117,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         // name and mobile for richer user profile creation.
         final name = _nameController.text.trim();
         final mobile = _mobileController.text.trim();
+        // Mark the code as sent first so the OTP screen opens straight on the
+        // code-entry step (setPending triggers the router redirect to /otp).
+        ref.read(otpPendingProvider.notifier).markOtpSent();
         ref
             .read(otpPendingProvider.notifier)
             .setPending(
@@ -172,29 +152,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       TextInput.finishAutofillContext();
       router.go('/');
     } catch (e) {
-      if (_isLogin) {
-        final raw = e.toString().toLowerCase();
-        final isInvalidCredentials =
-            e is UnauthorizedException || raw.contains('invalid credentials');
-
-        if (isInvalidCredentials) {
-          final email = _emailController.text.trim();
-          final password = _passwordController.text;
-          final alreadyRegistered = await _isEmailAlreadyRegistered(
-            email: email,
-            password: password,
-          );
-          if (!mounted) return;
-
-          if (!alreadyRegistered) {
-            setState(() {
-              _isLogin = false;
-              _errorMessage =
-                  'No account found for this email. Please create an account.';
-            });
-            return;
-          }
-        }
+      if (_isLogin && e is UnauthorizedException) {
+        // The server deliberately answers the same for a wrong password and
+        // an unknown email, so say that, and point at the way out.
+        setState(() {
+          _errorMessage =
+              'Incorrect email or password. Please check them and try again, '
+              'or tap Forgot password to reset it.';
+        });
+        return;
       }
 
       // If signup failed, the pending flag was set pre-emptively — clear it.
