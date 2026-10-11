@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/transaction.dart';
+import '../providers/insights_account_providers.dart';
 import '../providers/transaction_providers.dart';
 
 class Kpis {
@@ -174,10 +175,15 @@ class RecurringPayment {
 
 final recurringPaymentsProvider = Provider<List<RecurringPayment>>((final ref) {
   final txsAsync = ref.watch(recentTransactionsProvider);
-  final txs = txsAsync.maybeWhen(
-    data: (final d) => d,
-    orElse: () => <TransactionModel>[],
-  );
+  final scope = ref.watch(effectiveInsightsAccountProvider);
+  final defaultAccountId = ref.watch(defaultAccountProvider)?.id;
+  final txs = txsAsync
+      .maybeWhen(
+        data: (final d) => d,
+        orElse: () => <TransactionModel>[],
+      )
+      .where((final t) => txInAccountScope(t, scope, defaultAccountId))
+      .toList();
   final byTitle = <String, List<TransactionModel>>{};
   for (final t in txs.where((final t) => t.amount < 0)) {
     byTitle.putIfAbsent(t.title, () => []).add(t);
