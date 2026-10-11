@@ -32,6 +32,7 @@ import 'core/widgets/push_action_listener.dart';
 import 'core/widgets/read_only_maintenance_banner.dart';
 import 'features/force_update/widgets/force_update_dialog.dart';
 import 'features/maintenance/widgets/maintenance_screen.dart';
+import 'features/settings/biometric_gate.dart';
 import 'firebase_options.dart';
 import 'l10n/app_localizations.dart';
 import 'routes/app_router.dart';
@@ -271,14 +272,16 @@ class App extends ConsumerWidget {
       supportedLocales: AppLocalizations.supportedLocales,
       debugShowCheckedModeBanner: false,
       builder: (final context, final child) {
-        return _MaintenanceGate(
-          child: OfflineSyncListener(
-            child: DeepLinkListener(
-              child: PushActionListener(
-                child: AnnouncementDialogHost(
-                  child: ReadOnlyMaintenanceBanner(
-                    child: AnnouncementBanner(
-                      child: _ForceUpdateMonitor(child: ContentFrame(child: child!)),
+        return BiometricGate(
+          child: _MaintenanceGate(
+            child: OfflineSyncListener(
+              child: DeepLinkListener(
+                child: PushActionListener(
+                  child: AnnouncementDialogHost(
+                    child: ReadOnlyMaintenanceBanner(
+                      child: AnnouncementBanner(
+                        child: _ForceUpdateMonitor(child: ContentFrame(child: child!)),
+                      ),
                     ),
                   ),
                 ),

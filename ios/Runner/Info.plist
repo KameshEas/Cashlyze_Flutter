@@ -47,5 +47,7 @@
 	<true/>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>Allow tracking to enable push notifications and analytics.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Cashlyze uses Face ID to unlock the app when Biometric Lock is turned on.</string>
 </dict>
 </plist>

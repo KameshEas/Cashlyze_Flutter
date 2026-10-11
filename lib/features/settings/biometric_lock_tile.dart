@@ -5,74 +5,119 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/biometric_lock_providers.dart';
 import '../../core/services/biometric_service.dart';
 import '../../core/ui/constants.dart';
+import 'biometric_setup_dialog.dart';
 
-class BiometricLockTile extends ConsumerWidget {
+class BiometricLockTile extends ConsumerStatefulWidget {
   const BiometricLockTile({super.key});
 
   @override
-  Widget build(final BuildContext context, final WidgetRef ref) {
+  ConsumerState<BiometricLockTile> createState() => _BiometricLockTileState();
+}
+
+class _BiometricLockTileState extends ConsumerState<BiometricLockTile>
+    with WidgetsBindingObserver {
+  BiometricStatus? _status;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _refreshStatus();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // The user may have just enrolled a fingerprint in system settings.
+  @override
+  void didChangeAppLifecycleState(final AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refreshStatus();
+  }
+
+  Future<void> _refreshStatus() async {
+    final status = await ref.read(biometricServiceProvider).status();
+    if (mounted) setState(() => _status = status);
+  }
+
+  void _toast(final String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _turnOn() async {
+    final service = ref.read(biometricServiceProvider);
+    final status = await service.status();
+    if (!mounted) return;
+    setState(() => _status = status);
+
+    switch (status) {
+      case BiometricStatus.unsupported:
+        _toast('This device does not support biometric authentication.');
+        return;
+      case BiometricStatus.notEnrolled:
+        await showBiometricSetupDialog(context, service);
+        return;
+      case BiometricStatus.available:
+        break;
+    }
+
+    // Prove it works (and that it's really the owner) before locking the app.
+    final result = await service.authenticate(reason: 'Confirm to turn on Biometric Lock');
+    if (!mounted) return;
+    switch (result) {
+      case BiometricAuthResult.success:
+        await ref.read(biometricLockProvider.notifier).enable();
+        if (!mounted) return;
+        await HapticFeedback.lightImpact();
+        _toast('Biometric lock enabled');
+      case BiometricAuthResult.notEnrolled:
+        await showBiometricSetupDialog(context, service);
+      case BiometricAuthResult.lockedOut:
+        _toast('Too many attempts. Please try again in a moment.');
+      case BiometricAuthResult.unavailable:
+        _toast('Biometric authentication is unavailable right now.');
+      case BiometricAuthResult.failed:
+        break; // cancelled or not recognised: leave the switch off, no noise
+    }
+  }
+
+  Future<void> _turnOff() async {
+    await ref.read(biometricLockProvider.notifier).disable();
+    if (!mounted) return;
+    await HapticFeedback.lightImpact();
+    _toast('Biometric lock disabled');
+  }
+
+  @override
+  Widget build(final BuildContext context) {
     return ref.watch(biometricLockProvider).when(
       data: (final isEnabled) {
-        return FutureBuilder<bool>(
-          future: BiometricService.isDeviceSupported(),
-          builder: (final context, final snapshot) {
-            final isSupported = snapshot.data ?? false;
+        final status = _status;
+        if (status == BiometricStatus.unsupported && !isEnabled) {
+          return const _BiometricRow(
+            title: 'Biometric Lock',
+            subtitle: 'Not supported on this device',
+            enabled: false,
+          );
+        }
 
-            if (!isSupported) {
-              return const _BiometricRow(
-                title: 'Biometric Lock',
-                subtitle: 'Not supported on this device',
-                enabled: false,
-              );
-            }
+        final subtitle = isEnabled
+            ? 'Biometric authentication required to access app'
+            : status == BiometricStatus.notEnrolled
+                ? 'Set up a fingerprint or face unlock to turn this on'
+                : 'Enable biometric authentication';
 
-            return _BiometricRow(
-              title: 'Biometric Lock',
-              subtitle: isEnabled
-                  ? 'Biometric authentication required to access app'
-                  : 'Enable biometric authentication',
-              trailing: Switch.adaptive(
-                value: isEnabled,
-                onChanged: (final value) async {
-                  if (value) {
-                    final authenticated =
-                        await BiometricService.authenticate();
-                    if (authenticated && context.mounted) {
-                      await ref
-                          .read(biometricLockProvider.notifier)
-                          .enable();
-                      if (context.mounted) {
-                        final messenger = ScaffoldMessenger.of(context);
-                        await HapticFeedback.lightImpact();
-                        messenger.showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Biometric lock enabled',
-                            ),
-                          ),
-                        );
-                      }
-                    }
-                  } else {
-                    await ref
-                        .read(biometricLockProvider.notifier)
-                        .disable();
-                    if (context.mounted) {
-                      final messenger = ScaffoldMessenger.of(context);
-                      await HapticFeedback.lightImpact();
-                      messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Biometric lock disabled',
-                          ),
-                        ),
-                      );
-                    }
-                  }
-                },
-              ),
-            );
-          },
+        return _BiometricRow(
+          title: 'Biometric Lock',
+          subtitle: subtitle,
+          trailing: Switch.adaptive(
+            value: isEnabled,
+            onChanged: (final value) => value ? _turnOn() : _turnOff(),
+          ),
         );
       },
       loading: () => const _BiometricRow(
