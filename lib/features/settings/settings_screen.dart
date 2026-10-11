@@ -6,8 +6,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/models/account.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/shared_prefs_provider.dart';
+import '../../core/repositories/account_repository.dart';
 import '../../core/repositories/budget_repository.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/repositories/emi_repository.dart';
@@ -183,6 +185,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 'title': e.title,
                 'amount': e.amount,
                 'categoryId': e.categoryId,
+                'accountId': e.accountId,
                 'date_ms': e.date.millisecondsSinceEpoch,
                 'notes': e.notes,
               },
@@ -656,6 +659,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   }
 
                   return AlertDialog(
+                    scrollable: true,
                     title: const Text('Change Password'),
                     content: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -697,7 +701,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           },
         ),
         const Divider(height: 1, indent: 52),
-        
+
+        // Cards, UPI, cash and bank accounts that transactions are tagged with
+        _actionTile(
+          icon: Icons.credit_card_outlined,
+          title: 'Accounts & Cards',
+          subtitle: 'Credit card, debit card, UPI, cash',
+          onTap: () => ref.read(appRouterProvider).push('/accounts'),
+        ),
+        const Divider(height: 1, indent: 52),
+
         // Sign out
         _actionTile(
           icon: Icons.logout,
@@ -890,6 +903,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   'title': e.title,
                   'amount': e.amount,
                   'categoryId': e.categoryId,
+                  'accountId': e.accountId,
                   'date_ms': e.date.millisecondsSinceEpoch,
                   'notes': e.notes,
                 })
@@ -1015,13 +1029,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       int count = 0;
       final total = txs.length;
 
+      // A backup may come from another install, so only keep account tags that
+      // exist for this user (the server rejects unknown ids).
+      final knownAccountIds = (await ref.read(userAccountsProvider.future).catchError((_) => const <AccountModel>[]))
+          .map((final a) => a.id)
+          .toSet();
+
       for (final t in txs) {
         if (t is Map) {
+          final backedUpAccount = t['accountId'] as String?;
           await ref.read(transactionRepositoryProvider).create(
                 userId: user.uid,
                 title: (t['title'] as String?) ?? 'Imported',
                 amount: ((t['amount'] as num?) ?? 0).toDouble(),
                 categoryId: t['categoryId'] as String?,
+                accountId: knownAccountIds.contains(backedUpAccount) ? backedUpAccount : null,
                 date: DateTime.fromMillisecondsSinceEpoch(
                     (((t['date_ms'] as num?) ?? DateTime.now().millisecondsSinceEpoch)
                         .toInt())),

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/models/account.dart';
 import '../../core/models/category.dart';
 import '../../core/models/transaction.dart';
+import '../../core/repositories/account_repository.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/ui/category_style.dart';
 import '../../core/ui/constants.dart';
@@ -90,7 +92,19 @@ class TransactionListItem extends ConsumerWidget {
         );
     final category = resolveCategoryName(tx, cats);
     final style = categoryStyleFor(category, isIncome: tx.amount > 0);
-    final caption = '$category · ${formatDate(tx.date, datePattern)}';
+    // Which card / UPI / cash this was paid with; nothing for older,
+    // untagged transactions or while accounts are still loading.
+    final accounts = ref.watch(userAccountsProvider).maybeWhen(
+          data: (final d) => d,
+          orElse: () => const <AccountModel>[],
+        );
+    final accountId = tx.accountId;
+    final account = accountId == null ? null : accounts.where((final a) => a.id == accountId).firstOrNull;
+    final caption = [
+      category,
+      if (account != null) account.shortLabel,
+      formatDate(tx.date, datePattern),
+    ].join(' · ');
 
     return _SavedFlash(
       active: highlight,

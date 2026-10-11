@@ -27,6 +27,12 @@ abstract final class ApiEndpoints {
   // ── App Version ───────────────────────────────────────────────────────────
   static const String appVersion = '/app-version';
 
+  // ── Accounts (cards, UPI, cash, bank) ─────────────────────────────────────
+  static const String accounts = '/accounts';
+  static const String accountTypes = '/accounts/types';
+  static const String accountsSpendSummary = '/accounts/spend-summary';
+  static String accountById(final String id) => '/accounts/$id';
+
   // ── Categories ────────────────────────────────────────────────────────────
   static const String categories = '/categories';
   static String categoryById(final String id) => '/categories/$id';

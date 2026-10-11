@@ -20,6 +20,7 @@ class SharedPrefsService {
   static const String _celebratedGoalsKey = 'celebrated_goal_ids';
   static const String _announcementSeenKey = 'announcement_seen_at';
   static const String _installReferrerCheckedKey = 'deeplink_install_referrer_checked';
+  static const String _lastAccountKey = 'last_used_account_id';
   final SharedPreferences _prefs;
 
   // The Play Install Referrer is only meaningful once, right after a fresh
@@ -29,6 +30,17 @@ class SharedPrefsService {
   bool get installReferrerChecked => _prefs.getBool(_installReferrerCheckedKey) ?? false;
   Future<void> markInstallReferrerChecked() async {
     await _prefs.setBool(_installReferrerCheckedKey, true);
+  }
+
+  /// The account the user tagged their most recent transaction with, so the
+  /// next one can start with it selected.
+  String? get lastAccountId => _prefs.getString(_lastAccountKey);
+  Future<void> setLastAccountId(final String? value) async {
+    if (value == null) {
+      await _prefs.remove(_lastAccountKey);
+    } else {
+      await _prefs.setString(_lastAccountKey, value);
+    }
   }
 
   bool get isOnboardingCompleted => _prefs.getBool(_onboardingKey) ?? false;

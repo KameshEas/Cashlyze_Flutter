@@ -79,6 +79,7 @@ class TransactionRemoteDataSource {
     final bool isIncome = false,
     final String? notes,
     final List<String>? tags,
+    final String? accountId,
   }) async {
     final normalizedCategoryId = _normalizeCategoryId(categoryId);
     final transactionType = isIncome ? 'income' : 'expense';
@@ -97,6 +98,7 @@ class TransactionRemoteDataSource {
         'is_income': isIncome,
         if (notes != null) 'notes': notes,
         if (tags != null && tags.isNotEmpty) 'tags': tags,
+        if (accountId != null && accountId.isNotEmpty) 'account_id': accountId,
       },
     );
     return _fromApiJson((response.data as Map).cast<String, dynamic>());
@@ -136,6 +138,7 @@ class TransactionRemoteDataSource {
     final bool? isIncome,
     final String? notes,
     final List<String>? tags,
+    final String? accountId,
   }) async {
     final normalizedCategoryId = _normalizeCategoryId(categoryId);
     final transactionType = isIncome == true ? 'income' : 'expense';
@@ -154,6 +157,7 @@ class TransactionRemoteDataSource {
         if (isIncome != null) 'is_income': isIncome,
         if (notes != null) 'notes': notes,
         if (tags != null) 'tags': tags,
+        if (accountId != null && accountId.isNotEmpty) 'account_id': accountId,
       },
     );
     return _fromApiJson((response.data as Map).cast<String, dynamic>());
@@ -183,6 +187,7 @@ class TransactionRemoteDataSource {
       date: date,
       notes: json['notes'] as String?,
       tags: (json['tags'] as List?)?.cast<String>(),
+      accountId: json['account_id'] as String? ?? json['accountId'] as String?,
     );
   }
 }

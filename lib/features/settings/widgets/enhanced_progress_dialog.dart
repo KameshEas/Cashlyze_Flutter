@@ -118,6 +118,7 @@ class _EnhancedProgressDialogState extends State<EnhancedProgressDialog> {
   @override
   Widget build(final BuildContext context) {
     return AlertDialog(
+      scrollable: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       title: Row(
         children: [

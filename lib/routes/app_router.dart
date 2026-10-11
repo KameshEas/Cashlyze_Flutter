@@ -9,6 +9,7 @@ import '../core/providers/onboarding_provider.dart';
 import '../core/providers/otp_pending_provider.dart';
 import '../core/services/auth_service.dart';
 import '../core/ui/motion.dart';
+import '../features/accounts/accounts_screen.dart';
 import '../features/ai_assistant/ai_assistant_screen.dart';
 import '../features/auth/auth_screen.dart';
 import '../features/auth/forgot_password_screen.dart';
@@ -304,6 +305,20 @@ final appRouterProvider = Provider<GoRouter>((final ref) {
           transitionDuration: MediaQuery.of(context).disableAnimations
               ? Duration.zero
               : kRouteFadeDuration,
+        ),
+      ),
+      GoRoute(
+        path: '/accounts',
+        name: 'accounts',
+        pageBuilder: (final context, final state) => CustomTransitionPage(
+          child: const AccountsScreen(),
+          transitionsBuilder: AppMotion.sharedAxisX,
+          reverseTransitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialReverseDuration,
+          transitionDuration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : AppMotion.spatialDuration,
         ),
       ),
       GoRoute(

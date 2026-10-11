@@ -25,6 +25,7 @@ class TransactionIngestService {
     required final DateTime date,
     final String? notes,
     final List<String>? tags,
+    final String? accountId,
   }) async {
     final rawCat = categoryId?.trim();
     final cat = (rawCat == null || rawCat.isEmpty) ? null : rawCat;
@@ -67,6 +68,7 @@ class TransactionIngestService {
             'date': date,
             'notes': notes,
             'isIncome': isIncome,
+            'accountId': accountId,
           });
           }
         }
@@ -83,6 +85,7 @@ class TransactionIngestService {
       date: date,
       notes: notes,
       tags: tags,
+      accountId: accountId,
     );
     await _analytics.logEvent(
       'transaction_add',

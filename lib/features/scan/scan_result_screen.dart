@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/models/account.dart';
 import '../../core/models/category.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/scan_providers.dart';
 import '../../core/providers/shared_prefs_provider.dart';
+import '../../core/repositories/account_repository.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/transaction_ingest_service.dart';
@@ -13,6 +15,7 @@ import '../../core/ui/constants.dart';
 import '../../core/ui/motion.dart';
 import '../../core/utils/format.dart';
 import '../../core/utils/repo_error_handler.dart';
+import '../../core/widgets/account_picker_field.dart';
 import '../../core/widgets/category_picker_field.dart';
 
 class ScanResultScreen extends ConsumerStatefulWidget {
@@ -28,6 +31,8 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
   late String category;
   DateTime? selectedDate;
   bool _isSubmitting = false;
+  String? _accountId;
+  String? _accountError;
 
   @override
   void initState() {
@@ -38,6 +43,32 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
     amountController = TextEditingController(text: bill?.amount.toStringAsFixed(2) ?? '');
     category = bill?.suggestedCategory ?? 'General';
     selectedDate = bill?.date;
+    _accountId = ref.read(sharedPrefsServiceProvider).lastAccountId;
+    _suggestAccount(bill?.paymentMethod);
+  }
+
+  /// The receipt often says how it was paid ("UPI", "VISA credit", "cash").
+  /// When it does and the user has a matching account, start with it selected.
+  /// Only a suggestion: it is overridden by anything the user picked meanwhile.
+  Future<void> _suggestAccount(final String? paymentMethod) async {
+    final text = (paymentMethod ?? '').toLowerCase();
+    if (text.isEmpty) return;
+    final AccountKind? kind;
+    if (RegExp('upi|gpay|google pay|phonepe|paytm|bhim').hasMatch(text)) {
+      kind = AccountKind.upi;
+    } else if (text.contains('credit')) {
+      kind = AccountKind.creditCard;
+    } else if (text.contains('debit')) {
+      kind = AccountKind.debitCard;
+    } else if (text.contains('cash')) {
+      kind = AccountKind.cash;
+    } else {
+      kind = null;
+    }
+    if (kind == null) return;
+    final accounts = await ref.read(userAccountsProvider.future).catchError((_) => const <AccountModel>[]);
+    final match = accounts.where((final a) => a.kind == kind).firstOrNull;
+    if (match != null && mounted) setState(() => _accountId = match.id);
   }
 
   @override
@@ -145,6 +176,18 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
                   value: category,
                   onChanged: (final v) => setState(() => category = v),
                   label: 'Category',
+                ),
+              ]),
+              const SizedBox(height: AppSpacing.s20),
+
+              _buildSection('Paid with', [
+                AccountPickerField(
+                  value: _accountId,
+                  errorText: _accountError,
+                  onChanged: (final id) => setState(() {
+                    _accountId = id;
+                    _accountError = null;
+                  }),
                 ),
               ]),
               const SizedBox(height: AppSpacing.s20),
@@ -350,6 +393,18 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
         return;
       }
 
+      // Every transaction needs an account (and the remembered one may be gone).
+      final knownAccounts = await ref.read(userAccountsProvider.future).catchError((_) => const <AccountModel>[]);
+      if (_accountId == null || !knownAccounts.any((final a) => a.id == _accountId)) {
+        if (mounted) {
+          setState(() {
+            _accountId = null;
+            _accountError = 'Choose an account';
+          });
+        }
+        return;
+      }
+
       setState(() => _isSubmitting = true);
       final categoryId = await _resolveCategoryId(userId: user.uid, selectedCategory: category);
 
@@ -364,7 +419,9 @@ class _ScanResultScreenState extends ConsumerState<ScanResultScreen> {
         categoryName: category,
         date: selectedDate ?? DateTime.now(),
         notes: 'Scanned receipt',
+        accountId: _accountId,
       );
+      await ref.read(sharedPrefsServiceProvider).setLastAccountId(_accountId);
 
       if (mounted) {
         // Clear scan state

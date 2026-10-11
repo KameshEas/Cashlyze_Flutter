@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/models/account.dart';
 import '../../core/models/budget.dart';
 import '../../core/models/category.dart';
 import '../../core/models/recurring.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/shared_prefs_provider.dart';
+import '../../core/repositories/account_repository.dart';
 import '../../core/repositories/budget_repository.dart';
 import '../../core/repositories/category_repository.dart';
 import '../../core/repositories/recurring_repository.dart';
@@ -19,8 +21,10 @@ import '../../core/ui/motion.dart';
 import '../../core/utils/format.dart';
 import '../../core/utils/repo_error_handler.dart';
 import '../../core/utils/validation.dart';
+import '../../core/widgets/account_picker_field.dart';
 import '../../core/widgets/category_picker_field.dart';
 import '../../core/widgets/inline_field_error.dart';
+import '../../core/widgets/scrollable_column.dart';
 import '../../core/widgets/segmented_income_expense_toggle.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -34,6 +38,7 @@ class TransactionFormSheet extends ConsumerStatefulWidget {
     this.initialCategory,
     this.initialDate,
     this.initialType,
+    this.initialAccountId,
   }) : mode = TransactionFormMode.create,
        id = null;
 
@@ -44,6 +49,7 @@ class TransactionFormSheet extends ConsumerStatefulWidget {
     this.initialAmount,
     this.initialCategory,
     this.initialDate,
+    this.initialAccountId,
   }) : mode = TransactionFormMode.edit,
        initialType = null;
   final TransactionFormMode mode;
@@ -53,6 +59,10 @@ class TransactionFormSheet extends ConsumerStatefulWidget {
   final String? initialCategory;
   final DateTime? initialDate;
   final String? initialType;
+
+  /// Pre-selected account (the edited transaction's, or one from a scan).
+  /// New transactions otherwise start with the last-used account.
+  final String? initialAccountId;
 
   @override
   ConsumerState<TransactionFormSheet> createState() =>
@@ -72,6 +82,8 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   bool _isSubmitting = false;
   String? _titleError;
   String? _amountError;
+  String? _accountError;
+  String? _accountId;
   final FocusNode _titleFocus = FocusNode();
   final FocusNode _amountFocus = FocusNode();
 
@@ -88,6 +100,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                 .replaceFirst(RegExp(r'\.?0+$'), ''),
     );
     tagsController = TextEditingController();
+    _accountId = widget.initialAccountId ??
+        (widget.mode == TransactionFormMode.create
+            ? ref.read(sharedPrefsServiceProvider).lastAccountId
+            : null);
     if (widget.initialType != null) type = widget.initialType!;
     if (widget.initialAmount != null && widget.initialAmount! >= 0) {
       type = 'Income';
@@ -199,8 +215,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
           ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+            child: ScrollableColumn(
               children: [
                 Text(
                   'Create Budget for "$categoryName"',
@@ -304,6 +319,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                               categoryName:
                                   transactionData['categoryName'] as String?,
                               date: transactionData['date'] as DateTime,
+                              accountId: transactionData['accountId'] as String?,
                               tags:
                                   (transactionData['tags'] as List<String>?)
                                           ?.isNotEmpty ??
@@ -432,6 +448,15 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                 ],
               ),
               const SizedBox(height: 12),
+              AccountPickerField(
+                value: _accountId,
+                errorText: _accountError,
+                onChanged: (final id) => setState(() {
+                  _accountId = id;
+                  _accountError = null;
+                }),
+              ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: titleController,
                 focusNode: _titleFocus,
@@ -502,6 +527,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                       showDialog(
                         context: context,
                         builder: (final ctx) => AlertDialog(
+                          scrollable: true,
                           title: Text(t?.titleLabel ?? 'Add Tag'),
                           content: TextField(
                             controller: tagsController,
@@ -589,13 +615,26 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                           // screen, so it gets focus first).
                           final titleBad = !validateTitle(titleController.text.trim());
                           final amountBad = !validateAmount(amountController.text.trim());
-                          if (titleBad || amountBad) {
+                          // An account is required, and must still exist (the
+                          // remembered one may have been deleted since).
+                          final knownAccounts = await ref
+                              .read(userAccountsProvider.future)
+                              .catchError((_) => const <AccountModel>[]);
+                          final accountBad = _accountId == null ||
+                              !knownAccounts.any((final a) => a.id == _accountId);
+                          if (titleBad || amountBad || accountBad) {
                             setState(() {
                               _titleError = titleBad ? (t?.enterTitleError ?? 'Enter a title') : null;
                               _amountError =
                                   amountBad ? (t?.enterValidAmountError ?? 'Enter a valid amount') : null;
+                              _accountError = accountBad ? 'Choose an account' : null;
+                              if (accountBad) _accountId = null;
                             });
-                            (amountBad ? _amountFocus : _titleFocus).requestFocus();
+                            if (amountBad) {
+                              _amountFocus.requestFocus();
+                            } else if (titleBad) {
+                              _titleFocus.requestFocus();
+                            }
                             return;
                           }
                           if (!validateDate(date)) {
@@ -644,6 +683,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                                     'categoryName': localCategoryName,
                                     'date': date,
                                     'tags': tags.isNotEmpty ? tags : null,
+                                    'accountId': _accountId,
                                   };
                                   if (!context.mounted) return;
                                   final res =
@@ -673,7 +713,9 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                                 categoryName: localCategoryName,
                                 date: date,
                                 tags: tags.isNotEmpty ? tags : null,
+                                accountId: _accountId,
                               );
+                              await ref.read(sharedPrefsServiceProvider).setLastAccountId(_accountId);
                               if (repeatEnabled) {
                                 final freq = repeatFreq == 'Weekly'
                                     ? RecurringFrequency.weekly
@@ -686,6 +728,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                                       amount: amt,
                                       isIncome: isIncome,
                                       categoryId: localCategoryId,
+                                      accountId: _accountId,
                                       startDate: date,
                                       frequency: freq,
                                     );
@@ -707,8 +750,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                                   // the category even when user picks 'General'.
                                   'categoryName': category,
                                   'date_ms': date.millisecondsSinceEpoch,
+                                  'accountId': _accountId,
                                 },
                               );
+                              await ref.read(sharedPrefsServiceProvider).setLastAccountId(_accountId);
                               if (!mounted) return;
                               nav.pop(true);
                             }

@@ -23,6 +23,7 @@ import '../../core/utils/validation.dart';
 import '../../core/widgets/animated_progress_indicator.dart';
 import '../../core/widgets/animated_progress_text.dart';
 import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/scrollable_column.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../l10n/app_localizations.dart';
 import '../onboarding/budget_tutorial_overlay.dart';
@@ -689,8 +690,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
             child: StatefulBuilder(builder: (final ctx, final setSheetState) => Consumer(builder: (final cctx, final wref, final _) {
               // Budget creation modal: no category selection UI
 
-              return Column(
-                mainAxisSize: MainAxisSize.min,
+              return ScrollableColumn(
                 children: [
                   Container(
                     width: 48,
@@ -910,8 +910,7 @@ class _BudgetPlannerScreenState extends ConsumerState<BudgetPlannerScreen> {
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            child: StatefulBuilder(builder: (final ctx, final setSheetState) => Column(
-              mainAxisSize: MainAxisSize.min,
+            child: StatefulBuilder(builder: (final ctx, final setSheetState) => ScrollableColumn(
               children: [
                 Container(
                   width: 48,
